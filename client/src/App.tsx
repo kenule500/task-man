@@ -42,7 +42,7 @@ function App() {
           <Route path="/:workspaceSlug/tasks" element={<TaskPage />} />
           <Route path="/:workspaceSlug/projects" element={<PlaceholderPage title="Projects" />} />
           <Route path="/:workspaceSlug/team" element={<PlaceholderPage title="Team Members" />} />
-          <Route path="/:workspaceSlug/calendar" element={<PlaceholderPage title="Calendar" />} />
+          <Route path="/:workspaceSlug/calendar" element={<TaskPage defaultView="calendar" />} />
           <Route path="/:workspaceSlug/reports" element={<PlaceholderPage title="Reports" />} />
           <Route path="/:workspaceSlug/settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="/:workspaceSlug/help" element={<PlaceholderPage title="Help & Center" />} />
