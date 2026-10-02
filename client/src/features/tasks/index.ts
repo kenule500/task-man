@@ -8,6 +8,7 @@ export * from './lib/filters';
 export * from './lib/schedule';
 export * from './lib/dependencies';
 export * from './lib/taskForm';
+export * from './lib/reports';
 
 export { StatusBadge, StatusDot, PriorityIndicator, DueDate, DependencyCount } from './components/TaskBadges';
 export { OptionSelect, StatusSelect, PrioritySelect } from './components/TaskSelects';

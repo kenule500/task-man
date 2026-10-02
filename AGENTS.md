@@ -55,6 +55,10 @@ client/src/
     components/  Badges, selects, inline edit, dialogs, toolbar, filter pills...
     views/       ListView, BoardView, CalendarView, TimelineView (share TaskViewProps)
     __tests__/
+  features/workspace/ Workspace members/settings API + helpers
+  hooks/         useAuthGuard (page guard + logout), use-mobile
+  utils/         api (axios, 401 → login), session (token/user storage)
+  config.ts      Vite env (VITE_API_URL); stubbed in Jest
   pages/         Route screens
 ```
 
@@ -67,6 +71,8 @@ client/src/
 - **Dates are calendar days:** send/receive `YYYY-MM-DD`; on the client use `lib/date.ts`
   (`parseDateKey`, `toDateKey`, `dateKeyOf`) — never `new Date('YYYY-MM-DD')` for display.
 - **New view?** Implement `TaskViewProps` (`views/types.ts`), read data from `useTasks`, put logic in `lib/` with tests.
+- **Pages:** start with `const { user, logout } = useAuthGuard()` and render inside `<Sidebar user={user} onLogout={logout}>`;
+  never read `localStorage` directly — use `utils/session.ts`.
 - **UI:** follow `DESIGN.md`. Use shadcn primitives from `components/ui`; no new UI libraries without discussion.
 - **Pure logic first:** anything non-visual goes in `lib/` or `utils/` with a Jest test.
 - **Secrets:** never commit `.env`. Seed credentials are test-only and live in `server/src/scripts/seed.ts`.

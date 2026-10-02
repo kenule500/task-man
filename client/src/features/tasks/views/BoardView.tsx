@@ -175,6 +175,11 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
       >
         {task.title}
       </button>
+      {task.project && (
+        <span className="mt-1.5 inline-block max-w-full truncate text-xs text-slate-500 bg-slate-100 rounded px-1.5" title="Project">
+          {task.project}
+        </span>
+      )}
       {task.description && <p className="mt-1 text-xs text-slate-400 line-clamp-2">{task.description}</p>}
 
       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">

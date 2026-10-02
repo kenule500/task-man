@@ -6,6 +6,7 @@ export type TaskSort = (typeof TASK_SORTS)[number];
 export interface TaskListQuery {
   status?: TaskStatus;
   search?: string;
+  project?: string;
   sort: TaskSort;
   from?: Date;
   to?: Date;
@@ -27,9 +28,12 @@ export const parseTaskListQuery = (query: Record<string, unknown>): TaskListQuer
   const sort = TASK_SORTS.includes(query.sort as TaskSort) ? (query.sort as TaskSort) : 'createdAt';
   const search = typeof query.search === 'string' ? query.search.trim().slice(0, 100) : '';
 
+  const project = typeof query.project === 'string' ? query.project.trim().slice(0, 60) : '';
+
   return {
     status,
     search: search || undefined,
+    project: project || undefined,
     sort,
     from: parseDate(query.from),
     to: parseDate(query.to),
@@ -41,6 +45,7 @@ export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery) => {
   const filter: Record<string, unknown> = { workspace: workspaceId };
 
   if (query.status) filter.status = query.status;
+  if (query.project) filter.project = query.project;
 
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');

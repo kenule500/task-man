@@ -11,6 +11,8 @@ export interface ITask extends Document {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
+  // Free-text label used to group tasks on the Projects page
+  project: string;
   startDate?: Date;
   deadline: Date;
   // Manual ordering inside a board column (lower comes first)
@@ -29,6 +31,7 @@ const taskSchema: Schema = new Schema({
   description: { type: String, default: '', trim: true, maxlength: 2000 },
   status: { type: String, enum: TASK_STATUSES, default: 'pending' },
   priority: { type: String, enum: TASK_PRIORITIES, default: 'medium' },
+  project: { type: String, default: '', trim: true, maxlength: 60 },
   startDate: { type: Date },
   deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },

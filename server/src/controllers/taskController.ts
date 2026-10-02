@@ -13,7 +13,7 @@ import {
 
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
-  'title', 'description', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
+  'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
 ] as const;
 
 class TaskRuleError extends Error {}
@@ -23,6 +23,7 @@ class TaskRuleError extends Error {}
 // ================================================================
 const optionalFieldRules = [
   body('description').optional().isString().isLength({ max: 2000 }).withMessage('Description is too long'),
+  body('project').optional().isString().isLength({ max: 60 }).withMessage('Project name is too long'),
   body('status').optional().isIn(TASK_STATUSES).withMessage('Invalid status'),
   body('priority').optional().isIn(TASK_PRIORITIES).withMessage('Invalid priority'),
   body('startDate').optional({ values: 'null' }).isISO8601().withMessage('Invalid start date'),
@@ -96,7 +97,7 @@ const handleError = (res: Response, error: unknown, context: string) => {
 
 // ================================================================
 // @desc    List tasks of a workspace (filter, search, sort, date range)
-// @route   GET /api/workspaces/:slug/tasks?status=&search=&sort=&from=&to=
+// @route   GET /api/workspaces/:slug/tasks?status=&project=&search=&sort=&from=&to=
 // ================================================================
 export const getTasks = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -125,7 +126,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
 
   try {
     const workspace = getRequestWorkspace(res);
-    const { title, description, status, priority, startDate, deadline, position } = req.body;
+    const { title, description, project, status, priority, startDate, deadline, position } = req.body;
     const dependencies = normalizeIds(req.body.dependencies);
 
     const start = startDate ? new Date(startDate) : undefined;
@@ -136,6 +137,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     const task = await Task.create({
       title,
       description,
+      project,
       status,
       priority,
       startDate: start,

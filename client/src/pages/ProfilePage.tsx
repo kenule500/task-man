@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { clearSession, getToken, updateStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,8 +36,7 @@ const ProfilePage = () => {
 
   // ============ Fetch profile on mount ============
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!getToken()) {
       navigate('/login');
       return;
     }
@@ -66,8 +66,7 @@ const ProfilePage = () => {
         console.error('Profile fetch failed:', axiosError.response?.data || err);
 
         if (axiosError.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          clearSession();
           navigate('/login');
           return;
         }
@@ -96,9 +95,7 @@ const ProfilePage = () => {
       const response = await api.put('/profile', formData);
 
       // Update stored user
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const updated = { ...storedUser, ...response.data };
-      localStorage.setItem('user', JSON.stringify(updated));
+      updateStoredUser(response.data);
 
       // Update local state
       setUser({

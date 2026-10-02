@@ -4,6 +4,7 @@ import { dateKeyOf, todayKey } from './date';
 export interface TaskFormValues {
   title: string;
   description: string;
+  project: string;
   status: TaskStatus;
   priority: TaskPriority;
   /** `YYYY-MM-DD` or empty */
@@ -19,6 +20,7 @@ export type TaskFormErrors = Partial<Record<'title' | 'deadline' | 'startDate', 
 export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValues> = {}): TaskFormValues => ({
   title: task?.title ?? '',
   description: task?.description ?? '',
+  project: task?.project ?? '',
   status: task?.status ?? 'pending',
   priority: task?.priority ?? 'medium',
   startDate: task?.startDate ? dateKeyOf(task.startDate) : '',
@@ -41,6 +43,7 @@ export const validateTaskForm = (values: TaskFormValues): TaskFormErrors => {
 export const toTaskInput = (values: TaskFormValues): TaskInput => ({
   title: values.title.trim(),
   description: values.description.trim(),
+  project: values.project.trim(),
   status: values.status,
   priority: values.priority,
   startDate: values.startDate || null,

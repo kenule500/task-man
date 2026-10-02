@@ -89,6 +89,26 @@ describe('createTask', () => {
     expect(res.statusCode).toBe(201);
     expect(res.body).toMatchObject({ title: 'Ship', owner: 'user-1', workspace: workspaceId });
   });
+
+  it('saves the project label', async () => {
+    TaskMock.create.mockImplementation(async (data: unknown) => data);
+    const req = createRequest({ title: 'Ship', deadline: '2026-10-01', project: 'Website' });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toMatchObject({ project: 'Website' });
+  });
+
+  it('rejects a project name longer than 60 characters', async () => {
+    const req = createRequest({ title: 'Ship', deadline: '2026-10-01', project: 'p'.repeat(61) });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe('updateTask', () => {

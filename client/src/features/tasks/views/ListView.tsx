@@ -80,6 +80,11 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete }: ListRowProps) => {
           className={cn('font-medium text-sm text-slate-900', completed && 'text-slate-400 line-through')}
         />
         <div className="flex items-center gap-2 mt-0.5">
+          {task.project && (
+            <span className="max-w-32 shrink-0 truncate text-xs text-slate-500 bg-slate-100 rounded px-1.5" title="Project">
+              {task.project}
+            </span>
+          )}
           {task.description && <p className="text-xs text-slate-400 line-clamp-1">{task.description}</p>}
           <DependencyCount count={task.dependencies.length} />
         </div>

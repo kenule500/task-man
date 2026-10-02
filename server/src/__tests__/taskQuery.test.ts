@@ -5,6 +5,7 @@ describe('parseTaskListQuery', () => {
     expect(parseTaskListQuery({ status: 'archived', sort: 'random', search: '   ' })).toEqual({
       status: undefined,
       search: undefined,
+      project: undefined,
       sort: 'createdAt',
       from: undefined,
       to: undefined,
@@ -29,11 +30,25 @@ describe('parseTaskListQuery', () => {
   it('caps the search length', () => {
     expect(parseTaskListQuery({ search: 'x'.repeat(500) }).search).toHaveLength(100);
   });
+
+  it('trims and caps the project filter', () => {
+    expect(parseTaskListQuery({ project: '  Website  ' }).project).toBe('Website');
+    expect(parseTaskListQuery({ project: 'p'.repeat(200) }).project).toHaveLength(60);
+    expect(parseTaskListQuery({ project: '   ' }).project).toBeUndefined();
+    expect(parseTaskListQuery({ project: { $ne: '' } }).project).toBeUndefined();
+  });
 });
 
 describe('buildTaskFilter', () => {
   it('always scopes to the workspace', () => {
     expect(buildTaskFilter('ws1', { sort: 'createdAt' })).toEqual({ workspace: 'ws1' });
+  });
+
+  it('filters by exact project name', () => {
+    expect(buildTaskFilter('ws1', { sort: 'createdAt', project: 'Website' })).toEqual({
+      workspace: 'ws1',
+      project: 'Website',
+    });
   });
 
   it('combines status, escaped search and a deadline range', () => {

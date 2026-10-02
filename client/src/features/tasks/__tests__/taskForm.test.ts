@@ -27,6 +27,12 @@ describe('task form helpers', () => {
     expect(errors.startDate).toBeDefined();
   });
 
+  it('prefills and trims the project label', () => {
+    expect(toFormValues(makeTask({ project: 'Website' })).project).toBe('Website');
+    expect(toFormValues().project).toBe('');
+    expect(toTaskInput({ ...toFormValues(), title: 'x', project: '  Website  ' }).project).toBe('Website');
+  });
+
   it('trims text and sends an empty start date as null', () => {
     expect(toTaskInput({ ...toFormValues(), title: '  Ship  ', description: ' ', deadline: '2026-10-01' })).toMatchObject({
       title: 'Ship',

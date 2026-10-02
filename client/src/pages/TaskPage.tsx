@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, AlarmClock, CheckSquare, Clock, ListTodo, Plus, X } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import Sidebar from '../components/Sidebar';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { Button } from '@/components/ui/button';
 import {
   BoardView, CalendarView, ConfirmDeleteDialog, DEFAULT_FILTERS, ListView, TASK_VIEWS, TaskFormDialog,
@@ -10,29 +11,10 @@ import {
   type Task, type TaskFilters, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspace?: string;
-  activeWorkspaceSlug?: string;
-  workspaces?: string[];
-}
-
 type FormState =
   | { mode: 'closed' }
   | { mode: 'create'; defaults?: Partial<TaskFormValues> }
   | { mode: 'edit'; task: Task };
-
-const readStoredUser = (): UserData | null => {
-  try {
-    const userData = localStorage.getItem('user');
-    return userData ? JSON.parse(userData) : null;
-  } catch {
-    return null;
-  }
-};
 
 interface TaskPageProps {
   /** View shown when the URL has no `?view=` (e.g. the Calendar menu entry). */
@@ -40,11 +22,10 @@ interface TaskPageProps {
 }
 
 const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
-  const navigate = useNavigate();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [user, setUser] = useState<UserData | null>(readStoredUser);
+  const { user, logout } = useAuthGuard();
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
   const [form, setForm] = useState<FormState>({ mode: 'closed' });
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -55,25 +36,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const view: TaskView = requestedView && TASK_VIEWS.includes(requestedView) ? requestedView : defaultView;
   const setView = (next: TaskView) => setSearchParams({ view: next }, { replace: true });
 
-  // Auth + onboarding guard
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || !user) {
-      navigate('/login');
-      return;
-    }
-    if (!user.onboardingComplete) navigate('/onboarding');
-  }, [navigate, user]);
-
   const visibleTasks = useMemo(() => applyFilters(tasks, filters), [tasks, filters]);
   const stats = useMemo(() => getTaskStats(tasks), [tasks]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/');
-  };
 
   const viewProps = {
     tasks: visibleTasks,
@@ -86,7 +50,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   if (!user) return null;
 
   return (
-    <Sidebar user={user} onLogout={handleLogout}>
+    <Sidebar user={user} onLogout={logout}>
       <div className="space-y-6">
         <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>

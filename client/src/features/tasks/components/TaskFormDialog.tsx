@@ -42,6 +42,10 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
   const [saving, setSaving] = useState(false);
 
   const candidates = useMemo(() => getDependencyCandidates(tasks, task?._id), [tasks, task?._id]);
+  const projectNames = useMemo(
+    () => [...new Set(tasks.map(item => item.project?.trim()).filter((name): name is string => Boolean(name)))].sort(),
+    [tasks],
+  );
   const isEdit = Boolean(task);
 
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
@@ -128,6 +132,23 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
                 className="min-h-20 bg-white border border-gray-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none"
                 maxLength={2000}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="task-project" className="text-sm font-medium text-slate-700">Project</Label>
+              <Input
+                id="task-project"
+                value={values.project}
+                onChange={e => set('project', e.target.value)}
+                placeholder="Group tasks under a project (optional)"
+                className={fieldClass}
+                maxLength={60}
+                list="task-project-options"
+                autoComplete="off"
+              />
+              <datalist id="task-project-options">
+                {projectNames.map(name => <option key={name} value={name} />)}
+              </datalist>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

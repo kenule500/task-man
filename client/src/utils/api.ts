@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_URL } from '@/config';
+import { clearSession, getToken } from '@/utils/session';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -11,7 +12,7 @@ const api = axios.create({
 // Automatically attach the JWT token to every request if it exists
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -20,6 +21,21 @@ api.interceptors.request.use(
   (error) => {
     return Promise.reject(error);
   }
+);
+
+// An expired or revoked session on a protected call: clear it and go back to login.
+// Auth endpoints (login, signup...) handle their own 401s.
+api.interceptors.response.use(
+  response => response,
+  error => {
+    const status = error?.response?.status;
+    const url: string = error?.config?.url ?? '';
+    if (status === 401 && getToken() && !url.startsWith('/auth/')) {
+      clearSession();
+      if (window.location.pathname !== '/login') window.location.assign('/login?expired=1');
+    }
+    return Promise.reject(error);
+  },
 );
 
 /** Readable message from an API error (`{ message }` or express-validator `{ errors }`). */

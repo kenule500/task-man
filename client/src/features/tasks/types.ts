@@ -7,6 +7,8 @@ export interface Task {
   _id: string;
   title: string;
   description?: string;
+  /** Free-text label used to group tasks on the Projects page. */
+  project?: string;
   status: TaskStatus;
   priority: TaskPriority;
   /** ISO date string. Optional: tasks without a start are shown as one-day bars. */
@@ -26,6 +28,7 @@ export interface Task {
 export interface TaskInput {
   title: string;
   description?: string;
+  project?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
   startDate?: string | null;
