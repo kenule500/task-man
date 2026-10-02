@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { AlertCircle, CheckSquare, Clock, Plus, X } from 'lucide-react';
+import { AlertCircle, AlarmClock, CheckSquare, Clock, ListTodo, Plus, X } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import Sidebar from '../components/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -127,15 +127,20 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard title="Total Tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-slate-600" />
+              <StatCard title="Total Tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
               <StatCard title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
-              <StatCard title="Completed" value={stats.completed} subtitle="Tasks finished" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
-              <StatCard title="Pending" value={stats.pending} subtitle="Awaiting your action" icon={<AlertCircle className="w-4 h-4" />} colorClass="text-amber-600" />
+              <StatCard title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
+              <StatCard title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
             </div>
 
-            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
               <ViewSwitcher value={view} onChange={setView} />
-              <TaskToolbar filters={filters} onChange={setFilters} showSort={view === 'list'} />
+              <TaskToolbar
+                filters={filters}
+                onChange={setFilters}
+                showSort={view === 'list'}
+                counts={{ all: stats.total, pending: stats.pending, 'in-progress': stats.inProgress, completed: stats.completed }}
+              />
             </div>
 
             {view === 'list' && <ListView {...viewProps} totalCount={tasks.length} />}

@@ -1,10 +1,15 @@
 import { PRIORITY_META, TASK_STATUSES } from '../constants';
+import { isOverdue } from './date';
 import type { Task, TaskFilters, TaskSort, TaskStatus } from '../types';
 
-export const DEFAULT_FILTERS: TaskFilters = { search: '', status: 'all', sort: 'createdAt' };
+export const DEFAULT_FILTERS: TaskFilters = { search: '', status: 'all', priority: 'all', sort: 'createdAt' };
 
-export const matchesFilters = (task: Task, { search, status }: Pick<TaskFilters, 'search' | 'status'>) => {
+export const matchesFilters = (
+  task: Task,
+  { search, status, priority = 'all' }: Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority'>>,
+) => {
   if (status !== 'all' && task.status !== status) return false;
+  if (priority !== 'all' && task.priority !== priority) return false;
   const term = search.trim().toLowerCase();
   if (!term) return true;
   return task.title.toLowerCase().includes(term) || (task.description?.toLowerCase().includes(term) ?? false);
@@ -57,9 +62,13 @@ export const getDropPosition = (column: Task[], taskId: string, index: number): 
   return positionBetween(others[insertAt - 1]?.position, others[insertAt]?.position);
 };
 
-export const getTaskStats = (tasks: Task[]) => ({
-  total: tasks.length,
-  pending: tasks.filter(t => t.status === 'pending').length,
-  inProgress: tasks.filter(t => t.status === 'in-progress').length,
-  completed: tasks.filter(t => t.status === 'completed').length,
-});
+export const getTaskStats = (tasks: Task[]) => {
+  const stats = { total: tasks.length, pending: 0, inProgress: 0, completed: 0, overdue: 0 };
+  for (const task of tasks) {
+    if (task.status === 'pending') stats.pending += 1;
+    else if (task.status === 'in-progress') stats.inProgress += 1;
+    else stats.completed += 1;
+    if (isOverdue(task.deadline, task.status === 'completed')) stats.overdue += 1;
+  }
+  return stats;
+};

@@ -18,6 +18,7 @@ export { default as ConfirmDeleteDialog } from './components/ConfirmDeleteDialog
 export { default as EmptyState } from './components/EmptyState';
 export { default as TaskToolbar } from './components/TaskToolbar';
 export { default as ViewSwitcher } from './components/ViewSwitcher';
+export { default as FilterPills } from './components/FilterPills';
 
 export { default as ListView } from './views/ListView';
 export { default as BoardView } from './views/BoardView';

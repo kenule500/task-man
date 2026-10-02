@@ -15,6 +15,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^@/config$': '<rootDir>/test/config.stub.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '\.(css|less|scss)$': 'identity-obj-proxy',
   },

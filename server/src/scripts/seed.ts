@@ -8,7 +8,7 @@ import Task from '../models/taskModel.js';
 
 // Test-only credentials for the local demo account
 const DEMO_EMAIL = 'demo@taskman.test';
-const DEMO_PASSWORD = 'Demo-task-2026!';
+const DEMO_PASSWORD = 'demo1234';
 const DEMO_SLUG = 'demo-workspace';
 
 const uri = process.env.MONGO_URI ?? '';

@@ -44,10 +44,19 @@ export const STATUS_META: Record<TaskStatus, StatusMeta> = {
   },
 };
 
-export const PRIORITY_META: Record<TaskPriority, { label: string; text: string; dot: string; rank: number }> = {
-  high: { label: 'High', text: 'text-red-600', dot: 'bg-red-500', rank: 1 },
-  medium: { label: 'Medium', text: 'text-amber-600', dot: 'bg-amber-500', rank: 2 },
-  low: { label: 'Low', text: 'text-emerald-600', dot: 'bg-emerald-500', rank: 3 },
+interface PriorityMeta {
+  label: string;
+  text: string;
+  dot: string;
+  /** Top accent of board cards */
+  accent: string;
+  rank: number;
+}
+
+export const PRIORITY_META: Record<TaskPriority, PriorityMeta> = {
+  high: { label: 'High', text: 'text-red-600', dot: 'bg-red-500', accent: 'border-t-red-400', rank: 1 },
+  medium: { label: 'Medium', text: 'text-amber-600', dot: 'bg-amber-500', accent: 'border-t-amber-400', rank: 2 },
+  low: { label: 'Low', text: 'text-emerald-600', dot: 'bg-emerald-500', accent: 'border-t-emerald-400', rank: 3 },
 };
 
 export const STATUS_OPTIONS: SelectOption<TaskStatus>[] = TASK_STATUSES.map(status => ({

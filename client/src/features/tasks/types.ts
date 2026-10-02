@@ -39,5 +39,6 @@ export type TaskPatch = Partial<TaskInput>;
 export interface TaskFilters {
   search: string;
   status: TaskStatus | 'all';
+  priority: TaskPriority | 'all';
   sort: TaskSort;
 }

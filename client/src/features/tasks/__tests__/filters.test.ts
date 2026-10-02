@@ -12,6 +12,11 @@ describe('matchesFilters', () => {
     expect(matchesFilters(task, { search: 'budget', status: 'all' })).toBe(false);
   });
 
+  it('filters by priority', () => {
+    expect(matchesFilters(task, { search: '', status: 'all', priority: 'medium' })).toBe(true);
+    expect(matchesFilters(task, { search: '', status: 'all', priority: 'high' })).toBe(false);
+  });
+
   it('filters by status', () => {
     expect(matchesFilters(task, { search: '', status: 'in-progress' })).toBe(true);
     expect(matchesFilters(task, { search: '', status: 'completed' })).toBe(false);
@@ -38,7 +43,7 @@ describe('sortTasks', () => {
   });
 
   it('combines filters and sorting', () => {
-    const result = applyFilters([late, early, mid], { search: '', status: 'all', sort: 'deadline' });
+    const result = applyFilters([late, early, mid], { search: '', status: 'all', priority: 'all', sort: 'deadline' });
     expect(result.map(t => t.title)).toEqual(['early', 'mid', 'late']);
   });
 });
@@ -78,12 +83,12 @@ describe('board ordering', () => {
 });
 
 describe('getTaskStats', () => {
-  it('counts tasks per status', () => {
+  it('counts tasks per status and unfinished overdue tasks', () => {
     const stats = getTaskStats([
-      makeTask({ status: 'pending' }),
-      makeTask({ status: 'completed' }),
-      makeTask({ status: 'completed' }),
+      makeTask({ status: 'pending', deadline: '2099-01-01' }),
+      makeTask({ status: 'pending', deadline: '2000-01-01' }),
+      makeTask({ status: 'completed', deadline: '2000-01-01' }),
     ]);
-    expect(stats).toEqual({ total: 3, pending: 1, inProgress: 0, completed: 2 });
+    expect(stats).toEqual({ total: 3, pending: 2, inProgress: 0, completed: 1, overdue: 1 });
   });
 });

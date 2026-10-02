@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DependencyCount, DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
 import TaskActionsMenu from '../components/TaskActionsMenu';
-import { STATUS_META, TASK_STATUSES } from '../constants';
+import { PRIORITY_META, STATUS_META, TASK_STATUSES } from '../constants';
 import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
 import type { Task, TaskStatus } from '../types';
 import type { TaskViewProps } from './types';
@@ -149,7 +149,8 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        'group cursor-grab rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing',
+        'group cursor-grab rounded-xl border border-t-[3px] border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing',
+        PRIORITY_META[task.priority].accent,
         dragging && 'opacity-40',
       )}
     >
