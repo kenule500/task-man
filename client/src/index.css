@@ -8,6 +8,24 @@
   --color-text-main: #111827;
   --color-text-muted: #6B7280;
 
+  /* shadcn semantic tokens mapped to the app palette (slate + blue) */
+  --color-foreground: #0F172A;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F1F5F9;
+  --color-secondary-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  --color-accent: #F1F5F9;
+  --color-accent-foreground: #0F172A;
+  --color-destructive: #DC2626;
+  --color-border: #E2E8F0;
+  --color-input: #E2E8F0;
+  --color-ring: #93C5FD;
+
   /* shadcn Sidebar variables */
   --color-sidebar: #FFFFFF;
   --color-sidebar-foreground: #0F172A;
