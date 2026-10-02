@@ -1,8 +1,8 @@
 import { useMemo, useState, type DragEvent } from 'react';
-import { Link2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
+import { DependencyCount, DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
 import TaskActionsMenu from '../components/TaskActionsMenu';
 import { STATUS_META, TASK_STATUSES } from '../constants';
 import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
@@ -178,13 +178,7 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
 
       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
         <DueDate deadline={task.deadline} completed={completed} />
-        {task.dependencies.length > 0 && (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-400" title="Dependencies">
-            <Link2 className="size-3" aria-hidden />
-            {task.dependencies.length}
-            <span className="sr-only">dependencies</span>
-          </span>
-        )}
+        <DependencyCount count={task.dependencies.length} />
       </div>
     </article>
   );

@@ -1,7 +1,7 @@
-import { Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import EmptyState from '../components/EmptyState';
+import { DependencyCount } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
 import TaskActionsMenu from '../components/TaskActionsMenu';
 import { PrioritySelect, StatusSelect } from '../components/TaskSelects';
@@ -81,13 +81,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete }: ListRowProps) => {
         />
         <div className="flex items-center gap-2 mt-0.5">
           {task.description && <p className="text-xs text-slate-400 line-clamp-1">{task.description}</p>}
-          {task.dependencies.length > 0 && (
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-400" title="Dependencies">
-              <Link2 className="size-3" aria-hidden />
-              {task.dependencies.length}
-              <span className="sr-only">dependencies</span>
-            </span>
-          )}
+          <DependencyCount count={task.dependencies.length} />
         </div>
       </div>
 

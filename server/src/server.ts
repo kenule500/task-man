@@ -17,14 +17,17 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting: strict on auth, roomier for the app API where board,
+// calendar and timeline drag interactions issue many small updates
+const limitMessage = 'Too many requests from this IP, please try again later.';
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: limitMessage });
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  // Board/calendar/timeline drag interactions issue many small updates
   max: Number(process.env.RATE_LIMIT_MAX) || 500,
-  message: 'Too many requests from this IP, please try again later.',
+  message: limitMessage,
 });
-app.use('/api', limiter);
+app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

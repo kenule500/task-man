@@ -8,7 +8,9 @@ export const getDependentIds = (taskId: string, tasks: Task[]): Set<string> => {
   const dependants = new Map<string, string[]>();
   for (const task of tasks) {
     for (const dep of task.dependencies ?? []) {
-      dependants.set(dep, [...(dependants.get(dep) ?? []), task._id]);
+      const list = dependants.get(dep);
+      if (list) list.push(task._id);
+      else dependants.set(dep, [task._id]);
     }
   }
 

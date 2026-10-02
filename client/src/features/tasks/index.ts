@@ -9,7 +9,7 @@ export * from './lib/schedule';
 export * from './lib/dependencies';
 export * from './lib/taskForm';
 
-export { StatusBadge, StatusDot, PriorityIndicator, DueDate } from './components/TaskBadges';
+export { StatusBadge, StatusDot, PriorityIndicator, DueDate, DependencyCount } from './components/TaskBadges';
 export { OptionSelect, StatusSelect, PrioritySelect } from './components/TaskSelects';
 export { InlineText, InlineDate } from './components/InlineEdit';
 export { default as TaskActionsMenu } from './components/TaskActionsMenu';

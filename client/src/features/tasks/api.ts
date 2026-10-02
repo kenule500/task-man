@@ -1,5 +1,7 @@
-import api from '@/utils/api';
+import api, { getApiErrorMessage } from '@/utils/api';
 import type { Task, TaskInput, TaskPatch } from './types';
+
+export { getApiErrorMessage };
 
 const tasksUrl = (workspaceSlug: string) => `/workspaces/${encodeURIComponent(workspaceSlug)}/tasks`;
 
@@ -19,13 +21,6 @@ export const tasksApi = {
   remove: async (workspaceSlug: string, id: string): Promise<void> => {
     await api.delete(`${tasksUrl(workspaceSlug)}/${id}`);
   },
-};
-
-/** Extracts a readable message from an API error (express-validator or `{ message }`). */
-export const getApiErrorMessage = (error: unknown, fallback: string): string => {
-  const data = (error as { response?: { data?: { message?: string; errors?: { msg: string }[] } } })
-    .response?.data;
-  return data?.message || data?.errors?.[0]?.msg || fallback;
 };
 
 export const getApiErrorStatus = (error: unknown): number | undefined =>

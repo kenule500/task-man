@@ -12,11 +12,9 @@ const applyPatch = (task: Task, patch: TaskPatch): Task => ({ ...task, ...patch 
 export const useTasks = (workspaceSlug: string | undefined) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState('');
-  // Bumped by `refetch`; together with the slug it identifies the wanted data
-  const [reloadKey, setReloadKey] = useState(0);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  const requestKey = `${workspaceSlug}:${reloadKey}`;
-  const loading = Boolean(workspaceSlug) && loadedKey !== requestKey;
+  // Workspace whose tasks are currently loaded; loading until it matches the URL
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
+  const loading = Boolean(workspaceSlug) && loadedSlug !== workspaceSlug;
 
   // Latest committed tasks, read by mutations to build rollbacks
   const tasksRef = useRef(tasks);
@@ -43,16 +41,14 @@ export const useTasks = (workspaceSlug: string | undefined) => {
           : getApiErrorMessage(err, 'Failed to load tasks.'));
       })
       .finally(() => {
-        if (!cancelled) setLoadedKey(requestKey);
+        if (!cancelled) setLoadedSlug(workspaceSlug);
       });
 
     // Ignore responses of a workspace the user already left
     return () => {
       cancelled = true;
     };
-  }, [workspaceSlug, requestKey]);
-
-  const refetch = useCallback(() => setReloadKey(key => key + 1), []);
+  }, [workspaceSlug]);
 
   /** Creates a task; throws so forms can show the server's validation message. */
   const createTask = useCallback(async (input: TaskInput): Promise<Task | null> => {
@@ -110,7 +106,6 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     loading,
     error,
     clearError,
-    refetch,
     createTask,
     updateTask,
     deleteTask,

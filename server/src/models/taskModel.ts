@@ -27,18 +27,22 @@ export interface ITask extends Document {
 const taskSchema: Schema = new Schema({
   title: { type: String, required: true, trim: true, maxlength: 140 },
   description: { type: String, default: '', trim: true, maxlength: 2000 },
-  status: { type: String, enum: TASK_STATUSES, default: 'pending', index: true },
+  status: { type: String, enum: TASK_STATUSES, default: 'pending' },
   priority: { type: String, enum: TASK_PRIORITIES, default: 'medium' },
   startDate: { type: Date },
-  deadline: { type: Date, required: true, index: true },
+  deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },
   dependencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+  workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
   completedAt: { type: Date },
 }, {
   timestamps: true,
 });
+
+// Workspace lists are sorted by these fields
+taskSchema.index({ workspace: 1, deadline: 1 });
+taskSchema.index({ workspace: 1, position: 1 });
 
 // Keep completedAt in sync with the status so reports can rely on it
 taskSchema.pre('save', function () {

@@ -1,4 +1,4 @@
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIORITY_META, STATUS_META } from '../constants';
 import { formatDate, isOverdue } from '../lib/date';
@@ -38,3 +38,13 @@ export const DueDate = ({ deadline, completed = false, className }: DueDateProps
     </span>
   );
 };
+
+/** Number of prerequisites, hidden when there are none. */
+export const DependencyCount = ({ count, className }: { count: number; className?: string }) =>
+  count > 0 ? (
+    <span className={cn('inline-flex shrink-0 items-center gap-1 text-xs text-slate-400', className)} title="Dependencies">
+      <Link2 className="size-3" aria-hidden />
+      {count}
+      <span className="sr-only">dependencies</span>
+    </span>
+  ) : null;

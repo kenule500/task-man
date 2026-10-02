@@ -21,4 +21,11 @@ api.interceptors.request.use(
   }
 );
 
+/** Readable message from an API error (`{ message }` or express-validator `{ errors }`). */
+export const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const data = (error as { response?: { data?: { message?: string; errors?: { msg: string }[] } } })
+    .response?.data;
+  return data?.message || data?.errors?.[0]?.msg || fallback;
+};
+
 export default api;

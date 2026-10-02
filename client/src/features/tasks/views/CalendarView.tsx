@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { STATUS_META } from '../constants';
-import { addMonths, formatMonth, isOverdue, startOfMonth } from '../lib/date';
+import { addMonths, dateKeyOf, formatMonth, isOverdue, startOfMonth } from '../lib/date';
 import { buildMonthGrid, groupByDeadline, rescheduleToDeadline, type CalendarDay } from '../lib/schedule';
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
@@ -29,7 +29,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: Calen
     event.preventDefault();
     setDragOverKey(null);
     const task = tasks.find(t => t._id === event.dataTransfer.getData('text/plain'));
-    if (task && task.deadline.slice(0, 10) !== day.key) void onUpdate(task._id, rescheduleToDeadline(task, day.key));
+    if (task && dateKeyOf(task.deadline) !== day.key) void onUpdate(task._id, rescheduleToDeadline(task, day.key));
   };
 
   return (

@@ -1,6 +1,6 @@
 import type { Task, TaskPatch } from '../types';
 import {
-  addDays, dateKeyOf, diffInDays, isSameDay, parseDateKey, startOfMonth, toDateKey,
+  addDays, dateKeyOf, diffInDays, formatMonth, isSameDay, parseDateKey, startOfMonth, toDateKey,
 } from './date';
 
 // ---------------------------------------------------------------------------
@@ -43,10 +43,10 @@ export interface CalendarDay {
   isToday: boolean;
 }
 
-/** Six full weeks around `month`, so the grid never changes height. */
-export const buildMonthGrid = (month: Date, today = new Date(), weekStartsOn = 0): CalendarDay[] => {
+/** Six full weeks (Sunday first) around `month`, so the grid never changes height. */
+export const buildMonthGrid = (month: Date, today = new Date()): CalendarDay[] => {
   const first = startOfMonth(month);
-  const gridStart = addDays(first, -((first.getDay() - weekStartsOn + 7) % 7));
+  const gridStart = addDays(first, -first.getDay());
 
   return Array.from({ length: 42 }, (_, index) => {
     const date = addDays(gridStart, index);
@@ -63,7 +63,9 @@ export const groupByDeadline = (tasks: Task[]): Map<string, Task[]> => {
   const days = new Map<string, Task[]>();
   for (const task of tasks) {
     const key = dateKeyOf(task.deadline);
-    days.set(key, [...(days.get(key) ?? []), task]);
+    const day = days.get(key);
+    if (day) day.push(task);
+    else days.set(key, [task]);
   }
   return days;
 };
@@ -144,7 +146,7 @@ export const buildTimeline = (
 export const groupDaysByMonth = (days: Date[]) => {
   const segments: { label: string; offset: number; span: number }[] = [];
   days.forEach((day, index) => {
-    const label = day.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const label = formatMonth(day);
     const last = segments[segments.length - 1];
     if (last && last.label === label) last.span += 1;
     else segments.push({ label, offset: index, span: 1 });

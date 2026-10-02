@@ -49,7 +49,7 @@ export function OptionSelect<T extends string>({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="bg-white border border-slate-100 shadow-lg" alignItemWithTrigger={false}>
+      <SelectContent alignItemWithTrigger={false}>
         {options.map(option => (
           <SelectItem key={option.value} value={option.value} className="text-slate-700">
             <OptionDot className={option.dot} />

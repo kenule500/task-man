@@ -30,7 +30,7 @@ const TaskActionsMenu = ({ task, onEdit, onDelete, onMove, className }: TaskActi
     >
       <MoreVertical />
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" className="w-44 bg-white border border-slate-100 shadow-lg">
+    <DropdownMenuContent align="end" className="w-44">
       <DropdownMenuItem onClick={() => onEdit(task)} className="text-slate-700">
         <Pencil /> Edit
       </DropdownMenuItem>
