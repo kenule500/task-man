@@ -20,7 +20,8 @@ app.use(express.json());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  // Board/calendar/timeline drag interactions issue many small updates
+  max: Number(process.env.RATE_LIMIT_MAX) || 500,
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api', limiter);
