@@ -85,6 +85,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
     });
 
     const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    console.log('📧 Verification link (dev):', verifyLink);
 
     // ===== Send email — but don't fail the whole signup if it errors =====
     try {
@@ -94,7 +95,6 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       });
     } catch (emailError) {
       console.error('⚠️ Verification email failed to send:', emailError);
-      console.log('📧 Verification link (for manual testing):', verifyLink);
       // We still return success — the user can request a resend later
     }
 
@@ -167,6 +167,7 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
     await user.save();
 
     const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    console.log('📧 Verification link (dev):', verifyLink);
 
     await sendEmail({
       to: user.email,
@@ -251,6 +252,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     await user.save();
 
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    console.log('📧 Reset link (dev):', resetLink);
 
     await sendEmail({
       to: user.email,

@@ -101,15 +101,16 @@ export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<v
 
     const { slug } = req.params;
 
-    const workspace = await Workspace.findOne({ slug });
+    const workspace = await Workspace.findOne({ slug })
+      .populate('members.user', 'name email avatarUrl');
     if (!workspace) {
       res.status(404).json({ message: 'Workspace not found' });
       return;
     }
 
-    // Compare as strings to avoid ObjectId casting issues
+    // Compare as strings to avoid ObjectId casting issues (members.user may be populated)
     const isMember = workspace.members.some(
-      m => m.user.toString() === userId.toString()
+      m => ((m.user as any)?._id ?? m.user).toString() === userId.toString()
     );
     if (!isMember) {
       res.status(403).json({ message: 'You are not a member of this workspace' });
