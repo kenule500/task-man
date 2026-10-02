@@ -284,8 +284,6 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
                       <span
                         aria-hidden
                         onPointerDown={event => startDrag(event, task, 'resize')}
-                        onPointerMove={moveDrag}
-                        onPointerUp={() => endDrag(task)}
                         className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-md hover:bg-black/10"
                       />
                     </button>

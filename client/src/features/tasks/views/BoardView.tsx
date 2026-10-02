@@ -56,7 +56,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
             aria-label={`${STATUS_META[status].label} column`}
             onDragOver={event => {
               event.preventDefault();
-              if (!isTarget || dropTarget.index > column.length) setDropTarget({ status, index: column.length });
+              if (!isTarget || dropTarget.index !== column.length) setDropTarget({ status, index: column.length });
             }}
             onDragLeave={event => {
               if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null);
