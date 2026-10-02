@@ -1,12 +1,22 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import StatCard from '../components/StatCard';
-import TaskRow, { ITask } from '../components/TaskCard';
 import Sidebar from '../components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, CheckSquare, Clock, AlertCircle, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, CheckSquare, Clock, AlertCircle, Plus } from 'lucide-react';
+
+import { useTasks } from '../features/tasks/useTasks';
+import TaskViewSwitcher, { type TaskView } from '../features/tasks/TaskViewSwitcher';
+import TaskListView from '../features/tasks/TaskListView';
+import TaskBoardView from '../features/tasks/TaskBoardView';
+import TaskCalendarView from '../features/tasks/TaskCalendarView';
+import TaskTimelineView from '../features/tasks/TaskTimelineView';
+import TaskFormDialog from '../features/tasks/TaskFormDialog';
+import TaskDetailDialog from '../features/tasks/TaskDetailDialog';
+import UndoToast from '../features/tasks/components/UndoToast';
+import type { Task, TaskInput, TaskMember, TaskStatus } from '../features/tasks/types';
 
 interface UserData {
   _id: string;
@@ -17,6 +27,12 @@ interface UserData {
   activeWorkspaceSlug?: string;
   workspaces?: string[];
 }
+
+interface RawWorkspaceMember {
+  user: TaskMember | string;
+}
+
+const VIEW_STORAGE_KEY = 'taskman.taskView';
 
 const TaskPage = () => {
   const navigate = useNavigate();
@@ -29,12 +45,31 @@ const TaskPage = () => {
     } catch { return null; }
   });
 
-  const [tasks, setTasks] = useState<ITask[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [view, setView] = useState<TaskView>(() => {
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+    return (saved as TaskView) || 'list';
+  });
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'deadline' | 'priority'>('createdAt');
+  const [members, setMembers] = useState<TaskMember[]>([]);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('pending');
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
+  const [focusCommentsOnOpen, setFocusCommentsOnOpen] = useState(false);
+
+  const {
+    tasks, loading, error, setError,
+    createTask, updateTask, moveTask, requestDelete, undoDelete, pendingDeletes,
+    uploadCoverImage, removeCoverImage, addAttachment, removeAttachment,
+    addComment, removeComment,
+  } = useTasks(workspaceSlug);
+
+  // Looked up live from `tasks` (rather than kept as a standalone copy) so the
+  // open dialog reflects updates immediately — e.g. a new comment appearing.
+  const editingTask = editingTaskId ? tasks.find(t => t._id === editingTaskId) ?? null : null;
+  const detailTask = detailTaskId ? tasks.find(t => t._id === detailTaskId) ?? null : null;
 
   // Auth + onboarding guard
   useEffect(() => {
@@ -49,55 +84,35 @@ const TaskPage = () => {
     }
   }, [navigate, user]);
 
-  // Fetch tasks
-  const fetchTasks = useCallback(async () => {
-    if (!workspaceSlug) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const response = await api.get(`/workspaces/${workspaceSlug}/tasks`);
-      setTasks(Array.isArray(response.data) ? response.data : []);
-      setError('');
-    } catch (err: unknown) {
-      const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+  useEffect(() => {
+    localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view]);
 
-      if (axiosError.response?.status === 403 || axiosError.response?.status === 404) {
-        setError(`You don't have access to "${workspaceSlug}". Use the workspace switcher to pick another one.`);
-        setTasks([]);
-      } else {
-        console.error('fetchTasks error:', err);
-        setError('Failed to load tasks.');
+  // Workspace members, for the assignee picker
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    (async () => {
+      try {
+        const response = await api.get(`/workspaces/${workspaceSlug}`);
+        const rawMembers: RawWorkspaceMember[] = response.data?.members || [];
+        const resolved = rawMembers
+          .map(m => (typeof m.user === 'string' ? null : m.user))
+          .filter((m): m is TaskMember => !!m);
+        setMembers(resolved);
+      } catch (err) {
+        console.error('Failed to load workspace members:', err);
       }
-    } finally {
-      setLoading(false);
-    }
+    })();
   }, [workspaceSlug]);
 
-  useEffect(() => {
-    (async () => {
-      await fetchTasks();
-    })();
-  }, [fetchTasks]);
-
-  // Filter, search, sort
-  const filteredTasks = tasks
-    .filter(task => {
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      const matchesSearch =
-        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-      return matchesStatus && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (sortBy === 'deadline') return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-      if (sortBy === 'priority') {
-        const order: Record<string, number> = { high: 1, medium: 2, low: 3 };
-        return (order[a.priority || 'medium']) - (order[b.priority || 'medium']);
-      }
-      return 0;
-    });
+  const searchedTasks = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return tasks;
+    return tasks.filter(task =>
+      task.title.toLowerCase().includes(term) ||
+      (task.description?.toLowerCase().includes(term) ?? false)
+    );
+  }, [tasks, searchTerm]);
 
   const stats = {
     total: tasks.length,
@@ -113,7 +128,48 @@ const TaskPage = () => {
     navigate('/');
   };
 
+  const openCreateDialog = useCallback((status: TaskStatus = 'pending') => {
+    setEditingTaskId(null);
+    setDefaultStatus(status);
+    setDialogOpen(true);
+  }, []);
+
+  const openEditDialog = useCallback((task: Task) => {
+    setEditingTaskId(task._id);
+    setDialogOpen(true);
+  }, []);
+
+  const openDetailDialog = useCallback((task: Task) => {
+    setDetailTaskId(task._id);
+    setFocusCommentsOnOpen(false);
+    setDetailDialogOpen(true);
+  }, []);
+
+  const openDetailDialogWithComments = useCallback((task: Task) => {
+    setDetailTaskId(task._id);
+    setFocusCommentsOnOpen(true);
+    setDetailDialogOpen(true);
+  }, []);
+
+  const handleDetailDelete = useCallback((taskId: string) => {
+    setDetailDialogOpen(false);
+    requestDelete(taskId);
+  }, [requestDelete]);
+
+  const handleCreate = useCallback((input: TaskInput) => createTask(input), [createTask]);
+  const handleUpdate = useCallback((taskId: string, input: TaskInput) => updateTask(taskId, input), [updateTask]);
+
+  const handleToggleComplete = useCallback((task: Task) => {
+    const nextStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
+    updateTask(task._id, { status: nextStatus }).catch(err => {
+      console.error('toggleComplete error:', err);
+      setError('Could not update the task.');
+    });
+  }, [updateTask, setError]);
+
   if (!user) return null;
+
+  const pendingDeleteItems = Object.entries(pendingDeletes).map(([id, p]) => ({ id, title: p.task.title }));
 
   return (
     <Sidebar user={user} onLogout={handleLogout}>
@@ -135,35 +191,10 @@ const TaskPage = () => {
                 disabled={loading}
               />
             </div>
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 h-9">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
-              <select
-                className="bg-transparent text-sm text-slate-700 outline-none cursor-pointer h-full pr-1"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'in-progress' | 'completed')}
-                disabled={loading}
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 h-9">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-              <select
-                className="bg-transparent text-sm text-slate-700 outline-none cursor-pointer h-full pr-1"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'deadline' | 'priority')}
-                disabled={loading}
-              >
-                <option value="createdAt">Newest</option>
-                <option value="deadline">By Deadline</option>
-                <option value="priority">By Priority</option>
-              </select>
-            </div>
-
-            <Button className="h-9 rounded-lg gap-2 bg-primary hover:bg-primary-hover shadow-sm text-sm text-white">
+            <Button
+              onClick={() => openCreateDialog('pending')}
+              className="h-9 rounded-lg gap-2 bg-primary hover:bg-primary-hover shadow-sm text-sm text-white"
+            >
               <Plus className="w-4 h-4" /> Add Task
             </Button>
           </div>
@@ -180,66 +211,89 @@ const TaskPage = () => {
                 </div>
               ))}
             </div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 animate-pulse space-y-3">
+              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-12 bg-slate-100 rounded-lg" />)}
+            </div>
           </div>
         ) : (
           <>
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">{error}</div>
+              <div className="flex items-start gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard title="Total Tasks" value={stats.total} subtitle="Tasks created this month" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-slate-600" trend="+18%" trendUp={true} />
-              <StatCard title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" trend="-12%" trendUp={false} />
-              <StatCard title="Completed" value={stats.completed} subtitle="Tasks finished this week" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" trend="+24%" trendUp={true} />
-              <StatCard title="Pending" value={stats.pending} subtitle="Awaiting your action" icon={<AlertCircle className="w-4 h-4" />} colorClass="text-amber-600" trend="+5%" trendUp={true} />
+              <StatCard title="Total Tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-slate-600" />
+              <StatCard title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
+              <StatCard title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
+              <StatCard title="To Do" value={stats.pending} subtitle="Not started yet" icon={<AlertCircle className="w-4 h-4" />} colorClass="text-amber-600" />
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                <div className="col-span-1 flex items-center">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-primary" />
-                </div>
-                <div className="col-span-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Task Name</div>
-                <div className="col-span-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Priority</div>
-                <div className="col-span-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</div>
-                <div className="col-span-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</div>
-                <div className="col-span-1"></div>
-              </div>
-
-              {filteredTasks.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                    <CheckSquare className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-700 mb-1">No tasks found</h3>
-                  <p className="text-slate-500 text-sm">
-                    {tasks.length === 0
-                      ? "You're all caught up! Create your first task to get started."
-                      : "No tasks match your current filters."}
-                  </p>
-                </div>
-              ) : (
-                filteredTasks.map((task) => (
-                  <TaskRow
-                    key={task._id}
-                    task={task}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                  />
-                ))
-              )}
-
-              {filteredTasks.length > 0 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-6 py-4 bg-slate-50/50 border-t border-slate-100">
-                  <p className="text-xs text-slate-500">
-                    Showing <span className="font-medium text-slate-700">{filteredTasks.length}</span> of <span className="font-medium text-slate-700">{tasks.length}</span> tasks
-                  </p>
-                </div>
-              )}
+            <div className="flex items-center justify-between">
+              <TaskViewSwitcher view={view} onChange={setView} />
             </div>
+
+            {view === 'list' && (
+              <TaskListView
+                tasks={searchedTasks}
+                totalCount={tasks.length}
+                onToggleComplete={handleToggleComplete}
+                onEdit={openEditDialog}
+                onDelete={requestDelete}
+              />
+            )}
+            {view === 'board' && (
+              <TaskBoardView
+                tasks={searchedTasks}
+                allTasks={tasks}
+                onAddTask={openCreateDialog}
+                onOpen={openDetailDialog}
+                onOpenComments={openDetailDialogWithComments}
+                onEdit={openEditDialog}
+                onDelete={requestDelete}
+                onMove={moveTask}
+              />
+            )}
+            {view === 'calendar' && (
+              <TaskCalendarView tasks={searchedTasks} onEdit={openDetailDialog} />
+            )}
+            {view === 'timeline' && (
+              <TaskTimelineView tasks={searchedTasks} onEdit={openDetailDialog} />
+            )}
           </>
         )}
       </div>
+
+      <TaskFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        task={editingTask}
+        defaultStatus={defaultStatus}
+        members={members}
+        allTasks={tasks}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        onUploadCoverImage={uploadCoverImage}
+        onRemoveCoverImage={removeCoverImage}
+        onAddAttachment={addAttachment}
+        onRemoveAttachment={removeAttachment}
+      />
+
+      <TaskDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        task={detailTask}
+        allTasks={tasks}
+        currentUserId={user._id}
+        autoFocusComments={focusCommentsOnOpen}
+        onDelete={handleDetailDelete}
+        onAddComment={addComment}
+        onRemoveComment={removeComment}
+      />
+
+      <UndoToast items={pendingDeleteItems} onUndo={undoDelete} />
     </Sidebar>
   );
 };
