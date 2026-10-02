@@ -10,6 +10,8 @@ import {
   validateSignup,
   validateForgotPassword,
   validateResetPassword,
+  validateLogin,
+  validateResendVerification,
   saveOnboarding,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -18,12 +20,12 @@ const router: Router = express.Router();
 
 // Registration & Login
 router.post('/signup', validateSignup, registerUser);
-router.post('/login', loginUser);
+router.post('/login', validateLogin, loginUser);
 router.post('/logout', protect, logoutUser);
 
 // Email verification
 router.get('/verify-email/:token', verifyEmail);
-router.post('/resend-verification', resendVerification);
+router.post('/resend-verification', validateResendVerification, resendVerification);
 
 //onboarding
 router.post('/onboarding', protect, saveOnboarding);

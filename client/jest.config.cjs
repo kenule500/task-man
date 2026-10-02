@@ -5,7 +5,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   transform: {
-    '^.+\.(t|j)sx?$': ['@swc/jest', {
+    '^.+\\.(t|j)sx?$': ['@swc/jest', {
       jsc: {
         parser: { syntax: 'typescript', tsx: true },
         transform: { react: { runtime: 'automatic' } },
@@ -17,7 +17,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/config$': '<rootDir>/test/config.stub.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\.(css|less|scss)$': 'identity-obj-proxy',
+    '\\.(css|less|scss)$': 'identity-obj-proxy',
   },
   clearMocks: true,
 };

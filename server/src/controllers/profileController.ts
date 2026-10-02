@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import User from '../models/userModel.js';
 import bcrypt from 'bcryptjs';
+import Session from '../models/sessionModel.js';
+import { MIN_PASSWORD_LENGTH } from './authController.js';
+import { getBearerToken, hashToken } from '../utils/tokens.js';
 
 // ================================================================
 // @desc    Get current user's profile
@@ -119,12 +122,12 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
       res.status(400).json({ message: 'Current and new password are required' });
       return;
     }
-    if (newPassword.length < 6) {
-      res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      res.status(400).json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
       return;
     }
 
@@ -142,6 +145,13 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     user.password = newPassword;
     await user.save();
+
+    // Sign out every other device; keep the session making this request
+    const currentToken = getBearerToken(req.headers.authorization);
+    await Session.updateMany(
+      { user: user._id, ...(currentToken && { token: { $ne: hashToken(currentToken) } }) },
+      { isValid: false },
+    );
 
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
