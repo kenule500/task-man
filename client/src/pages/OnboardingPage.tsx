@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { updateStoredUser, getStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,14 +16,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspaceSlug?: string;
-}
-
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -33,37 +27,16 @@ const OnboardingPage = () => {
     workspaceName: '',
   });
 
-  const [user] = useState<UserData | null>(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
-  });
+  const { user } = useAuthGuard({ requireOnboarding: false });
 
   // ============================================================
   // GUARD: If user is already onboarded, send them to their workspace
   // ============================================================
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login', { replace: true });
-      return;
+    if (user?.onboardingComplete && user.activeWorkspaceSlug) {
+      navigate(`/${user.activeWorkspaceSlug}/dashboard`, { replace: true });
     }
-
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        if (userData.onboardingComplete && userData.activeWorkspaceSlug) {
-          navigate(`/${userData.activeWorkspaceSlug}/dashboard`, { replace: true });
-        }
-      } catch {
-        // Bad localStorage data — stay on the onboarding page
-      }
-    }
-  }, [navigate]);
+  }, [navigate, user]);
 
   // ============================================================
   // NAVIGATION BETWEEN STEPS
@@ -89,17 +62,13 @@ const OnboardingPage = () => {
       }
 
       // Update stored user with the workspace info
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        userData.onboardingComplete = true;
-        userData.activeWorkspace = workspace._id;
-        userData.activeWorkspaceSlug = workspace.slug;
-        if (!userData.workspaces?.includes(workspace._id)) {
-          userData.workspaces = [...(userData.workspaces || []), workspace._id];
-        }
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
+      const workspaces = getStoredUser()?.workspaces || [];
+      updateStoredUser({
+        onboardingComplete: true,
+        activeWorkspace: workspace._id,
+        activeWorkspaceSlug: workspace.slug,
+        workspaces: workspaces.includes(workspace._id) ? workspaces : [...workspaces, workspace._id],
+      });
 
       navigate(`/${workspace.slug}/dashboard`, { replace: true });
     } catch (error: unknown) {

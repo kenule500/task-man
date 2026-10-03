@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
+import { saveSession } from '../utils/session';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,8 @@ const AuthPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,8 +42,7 @@ const AuthPage = () => {
 
       if (isLogin) {
         // ===== LOGIN FLOW =====
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        saveSession(response.data.token, response.data);
 
         // Handle pending invite code from the /join/:code page
         const pendingInvite = sessionStorage.getItem('pendingInvite');
@@ -216,6 +218,12 @@ const AuthPage = () => {
                   : 'Enter your details below to get started'}
               </p>
             </div>
+
+            {sessionExpired && !error && (
+              <div role="status" className="mb-6 p-3 text-sm text-blue-700 bg-blue-50 border border-blue-100 rounded-xl text-center font-medium">
+                Your session expired. Please sign in again.
+              </div>
+            )}
 
             {error && (
               <div className="mb-6 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl text-center font-medium">

@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown,
-  Sparkles, Plus, Check, User,
+  Sparkles, Plus, Check, User, Settings,
 } from 'lucide-react';
 
 import {
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import api from '../utils/api';
+import type { StoredUser } from '../utils/session';
 
 interface Workspace {
   _id: string;
@@ -25,18 +26,8 @@ interface Workspace {
   inviteCode: string;
 }
 
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspace?: string;
-  activeWorkspaceSlug?: string;
-  workspaces?: string[];
-}
-
 interface SidebarProps {
-  user: UserData | null;
+  user: StoredUser | null;
   onLogout: () => void;
   children: React.ReactNode;
 }
@@ -51,6 +42,7 @@ const navMain = [
 ];
 
 const navGeneral = [
+  { title: 'Settings', key: 'settings', icon: Settings },
   { title: 'Help & Center', key: 'help', icon: HelpCircle },
 ];
 

@@ -1,17 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { User, Bell, Lock } from 'lucide-react';
-
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspace?: string;
-  activeWorkspaceSlug?: string;
-  workspaces?: string[];
-}
 
 const sections = [
   { id: 'profile', label: 'Profile', description: 'Your public information', icon: User },
@@ -20,28 +10,9 @@ const sections = [
 ];
 
 const SettingsLayout = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-
-  const [user] = useState<UserData | null>(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      return userData ? JSON.parse(userData) : null;
-    } catch { return null; }
-  });
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || !user) {
-      navigate('/login');
-    }
-  }, [navigate, user]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
-  };
+  const navigate = useNavigate();
+  const { user, logout } = useAuthGuard({ requireOnboarding: false });
 
   // Determine active section from URL
   const activeSection = location.pathname.split('/').pop() || 'profile';
@@ -50,7 +21,7 @@ const SettingsLayout = () => {
   if (!user) return null;
 
   return (
-    <Sidebar user={user} onLogout={handleLogout}>
+    <Sidebar user={user} onLogout={logout}>
       <div className="w-full">
         {/* Header */}
         <header className="mb-8">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
 
 const JoinWorkspacePage = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
@@ -11,8 +12,7 @@ const JoinWorkspacePage = () => {
 
   useEffect(() => {
     const join = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!getToken()) {
         // Not logged in — save code and redirect to login
         sessionStorage.setItem('pendingInvite', inviteCode || '');
         navigate('/login');
@@ -25,15 +25,14 @@ const JoinWorkspacePage = () => {
         setMessage(`You joined ${response.data.name}!`);
 
         // Update stored user's active workspace
-        const storedUser = localStorage.getItem('user');
+        const storedUser = getStoredUser();
         if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          userData.activeWorkspace = response.data._id;
-          userData.activeWorkspaceSlug = response.data.slug;
-          if (!userData.workspaces?.includes(response.data._id)) {
-            userData.workspaces = [...(userData.workspaces || []), response.data._id];
-          }
-          localStorage.setItem('user', JSON.stringify(userData));
+          const workspaces = storedUser.workspaces || [];
+          updateStoredUser({
+            activeWorkspace: response.data._id,
+            activeWorkspaceSlug: response.data.slug,
+            workspaces: workspaces.includes(response.data._id) ? workspaces : [...workspaces, response.data._id],
+          });
         }
 
         setTimeout(() => navigate(`/${response.data.slug}/dashboard`), 1500);

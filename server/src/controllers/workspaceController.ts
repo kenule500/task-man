@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
+import { body, validationResult } from 'express-validator';
+import { getRequestWorkspace } from '../middleware/workspaceMiddleware.js';
 
 const generateInviteCode = () => crypto.randomBytes(6).toString('hex').toUpperCase();
 
@@ -196,6 +198,108 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
     res.status(200).json(workspace);
   } catch (error) {
     console.error('joinWorkspace error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// Members & settings (run after protect + requireWorkspaceMember)
+// ================================================================
+const ROLE_ORDER: Record<string, number> = { owner: 0, admin: 1, member: 2 };
+
+/** Role of the logged-in user in the workspace, or undefined when not a member. */
+const getCurrentRole = (req: Request, res: Response): string | undefined => {
+  const userId = req.user?._id?.toString();
+  return getRequestWorkspace(res).members.find(m => m.user.toString() === userId)?.role;
+};
+
+const requireAdmin = (req: Request, res: Response): boolean => {
+  const role = getCurrentRole(req, res);
+  if (role === 'owner' || role === 'admin') return true;
+  res.status(403).json({ message: 'Only workspace owners and admins can do this' });
+  return false;
+};
+
+export const validateUpdateWorkspace = [
+  body('name').isString().withMessage('Workspace name is required')
+    .trim().notEmpty().withMessage('Workspace name is required')
+    .isLength({ max: 60 }).withMessage('Workspace name must be 60 characters or fewer'),
+];
+
+// ================================================================
+// @desc    List workspace members (owner first, then admins, then by name)
+// @route   GET /api/workspaces/:slug/members
+// ================================================================
+export const getWorkspaceMembers = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const workspace = getRequestWorkspace(res);
+    const ids = workspace.members.map(m => m.user);
+    const users = await User.find({ _id: { $in: ids } }).select('name email avatarUrl jobTitle');
+    const byId = new Map(users.map(u => [u._id.toString(), u]));
+
+    const members = workspace.members
+      .map(m => {
+        const user = byId.get(m.user.toString());
+        if (!user) return null;
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          avatarUrl: user.avatarUrl ?? '',
+          jobTitle: user.jobTitle ?? '',
+          role: m.role,
+          joinedAt: m.joinedAt,
+        };
+      })
+      .filter((m): m is NonNullable<typeof m> => m !== null)
+      .sort((a, b) =>
+        (ROLE_ORDER[a.role] ?? 3) - (ROLE_ORDER[b.role] ?? 3) || a.name.localeCompare(b.name));
+
+    res.status(200).json(members);
+  } catch (error) {
+    console.error('getWorkspaceMembers error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// @desc    Rename a workspace (slug is unchanged); owner/admin only
+// @route   PUT /api/workspaces/:slug
+// ================================================================
+export const updateWorkspace = async (req: Request, res: Response): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  try {
+    const workspace = getRequestWorkspace(res);
+    workspace.name = req.body.name;
+    await workspace.save();
+    res.status(200).json(workspace);
+  } catch (error) {
+    console.error('updateWorkspace error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// @desc    Regenerate the invite code; owner/admin only
+// @route   POST /api/workspaces/:slug/invite-code
+// ================================================================
+export const regenerateInviteCode = async (req: Request, res: Response): Promise<void> => {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const workspace = getRequestWorkspace(res);
+    workspace.inviteCode = generateInviteCode();
+    await workspace.save();
+    res.status(200).json({ inviteCode: workspace.inviteCode });
+  } catch (error) {
+    console.error('regenerateInviteCode error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

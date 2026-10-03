@@ -7,30 +7,48 @@ import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { sendEmail } from '../utils/sendEmail.js';
 import { verifyEmailTemplate, resetPasswordTemplate } from '../utils/emailTemplates.js';
+import { createSecureToken, getBearerToken, hashToken } from '../utils/tokens.js';
+import { getConfig } from '../config/env.js';
+
+export const MIN_PASSWORD_LENGTH = 8;
+const passwordRule = (field: string) =>
+  body(field)
+    .isString().withMessage('Password is required')
+    .isLength({ min: MIN_PASSWORD_LENGTH }).withMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+const emailRule = () => body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail();
 
 // ============ Validation rules ============
 export const validateSignup = [
   body('name').notEmpty().withMessage('Name is required').trim().escape(),
-  body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  emailRule(),
+  passwordRule('password'),
 ];
+
+// Strings only: rejects objects such as { "$gt": "" } (NoSQL operator injection)
+export const validateLogin = [
+  emailRule(),
+  body('password').isString().notEmpty().withMessage('Password is required'),
+];
+
+export const validateResendVerification = [emailRule()];
 
 export const validateForgotPassword = [
-  body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
+  emailRule(),
 ];
 
-export const validateResetPassword = [
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-];
+export const validateResetPassword = [passwordRule('password')];
 
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h' });
 };
 
+const appLink = (path: string) => `${getConfig().clientUrl}${path}`;
+
+// Only the token hash is stored, so a database leak cannot be replayed as sessions
 const createSession = async (userId: string, token: string, req: Request) => {
   const userAgent = req.headers['user-agent'] || 'Unknown Device';
   const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
-  await Session.create({ user: userId, token, userAgent, ipAddress, lastLoggedIn: new Date() });
+  await Session.create({ user: userId, token: hashToken(token), userAgent, ipAddress, lastLoggedIn: new Date() });
 };
 
 const generateSlug = async (name: string): Promise<string> => {
@@ -72,7 +90,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verification = createSecureToken();
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await User.create({
@@ -80,11 +98,11 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       email,
       password,
       isVerified: false,
-      verificationToken,
+      verificationToken: verification.hash,
       verificationTokenExpires,
     });
 
-    const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    const verifyLink = appLink(`/verify-email/${verification.token}`);
 
     // ===== Send email — but don't fail the whole signup if it errors =====
     try {
@@ -120,7 +138,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     const { token } = req.params;
 
     const user = await User.findOne({
-      verificationToken: token,
+      verificationToken: hashToken(String(token)),
       verificationTokenExpires: { $gt: new Date() },
     });
 
@@ -147,33 +165,35 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 // @route   POST /api/auth/resend-verification
 // ================================================================
 export const resendVerification = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  // Same answer whether or not the account exists, so emails cannot be enumerated
+  const genericResponse = { message: 'If this account needs verification, a new email has been sent.' };
+
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
 
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
+    if (!user || user.isVerified) {
+      res.status(200).json(genericResponse);
       return;
     }
 
-    if (user.isVerified) {
-      res.status(400).json({ message: 'Email is already verified' });
-      return;
-    }
-
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    user.verificationToken = verificationToken;
+    const verification = createSecureToken();
+    user.verificationToken = verification.hash;
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
-    const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
-
     await sendEmail({
       to: user.email,
-      ...verifyEmailTemplate(verifyLink),
+      ...verifyEmailTemplate(appLink(`/verify-email/${verification.token}`)),
     });
 
-    res.status(200).json({ message: 'Verification email sent' });
+    res.status(200).json(genericResponse);
   } catch (error) {
     console.error('resendVerification error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -185,6 +205,12 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
 // @route   POST /api/auth/login
 // ================================================================
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(401).json({ message: 'Invalid email or password' });
+    return;
+  }
+
   try {
     const { email, password } = req.body;
 
@@ -245,12 +271,12 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = resetToken;
+    const reset = createSecureToken();
+    user.resetPasswordToken = reset.hash;
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetLink = appLink(`/reset-password/${reset.token}`);
 
     await sendEmail({
       to: user.email,
@@ -280,7 +306,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     const { password } = req.body;
 
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashToken(String(token)),
       resetPasswordExpires: { $gt: new Date() },
     });
 
@@ -371,9 +397,9 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
 // ================================================================
 export const logoutUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = getBearerToken(req.headers.authorization);
     if (token) {
-      await Session.findOneAndUpdate({ token }, { isValid: false });
+      await Session.findOneAndUpdate({ token: hashToken(token) }, { isValid: false });
     }
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {

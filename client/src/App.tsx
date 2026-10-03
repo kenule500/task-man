@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
-import PlaceholderPage from './pages/PlaceholderPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -13,6 +12,11 @@ import SecurityPage from './pages/SecurityPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SettingsLayout from './components/SettingsLayout';
 import TaskPage from './pages/TaskPage';
+import ProjectsPage from './pages/ProjectsPage';
+import TeamPage from './pages/TeamPage';
+import ReportsPage from './pages/ReportsPage';
+import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
+import HelpPage from './pages/HelpPage';
 
 function App() {
   return (
@@ -40,12 +44,12 @@ function App() {
           {/* Workspace-scoped routes */}
           <Route path="/:workspaceSlug/dashboard" element={<DashboardPage />} />
           <Route path="/:workspaceSlug/tasks" element={<TaskPage />} />
-          <Route path="/:workspaceSlug/projects" element={<PlaceholderPage title="Projects" />} />
-          <Route path="/:workspaceSlug/team" element={<PlaceholderPage title="Team Members" />} />
-          <Route path="/:workspaceSlug/calendar" element={<PlaceholderPage title="Calendar" />} />
-          <Route path="/:workspaceSlug/reports" element={<PlaceholderPage title="Reports" />} />
-          <Route path="/:workspaceSlug/settings" element={<PlaceholderPage title="Settings" />} />
-          <Route path="/:workspaceSlug/help" element={<PlaceholderPage title="Help & Center" />} />
+          <Route path="/:workspaceSlug/projects" element={<ProjectsPage />} />
+          <Route path="/:workspaceSlug/team" element={<TeamPage />} />
+          <Route path="/:workspaceSlug/calendar" element={<TaskPage defaultView="calendar" />} />
+          <Route path="/:workspaceSlug/reports" element={<ReportsPage />} />
+          <Route path="/:workspaceSlug/settings" element={<WorkspaceSettingsPage />} />
+          <Route path="/:workspaceSlug/help" element={<HelpPage />} />
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" />} />

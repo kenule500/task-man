@@ -27,8 +27,8 @@ const SecurityPage = () => {
       showMessage('error', 'New passwords do not match');
       return;
     }
-    if (passwordData.newPassword.length < 6) {
-      showMessage('error', 'Password must be at least 6 characters');
+    if (passwordData.newPassword.length < 8) {
+      showMessage('error', 'Password must be at least 8 characters');
       return;
     }
 
