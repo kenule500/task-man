@@ -4,8 +4,9 @@ import api from '../utils/api';
 import { clearSession, getToken, updateStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, Field, Surface, UserAvatar } from '@/components/ds';
+import { Save, AlertCircle } from 'lucide-react';
 
 interface ProfileData {
   _id: string;
@@ -115,102 +116,91 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 animate-pulse">
-        <div className="flex items-center gap-5 pb-8 border-b border-slate-100 mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-slate-200"></div>
+      <Surface padding="lg" aria-busy="true" aria-label="Loading profile">
+        <div className="mb-8 flex items-center gap-5 border-b border-slate-100 pb-8">
+          <Skeleton className="size-16 rounded-full bg-slate-200 sm:size-20" />
           <div className="flex-1 space-y-2">
-            <div className="h-5 w-32 bg-slate-200 rounded"></div>
-            <div className="h-4 w-48 bg-slate-100 rounded"></div>
+            <Skeleton className="h-5 w-32 bg-slate-200" />
+            <Skeleton className="h-4 w-48 max-w-full bg-slate-100" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="space-y-2">
-              <div className="h-4 w-24 bg-slate-200 rounded"></div>
-              <div className="h-11 bg-slate-100 rounded-lg"></div>
+              <Skeleton className="h-4 w-24 bg-slate-200" />
+              <Skeleton className="h-11 bg-slate-100" />
             </div>
           ))}
         </div>
-      </div>
+      </Surface>
     );
   }
 
   if (!user) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-        <p className="text-slate-700 font-medium">Failed to load profile</p>
-        <p className="text-slate-500 text-sm mt-1">Please refresh the page or log in again.</p>
-      </div>
+      <Surface padding="lg" className="text-center">
+        <AlertCircle className="mx-auto mb-3 size-10 text-red-500" aria-hidden />
+        <p className="font-medium text-slate-700">Failed to load profile</p>
+        <p className="mt-1 text-sm text-slate-500">Please refresh the page or log in again.</p>
+      </Surface>
     );
   }
 
+  const CONTROL = 'h-11 bg-slate-50 border-slate-200 rounded-lg';
+  const NATIVE = 'w-full h-11 px-3 border border-slate-200 rounded-lg bg-slate-50 text-base md:text-sm';
+
   return (
     <form onSubmit={handleSave} className="space-y-6">
-      {message && (
-        <div className={`p-3 rounded-xl flex items-center gap-2 text-sm ${
-          message.type === 'success'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-            : 'bg-red-50 text-red-600 border border-red-100'
-        }`}>
-          {message.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {message.text}
-        </div>
-      )}
+      {message && <Alert tone={message.type}>{message.text}</Alert>}
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-8">
+      <Surface padding="lg">
         {/* Avatar header */}
-        <div className="flex items-center gap-5 pb-8 border-b border-slate-100 mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
-            {user.name?.charAt(0).toUpperCase() || 'U'}
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-slate-900 text-lg">{user.name}</p>
-            <p className="text-sm text-slate-500">{user.email}</p>
+        <div className="mb-8 flex items-center gap-4 border-b border-slate-100 pb-8 sm:gap-5">
+          <UserAvatar name={user.name} size="lg" className="size-16 text-xl sm:size-20 sm:text-3xl" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold text-slate-900">{user.name}</p>
+            <p className="truncate text-sm text-slate-500">{user.email}</p>
           </div>
         </div>
 
         {/* Form */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="name" className="text-sm font-medium text-slate-700">Full Name</Label>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Field label="Full Name" htmlFor="name" className="md:col-span-2">
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="jobTitle" className="text-sm font-medium text-slate-700">Job Title</Label>
+          <Field label="Job Title" htmlFor="jobTitle">
             <Input
               id="jobTitle"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
               placeholder="e.g., Product Designer"
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="text-sm font-medium text-slate-700">Phone</Label>
+          <Field label="Phone" htmlFor="phone">
             <Input
               id="phone"
+              type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+1 (555) 000-0000"
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="timezone" className="text-sm font-medium text-slate-700">Timezone</Label>
+          <Field label="Timezone" htmlFor="timezone">
             <select
               id="timezone"
               value={formData.timezone}
               onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-              className="w-full h-11 px-3 border border-slate-200 rounded-lg bg-slate-50 text-sm"
+              className={NATIVE}
             >
               <option value="UTC">UTC</option>
               <option value="America/New_York">Eastern Time</option>
@@ -221,44 +211,44 @@ const ProfilePage = () => {
               <option value="Asia/Tokyo">Tokyo</option>
               <option value="Asia/Dubai">Dubai</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="language" className="text-sm font-medium text-slate-700">Language</Label>
+          <Field label="Language" htmlFor="language">
             <select
               id="language"
               value={formData.language}
               onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-              className="w-full h-11 px-3 border border-slate-200 rounded-lg bg-slate-50 text-sm"
+              className={NATIVE}
             >
               <option value="en">English</option>
               <option value="fr">French</option>
               <option value="es">Spanish</option>
               <option value="de">German</option>
             </select>
-          </div>
+          </Field>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="bio" className="text-sm font-medium text-slate-700">Bio</Label>
-            <textarea
-              id="bio"
-              rows={4}
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Tell us a little about yourself..."
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm resize-none"
-              maxLength={280}
-            />
-            <p className="text-xs text-slate-400 text-right">{formData.bio.length}/280</p>
+          <div className="space-y-1.5 md:col-span-2">
+            <Field label="Bio" htmlFor="bio">
+              <textarea
+                id="bio"
+                rows={4}
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Tell us a little about yourself..."
+                className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base md:text-sm"
+                maxLength={280}
+              />
+            </Field>
+            <p className="text-right text-xs text-slate-400">{formData.bio.length}/280</p>
           </div>
         </div>
-      </div>
+      </Surface>
 
       <div className="flex justify-end">
         <Button
           type="submit"
           disabled={saving}
-          className="rounded-lg gap-2 bg-primary hover:bg-primary-hover text-white h-11 px-6"
+          className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Saving...' : 'Save Changes'}

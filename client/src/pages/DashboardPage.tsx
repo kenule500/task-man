@@ -13,10 +13,10 @@ import {
   SquareKanban,
   Users,
 } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
-import StatCard from '../components/StatCard';
+import AppShell from '@/components/AppShell';
+import { Alert, EmptyState, IconTile, PageHeader, SectionHeader, SkeletonCards, StatCard, Surface, surfaceVariants } from '@/components/ds';
 import api from '../utils/api';
-import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DueDate,
@@ -69,11 +69,12 @@ interface TaskListCardProps {
 }
 
 const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCardProps) => (
-  <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-    <div className="flex items-center justify-between mb-3">
-      <h2 className={`text-sm font-semibold ${tone === 'danger' ? 'text-red-600' : 'text-slate-900'}`}>{title}</h2>
-      <span className="text-xs text-slate-400 tabular-nums">{total}</span>
-    </div>
+  <Surface as="section" padding="sm" className="sm:p-5">
+    <SectionHeader
+      className="mb-3"
+      title={tone === 'danger' ? <span className="text-red-600">{title}</span> : title}
+      count={total}
+    />
     {tasks.length === 0 ? (
       <p className="text-sm text-slate-500 py-4">{emptyText}</p>
     ) : (
@@ -103,24 +104,19 @@ const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCa
         <Link to={`/${slug}/tasks?view=list`} className="text-primary font-medium hover:underline">View all</Link>
       </p>
     )}
-  </section>
+  </Surface>
 );
 
 const DashboardSkeleton = () => (
-  <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="Loading dashboard">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {[0, 1, 2, 3].map(i => <div key={i} className="h-32 bg-white rounded-2xl border border-slate-100" />)}
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      {[0, 1].map(i => <div key={i} className="h-64 bg-white rounded-2xl border border-slate-100" />)}
-    </div>
+  <div className="space-y-6">
+    <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+    <SkeletonCards count={2} columns="lg:grid-cols-2" />
   </div>
 );
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const { user, logout } = useAuthGuard();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [workspaceCount, setWorkspaceCount] = useState(0);
@@ -176,155 +172,147 @@ const DashboardPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!user) return null;
-
-  const slug = workspaceSlug ?? user.activeWorkspaceSlug ?? '';
-  const firstName = user.name.trim().split(/\s+/)[0] || user.name;
   const memberCount = workspace?.members?.length ?? 0;
-
   return (
-    <Sidebar user={user} onLogout={logout}>
-      <div className="w-full space-y-6 lg:space-y-8">
-        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {getGreeting()}, {firstName}
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              {workspace?.name ? `Here is what is happening in ${workspace.name}.` : 'Here is your workspace at a glance.'}
-            </p>
-          </div>
+    <AppShell>
+      {user => {
+        const slug = workspaceSlug ?? user.activeWorkspaceSlug ?? '';
+        const firstName = user.name.trim().split(/\s+/)[0] || user.name;
+        const goToTasks = (
           <Button
             onClick={() => navigate(`/${slug}/tasks`)}
-            className="h-9 rounded-lg bg-primary hover:bg-primary-hover shadow-sm text-sm text-white self-start sm:self-auto"
+            className="h-10 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9"
           >
             Go to tasks
           </Button>
-        </header>
+        );
 
-        {tasksError && (
-          <div role="alert" className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
-            {tasksError}
-          </div>
-        )}
-
-        {tasksLoading ? (
-          <DashboardSkeleton />
-        ) : tasks.length === 0 && !tasksError ? (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm py-16 px-6 text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <CheckSquare className="size-8" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-700 mb-1">No tasks yet</h2>
-            <p className="text-sm text-slate-500">Create your first task to see your progress and deadlines here.</p>
-            <div className="mt-5 flex justify-center">
-              <Button
-                onClick={() => navigate(`/${slug}/tasks`)}
-                className="h-9 rounded-lg bg-primary hover:bg-primary-hover shadow-sm text-sm text-white"
-              >
-                Go to tasks
-              </Button>
-            </div>
-          </div>
-        ) : (
+        return (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard title="Total Tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
-              <StatCard title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
-              <StatCard title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
-              <StatCard title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
-            </div>
+            <PageHeader
+              title={`${getGreeting()}, ${firstName}`}
+              description={workspace?.name ? `Here is what is happening in ${workspace.name}.` : 'Here is your workspace at a glance.'}
+              actions={goToTasks}
+            />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <TaskListCard
-                title="Due this week"
-                tone="default"
-                tasks={dueThisWeek.slice(0, MAX_ROWS)}
-                total={dueThisWeek.length}
-                slug={slug}
-                emptyText="Nothing due in the next 7 days."
-              />
-              <TaskListCard
-                title="Overdue"
-                tone="danger"
-                tasks={overdue.slice(0, MAX_ROWS)}
-                total={overdue.length}
-                slug={slug}
-                emptyText="You are all caught up. No overdue tasks."
-              />
+            {tasksError && <Alert tone="error">{tasksError}</Alert>}
+
+            {tasksLoading ? (
+              <DashboardSkeleton />
+            ) : tasks.length === 0 && !tasksError ? (
+              <Surface padding="none">
+                <EmptyState
+                  icon={<CheckSquare />}
+                  title="No tasks yet"
+                  description="Create your first task to see your progress and deadlines here."
+                  action={goToTasks}
+                />
+              </Surface>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+                  <StatCard className="p-4 sm:p-5" title="Total Tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
+                  <StatCard className="p-4 sm:p-5" title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
+                  <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
+                  <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                  <TaskListCard
+                    title="Due this week"
+                    tone="default"
+                    tasks={dueThisWeek.slice(0, MAX_ROWS)}
+                    total={dueThisWeek.length}
+                    slug={slug}
+                    emptyText="Nothing due in the next 7 days."
+                  />
+                  <TaskListCard
+                    title="Overdue"
+                    tone="danger"
+                    tasks={overdue.slice(0, MAX_ROWS)}
+                    total={overdue.length}
+                    slug={slug}
+                    emptyText="You are all caught up. No overdue tasks."
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Quick links to the four views */}
+            <section aria-labelledby="views-heading">
+              <h2 id="views-heading" className="mb-3 text-sm font-semibold text-slate-900">Open a view</h2>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {VIEW_LINKS.map(({ view, label, hint, icon: Icon }) => (
+                  <Link
+                    key={view}
+                    to={`/${slug}/tasks?view=${view}`}
+                    className={cn(
+                      surfaceVariants({ radius: 'lg', padding: 'sm', interactive: true }),
+                      'flex items-start gap-3 focus-visible:outline-2 focus-visible:outline-primary',
+                    )}
+                  >
+                    <IconTile size="sm">
+                      <Icon aria-hidden />
+                    </IconTile>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{label}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            {/* Workspace info */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <Surface className="flex items-center gap-4">
+                <IconTile>
+                  <Users />
+                </IconTile>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold text-slate-900 tabular-nums">{workspaceLoading ? '-' : memberCount}</p>
+                  <p className="text-xs text-slate-400">
+                    {memberCount === 1 ? 'Member (just you so far)' : 'Members'} · {workspaceLoading ? '-' : workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} joined
+                  </p>
+                </div>
+              </Surface>
+
+              {workspace?.inviteCode && (
+                <Surface className="lg:col-span-2">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="mb-1 text-sm font-semibold text-slate-900">Invite teammates to this workspace</p>
+                      <p className="text-xs text-slate-500">Share this code. They will be able to join instantly.</p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 py-1 pl-4 pr-2 sm:justify-start">
+                      <code className="truncate font-mono text-sm font-semibold tracking-wider text-slate-700">
+                        {workspace.inviteCode}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        className="flex min-h-10 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </Surface>
+              )}
             </div>
           </>
-        )}
-
-        {/* Quick links to the four views */}
-        <section aria-labelledby="views-heading">
-          <h2 id="views-heading" className="text-sm font-semibold text-slate-900 mb-3">Open a view</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {VIEW_LINKS.map(({ view, label, hint, icon: Icon }) => (
-              <Link
-                key={view}
-                to={`/${slug}/tasks?view=${view}`}
-                className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 hover:shadow-md transition-shadow focus-visible:outline-2 focus-visible:outline-primary flex items-start gap-3"
-              >
-                <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" aria-hidden />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">{label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{hint}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Workspace info */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900 tabular-nums">{workspaceLoading ? '-' : memberCount}</p>
-              <p className="text-xs text-slate-400">
-                {memberCount === 1 ? 'Member (just you so far)' : 'Members'} · {workspaceLoading ? '-' : workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} joined
-              </p>
-            </div>
-          </div>
-
-          {workspace?.inviteCode && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 lg:col-span-2">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm mb-1">Invite teammates to this workspace</p>
-                  <p className="text-xs text-slate-500">Share this code. They will be able to join instantly.</p>
-                </div>
-
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 flex-shrink-0">
-                  <code className="text-sm font-mono text-slate-700 font-semibold tracking-wider truncate">
-                    {workspace.inviteCode}
-                  </code>
-                  <button
-                    onClick={handleCopyCode}
-                    className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline flex-shrink-0"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" /> Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" /> Copy
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </Sidebar>
+        );
+      }}
+    </AppShell>
   );
 };
 

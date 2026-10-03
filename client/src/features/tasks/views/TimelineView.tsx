@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerE
 import { AlertTriangle, ChartGantt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import EmptyState from '../components/EmptyState';
+import { EmptyState } from '@/components/ds';
 import { StatusDot } from '../components/TaskBadges';
 import { STATUS_META } from '../constants';
 import { diffInDays, formatDate, isWeekend, startOfDay } from '../lib/date';
@@ -16,6 +16,12 @@ const ROW_HEIGHT = 44;
 const BAR_HEIGHT = 26;
 const ZOOM_LEVELS = { day: 40, week: 18 } as const;
 type Zoom = keyof typeof ZOOM_LEVELS;
+
+/** Phones start zoomed out (weeks) so more of the schedule fits; read once on mount, SSR-safe. */
+const getInitialZoom = (): Zoom =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 767px)').matches
+    ? 'week'
+    : 'day';
 
 interface DragState {
   id: string;
@@ -34,7 +40,7 @@ const previewRow = (row: TimelineRow, drag: DragState | null): TimelineRow => {
 
 /** Gantt chart: bars from start to due date, dependency arrows, drag to reschedule. */
 const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate'>) => {
-  const [zoom, setZoom] = useState<Zoom>('day');
+  const [zoom, setZoom] = useState<Zoom>(getInitialZoom);
   const [drag, setDrag] = useState<DragState | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const suppressClickRef = useRef(false);
@@ -113,10 +119,10 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 border-b border-slate-100 md:px-6 md:py-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-slate-400" />Dependency</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 border-t-2 border-dashed border-red-500" />Starts before prerequisite is due</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 shrink-0 border-t-2 border-dashed border-red-500" />Starts before prerequisite is due</span>
           {conflicts > 0 && (
             <span role="status" className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 font-medium text-red-600">
               <AlertTriangle className="size-3.5" aria-hidden /> {conflicts} scheduling {conflicts === 1 ? 'conflict' : 'conflicts'}
@@ -132,7 +138,7 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
                 aria-pressed={zoom === level}
                 onClick={() => setZoom(level)}
                 className={cn(
-                  'rounded-md px-2.5 py-1 text-xs font-medium capitalize text-slate-500',
+                  'min-h-9 rounded-md px-3 py-1 text-xs font-medium capitalize text-slate-500 md:min-h-0 md:px-2.5',
                   zoom === level && 'bg-white text-slate-900 shadow-sm',
                 )}
               >
@@ -140,23 +146,24 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={scrollToToday} className="h-8 border-slate-200 text-slate-700">Today</Button>
+          <Button variant="outline" size="sm" onClick={scrollToToday} className="h-10 border-slate-200 px-4 text-slate-700 md:h-8 md:px-2.5">Today</Button>
         </div>
       </header>
 
       <div className="flex">
         {/* Task names */}
-        <div className="w-56 shrink-0 border-r border-slate-100 sm:w-64">
-          <div className="flex h-14 items-end border-b border-slate-100 bg-slate-50/50 px-4 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="w-28 shrink-0 border-r border-slate-100 sm:w-56 md:w-64">
+          <div className="flex h-14 items-end border-b border-slate-100 bg-slate-50/50 px-3 pb-2 text-xs sm:px-4 font-semibold uppercase tracking-wider text-slate-500">
             Task Name
           </div>
           <ul>
             {rows.map(({ task }) => (
-              <li key={task._id} style={{ height: ROW_HEIGHT }} className="flex items-center border-b border-slate-50 px-4">
+              <li key={task._id} style={{ height: ROW_HEIGHT }} className="flex items-center border-b border-slate-50 px-3 sm:px-4">
                 <button
                   type="button"
                   onClick={() => onEdit(task)}
-                  className="flex min-w-0 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
+                  title={task.title}
+                  className="flex h-full min-w-0 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
                 >
                   <StatusDot status={task.status} />
                   <span className={cn('truncate', task.status === 'completed' && 'text-slate-400 line-through')}>{task.title}</span>

@@ -6,13 +6,8 @@ export const ROLE_LABELS: Record<WorkspaceRole, string> = {
   member: 'Member',
 };
 
-/** Up to two uppercase initials from a display name ("Ada Lovelace" -> "AL"). */
-export const getInitials = (name: string): string => {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  const letters = parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0];
-  return letters.toUpperCase();
-};
+/** Up to two uppercase initials (shared with the design system avatar). */
+export { getInitials } from '@/components/ds/variants';
 
 export const formatJoinedDate = (iso: string): string => {
   const date = new Date(iso);

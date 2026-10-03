@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Alert, Field, Surface } from '@/components/ds';
 import { ArrowLeft, Mail } from 'lucide-react';
 
 const ForgotPasswordPage = () => {
@@ -41,8 +41,8 @@ const ForgotPasswordPage = () => {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full text-center">
+      <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <Surface padding="lg" className="max-w-md w-full border-slate-200 shadow-xl text-center">
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Mail className="w-8 h-8 text-primary" />
           </div>
@@ -55,14 +55,14 @@ const ForgotPasswordPage = () => {
               Back to Login
             </Button>
           </Link>
-        </div>
+        </Surface>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full">
+    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <Surface padding="lg" className="max-w-md w-full border-slate-200 shadow-xl">
         <Link to="/login" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6">
           <ArrowLeft className="w-4 h-4" /> Back to Login
         </Link>
@@ -75,15 +75,10 @@ const ForgotPasswordPage = () => {
           <p className="text-slate-500 text-sm">Enter your email and we'll send you a reset link.</p>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg text-center font-medium">
-            {error}
-          </div>
-        )}
+        {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
+          <Field label="Email Address" htmlFor="email">
             <Input
               id="email"
               type="email"
@@ -93,7 +88,7 @@ const ForgotPasswordPage = () => {
               placeholder="name@company.com"
               className="h-11 bg-slate-50 border-slate-200 rounded-lg"
             />
-          </div>
+          </Field>
 
           <Button 
             type="submit" 
@@ -103,7 +98,7 @@ const ForgotPasswordPage = () => {
             {loading ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </form>
-      </div>
+      </Surface>
     </div>
   );
 };

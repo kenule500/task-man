@@ -5,6 +5,7 @@ import { saveSession } from '../utils/session';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, Field, Surface } from '@/components/ds';
 import {
   ArrowRight,
   CheckCircle2,
@@ -95,8 +96,8 @@ const AuthPage = () => {
   // ============================================================
   if (showVerifyMessage) {
     return (
-      <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-8 max-w-md w-full text-center">
+      <div className="min-h-dvh w-full bg-slate-50 flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <Surface padding="lg" className="border-slate-200 shadow-2xl max-w-md w-full text-center">
           <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Mail className="w-10 h-10 text-primary" />
           </div>
@@ -108,12 +109,9 @@ const AuthPage = () => {
             Click the link to verify your account and get started.
           </p>
 
-          <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700 mb-8 text-left">
-            <p className="font-medium mb-1">💡 Tip</p>
-            <p className="text-xs">
-              Can't find the email? Check your spam folder or resend the verification link.
-            </p>
-          </div>
+          <Alert tone="warning" title="Tip" className="mb-8 text-left">
+            Can't find the email? Check your spam folder or resend the verification link.
+          </Alert>
 
           <button
             onClick={() => {
@@ -121,11 +119,11 @@ const AuthPage = () => {
               setIsLogin(true);
               setFormData({ name: '', email: '', password: '' });
             }}
-            className="text-sm text-primary font-semibold hover:underline"
+            className="min-h-10 px-3 text-sm text-primary font-semibold hover:underline"
           >
             Back to Login
           </button>
-        </div>
+        </Surface>
       </div>
     );
   }
@@ -134,13 +132,13 @@ const AuthPage = () => {
   // Main Auth Page (Login + Signup)
   // ============================================================
   return (
-    <div className="min-h-screen w-full bg-slate-50 relative overflow-hidden flex items-center justify-center p-4 lg:p-8">
+    <div className="min-h-dvh w-full bg-slate-50 relative overflow-hidden flex items-center justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 lg:p-8">
       {/* Background Ambient Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-200/40 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* Main Glass Container */}
-      <div className="w-full max-w-6xl flex flex-col lg:flex-row bg-white/60 backdrop-blur-2xl border border-white shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden min-h-[650px] z-10">
+      <div className="w-full max-w-6xl flex flex-col lg:flex-row bg-white/60 backdrop-blur-2xl border border-white shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden min-h-[min(650px,calc(100dvh-1.5rem))] lg:min-h-[650px] z-10">
         {/* ================= LEFT PANEL - Branding ================= */}
         <div className="hidden lg:flex w-1/2 p-12 flex-col justify-between relative bg-gradient-to-br from-white/80 to-slate-50/50 border-r border-white/50">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-transparent z-0"></div>
@@ -206,10 +204,17 @@ const AuthPage = () => {
         </div>
 
         {/* ================= RIGHT PANEL - Auth Form ================= */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 relative">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 lg:p-12 relative">
           <div className="w-full max-w-md">
+            {/* Brand mark: the branding panel is hidden below lg */}
+            <Link to="/" className="mb-6 flex items-center justify-center gap-2 text-xl font-bold tracking-tight text-slate-900 lg:hidden">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-400 text-sm text-white shadow-lg shadow-primary/30">
+                T
+              </span>
+              TaskMan
+            </Link>
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">
                 {isLogin ? 'Welcome back' : 'Create an account'}
               </h1>
               <p className="text-slate-500">
@@ -220,23 +225,14 @@ const AuthPage = () => {
             </div>
 
             {sessionExpired && !error && (
-              <div role="status" className="mb-6 p-3 text-sm text-blue-700 bg-blue-50 border border-blue-100 rounded-xl text-center font-medium">
-                Your session expired. Please sign in again.
-              </div>
+              <Alert tone="info" className="mb-6">Your session expired. Please sign in again.</Alert>
             )}
 
-            {error && (
-              <div className="mb-6 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl text-center font-medium">
-                {error}
-              </div>
-            )}
+            {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700">
-                    Full Name
-                  </Label>
+                <Field label="Full Name" htmlFor="name" className="space-y-2">
                   <Input
                     id="name"
                     name="name"
@@ -247,13 +243,10 @@ const AuthPage = () => {
                     onChange={handleChange}
                     className="h-12 bg-white/80 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/30 focus-visible:border-primary transition-all rounded-xl shadow-sm"
                   />
-                </div>
+                </Field>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">
-                  Email Address
-                </Label>
+              <Field label="Email Address" htmlFor="email" className="space-y-2">
                 <Input
                   id="email"
                   name="email"
@@ -264,7 +257,7 @@ const AuthPage = () => {
                   onChange={handleChange}
                   className="h-12 bg-white/80 border-slate-200 text-slate-900 placeholder:text-slate-400 focus-visible:ring-primary/30 focus-visible:border-primary transition-all rounded-xl shadow-sm"
                 />
-              </div>
+              </Field>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -294,7 +287,7 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                    className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 transition-colors focus-visible:outline-2 focus-visible:outline-primary"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -326,7 +319,7 @@ const AuthPage = () => {
                     setFormData({ name: '', email: '', password: '' });
                     setShowPassword(false);
                   }}
-                  className="text-primary font-semibold hover:text-primary-hover transition-colors underline decoration-primary/30 underline-offset-4"
+                  className="min-h-10 px-1 text-primary font-semibold hover:text-primary-hover transition-colors underline decoration-primary/30 underline-offset-4"
                 >
                   {isLogin ? 'Sign up' : 'Log in'}
                 </button>

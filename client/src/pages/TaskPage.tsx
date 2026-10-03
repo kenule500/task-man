@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { AlertCircle, AlarmClock, CheckSquare, Clock, ListTodo, Plus, X } from 'lucide-react';
-import StatCard from '../components/StatCard';
-import Sidebar from '../components/Sidebar';
-import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { AlarmClock, CheckSquare, Clock, ListTodo, Plus } from 'lucide-react';
+import AppShell from '@/components/AppShell';
+import { Alert, PageHeader, SkeletonCards, StatCard, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   BoardView, CalendarView, ConfirmDeleteDialog, DEFAULT_FILTERS, ListView, TASK_VIEWS, TaskFormDialog,
@@ -25,7 +24,6 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { user, logout } = useAuthGuard();
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
   const [form, setForm] = useState<FormState>({ mode: 'closed' });
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -47,73 +45,51 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
     onCreate: (defaults?: Partial<TaskFormValues>) => setForm({ mode: 'create', defaults }),
   };
 
-  if (!user) return null;
-
   return (
-    <Sidebar user={user} onLogout={logout}>
-      <div className="space-y-6">
-        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Tasks</h1>
-            <p className="text-slate-500 text-sm mt-1">Manage and track all your tasks</p>
-          </div>
+    <AppShell>
+      <PageHeader
+        title="My Tasks"
+        description="Manage and track all your tasks"
+        actions={
           <Button
             onClick={() => setForm({ mode: 'create' })}
             disabled={loading || !workspaceSlug}
-            className="h-9 rounded-lg gap-2 bg-primary hover:bg-primary-hover shadow-sm text-sm text-white self-start sm:self-auto"
+            className="h-10 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9"
           >
             <Plus className="w-4 h-4" /> Add Task
           </Button>
-        </header>
+        }
+      />
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5" aria-busy="true" aria-label="Loading tasks">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm animate-pulse">
-                <div className="h-5 w-24 bg-slate-200 rounded mb-4"></div>
-                <div className="h-8 w-12 bg-slate-200 rounded mb-2"></div>
-                <div className="h-4 w-32 bg-slate-200 rounded"></div>
-              </div>
-            ))}
+      {loading ? (
+        <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+      ) : (
+        <>
+          {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
+
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+            <StatCard className="p-4 sm:p-5" title="Total Tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard className="p-4 sm:p-5" title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
+            <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
           </div>
-        ) : (
-          <>
-            {error && (
-              <div role="alert" className="flex items-start justify-between gap-3 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
-                <span className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  {error}
-                </span>
-                <button type="button" onClick={clearError} aria-label="Dismiss" className="text-red-400 hover:text-red-600">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-              <StatCard title="Total Tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-              <StatCard title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
-              <StatCard title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
-              <StatCard title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
-            </div>
+          <Surface padding="sm" className="space-y-4">
+            <ViewSwitcher value={view} onChange={setView} />
+            <TaskToolbar
+              filters={filters}
+              onChange={setFilters}
+              showSort={view === 'list'}
+              counts={{ all: stats.total, pending: stats.pending, 'in-progress': stats.inProgress, completed: stats.completed }}
+            />
+          </Surface>
 
-            <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-              <ViewSwitcher value={view} onChange={setView} />
-              <TaskToolbar
-                filters={filters}
-                onChange={setFilters}
-                showSort={view === 'list'}
-                counts={{ all: stats.total, pending: stats.pending, 'in-progress': stats.inProgress, completed: stats.completed }}
-              />
-            </div>
-
-            {view === 'list' && <ListView {...viewProps} totalCount={tasks.length} />}
-            {view === 'board' && <BoardView {...viewProps} />}
-            {view === 'calendar' && <CalendarView {...viewProps} />}
-            {view === 'timeline' && <TimelineView {...viewProps} />}
-          </>
-        )}
-      </div>
+          {view === 'list' && <ListView {...viewProps} totalCount={tasks.length} />}
+          {view === 'board' && <BoardView {...viewProps} />}
+          {view === 'calendar' && <CalendarView {...viewProps} />}
+          {view === 'timeline' && <TimelineView {...viewProps} />}
+        </>
+      )}
 
       {form.mode !== 'closed' && (
         <TaskFormDialog
@@ -135,7 +111,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
           setTaskToDelete(null);
         }}
       />
-    </Sidebar>
+    </AppShell>
   );
 };
 

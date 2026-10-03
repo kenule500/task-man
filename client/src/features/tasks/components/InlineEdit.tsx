@@ -39,7 +39,7 @@ export const InlineText = ({ value, onSave, label, className, inputClassName }: 
         onKeyDown={handleKeyDown}
         maxLength={140}
         autoFocus
-        className={cn('w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none focus:border-primary', inputClassName)}
+        className={cn('w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-base text-slate-900 md:text-sm outline-none focus:border-primary', inputClassName)}
       />
     );
   }

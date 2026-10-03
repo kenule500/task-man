@@ -45,7 +45,10 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+    <div
+      data-testid="board-columns"
+      className="-mx-1 flex snap-x snap-mandatory items-start gap-4 overflow-x-auto px-1 pb-3 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0"
+    >
       {TASK_STATUSES.map(status => {
         const column = columns[status];
         const isTarget = dropTarget?.status === status;
@@ -63,11 +66,11 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
             }}
             onDrop={event => handleDrop(event, status)}
             className={cn(
-              'flex flex-col rounded-2xl border border-slate-100 bg-slate-50/70 transition-colors',
+              'flex w-[85vw] max-w-sm shrink-0 snap-start flex-col rounded-2xl border border-slate-100 bg-slate-50/70 transition-colors lg:w-auto lg:max-w-none lg:shrink',
               isTarget && 'border-primary/30 bg-blue-50/40',
             )}
           >
-            <header className="flex items-center justify-between px-4 pt-4 pb-3">
+            <header className="flex items-center justify-between px-4 pt-3 pb-2 md:pt-4 md:pb-3">
               <div className="flex items-center gap-2">
                 <StatusDot status={status} />
                 <h2 className="text-sm font-semibold text-slate-700">{STATUS_META[status].label}</h2>
@@ -80,7 +83,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
                 size="icon-sm"
                 aria-label={`Add task to ${STATUS_META[status].label}`}
                 onClick={() => onCreate({ status })}
-                className="text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                className="size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700 md:size-7"
               >
                 <Plus />
               </Button>
@@ -161,7 +164,7 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
           onEdit={onEdit}
           onDelete={onDelete}
           onMove={onMove}
-          className="-mt-1 -mr-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          className="-mt-2.5 -mr-3 md:-mt-1 md:-mr-1.5 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
         />
       </div>
 

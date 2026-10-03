@@ -16,7 +16,7 @@ export { InlineText, InlineDate } from './components/InlineEdit';
 export { default as TaskActionsMenu } from './components/TaskActionsMenu';
 export { default as TaskFormDialog } from './components/TaskFormDialog';
 export { default as ConfirmDeleteDialog } from './components/ConfirmDeleteDialog';
-export { default as EmptyState } from './components/EmptyState';
+export { EmptyState } from '@/components/ds';
 export { default as TaskToolbar } from './components/TaskToolbar';
 export { default as ViewSwitcher } from './components/ViewSwitcher';
 export { default as FilterPills } from './components/FilterPills';

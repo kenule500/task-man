@@ -17,6 +17,9 @@ import TeamPage from './pages/TeamPage';
 import ReportsPage from './pages/ReportsPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
 import HelpPage from './pages/HelpPage';
+import DesignSystemPage from './pages/DesignSystemPage';
+import PwaPrompt from './pwa/PwaPrompt';
+import OfflineBanner from './pwa/OfflineBanner';
 
 function App() {
   return (
@@ -25,6 +28,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/design-system" element={<DesignSystemPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/signup" element={<AuthPage />} />
           <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
@@ -55,6 +59,8 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
+      <OfflineBanner />
+      <PwaPrompt />
     </Router>
   );
 }

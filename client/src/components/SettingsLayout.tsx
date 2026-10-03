@@ -1,7 +1,8 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { User, Bell, Lock } from 'lucide-react';
+import AppShell from '@/components/AppShell';
+import { PageHeader } from '@/components/ds';
+import { cn } from '@/lib/utils';
 
 const sections = [
   { id: 'profile', label: 'Profile', description: 'Your public information', icon: User },
@@ -12,67 +13,51 @@ const sections = [
 const SettingsLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthGuard({ requireOnboarding: false });
 
   // Determine active section from URL
   const activeSection = location.pathname.split('/').pop() || 'profile';
-  const isActive = (id: string) => activeSection === id;
-
-  if (!user) return null;
 
   return (
-    <Sidebar user={user} onLogout={logout}>
-      <div className="w-full">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Settings</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage your account and preferences</p>
-        </header>
+    <AppShell requireOnboarding={false}>
+      <PageHeader title="Settings" description="Manage your account and preferences" />
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8 max-w-6xl">
+      {/* Two-column layout from lg; a scrollable tab row on smaller screens */}
+      <div className="grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-[260px_1fr] lg:gap-8">
+        <nav
+          aria-label="Settings sections"
+          className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 lg:sticky lg:top-6 lg:mx-0 lg:h-fit lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0"
+        >
+          {sections.map(({ id, label, description, icon: Icon }) => {
+            const active = activeSection === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-current={active ? 'page' : undefined}
+                onClick={() => navigate(`/settings/${id}`)}
+                className={cn(
+                  'flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-xl p-3 text-left transition-colors lg:w-full lg:items-start lg:gap-3',
+                  'focus-visible:outline-2 focus-visible:outline-primary',
+                  active ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100',
+                )}
+              >
+                <Icon className={cn('size-4 shrink-0 lg:mt-0.5', active ? 'text-primary' : 'text-slate-400')} aria-hidden />
+                <div className="min-w-0">
+                  <p className="whitespace-nowrap text-sm font-medium">{label}</p>
+                  <p className={cn('mt-0.5 hidden truncate text-xs lg:block', active ? 'text-primary/70' : 'text-slate-400')}>
+                    {description}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </nav>
 
-          {/* Left: Section Navigation */}
-          <nav className="space-y-1 lg:sticky lg:top-6 h-fit">
-            {sections.map(({ id, label, description, icon: Icon }) => {
-              const active = isActive(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => navigate(`/settings/${id}`)}
-                  className={`w-full text-left flex items-start gap-3 p-3 rounded-xl transition-colors ${
-                    active
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Icon
-                    className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                      active ? 'text-primary' : 'text-slate-400'
-                    }`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{label}</p>
-                    <p
-                      className={`text-xs mt-0.5 truncate ${
-                        active ? 'text-primary/70' : 'text-slate-400'
-                      }`}
-                    >
-                      {description}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right: Active Section */}
-          <div className="min-w-0">
-            <Outlet />
-          </div>
+        <div className="min-w-0">
+          <Outlet />
         </div>
       </div>
-    </Sidebar>
+    </AppShell>
   );
 };
 
