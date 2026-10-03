@@ -1,5 +1,6 @@
 import { ArrowUpDown, Flag, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, type SelectOption } from '../constants';
 import type { TaskFilters, TaskPriority, TaskSort, TaskStatus } from '../types';
 import FilterPills from './FilterPills';
@@ -25,20 +26,21 @@ interface TaskToolbarProps {
 const TaskToolbar = ({ filters, onChange, counts, showSort = true }: TaskToolbarProps) => (
   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
     <FilterPills
+      className="min-w-0"
       aria-label="Filter by status"
       value={filters.status}
       options={STATUS_FILTER_OPTIONS.map(option => ({ ...option, count: counts[option.value] }))}
       onChange={status => onChange({ ...filters, status })}
     />
 
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="relative w-full sm:w-56">
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="relative col-span-2 sm:w-56">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden />
         <Input
           type="search"
           aria-label="Search tasks"
           placeholder="Search tasks..."
-          className="pl-9 h-9 bg-white border-slate-200 rounded-lg text-sm"
+          className="pl-9 h-10 bg-white border-slate-200 rounded-lg text-base sm:h-9 sm:text-sm"
           value={filters.search}
           onChange={e => onChange({ ...filters, search: e.target.value })}
         />
@@ -49,7 +51,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true }: TaskToolbar
         value={filters.priority}
         options={PRIORITY_FILTER_OPTIONS}
         onChange={priority => onChange({ ...filters, priority })}
-        className="w-auto min-w-36"
+        className={cn('h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36', !showSort && 'col-span-2')}
       />
       {showSort && (
         <OptionSelect<TaskSort>
@@ -58,7 +60,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true }: TaskToolbar
           value={filters.sort}
           options={SORT_OPTIONS}
           onChange={sort => onChange({ ...filters, sort })}
-          className="w-auto min-w-36"
+          className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
         />
       )}
     </div>

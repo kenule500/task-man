@@ -1,0 +1,12 @@
+// TaskMan design system: presentational building blocks on top of shadcn (Base UI)
+// primitives in components/ui. Import from '@/components/ds'. No routing or data here;
+// the authenticated page frame lives in components/AppShell.tsx.
+// Living style guide: /design-system (DesignSystemPage). Rules: DESIGN.md.
+
+export {
+  Alert, EmptyState, Field, IconTile, PageHeader, ProgressBar, SectionHeader,
+  SkeletonCards, StatCard, Surface, Tag, UserAvatar,
+} from './primitives';
+export {
+  alertVariants, fieldMessageId, getInitials, iconTileVariants, surfaceVariants, tagVariants,
+} from './variants';

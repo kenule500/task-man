@@ -50,11 +50,53 @@ screen-reader "(overdue)" label. Never use color as the only signal: pair it wit
 
 ## Components
 
-Build on `components/ui` (shadcn Base UI): `Button`, `Input`, `Textarea`, `Select`, `Tabs`, `Checkbox`,
-`Dialog`, `AlertDialog`, `DropdownMenu`. Feature-level building blocks live in `features/tasks/components`
-(`StatusBadge`, `PriorityIndicator`, `DueDate`, `DependencyCount`, `FilterPills`, `OptionSelect`,
-`InlineText`, `InlineDate`, `TaskActionsMenu`, `TaskFormDialog`, `ConfirmDeleteDialog`, `EmptyState`).
-Reuse them before writing new markup.
+Three layers; always reuse the highest layer that fits before writing markup.
+Open **`/design-system`** (public route, `pages/DesignSystemPage.tsx`) to see every component live.
+
+1. **Primitives:** `components/ui` (shadcn Base UI): `Button`, `Input`, `Textarea`, `Select`, `Tabs`,
+   `Checkbox`, `Dialog`, `AlertDialog`, `DropdownMenu`, `Avatar`, `Skeleton`, `Sidebar`. Generated; restyle through tokens.
+2. **Design system:** `components/ds` (`import { … } from '@/components/ds'`):
+
+| Component | Use it for | Key props |
+|---|---|---|
+| `PageHeader` | The page `h1`, subtitle and primary actions (wrap full width on mobile) | `title`, `description`, `actions` |
+| `Surface` | Any white card / panel | `padding` none·sm·md·lg, `radius` lg·xl, `interactive`, `as` |
+| `SectionHeader` | Heading row inside a Surface | `title`, `count`, `icon`, `action` |
+| `StatCard` | Key numbers in stat rows | `title`, `value`, `subtitle`, `icon`, `colorClass` |
+| `Alert` | Inline feedback (`error` → `role="alert"`, others `role="status"`) | `tone` info·success·warning·error, `title`, `onDismiss` |
+| `EmptyState` | Empty lists: explain and offer the next action | `title`, `description`, `icon`, `action` |
+| `SkeletonCards` | Loading placeholders | `count`, `columns` |
+| `ProgressBar` | Completion (green at 100%) | `value`, `label`, `showValue` |
+| `Tag` | Roles, categories, small states | `tone` neutral·primary·success·warning·danger·dark, `size` |
+| `IconTile` | Decorative icon in a tinted square | `tone`, `size` |
+| `UserAvatar` | People (image or initials) | `name`, `src`, `size` |
+| `Field` | Label + control + hint/error (`fieldMessageId(id)` for `aria-describedby`) | `label`, `htmlFor`, `required`, `hint`, `error` |
+
+   The authenticated page frame is `components/AppShell.tsx` (guard + sidebar + content column; children or
+   `(user) => …`). It stays outside `ds` because it depends on routing and the session.
+
+   Variants are `cva` recipes in `components/ds/variants.ts` (`surfaceVariants`, `tagVariants`, …) for reuse in new components.
+3. **Feature components:** `features/tasks/components` (`StatusBadge`, `PriorityIndicator`, `DueDate`,
+   `DependencyCount`, `FilterPills`, `OptionSelect`, `InlineText`, `InlineDate`, `TaskActionsMenu`,
+   `TaskFormDialog`, `ConfirmDeleteDialog`) and `features/workspace`.
+
+Adding a component: build it from tokens and existing primitives, add it to `components/ds` with a test in
+`components/ds/__tests__`, show its variants and states on the style guide page, and list it here.
+
+## Responsive & mobile
+
+- Mobile first; breakpoints `sm` 640, `md` 768 (sidebar becomes a sheet below it), `lg` 1024, `xl` 1280.
+- No horizontal page scroll at 360px. Wide content scrolls inside its own container (timeline) or changes
+  shape: tables → stacked cards, calendar grid → agenda list, board columns → horizontal snap scroller.
+- Touch targets ≥ 40px below `md`; actions hidden behind hover on desktop are always visible on touch.
+- Inputs use `text-base` on mobile (prevents iOS zoom); dialogs become near full-screen with a sticky footer.
+- Respect safe areas (`env(safe-area-inset-*)`) for fixed elements (PWA standalone mode).
+
+## Progressive Web App
+
+- Installable (manifest, icons in `client/public/icons`, theme `#2563EB`, background `#F8FAFC`), standalone display.
+- The service worker caches the app shell only; API responses are never cached (private data).
+- Updates are opt-in through the "New version available" prompt; an amber banner shows when offline.
 
 ## Interaction & accessibility
 

@@ -29,7 +29,7 @@ interface TaskFormDialogProps {
   onSubmit: (input: TaskInput) => Promise<unknown>;
 }
 
-const fieldClass = 'h-10 bg-white border border-gray-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
+const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
 
 /**
  * Create / edit form shared by every task view.
@@ -78,8 +78,8 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden bg-white border border-gray-200 shadow-2xl gap-0">
-        <div className="px-6 pt-6 pb-5 border-b border-gray-200">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-gray-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[560px] sm:rounded-xl">
+        <div className="shrink-0 px-4 pt-5 pb-4 pr-12 border-b border-gray-200 sm:px-6 sm:pt-6 sm:pb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
               <ListTodo className="w-5 h-5 text-primary" />
@@ -95,8 +95,8 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:max-h-[60vh] sm:flex-none sm:px-6 sm:py-5">
             {submitError && (
               <div role="alert" className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -129,7 +129,7 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
                 value={values.description}
                 onChange={e => set('description', e.target.value)}
                 placeholder="Add more context (optional)"
-                className="min-h-20 bg-white border border-gray-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none"
+                className="min-h-24 sm:min-h-20 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none"
                 maxLength={2000}
               />
             </div>
@@ -154,11 +154,11 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="task-status" className="text-sm font-medium text-slate-700">Status</Label>
-                <StatusSelect id="task-status" value={values.status} onChange={value => set('status', value)} className="h-10 border-gray-300" />
+                <StatusSelect id="task-status" value={values.status} onChange={value => set('status', value)} className="h-11 border-gray-300 sm:h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-priority" className="text-sm font-medium text-slate-700">Priority</Label>
-                <PrioritySelect id="task-priority" value={values.priority} onChange={value => set('priority', value)} className="h-10 border-gray-300" />
+                <PrioritySelect id="task-priority" value={values.priority} onChange={value => set('priority', value)} className="h-11 border-gray-300 sm:h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-start" className="text-sm font-medium text-slate-700">Start date</Label>
@@ -202,7 +202,7 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
                   {candidates.map(candidate => {
                     const checkboxId = `dep-${candidate._id}`;
                     return (
-                      <li key={candidate._id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50">
+                      <li key={candidate._id} className="flex items-center gap-3 px-3 py-3 hover:bg-slate-50 sm:py-2">
                         <Checkbox
                           id={checkboxId}
                           checked={values.dependencies.includes(candidate._id)}
@@ -221,7 +221,7 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
             </fieldset>
           </div>
 
-          <DialogFooter className="!m-0 px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2">
+          <DialogFooter className="!m-0 shrink-0 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2 sm:px-6 sm:py-4 sm:pb-4 [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button
               type="button"
               variant="outline"

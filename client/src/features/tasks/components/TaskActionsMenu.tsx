@@ -16,6 +16,9 @@ interface TaskActionsMenuProps {
   className?: string;
 }
 
+/** 40px rows on touch, compact from `md`. */
+const ITEM_CLASS = 'min-h-10 text-slate-700 md:min-h-0';
+
 const TaskActionsMenu = ({ task, onEdit, onDelete, onMove, className }: TaskActionsMenuProps) => (
   <DropdownMenu>
     <DropdownMenuTrigger
@@ -24,23 +27,24 @@ const TaskActionsMenu = ({ task, onEdit, onDelete, onMove, className }: TaskActi
           variant="ghost"
           size="icon-sm"
           aria-label={`Actions for ${task.title}`}
-          className={cn('text-slate-400 hover:bg-slate-200 hover:text-slate-600', className)}
+          className={cn('size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:size-7', className)}
         />
       }
     >
       <MoreVertical />
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="end" className="w-44">
-      <DropdownMenuItem onClick={() => onEdit(task)} className="text-slate-700">
+    <DropdownMenuContent align="end" className="w-52 md:w-48">
+      <DropdownMenuItem onClick={() => onEdit(task)} className={ITEM_CLASS}>
         <Pencil /> Edit
       </DropdownMenuItem>
+      {/* "Move to" is the touch / keyboard alternative to drag & drop */}
       {onMove && TASK_STATUSES.filter(status => status !== task.status).map(status => (
-        <DropdownMenuItem key={status} onClick={() => onMove(task, status)} className="text-slate-700">
+        <DropdownMenuItem key={status} onClick={() => onMove(task, status)} className={ITEM_CLASS}>
           <ArrowRight /> Move to {STATUS_META[status].label}
         </DropdownMenuItem>
       ))}
       <DropdownMenuSeparator className="bg-slate-100" />
-      <DropdownMenuItem variant="destructive" onClick={() => onDelete(task)}>
+      <DropdownMenuItem variant="destructive" onClick={() => onDelete(task)} className="min-h-10 md:min-h-0">
         <Trash2 /> Delete
       </DropdownMenuItem>
     </DropdownMenuContent>

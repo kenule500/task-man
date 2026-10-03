@@ -15,6 +15,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
+    '^virtual:pwa-register/react$': '<rootDir>/test/pwa-register-react.stub.ts',
     '^@/config$': '<rootDir>/test/config.stub.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|scss)$': 'identity-obj-proxy',

@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["jest", "node", "vite/client"]
   },
-  "include": ["src/**/__tests__", "src/vite-env.d.ts", "jest.setup.ts"],
+  "include": ["src/**/__tests__", "test", "src/vite-env.d.ts", "jest.setup.ts"],
   "exclude": []
 }

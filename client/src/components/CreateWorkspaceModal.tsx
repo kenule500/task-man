@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Alert, Field, IconTile, fieldMessageId } from '@/components/ds';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertCircle, Building2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 
 interface CreateWorkspaceModalProps {
   open: boolean;
@@ -58,11 +58,11 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
       <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden bg-white border border-gray-200 shadow-2xl  gap-0">
 
         {/* ===================== Header ===================== */}
-        <div className="px-6 pt-6 pb-5 border-b border-gray-200">
+        <div className="px-4 sm:px-6 pt-6 pb-5 border-b border-gray-200">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-5 h-5 text-primary" />
-            </div>
+            <IconTile>
+              <Building2 />
+            </IconTile>
             <div className="min-w-0">
               <DialogHeader className="p-0 space-y-0">
                 <DialogTitle className="text-lg font-bold text-slate-900 leading-tight">
@@ -78,24 +78,19 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
 
         {/* ===================== Body ===================== */}
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
+          <div className="px-4 py-5 space-y-4 sm:px-6">
 
-            {error && (
-              <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+            {error && <Alert tone="error">{error}</Alert>}
 
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="workspace-name"
-                className="text-sm font-medium text-slate-700"
-              >
-                Workspace Name <span className="text-red-500">*</span>
-              </Label>
+            <Field
+              label="Workspace Name"
+              htmlFor="workspace-name"
+              required
+              hint="A URL-safe slug will be generated automatically."
+            >
               <Input
                 id="workspace-name"
+                aria-describedby={fieldMessageId('workspace-name')}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Acme Corp, Marketing Team, Personal"
@@ -104,14 +99,11 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
                 autoFocus
                 required
               />
-              <p className="text-xs text-slate-400">
-                A URL-safe slug will be generated automatically.
-              </p>
-            </div>
+            </Field>
           </div>
 
           {/* ===================== Footer ===================== */}
-          <DialogFooter className="!m-0 px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2">
+          <DialogFooter className="!m-0 px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2">
             <Button
               type="button"
               variant="outline"

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
+import { Alert, Surface } from '@/components/ds';
 import { CheckCircle2, XCircle, Loader2, ArrowRight, RefreshCw } from 'lucide-react';
 
 const VerifyEmailPage = () => {
@@ -44,8 +45,8 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full text-center">
+    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <Surface padding="lg" className="max-w-md w-full border-slate-200 shadow-xl text-center">
         
         {/* LOADING */}
         {status === 'loading' && (
@@ -110,9 +111,7 @@ const VerifyEmailPage = () => {
             )}
 
             {resendStatus === 'sent' && (
-              <div className="mb-6 p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg">
-                ✓ Verification email sent! Check your inbox.
-              </div>
+              <Alert tone="success" className="mb-6 text-left">Verification email sent! Check your inbox.</Alert>
             )}
 
             <Link to="/login">
@@ -122,7 +121,7 @@ const VerifyEmailPage = () => {
             </Link>
           </>
         )}
-      </div>
+      </Surface>
     </div>
   );
 };

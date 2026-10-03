@@ -82,6 +82,15 @@ All routes are under `/api`. Task routes require `Authorization: Bearer <token>`
 | GET/POST | `/workspaces/:slug/tasks?status=&search=&sort=&from=&to=&project=` | List and create tasks |
 | PUT/PATCH/DELETE | `/workspaces/:slug/tasks/:id` | Partial update, delete |
 
+## Progressive Web App
+
+The web app is installable and works offline for the app shell (via `vite-plugin-pwa`, Workbox).
+
+- **Install:** use the browser's "Install app" action (Chrome/Edge) or "Add to Home Screen" (iOS Safari). The manifest, icons and theme color are configured in `client/vite.config.ts`.
+- **Offline:** the built JS/CSS/HTML/icons are precached, so the shell opens without a network. API data is never cached (it is private); while offline a banner warns that changes cannot be saved.
+- **Updates:** when a new version is deployed, a toast offers "Reload"; the service worker only exists in production builds (`pnpm --filter client build && pnpm --filter client preview`), not in `pnpm dev`.
+- **Icons:** regenerate with `python client/scripts/generate-icons.py` (needs Pillow).
+
 ## Branch strategy
 
 - `main` is always deployable; nobody commits to it directly.
