@@ -1,20 +1,23 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
+import { body, validationResult } from 'express-validator';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
 
-const generateInviteCode = () => crypto.randomBytes(6).toString('hex').toUpperCase();
+const generateInviteCode = (): string =>
+  crypto.randomBytes(6).toString('hex').toUpperCase();
 
 const generateSlug = async (name: string): Promise<string> => {
-  const base = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 40) || 'workspace';
+  const base =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 40) || 'workspace';
 
   let slug = base;
   let counter = 1;
@@ -43,7 +46,7 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // Find the Product Owner role
+    // Find the Product Owner role for the creator
     const ownerRole = await Role.findOne({ name: 'Product Owner', isSystem: true });
     if (!ownerRole) {
       res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
@@ -56,11 +59,13 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
       name: name.trim(),
       slug,
       owner: userId,
-      members: [{
-        user: userId,
-        roleId: ownerRole._id,
-        joinedAt: new Date(),
-      }],
+      members: [
+        {
+          user: userId,
+          roleId: ownerRole._id,
+          joinedAt: new Date(),
+        },
+      ],
       inviteCode: generateInviteCode(),
     });
 
@@ -204,7 +209,7 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Resolve role
+    // Resolve role (defaults to Viewer if none provided)
     let targetRole = null;
     if (roleId) {
       targetRole = await Role.findById(roleId);
@@ -232,6 +237,111 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
     res.status(200).json(workspace);
   } catch (error) {
     console.error('joinWorkspace error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// Validation
+// ================================================================
+export const validateUpdateWorkspace = [
+  body('name')
+    .isString()
+    .withMessage('Workspace name is required')
+    .trim()
+    .notEmpty()
+    .withMessage('Workspace name is required')
+    .isLength({ max: 60 })
+    .withMessage('Workspace name must be 60 characters or fewer'),
+];
+
+// ================================================================
+// @desc    List workspace members
+// @route   GET /api/workspaces/:slug/members
+// @desc    Requires users:read (enforced by route middleware)
+//
+// Returns members sorted by role seniority, then by name.
+// ================================================================
+export const getWorkspaceMembers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workspace = req.workspace!;
+
+    // Populate the member users + roles
+    const populated = await Workspace.findById(workspace._id)
+      .populate('members.user', 'name email avatarUrl jobTitle')
+      .populate('members.roleId', 'name description isSystem');
+
+    if (!populated) {
+      res.status(404).json({ message: 'Workspace not found' });
+      return;
+    }
+
+    const members = populated.members
+      .map((m: any) => {
+        const user = m.user;
+        const role = m.roleId;
+        if (!user || !role) return null;
+
+        return {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          avatarUrl: user.avatarUrl ?? '',
+          jobTitle: user.jobTitle ?? '',
+          role: {
+            _id: role._id,
+            name: role.name,
+            description: role.description,
+            isSystem: role.isSystem,
+          },
+          joinedAt: m.joinedAt,
+        };
+      })
+      .filter((m: unknown): m is NonNullable<typeof m> => m !== null);
+
+    res.status(200).json(members);
+  } catch (error) {
+    console.error('getWorkspaceMembers error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// @desc    Rename a workspace (slug unchanged)
+// @route   PUT /api/workspaces/:slug
+// @desc    Requires settings:manage (enforced by route middleware)
+// ================================================================
+export const updateWorkspace = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  try {
+    const workspace = req.workspace!;
+    workspace.name = req.body.name;
+    await workspace.save();
+    res.status(200).json(workspace);
+  } catch (error) {
+    console.error('updateWorkspace error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
+// @desc    Regenerate the invite code
+// @route   POST /api/workspaces/:slug/invite-code
+// @desc    Requires settings:manage (enforced by route middleware)
+// ================================================================
+export const regenerateInviteCode = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workspace = req.workspace!;
+    workspace.inviteCode = generateInviteCode();
+    await workspace.save();
+    res.status(200).json({ inviteCode: workspace.inviteCode });
+  } catch (error) {
+    console.error('regenerateInviteCode error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

@@ -3,21 +3,22 @@ import { useEffect, useState, useRef } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown,
-  Sparkles, Plus, Check, User,
+  Sparkles, Plus, Check, User, Settings, type LucideIcon,
 } from 'lucide-react';
 
 import {
   Sidebar as ShadcnSidebar, SidebarContent, SidebarFooter,
   SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail,
-  SidebarTrigger, SidebarInset,
+  SidebarTrigger, SidebarInset, useSidebar,
 } from '@/components/ui/sidebar';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ds';
 import { Separator } from '@/components/ui/separator';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
+import type { StoredUser } from '../utils/session';
 
 interface Workspace {
   _id: string;
@@ -26,18 +27,8 @@ interface Workspace {
   inviteCode: string;
 }
 
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspace?: string;
-  activeWorkspaceSlug?: string;
-  workspaces?: string[];
-}
-
 interface SidebarProps {
-  user: UserData | null;
+  user: StoredUser | null;
   onLogout: () => void;
   children: React.ReactNode;
 }
@@ -56,8 +47,78 @@ const navMain = [
 ];
 
 const navGeneral = [
+  // Workspace settings require settings:manage
+  { title: 'Settings', key: 'settings', icon: Settings, permission: 'settings:manage' },
+  // Help is always visible
   { title: 'Help & Center', key: 'help', icon: HelpCircle, permission: null },
 ];
+
+// ============================================================
+// NavGroup — renders a group of nav items with permission filtering
+// and auto-closes the mobile sheet after navigation.
+// ============================================================
+interface NavItem {
+  title: string;
+  key: string;
+  icon: LucideIcon;
+  permission: string | null;
+}
+
+interface NavGroupProps {
+  label: string;
+  items: NavItem[];
+  isActive: (key: string) => boolean;
+  onNavigate: (key: string) => void;
+  can: (permission: string) => boolean;
+  permissionsLoading: boolean;
+}
+
+const NavGroup = ({
+  label,
+  items,
+  isActive,
+  onNavigate,
+  can,
+  permissionsLoading,
+}: NavGroupProps) => {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  // Filter by permission; hide permission-gated items while loading
+  const visibleItems = items.filter((item) => {
+    if (!item.permission) return true;
+    if (permissionsLoading) return false;
+    return can(item.permission);
+  });
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarMenu>
+        {visibleItems.map(({ title, key, icon: Icon }) => (
+          <SidebarMenuItem key={key}>
+            <SidebarMenuButton
+              isActive={isActive(key)}
+              tooltip={title}
+              className="max-md:h-10"
+              render={
+                <button
+                  onClick={() => {
+                    if (isMobile) setOpenMobile(false);
+                    onNavigate(key);
+                  }}
+                  className="w-full"
+                >
+                  <Icon />
+                  <span>{title}</span>
+                </button>
+              }
+            />
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+};
 
 const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const navigate = useNavigate();
@@ -87,6 +148,14 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
   const isActive = (key: string) => location.pathname === `/${targetSlug}/${key}`;
 
+  // Page context for the top bar (visible on mobile, where the sidebar is hidden)
+  const section =
+    location.pathname.split('/')[1] === 'settings'
+      ? 'settings'
+      : location.pathname.split('/')[2];
+  const pageTitle =
+    [...navMain, ...navGeneral].find((item) => item.key === section)?.title ?? '';
+
   // Click-outside detection
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -108,8 +177,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       const list: Workspace[] = response.data || [];
       setWorkspaces(list);
 
-      const fromUrl = workspaceSlug ? list.find(w => w.slug === workspaceSlug) : null;
-      const active = fromUrl || list.find(w => w._id === user?.activeWorkspace) || list[0];
+      const fromUrl = workspaceSlug ? list.find((w) => w.slug === workspaceSlug) : null;
+      const active = fromUrl || list.find((w) => w._id === user?.activeWorkspace) || list[0];
       setActiveWorkspace(active || null);
     } catch (err) {
       console.error('Failed to fetch workspaces:', err);
@@ -129,7 +198,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   // Sync active workspace in DB when URL slug changes
   useEffect(() => {
     if (!workspaceSlug) return;
-    api.put(`/workspaces/${workspaceSlug}/activate`).catch(err => {
+    api.put(`/workspaces/${workspaceSlug}/activate`).catch((err) => {
       console.error('Failed to sync active workspace:', err);
     });
   }, [workspaceSlug]);
@@ -162,26 +231,11 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
     setCreateWorkspaceOpen(true);
   };
 
-  // ===== Filter nav items by permission =====
-  // While permissions are loading, show nothing permission-gated
-  // to avoid flashing restricted items.
-  const visibleMain = navMain.filter((item) => {
-    if (!item.permission) return true;
-    if (permissionsLoading) return false;
-    return can(item.permission);
-  });
-
-  const visibleGeneral = navGeneral.filter((item) => {
-    if (!item.permission) return true;
-    if (permissionsLoading) return false;
-    return can(item.permission);
-  });
-
   return (
     <SidebarProvider>
       <ShadcnSidebar collapsible="icon" className="border-r border-gray-300">
         {/* ========== Workspace Switcher ========== */}
-        <SidebarHeader>
+        <SidebarHeader className="pt-[max(0.5rem,env(safe-area-inset-top))]">
           <SidebarMenu>
             <SidebarMenuItem>
               <div className="relative" ref={workspaceRef}>
@@ -215,7 +269,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                       <button
                         key={ws._id}
                         onClick={() => handleSwitchWorkspace(ws)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
+                        className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
                       >
                         <div className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
                           {ws.name.charAt(0).toUpperCase()}
@@ -231,7 +285,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
                     <button
                       onClick={handleOpenCreateWorkspace}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       Create workspace
@@ -245,55 +299,26 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
         {/* ========== Navigation ========== */}
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
-            <SidebarMenu>
-              {visibleMain.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={isActive(item.key)}
-                      tooltip={item.title}
-                      render={
-                        <button onClick={() => handleNav(item.key)} className="w-full">
-                          <Icon />
-                          <span>{item.title}</span>
-                        </button>
-                      }
-                    />
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-
-          <SidebarGroup>
-            <SidebarGroupLabel>General</SidebarGroupLabel>
-            <SidebarMenu>
-              {visibleGeneral.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={isActive(item.key)}
-                      tooltip={item.title}
-                      render={
-                        <button onClick={() => handleNav(item.key)} className="w-full">
-                          <Icon />
-                          <span>{item.title}</span>
-                        </button>
-                      }
-                    />
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
+          <NavGroup
+            label="Main Menu"
+            items={navMain}
+            isActive={isActive}
+            onNavigate={handleNav}
+            can={can}
+            permissionsLoading={permissionsLoading}
+          />
+          <NavGroup
+            label="General"
+            items={navGeneral}
+            isActive={isActive}
+            onNavigate={handleNav}
+            can={can}
+            permissionsLoading={permissionsLoading}
+          />
         </SidebarContent>
 
         {/* ========== User Footer ========== */}
-        <SidebarFooter className="border-t border-slate-100">
+        <SidebarFooter className="border-t border-slate-100 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <SidebarMenu>
             <SidebarMenuItem>
               <div className="relative" ref={userRef}>
@@ -302,11 +327,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="cursor-pointer"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar name={user?.name || 'User'} className="size-8" />
                   <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden">
                     <span className="truncate font-semibold">{user?.name || 'User'}</span>
                     <span className="truncate text-xs text-muted-foreground">
@@ -319,11 +340,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                 {userMenuOpen && (
                   <div className="absolute bottom-full left-0 mb-1 w-64 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50">
                     <div className="flex items-center gap-2 px-3 py-2">
-                      <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
-                          {user?.name?.charAt(0).toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar name={user?.name || 'User'} className="size-8" />
                       <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                         <span className="truncate font-semibold">{user?.name}</span>
                         <span className="truncate text-xs text-muted-foreground">
@@ -336,7 +353,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
                     <button
                       onClick={handleGoToProfile}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
                     >
                       <User className="w-4 h-4" />
                       Profile
@@ -346,7 +363,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
                     <button
                       onClick={handleLogoutClick}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-red-50 cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left text-red-600 hover:bg-red-50 cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       Log out
@@ -363,11 +380,27 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
       {/* ========== Main Content ========== */}
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-gray-300 px-4 bg-white">
-          <SidebarTrigger className="-ml-1" />
+        <header className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center gap-2 border-b border-gray-300 bg-white pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
+          <SidebarTrigger className="-ml-2 size-10 md:-ml-1 md:size-8" />
           <Separator orientation="vertical" className="mr-2 !h-4" />
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            <span className="font-bold text-slate-900 md:hidden">TaskMan</span>
+            {pageTitle && (
+              <>
+                <span aria-hidden className="text-slate-300 md:hidden">
+                  /
+                </span>
+                <span className="truncate font-medium text-slate-600">{pageTitle}</span>
+              </>
+            )}
+            {activeWorkspace && (
+              <span className="hidden truncate text-slate-400 sm:inline">
+                · {activeWorkspace.name}
+              </span>
+            )}
+          </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 lg:p-8 bg-slate-50">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
           {children}
         </div>
       </SidebarInset>

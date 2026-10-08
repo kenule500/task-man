@@ -2,6 +2,9 @@ export interface CurrentUser {
   _id: string;
   name: string;
   email: string;
+  activeWorkspace?: string;
+  activeWorkspaceSlug?: string;
+  workspaces?: string[];
 }
 
 export interface CurrentWorkspace {

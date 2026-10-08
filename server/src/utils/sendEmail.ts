@@ -8,19 +8,29 @@ interface SendEmailOptions {
   html?: string;
 }
 
+/** True when SMTP is configured; otherwise emails are printed to the console (development). */
+export const isSmtpConfigured = () => Boolean(process.env.EMAIL_HOST);
+
 export const sendEmail = async ({ to, subject, text, html }: SendEmailOptions) => {
+  if (!isSmtpConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('EMAIL_HOST is not configured; cannot send email in production.');
+    }
+    // Development fallback: no SMTP needed, the link is in the server logs
+    console.log(`📧 [dev email] To: ${to}\nSubject: ${subject}\n\n${text}\n`);
+    return;
+  }
+
   // Create transporter lazily so env vars are always fresh
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: Number(process.env.EMAIL_PORT) || 587,
-    secure: false,
+    secure: Number(process.env.EMAIL_PORT) === 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
-
-  console.log('📧 Sending email via:', process.env.EMAIL_HOST, 'port', process.env.EMAIL_PORT);
 
   try {
     await transporter.sendMail({

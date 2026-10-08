@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Surface } from '@/components/ds';
+import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
 
 const JoinWorkspacePage = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
@@ -11,8 +13,7 @@ const JoinWorkspacePage = () => {
 
   useEffect(() => {
     const join = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!getToken()) {
         // Not logged in — save code and redirect to login
         sessionStorage.setItem('pendingInvite', inviteCode || '');
         navigate('/login');
@@ -25,15 +26,14 @@ const JoinWorkspacePage = () => {
         setMessage(`You joined ${response.data.name}!`);
 
         // Update stored user's active workspace
-        const storedUser = localStorage.getItem('user');
+        const storedUser = getStoredUser();
         if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          userData.activeWorkspace = response.data._id;
-          userData.activeWorkspaceSlug = response.data.slug;
-          if (!userData.workspaces?.includes(response.data._id)) {
-            userData.workspaces = [...(userData.workspaces || []), response.data._id];
-          }
-          localStorage.setItem('user', JSON.stringify(userData));
+          const workspaces = storedUser.workspaces || [];
+          updateStoredUser({
+            activeWorkspace: response.data._id,
+            activeWorkspaceSlug: response.data.slug,
+            workspaces: workspaces.includes(response.data._id) ? workspaces : [...workspaces, response.data._id],
+          });
         }
 
         setTimeout(() => navigate(`/${response.data.slug}/dashboard`), 1500);
@@ -47,8 +47,8 @@ const JoinWorkspacePage = () => {
   }, [inviteCode, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full text-center">
+    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <Surface padding="lg" className="max-w-md w-full border-slate-200 text-center shadow-xl" aria-live="polite">
         {status === 'loading' && (
           <>
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -76,7 +76,7 @@ const JoinWorkspacePage = () => {
             <p className="text-slate-500">{message}</p>
           </>
         )}
-      </div>
+      </Surface>
     </div>
   );
 };

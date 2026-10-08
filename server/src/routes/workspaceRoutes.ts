@@ -3,8 +3,12 @@ import {
   createWorkspace,
   getMyWorkspaces,
   getWorkspaceBySlug,
+  getWorkspaceMembers,
+  regenerateInviteCode,
   switchWorkspace,
   joinWorkspace,
+  updateWorkspace,
+  validateUpdateWorkspace,
 } from '../controllers/workspaceController.js';
 import {
   createInvitation,
@@ -15,37 +19,100 @@ import {
   changeMemberRole,
   removeMember,
 } from '../controllers/memberController.js';
-
 import {
   listWorkspaceRoles,
   createCustomRole,
   updateCustomRole,
   deleteCustomRole,
 } from '../controllers/roleController.js';
-import { requirePermission } from '../middleware/permissionMiddleware.js';
-
 import { protect } from '../middleware/authMiddleware.js';
+import { requirePermission } from '../middleware/permissionMiddleware.js';
+import taskRoutes from './taskRoutes.js';
 
 const router: Router = express.Router();
 
+// ============================================================
 // Workspaces
+// ============================================================
+
+// Create + list + join don't need workspace context yet
 router.post('/', protect, createWorkspace);
 router.get('/', protect, getMyWorkspaces);
-router.get('/:slug', protect, getWorkspaceBySlug);
-router.put('/:slug/activate', protect, switchWorkspace);
 router.post('/join', protect, joinWorkspace);
 
+// These need a workspace in the URL
+router.get('/:slug', protect, getWorkspaceBySlug);
+router.put('/:slug/activate', protect, switchWorkspace);
+
+// ============================================================
+// Workspace members (read requires users:read)
+// ============================================================
+router.get(
+  '/:slug/members',
+  protect,
+  requirePermission('users:read'),
+  getWorkspaceMembers
+);
+
+// ============================================================
+// Workspace settings (rename + regenerate invite code)
+// Both require settings:manage
+// ============================================================
+router.put(
+  '/:slug',
+  protect,
+  requirePermission('settings:manage'),
+  validateUpdateWorkspace,
+  updateWorkspace
+);
+router.post(
+  '/:slug/invite-code',
+  protect,
+  requirePermission('settings:manage'),
+  regenerateInviteCode
+);
+
+// ============================================================
 // Invitations (scoped to workspace)
-router.post('/:slug/invitations', protect, requirePermission('users:write'), createInvitation);
-router.get('/:slug/invitations', protect, requirePermission('users:read'), listInvitations);
-router.delete('/:slug/invitations/:id', protect, requirePermission('users:write'), cancelInvitation);
+// ============================================================
+router.post(
+  '/:slug/invitations',
+  protect,
+  requirePermission('users:write'),
+  createInvitation
+);
+router.get(
+  '/:slug/invitations',
+  protect,
+  requirePermission('users:read'),
+  listInvitations
+);
+router.delete(
+  '/:slug/invitations/:id',
+  protect,
+  requirePermission('users:write'),
+  cancelInvitation
+);
 
-// Members (new — Phase 6)
-router.put('/:slug/members/:userId/role', protect, requirePermission('users:write'), changeMemberRole);
-router.delete('/:slug/members/:userId', protect, requirePermission('users:write'), removeMember);
+// ============================================================
+// Member management (role change + removal)
+// ============================================================
+router.put(
+  '/:slug/members/:userId/role',
+  protect,
+  requirePermission('users:write'),
+  changeMemberRole
+);
+router.delete(
+  '/:slug/members/:userId',
+  protect,
+  requirePermission('users:write'),
+  removeMember
+);
 
-
-// Roles (scoped to workspace)
+// ============================================================
+// Roles (custom role CRUD)
+// ============================================================
 router.get(
   '/:slug/roles',
   protect,
@@ -70,4 +137,12 @@ router.delete(
   requirePermission('settings:manage'),
   deleteCustomRole
 );
+
+// ============================================================
+// Workspace-scoped tasks
+// Mounts taskRoutes at /:slug/tasks
+// Task routes protect themselves internally
+// ============================================================
+router.use('/:slug/tasks', taskRoutes);
+
 export default router;

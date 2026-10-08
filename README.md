@@ -1,116 +1,87 @@
 # TaskMan
 
-> A multi-tenant workspace and team management platform built on the MERN stack, with role-based access control (RBAC), email verification, invitations, and workspace-level customisation.
+A MERN task manager for teams: users sign up, create or join workspaces, and plan their work in a
+**list**, **Kanban board**, **calendar** or **timeline (Gantt)**, with projects, reports and team management.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react)](https://react.dev/)
-[![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=node.js)](https://nodejs.org/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb)](https://www.mongodb.com/atlas)
+| Layer | Stack |
+|---|---|
+| Web (`client/`) | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn (Base UI), axios |
+| API (`server/`) | Node.js, Express 5, TypeScript, Mongoose 9 (MongoDB), JWT + DB sessions |
+| Tests | Jest (`@swc/jest`), Testing Library |
+| Tooling | pnpm workspace, ESLint, GitHub Actions CI |
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-  - [Running Locally](#running-locally)
-- [Role-Based Access Control](#role-based-access-control)
-- [Branch Strategy](#branch-strategy)
-- [Project Structure](#project-structure)
-- [Deployment](#deployment)
-- [Scripts Reference](#scripts-reference)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-TaskMan is a workspace-first collaboration platform. Every user belongs to one or more **workspaces**, and within each workspace they hold a **role** that determines what they can see and do.
-
-The project was built as a monorepo with a clean separation between the API and the client, and includes a full RBAC system with system-defined and custom roles.
-
-**Out of scope:** Task management features (task model, task CRUD, task UI) are being implemented separately by another contributor.
-
----
+Design references: [Renza tasks screen](https://dribbble.com/shots/27514201-Task-Management-Dashboard-Tasks-Screen-UI-Design) ·
+[Planora](https://dribbble.com/shots/25991082-Planora-Minimal-Task-Management-Dashboard-UI). UI rules live in [DESIGN.md](DESIGN.md);
+contributor conventions in [AGENTS.md](AGENTS.md).
 
 ## Features
 
-### Authentication
-- Email + password signup with bcrypt hashing
-- Email verification via Nodemailer (Mailtrap sandbox in development)
-- Password reset flow with expiring tokens
-- JWT-based sessions with per-device tracking
-- Session invalidation on password change
-
-### Workspaces
-- Create unlimited workspaces per user
-- Switch between workspaces from the sidebar
-- Auto-generated URL-safe slugs (`/gomycode/dashboard`)
-- Per-workspace invite codes and email invitations
-- Member management (invite, change role, remove)
-
-### Onboarding
-- Multi-step wizard (role, use case, team size, workspace name)
-- Idempotent — safe to refresh
-- Persisted to the database, not just localStorage
+### Core
+- Sign up with email verification, login, password reset, sessions you can revoke (sign out other devices)
+- Workspaces with invite codes; members and roles; workspace settings
+- Tasks: title, description, status, priority, start/due dates, project, dependencies
+- Views: List (inline editing), Board (drag and drop), Calendar (drag to reschedule), Timeline (Gantt with dependency arrows)
+- Search, status and priority filters, sorting (also available as API query parameters)
+- Dashboard overview, Projects progress, Reports, Team page
 
 ### Role-Based Access Control (RBAC)
-- 5 system roles seeded on startup
-- Custom roles with a permission matrix editor
-- 10 atomic permissions grouped by area
-- Route guards, sidebar filtering, and button gating
-- Automatic self-healing for orphaned member entries
+- 5 system roles seeded on server startup — cannot be renamed or deleted
+- Custom roles per workspace with a permission matrix editor
+- 10 atomic permissions grouped by area (projects, tasks, users, reports, settings)
+- Route guards, sidebar filtering, and button gating driven by the user's role in the active workspace
+- Automatic self-healing — orphaned member entries get a sensible default role on first request
 
-### Profile & Settings
-- Editable profile (name, bio, title, phone, timezone)
-- Notification preferences
-- Password change with current-password verification
+### Progressive Web App
+- Installable (Chrome/Edge "Install app", iOS Safari "Add to Home Screen")
+- Offline app shell via `vite-plugin-pwa` + Workbox
+- Update toast when a new version is deployed
 
----
+## RBAC overview
 
-## Tech Stack
+Every request to a workspace endpoint goes through a permission middleware that:
 
-### Frontend
-| Layer | Technology |
-| :--- | :--- |
-| Framework | React 18 + TypeScript |
-| Build tool | Vite |
-| Styling | Tailwind CSS v4 |
-| Components | shadcn/ui + Radix UI |
-| Icons | Lucide React |
-| Routing | React Router v6 |
-| HTTP | Axios (with interceptors) |
+1. Verifies the user is a member of the workspace
+2. Loads the member's role for that workspace
+3. Checks whether the role has the required permission
+4. Attaches `req.workspace`, `req.role`, and `req.permissions` for downstream handlers
 
-### Backend
-| Layer | Technology |
-| :--- | :--- |
-| Runtime | Node.js 20 + TypeScript |
-| Framework | Express 4 |
-| Database | MongoDB Atlas + Mongoose |
-| Auth | JWT + bcrypt |
-| Email | Nodemailer (Mailtrap sandbox) |
-| Validation | express-validator |
-| Security | Helmet, CORS, express-rate-limit |
+The client fetches `/api/auth/currentuser?workspaceSlug=<slug>` on every workspace navigation. The response drives:
+- **Sidebar filtering** — restricted nav items are hidden
+- **Route guards** — `<PermissionRoute>` renders a `ForbiddenPage` on 403
+- **Button gating** — `can('tasks:write')` controls conditional rendering
 
-### DevOps
-| Layer | Technology |
-| :--- | :--- |
-| Package manager | pnpm (workspaces) |
-| Monorepo | pnpm workspace |
-| Frontend hosting | Vercel |
-| Backend hosting | Render |
-| Database hosting | MongoDB Atlas |
+### System roles
 
----
+| Role | Description |
+|---|---|
+| **Product Owner** | Full control — settings, members, everything |
+| **Scrum Master** | Manages projects and tasks; can view members |
+| **Developer** | Works on tasks and projects; can view members |
+| **Team Member** | Works on assigned tasks |
+| **Viewer** | Read-only access |
 
-## Architecture
+### Permission catalog
 
-### Monorepo Layout
+| Permission | Area |
+|---|---|
+| `projects:read`, `projects:write`, `projects:delete` | Projects |
+| `tasks:read`, `tasks:write`, `tasks:delete` | Tasks |
+| `users:read`, `users:write` | Members |
+| `reports:read` | Analytics |
+| `settings:manage` | Workspace settings |
+
+## Getting started
+
+Requirements: Node.js 22+, pnpm 10+, MongoDB 7+ (local or Atlas).
+
+```bash
+pnpm install
+cp server/.env.example server/.env      # then set JWT_SECRET (openssl rand -hex 32)
+cp client/.env.example client/.env
+
+cd server
+pnpm seed      # local demo workspace and tasks (refuses non-local databases)
+pnpm dev       # API on http://localhost:5000
+
+# in another terminal
+pnpm --filter client dev                 # web app on http://localhost:5173

@@ -3,3 +3,6 @@ packages:
   - 'server'
 allowBuilds:
   esbuild: false
+  '@swc/core': false
+  '@parcel/watcher': false
+  unrs-resolver: false

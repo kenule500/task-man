@@ -1,8 +1,6 @@
 import axios from 'axios';
-
-// Base URL comes from Vite env variables.
-// Falls back to localhost for safety during dev.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { API_URL } from '@/config';
+import { clearSession, getToken } from '@/utils/session';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,7 +12,7 @@ const api = axios.create({
 // Attach the JWT to every request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -23,20 +21,33 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Global 401 handling — clear session and redirect to login
+// Global 401 handling — clear session and redirect to login.
+// Auth endpoints (login, signup…) handle their own 401s, so we skip them.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Only clear if we actually had a token (avoid loops on the login page)
-      if (localStorage.getItem('token')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+    const status = error?.response?.status;
+    const url: string = error?.config?.url ?? '';
+
+    if (status === 401 && getToken() && !url.startsWith('/auth/')) {
+      clearSession();
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login?expired=1');
       }
     }
+
     return Promise.reject(error);
   }
 );
+
+/** Readable message from an API error (`{ message }` or express-validator `{ errors }`). */
+export const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const data = (
+    error as {
+      response?: { data?: { message?: string; errors?: { msg: string }[] } };
+    }
+  ).response?.data;
+  return data?.message || data?.errors?.[0]?.msg || fallback;
+};
 
 export default api;

@@ -11,46 +11,84 @@ import Role from '../models/roleModel.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { verifyEmailTemplate, resetPasswordTemplate } from '../utils/emailTemplates.js';
 import { deriveActions } from '../config/permissions.js';
-import {
-  buildVerifyLink,
-  buildResetLink,
-  isDevAutoVerify,
-} from '../utils/requestHelpers.js';
+import { createSecureToken, getBearerToken, hashToken } from '../utils/tokens.js';
+import { getConfig } from '../config/env.js';
 
-// ============ Validation rules ============
+// ============================================================
+// Password rules
+// ============================================================
+export const MIN_PASSWORD_LENGTH = 8;
+
+const passwordRule = (field: string) =>
+  body(field)
+    .isString()
+    .withMessage('Password is required')
+    .isLength({ min: MIN_PASSWORD_LENGTH })
+    .withMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+
+const emailRule = () =>
+  body('email')
+    .isEmail()
+    .withMessage('Please provide a valid email')
+    .normalizeEmail();
+
+// ============================================================
+// Validation rules
+// ============================================================
 export const validateSignup = [
   body('name').notEmpty().withMessage('Name is required').trim().escape(),
-  body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  emailRule(),
+  passwordRule('password'),
 ];
 
-export const validateForgotPassword = [
-  body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
+// Reject objects like `{ "$gt": "" }` (NoSQL operator injection)
+export const validateLogin = [
+  emailRule(),
+  body('password').isString().notEmpty().withMessage('Password is required'),
 ];
 
-export const validateResetPassword = [
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-];
+export const validateResendVerification = [emailRule()];
 
-// ============ Helpers ============
-const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
+export const validateForgotPassword = [emailRule()];
+
+export const validateResetPassword = [passwordRule('password')];
+
+// ============================================================
+// Helpers
+// ============================================================
+
+/** Whether the app should auto-verify new signups (dev convenience). */
+const isDevAutoVerify = (): boolean => process.env.DEV_AUTO_VERIFY === 'true';
+
+const generateToken = (id: string): string => {
+  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h' });
 };
 
+/** Build an absolute URL to a frontend path (e.g. /verify-email/abc123). */
+const appLink = (path: string): string => `${getConfig().clientUrl}${path}`;
+
+/** Only the token hash is stored, so a database leak can't be replayed as sessions. */
 const createSession = async (userId: string, token: string, req: Request) => {
   const userAgent = req.headers['user-agent'] || 'Unknown Device';
   const ipAddress = req.ip || req.socket.remoteAddress || 'Unknown IP';
-  await Session.create({ user: userId, token, userAgent, ipAddress, lastLoggedIn: new Date() });
+  await Session.create({
+    user: userId,
+    token: hashToken(token),
+    userAgent,
+    ipAddress,
+    lastLoggedIn: new Date(),
+  });
 };
 
 const generateSlug = async (name: string): Promise<string> => {
-  const base = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 40) || 'workspace';
+  const base =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 40) || 'workspace';
 
   let slug = base;
   let counter = 1;
@@ -62,7 +100,7 @@ const generateSlug = async (name: string): Promise<string> => {
 };
 
 // ================================================================
-// @desc    Register a new user (sends verification email)
+// @desc    Register a new user (sends verification email unless auto-verify)
 // @route   POST /api/auth/signup
 // ================================================================
 export const registerUser = async (req: Request, res: Response): Promise<void> => {
@@ -83,21 +121,24 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 
     const autoVerify = isDevAutoVerify();
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // In dev auto-verify mode we skip the token entirely
+    const verification = autoVerify ? null : createSecureToken();
+    const verificationTokenExpires = autoVerify
+      ? undefined
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await User.create({
       name,
       email,
       password,
       isVerified: autoVerify,
-      verificationToken: autoVerify ? undefined : verificationToken,
-      verificationTokenExpires: autoVerify ? undefined : verificationTokenExpires,
+      verificationToken: verification?.hash,
+      verificationTokenExpires,
     });
 
     // Only send the email if we're NOT in auto-verify mode
-    if (!autoVerify) {
-      const verifyLink = buildVerifyLink(verificationToken);
+    if (verification) {
+      const verifyLink = appLink(`/verify-email/${verification.token}`);
 
       try {
         await sendEmail({
@@ -131,10 +172,10 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 // ================================================================
 export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { token } = req.params;
+    const token = String(req.params.token);
 
     const user = await User.findOne({
-      verificationToken: token,
+      verificationToken: hashToken(token),
       verificationTokenExpires: { $gt: new Date() },
     });
 
@@ -148,7 +189,8 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
     }
 
     res.status(400).json({
-      message: 'This verification link has already been used or has expired. Try logging in — if that fails, request a new link.',
+      message:
+        'This verification link has already been used or has expired. Try logging in — if that fails, request a new link.',
     });
   } catch (error) {
     console.error('verifyEmail error:', error);
@@ -161,33 +203,37 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
 // @route   POST /api/auth/resend-verification
 // ================================================================
 export const resendVerification = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  // Same answer whether or not the account exists — prevents email enumeration
+  const genericResponse = {
+    message: 'If this account needs verification, a new email has been sent.',
+  };
+
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
 
-    if (!user) {
-      res.status(404).json({ message: 'User not found' });
+    if (!user || user.isVerified) {
+      res.status(200).json(genericResponse);
       return;
     }
 
-    if (user.isVerified) {
-      res.status(400).json({ message: 'Email is already verified' });
-      return;
-    }
-
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    user.verificationToken = verificationToken;
+    const verification = createSecureToken();
+    user.verificationToken = verification.hash;
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
-    const verifyLink = buildVerifyLink(verificationToken);
-
     await sendEmail({
       to: user.email,
-      ...verifyEmailTemplate(verifyLink),
+      ...verifyEmailTemplate(appLink(`/verify-email/${verification.token}`)),
     });
 
-    res.status(200).json({ message: 'Verification email sent' });
+    res.status(200).json(genericResponse);
   } catch (error) {
     console.error('resendVerification error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -199,6 +245,12 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
 // @route   POST /api/auth/login
 // ================================================================
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(401).json({ message: 'Invalid email or password' });
+    return;
+  }
+
   try {
     const { email, password } = req.body;
 
@@ -308,7 +360,9 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
 
       membership.roleId = defaultRole._id as mongoose.Types.ObjectId;
       await workspace.save();
-      console.log(`🔧 Auto-repaired role for ${user.email} in ${workspace.slug} → ${defaultRoleName}`);
+      console.log(
+        `🔧 Auto-repaired role for ${user.email} in ${workspace.slug} → ${defaultRoleName}`
+      );
     }
 
     const role = await Role.findById(membership.roleId);
@@ -362,12 +416,12 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetPasswordToken = resetToken;
+    const reset = createSecureToken();
+    user.resetPasswordToken = reset.hash;
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
-    const resetLink = buildResetLink(resetToken);
+    const resetLink = appLink(`/reset-password/${reset.token}`);
 
     await sendEmail({
       to: user.email,
@@ -393,11 +447,11 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
   }
 
   try {
-    const { token } = req.params;
+    const token = String(req.params.token);
     const { password } = req.body;
 
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashToken(token),
       resetPasswordExpires: { $gt: new Date() },
     });
 
@@ -411,6 +465,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     user.resetPasswordExpires = undefined;
     await user.save();
 
+    // Sign out every session on this account
     await Session.updateMany({ user: user._id }, { isValid: false });
 
     res.status(200).json({ message: 'Password reset successful! You can now log in.' });
@@ -421,7 +476,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 };
 
 // ================================================================
-// @desc    Save onboarding data + create first workspace
+// @desc    Save onboarding data + create first workspace (RBAC)
 // @route   POST /api/auth/onboarding
 // ================================================================
 export const saveOnboarding = async (req: Request, res: Response): Promise<void> => {
@@ -454,6 +509,7 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Look up the Product Owner system role
     const ownerRole = await Role.findOne({ name: 'Product Owner', isSystem: true });
     if (!ownerRole) {
       res.status(500).json({ message: 'Product Owner role not found. Server not seeded.' });
@@ -494,9 +550,9 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
 // ================================================================
 export const logoutUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = getBearerToken(req.headers.authorization);
     if (token) {
-      await Session.findOneAndUpdate({ token }, { isValid: false });
+      await Session.findOneAndUpdate({ token: hashToken(token) }, { isValid: false });
     }
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {

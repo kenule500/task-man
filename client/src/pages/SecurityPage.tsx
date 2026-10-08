@@ -2,8 +2,8 @@ import { useState } from 'react';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Alert, Field, Surface } from '@/components/ds';
+import { Lock } from 'lucide-react';
 
 const SecurityPage = () => {
   const [saving, setSaving] = useState(false);
@@ -27,8 +27,8 @@ const SecurityPage = () => {
       showMessage('error', 'New passwords do not match');
       return;
     }
-    if (passwordData.newPassword.length < 6) {
-      showMessage('error', 'Password must be at least 6 characters');
+    if (passwordData.newPassword.length < 8) {
+      showMessage('error', 'Password must be at least 8 characters');
       return;
     }
 
@@ -48,69 +48,62 @@ const SecurityPage = () => {
     }
   };
 
+  const CONTROL = 'h-11 bg-slate-50 border-slate-200 rounded-lg';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {message && (
-        <div className={`p-3 rounded-xl flex items-center gap-2 text-sm ${
-          message.type === 'success'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-            : 'bg-red-50 text-red-600 border border-red-100'
-        }`}>
-          {message.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {message.text}
-        </div>
-      )}
+      {message && <Alert tone={message.type}>{message.text}</Alert>}
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-8">
+      <Surface padding="lg">
         <div className="mb-6">
-          <h3 className="font-semibold text-slate-900">Change Password</h3>
-          <p className="text-sm text-slate-500 mt-1">Update your password to keep your account secure</p>
+          <h2 className="font-semibold text-slate-900">Change Password</h2>
+          <p className="mt-1 text-sm text-slate-500">Update your password to keep your account secure</p>
         </div>
 
-        <div className="space-y-5 max-w-md">
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword" className="text-sm font-medium text-slate-700">Current Password</Label>
+        <div className="max-w-md space-y-5">
+          <Field label="Current Password" htmlFor="currentPassword">
             <Input
               id="currentPassword"
               type="password"
+              autoComplete="current-password"
               required
               value={passwordData.currentPassword}
               onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="newPassword" className="text-sm font-medium text-slate-700">New Password</Label>
+          <Field label="New Password" htmlFor="newPassword">
             <Input
               id="newPassword"
               type="password"
+              autoComplete="new-password"
               required
               value={passwordData.newPassword}
               onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700">Confirm New Password</Label>
+          <Field label="Confirm New Password" htmlFor="confirmPassword">
             <Input
               id="confirmPassword"
               type="password"
+              autoComplete="new-password"
               required
               value={passwordData.confirmPassword}
               onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
+              className={CONTROL}
             />
-          </div>
+          </Field>
         </div>
-      </div>
+      </Surface>
 
       <div className="flex justify-end">
         <Button
           type="submit"
           disabled={saving}
-          className="rounded-lg gap-2 bg-primary hover:bg-primary-hover text-white h-11 px-6"
+          className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
           <Lock className="w-4 h-4" />
           {saving ? 'Updating...' : 'Update Password'}

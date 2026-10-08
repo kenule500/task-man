@@ -1,24 +1,16 @@
 import { Link } from 'react-router-dom';
+import { getStoredUser, getToken } from '../../utils/session';
 
 // Helper — reads auth state once, no effect required
 const getAuthState = () => {
-  try {
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    if (!token || !storedUser) return { isLoggedIn: false, dashboardUrl: '/login' };
-
-    const userData = JSON.parse(storedUser);
-    if (userData.activeWorkspaceSlug) {
-      return {
-        isLoggedIn: true,
-        dashboardUrl: `/${userData.activeWorkspaceSlug}/dashboard`,
-      };
+  const user = getStoredUser();
+  if (getToken() && user) {
+    if (user.activeWorkspaceSlug) {
+      return { isLoggedIn: true, dashboardUrl: `/${user.activeWorkspaceSlug}/dashboard` };
     }
-    if (userData.onboardingComplete === false) {
+    if (user.onboardingComplete === false) {
       return { isLoggedIn: true, dashboardUrl: '/onboarding' };
     }
-  } catch {
-    // fall through to logged-out state
   }
   return { isLoggedIn: false, dashboardUrl: '/login' };
 };

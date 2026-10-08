@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { updateStoredUser, getStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, IconTile, Surface, fieldMessageId } from '@/components/ds';
 import {
   CheckCircle2,
   ArrowRight,
@@ -13,14 +15,6 @@ import {
   User,
   Sparkles,
 } from 'lucide-react';
-
-interface UserData {
-  _id: string;
-  name: string;
-  email: string;
-  onboardingComplete?: boolean;
-  activeWorkspaceSlug?: string;
-}
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -33,37 +27,16 @@ const OnboardingPage = () => {
     workspaceName: '',
   });
 
-  const [user] = useState<UserData | null>(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
-  });
+  const { user } = useAuthGuard({ requireOnboarding: false });
 
   // ============================================================
   // GUARD: If user is already onboarded, send them to their workspace
   // ============================================================
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login', { replace: true });
-      return;
+    if (user?.onboardingComplete && user.activeWorkspaceSlug) {
+      navigate(`/${user.activeWorkspaceSlug}/dashboard`, { replace: true });
     }
-
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        if (userData.onboardingComplete && userData.activeWorkspaceSlug) {
-          navigate(`/${userData.activeWorkspaceSlug}/dashboard`, { replace: true });
-        }
-      } catch {
-        // Bad localStorage data — stay on the onboarding page
-      }
-    }
-  }, [navigate]);
+  }, [navigate, user]);
 
   // ============================================================
   // NAVIGATION BETWEEN STEPS
@@ -89,17 +62,13 @@ const OnboardingPage = () => {
       }
 
       // Update stored user with the workspace info
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        userData.onboardingComplete = true;
-        userData.activeWorkspace = workspace._id;
-        userData.activeWorkspaceSlug = workspace.slug;
-        if (!userData.workspaces?.includes(workspace._id)) {
-          userData.workspaces = [...(userData.workspaces || []), workspace._id];
-        }
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
+      const workspaces = getStoredUser()?.workspaces || [];
+      updateStoredUser({
+        onboardingComplete: true,
+        activeWorkspace: workspace._id,
+        activeWorkspaceSlug: workspace.slug,
+        workspaces: workspaces.includes(workspace._id) ? workspaces : [...workspaces, workspace._id],
+      });
 
       navigate(`/${workspace.slug}/dashboard`, { replace: true });
     } catch (error: unknown) {
@@ -144,10 +113,10 @@ const OnboardingPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl p-8 max-w-2xl w-full">
+    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <Surface padding="lg" className="max-w-2xl w-full rounded-3xl border-slate-200 shadow-xl">
         {/* Progress Bar */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="mb-8 flex items-center justify-center gap-2 sm:mb-10">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
@@ -161,17 +130,17 @@ const OnboardingPage = () => {
         {/* ============================== STEP 1: Role ============================== */}
         {step === 1 && (
           <div className="text-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-primary" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-3">
+            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
+              <CheckCircle2 />
+            </IconTile>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">
               Welcome, {user?.name}! 🎉
             </h1>
-            <p className="text-slate-500 mb-10 max-w-md mx-auto">
+            <p className="text-slate-500 mb-8 sm:mb-10 max-w-md mx-auto">
               You're all set up. Let's personalize your workspace with a few quick questions.
             </p>
 
-            <div className="space-y-2 text-left max-w-md mx-auto mb-10">
+            <div className="space-y-2 text-left max-w-md mx-auto mb-8 sm:mb-10">
               <p className="text-sm font-semibold text-slate-700 mb-4">
                 What best describes you?
               </p>
@@ -209,15 +178,15 @@ const OnboardingPage = () => {
         {/* ============================== STEP 2: Use Case ============================== */}
         {step === 2 && (
           <div className="text-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Target className="w-10 h-10 text-primary" />
-            </div>
+            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
+              <Target />
+            </IconTile>
             <h1 className="text-2xl font-bold text-slate-900 mb-3">
               What will you use TaskMan for?
             </h1>
-            <p className="text-slate-500 mb-10">This helps us tailor your experience.</p>
+            <p className="text-slate-500 mb-8 sm:mb-10">This helps us tailor your experience.</p>
 
-            <div className="space-y-3 max-w-md mx-auto mb-10">
+            <div className="space-y-3 max-w-md mx-auto mb-8 sm:mb-10">
               {useCases.map((uc) => {
                 const isSelected = formData.useCase === uc.value;
                 return (
@@ -252,15 +221,15 @@ const OnboardingPage = () => {
         {/* ============================== STEP 3: Team Size ============================== */}
         {step === 3 && (
           <div className="text-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Briefcase className="w-10 h-10 text-primary" />
-            </div>
+            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
+              <Briefcase />
+            </IconTile>
             <h1 className="text-2xl font-bold text-slate-900 mb-3">
               How big is your team?
             </h1>
-            <p className="text-slate-500 mb-10">Just so we can customize your dashboard.</p>
+            <p className="text-slate-500 mb-8 sm:mb-10">Just so we can customize your dashboard.</p>
 
-            <div className="space-y-3 max-w-md mx-auto mb-10">
+            <div className="space-y-3 max-w-md mx-auto mb-8 sm:mb-10">
               {teamSizes.map((size) => {
                 const isSelected = formData.teamSize === size;
                 return (
@@ -285,25 +254,25 @@ const OnboardingPage = () => {
         {/* ============================== STEP 4: Name Workspace ============================== */}
         {step === 4 && (
           <div className="text-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-10 h-10 text-primary" />
-            </div>
+            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
+              <Sparkles />
+            </IconTile>
             <h1 className="text-2xl font-bold text-slate-900 mb-3">
               Name your workspace
             </h1>
-            <p className="text-slate-500 mb-10">
+            <p className="text-slate-500 mb-8 sm:mb-10">
               This is where your tasks live. You can invite teammates later.
             </p>
 
-            <div className="max-w-md mx-auto mb-10 text-left space-y-2">
-              <Label
-                htmlFor="workspaceName"
-                className="text-sm font-medium text-slate-700"
-              >
-                Workspace Name
-              </Label>
+            <Field
+              label="Workspace Name"
+              htmlFor="workspaceName"
+              hint="You can rename this anytime in Settings."
+              className="mx-auto mb-8 max-w-md text-left sm:mb-10"
+            >
               <Input
                 id="workspaceName"
+                aria-describedby={fieldMessageId('workspaceName')}
                 type="text"
                 placeholder="e.g., Acme Corp, My Team, Personal"
                 value={formData.workspaceName}
@@ -317,20 +286,17 @@ const OnboardingPage = () => {
                 className="h-12 bg-slate-50 border-slate-200 rounded-xl text-base"
                 maxLength={60}
               />
-              <p className="text-xs text-slate-400">
-                You can rename this anytime in Settings.
-              </p>
-            </div>
+            </Field>
           </div>
         )}
 
         {/* ============================== NAVIGATION ============================== */}
-        <div className="flex justify-between items-center mt-10 pt-6 border-t border-slate-100">
+        <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-6 sm:mt-10">
           <Button
             variant="ghost"
             onClick={handleBack}
             disabled={step === 1 || saving}
-            className="rounded-xl gap-2 text-slate-500"
+            className="h-10 rounded-xl gap-2 text-slate-500"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </Button>
@@ -338,13 +304,13 @@ const OnboardingPage = () => {
           <Button
             onClick={handleNext}
             disabled={!canProceed() || saving}
-            className="rounded-xl gap-2 bg-primary hover:bg-primary-hover text-white px-6"
+            className="h-10 rounded-xl gap-2 bg-primary hover:bg-primary-hover text-white px-6"
           >
             {saving ? 'Creating workspace...' : step === 4 ? 'Finish' : 'Continue'}
             {!saving && <ArrowRight className="w-4 h-4" />}
           </Button>
         </div>
-      </div>
+      </Surface>
     </div>
   );
 };

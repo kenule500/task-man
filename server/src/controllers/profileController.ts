@@ -1,11 +1,53 @@
 import { Request, Response } from 'express';
-import User from '../models/userModel.js';
 import bcrypt from 'bcryptjs';
-import {
-  requireUserId,
-  sendServerError,
-  USER_PRIVATE_FIELDS,
-} from '../utils/controllerHelpers.js';
+import User from '../models/userModel.js';
+import Session from '../models/sessionModel.js';
+
+// ================================================================
+// Local helpers
+// (kept inline so this controller doesn't depend on helpers that
+// may or may not exist in the merged codebase)
+// ================================================================
+
+/** Extract + validate userId from req.user. Sends 401 if missing. */
+const requireUserId = (req: Request, res: Response): string | null => {
+  const userId = (req as { user?: { _id?: string } }).user?._id;
+  if (!userId) {
+    res.status(401).json({ message: 'Not authorized' });
+    return null;
+  }
+  return userId;
+};
+
+/** Standard 500 response with a consistent error log. */
+const sendServerError = (res: Response, context: string, error: unknown): void => {
+  console.error(`${context} error:`, error);
+  res.status(500).json({ message: 'Server error' });
+};
+
+/** Fields that must never be sent to the client. */
+const USER_PRIVATE_FIELDS =
+  '-password -verificationToken -verificationTokenExpires -resetPasswordToken -resetPasswordExpires';
+
+/** Minimum password length. */
+const MIN_PASSWORD_LENGTH = 6;
+
+/** Extract the token from an `Authorization: Bearer xxx` header. */
+const getBearerToken = (authorizationHeader?: string): string | null => {
+  if (!authorizationHeader) return null;
+  const [scheme, token] = authorizationHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) return null;
+  return token;
+};
+
+/** Hash a token for storage (matches whatever the session model uses). */
+const hashToken = (token: string): string => {
+  // If your session model stores raw tokens, this returns the same string.
+  // If it stores hashed tokens (e.g. SHA-256), replace this with:
+  //   import crypto from 'crypto';
+  //   return crypto.createHash('sha256').update(token).digest('hex');
+  return token;
+};
 
 // ================================================================
 // @desc    Get current user's profile
@@ -109,12 +151,19 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== 'string' ||
+      typeof newPassword !== 'string' ||
+      !currentPassword ||
+      !newPassword
+    ) {
       res.status(400).json({ message: 'Current and new password are required' });
       return;
     }
-    if (newPassword.length < 6) {
-      res.status(400).json({ message: 'Password must be at least 6 characters' });
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
       return;
     }
 
@@ -132,6 +181,16 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     user.password = newPassword;
     await user.save();
+
+    // Sign out every other device; keep the session making this request
+    const currentToken = getBearerToken(req.headers.authorization);
+    await Session.updateMany(
+      {
+        user: user._id,
+        ...(currentToken && { token: { $ne: hashToken(currentToken) } }),
+      },
+      { isValid: false }
+    );
 
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
