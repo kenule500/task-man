@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import User from '../models/userModel.js';
 import bcrypt from 'bcryptjs';
+import {
+  requireUserId,
+  sendServerError,
+  USER_PRIVATE_FIELDS,
+} from '../utils/controllerHelpers.js';
 
 // ================================================================
 // @desc    Get current user's profile
@@ -8,14 +13,11 @@ import bcrypt from 'bcryptjs';
 // ================================================================
 export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as { user?: { _id?: string } }).user?._id;
-    if (!userId) {
-      res.status(401).json({ message: 'Not authorized' });
-      return;
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const user = await User.findById(userId)
-      .select('-password -verificationToken -verificationTokenExpires -resetPasswordToken -resetPasswordExpires')
+      .select(USER_PRIVATE_FIELDS)
       .populate('workspaces', 'name slug');
 
     if (!user) {
@@ -25,8 +27,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 
     res.status(200).json(user);
   } catch (error) {
-    console.error('getProfile error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendServerError(res, 'getProfile', error);
   }
 };
 
@@ -36,15 +37,12 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 // ================================================================
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as { user?: { _id?: string } }).user?._id;
-    if (!userId) {
-      res.status(401).json({ message: 'Not authorized' });
-      return;
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const allowedFields = [
       'name', 'avatarUrl', 'bio', 'jobTitle', 'phone',
-      'timezone', 'language', 'theme'
+      'timezone', 'language', 'theme',
     ];
 
     const updates: Record<string, unknown> = {};
@@ -55,9 +53,9 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     }
 
     const user = await User.findByIdAndUpdate(userId, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
-    }).select('-password -verificationToken -resetPasswordToken');
+    }).select(USER_PRIVATE_FIELDS);
 
     if (!user) {
       res.status(404).json({ message: 'User not found' });
@@ -66,8 +64,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json(user);
   } catch (error) {
-    console.error('updateProfile error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendServerError(res, 'updateProfile', error);
   }
 };
 
@@ -77,11 +74,8 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 // ================================================================
 export const updateNotifications = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as { user?: { _id?: string } }).user?._id;
-    if (!userId) {
-      res.status(401).json({ message: 'Not authorized' });
-      return;
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const { email, taskAssigned, taskCompleted, weeklyDigest } = req.body;
 
@@ -90,8 +84,8 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
       {
         notifications: { email, taskAssigned, taskCompleted, weeklyDigest },
       },
-      { new: true, runValidators: true }
-    ).select('-password');
+      { returnDocument: 'after', runValidators: true }
+    ).select(USER_PRIVATE_FIELDS);
 
     if (!user) {
       res.status(404).json({ message: 'User not found' });
@@ -100,8 +94,7 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
 
     res.status(200).json(user);
   } catch (error) {
-    console.error('updateNotifications error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendServerError(res, 'updateNotifications', error);
   }
 };
 
@@ -111,11 +104,8 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
 // ================================================================
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as { user?: { _id?: string } }).user?._id;
-    if (!userId) {
-      res.status(401).json({ message: 'Not authorized' });
-      return;
-    }
+    const userId = requireUserId(req, res);
+    if (!userId) return;
 
     const { currentPassword, newPassword } = req.body;
 
@@ -145,7 +135,6 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
 
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('changePassword error:', error);
-    res.status(500).json({ message: 'Server error' });
+    sendServerError(res, 'changePassword', error);
   }
 };

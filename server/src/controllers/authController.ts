@@ -1,12 +1,21 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import { body, validationResult } from 'express-validator';
+
 import User from '../models/userModel.js';
 import Session from '../models/sessionModel.js';
 import Workspace from '../models/workspaceModel.js';
-import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
+import Role from '../models/roleModel.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { verifyEmailTemplate, resetPasswordTemplate } from '../utils/emailTemplates.js';
+import { deriveActions } from '../config/permissions.js';
+import {
+  buildVerifyLink,
+  buildResetLink,
+  isDevAutoVerify,
+} from '../utils/requestHelpers.js';
 
 // ============ Validation rules ============
 export const validateSignup = [
@@ -23,6 +32,7 @@ export const validateResetPassword = [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
 ];
 
+// ============ Helpers ============
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
 };
@@ -65,12 +75,13 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   try {
     const { name, email, password } = req.body;
 
-    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       res.status(400).json({ message: 'User already exists' });
       return;
     }
+
+    const autoVerify = isDevAutoVerify();
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -79,31 +90,34 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       name,
       email,
       password,
-      isVerified: false,
-      verificationToken,
-      verificationTokenExpires,
+      isVerified: autoVerify,
+      verificationToken: autoVerify ? undefined : verificationToken,
+      verificationTokenExpires: autoVerify ? undefined : verificationTokenExpires,
     });
 
-    const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    // Only send the email if we're NOT in auto-verify mode
+    if (!autoVerify) {
+      const verifyLink = buildVerifyLink(verificationToken);
 
-    // ===== Send email — but don't fail the whole signup if it errors =====
-    try {
-      await sendEmail({
-        to: user.email,
-        ...verifyEmailTemplate(verifyLink),
-      });
-    } catch (emailError) {
-      console.error('⚠️ Verification email failed to send:', emailError);
-      console.log('📧 Verification link (for manual testing):', verifyLink);
-      // We still return success — the user can request a resend later
+      try {
+        await sendEmail({
+          to: user.email,
+          ...verifyEmailTemplate(verifyLink),
+        });
+      } catch (emailError) {
+        console.error('⚠️ Verification email failed to send:', emailError);
+        console.log('📧 Verification link (for manual testing):', verifyLink);
+      }
     }
 
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
-      message: 'Account created! Please check your email to verify your account.',
-      requiresVerification: true,
+      message: autoVerify
+        ? 'Account created and verified. You can log in now.'
+        : 'Account created! Please check your email to verify your account.',
+      requiresVerification: !autoVerify,
     });
   } catch (error) {
     console.error('registerUser error:', error);
@@ -137,7 +151,7 @@ export const verifyEmail = async (req: Request, res: Response): Promise<void> =>
       message: 'This verification link has already been used or has expired. Try logging in — if that fails, request a new link.',
     });
   } catch (error) {
-    console.error(error);
+    console.error('verifyEmail error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -166,7 +180,7 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
     user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save();
 
-    const verifyLink = `http://localhost:5173/verify-email/${verificationToken}`;
+    const verifyLink = buildVerifyLink(verificationToken);
 
     await sendEmail({
       to: user.email,
@@ -226,6 +240,109 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 };
 
 // ================================================================
+// @desc    Get the current user's identity + role + permissions
+// @route   GET /api/auth/currentuser?workspaceSlug=gomycode
+// ================================================================
+export const getCurrentUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as { user?: { _id?: string } }).user?._id;
+    if (!userId) {
+      res.status(401).json({ message: 'Not authorized' });
+      return;
+    }
+
+    const workspaceSlug = req.query.workspaceSlug as string | undefined;
+
+    const user = await User.findById(userId).select(
+      '-password -verificationToken -verificationTokenExpires -resetPasswordToken -resetPasswordExpires'
+    );
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    // Resolve workspace: prefer URL slug, fall back to user's active workspace
+    let workspace = null;
+    const objectId = new mongoose.Types.ObjectId(userId);
+
+    if (workspaceSlug) {
+      workspace = await Workspace.findOne({
+        slug: workspaceSlug,
+        'members.user': objectId,
+      });
+    } else if (user.activeWorkspace) {
+      workspace = await Workspace.findById(user.activeWorkspace);
+    }
+
+    // No workspace context → return user with no permissions
+    if (!workspace) {
+      res.status(200).json({
+        user: { _id: user._id, name: user.name, email: user.email },
+        workspace: null,
+        role: null,
+        permissions: [],
+        actions: [],
+      });
+      return;
+    }
+
+    const membership = workspace.members.find(
+      (m) => m.user.toString() === userId.toString()
+    );
+
+    if (!membership) {
+      res.status(403).json({ message: 'Not a member of this workspace' });
+      return;
+    }
+
+    // Self-healing: if roleId is missing, assign a sensible default
+    if (!membership.roleId) {
+      const isOwner = workspace.owner.toString() === userId.toString();
+      const defaultRoleName = isOwner ? 'Product Owner' : 'Viewer';
+
+      const defaultRole = await Role.findOne({ name: defaultRoleName, isSystem: true });
+      if (!defaultRole) {
+        res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
+        return;
+      }
+
+      membership.roleId = defaultRole._id as mongoose.Types.ObjectId;
+      await workspace.save();
+      console.log(`🔧 Auto-repaired role for ${user.email} in ${workspace.slug} → ${defaultRoleName}`);
+    }
+
+    const role = await Role.findById(membership.roleId);
+    if (!role) {
+      res.status(500).json({ message: 'Role not found — data integrity issue' });
+      return;
+    }
+
+    res.status(200).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+      workspace: {
+        _id: workspace._id,
+        name: workspace.name,
+        slug: workspace.slug,
+      },
+      role: {
+        _id: role._id,
+        name: role.name,
+        description: role.description,
+      },
+      permissions: role.permissions,
+      actions: deriveActions(role.permissions),
+    });
+  } catch (error) {
+    console.error('getCurrentUser error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// ================================================================
 // @desc    Request password reset
 // @route   POST /api/auth/forgot-password
 // ================================================================
@@ -250,7 +367,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetLink = buildResetLink(resetToken);
 
     await sendEmail({
       to: user.email,
@@ -322,7 +439,7 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Idempotency
+    // Idempotency — if the user already has a workspace, return it
     if (user.workspaces && user.workspaces.length > 0) {
       const existingWorkspace = await Workspace.findById(user.workspaces[0]);
       if (!user.onboarding?.completedAt) {
@@ -337,6 +454,12 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    const ownerRole = await Role.findOne({ name: 'Product Owner', isSystem: true });
+    if (!ownerRole) {
+      res.status(500).json({ message: 'Product Owner role not found. Server not seeded.' });
+      return;
+    }
+
     const finalName = (workspaceName || `${user.name}'s Workspace`).trim();
     const slug = await generateSlug(finalName);
 
@@ -345,7 +468,7 @@ export const saveOnboarding = async (req: Request, res: Response): Promise<void>
       name: finalName,
       slug,
       owner: user._id,
-      members: [{ user: user._id, role: 'owner', joinedAt: new Date() }],
+      members: [{ user: user._id, roleId: ownerRole._id, joinedAt: new Date() }],
       inviteCode,
     });
 
@@ -377,6 +500,7 @@ export const logoutUser = async (req: Request, res: Response): Promise<void> => 
     }
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
+    console.error('logoutUser error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

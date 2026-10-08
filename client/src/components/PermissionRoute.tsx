@@ -1,0 +1,42 @@
+import { ReactNode } from 'react';
+import { usePermissions } from '../hooks/usePermissions';
+import ForbiddenPage from '../pages/ForbiddenPage';
+
+interface PermissionRouteProps {
+  permission?: string;
+  children: ReactNode;
+}
+
+/**
+ * Route guard. If `permission` is provided and the user lacks it,
+ * renders <ForbiddenPage /> instead of the children.
+ *
+ * If `permission` is undefined, renders children unconditionally
+ * (for routes that only require membership).
+ */
+export const PermissionRoute = ({ permission, children }: PermissionRouteProps) => {
+  const { can, loading } = usePermissions();
+
+  // While permissions are loading, show nothing (avoid flashing 403)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // No permission required → let them through (membership already verified elsewhere)
+  if (!permission) {
+    return <>{children}</>;
+  }
+
+  // Permission check
+  if (!can(permission)) {
+    return <ForbiddenPage requiredPermission={permission} />;
+  }
+
+  return <>{children}</>;
+};
+
+export default PermissionRoute;

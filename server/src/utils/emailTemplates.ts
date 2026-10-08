@@ -88,3 +88,41 @@ export const resetPasswordTemplate = (resetLink: string): EmailTemplate => ({
     </div>
   `),
 });
+
+
+// ================================================================
+// Workspace Invitation (sent when a member is invited)
+// ================================================================
+export const invitationTemplate = (
+  workspaceName: string,
+  roleName: string,
+  inviterName: string,
+  acceptLink: string
+): EmailTemplate => ({
+  subject: `You've been invited to join ${workspaceName} on TaskMan`,
+  text: `${inviterName} has invited you to join the workspace "${workspaceName}" as a ${roleName}.\n\nAccept your invitation:\n${acceptLink}\n\nThis link expires in 3 days.`,
+  html: wrap(`
+    ${brandHeader()}
+    <h2 style="color: #0f172a; margin: 0 0 16px;">You've been invited!</h2>
+    <p style="color: #475569; line-height: 1.6; margin: 0 0 24px;">
+      <strong style="color: #0f172a;">${inviterName}</strong> has invited you to join the workspace
+      <strong style="color: #0f172a;">${workspaceName}</strong> as a
+      <strong style="color: #0f172a;">${roleName}</strong>.
+    </p>
+
+    ${ctaButton(acceptLink, 'Accept Invitation')}
+
+    <p style="color: #94a3b8; font-size: 13px; line-height: 1.6; margin: 24px 0 0;">
+      Or copy this link into your browser:
+    </p>
+    <p style="color: #2563EB; font-size: 13px; word-break: break-all; margin: 8px 0 0;">
+      ${acceptLink}
+    </p>
+
+    <div style="background: #fef3c7; border-left: 3px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin: 24px 0;">
+      <p style="color: #92400e; font-size: 13px; margin: 0;">
+        This invitation expires in 3 days. If you don't recognize ${inviterName}, you can safely ignore this email.
+      </p>
+    </div>
+  `),
+});

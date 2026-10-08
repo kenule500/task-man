@@ -6,7 +6,7 @@ export interface IWorkspace extends Document {
   owner: mongoose.Types.ObjectId;
   members: {
     user: mongoose.Types.ObjectId;
-    role: 'owner' | 'admin' | 'member';
+    roleId: mongoose.Types.ObjectId;
     joinedAt: Date;
   }[];
   inviteCode: string;
@@ -14,30 +14,29 @@ export interface IWorkspace extends Document {
   updatedAt: Date;
 }
 
-const workspaceSchema: Schema = new Schema({
-  name: { type: String, required: true, trim: true, maxlength: 60 },
-  slug: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    index: true,
-    match: /^[a-z0-9-]+$/,
-  },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  members: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    role: {
+const workspaceSchema: Schema = new Schema(
+  {
+    name: { type: String, required: true, trim: true, maxlength: 60 },
+    slug: {
       type: String,
-      enum: ['owner', 'admin', 'member'],
-      default: 'member',
+      required: true,
+      unique: true,
+      lowercase: true,
+      index: true,
+      match: /^[a-z0-9-]+$/,
     },
-    joinedAt: { type: Date, default: Date.now },
-  }],
-  inviteCode: { type: String, required: true, unique: true, index: true },
-}, {
-  timestamps: true,
-});
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    members: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', required: true },
+        joinedAt: { type: Date, default: Date.now },
+      },
+    ],
+    inviteCode: { type: String, required: true, unique: true, index: true },
+  },
+  { timestamps: true }
+);
 
 const Workspace = mongoose.model<IWorkspace>('Workspace', workspaceSchema);
 export default Workspace;

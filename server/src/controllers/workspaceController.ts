@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
+import Role from '../models/roleModel.js';
 
 const generateInviteCode = () => crypto.randomBytes(6).toString('hex').toUpperCase();
 
@@ -42,13 +43,24 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
       return;
     }
 
+    // Find the Product Owner role
+    const ownerRole = await Role.findOne({ name: 'Product Owner', isSystem: true });
+    if (!ownerRole) {
+      res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
+      return;
+    }
+
     const slug = await generateSlug(name.trim());
 
     const workspace = await Workspace.create({
       name: name.trim(),
       slug,
       owner: userId,
-      members: [{ user: userId, role: 'owner', joinedAt: new Date() }],
+      members: [{
+        user: userId,
+        roleId: ownerRole._id,
+        joinedAt: new Date(),
+      }],
       inviteCode: generateInviteCode(),
     });
 
@@ -78,7 +90,9 @@ export const getMyWorkspaces = async (req: Request, res: Response): Promise<void
 
     const objectId = new mongoose.Types.ObjectId(userId);
     const workspaces = await Workspace.find({ 'members.user': objectId })
-      .select('name slug inviteCode owner members createdAt');
+      .select('name slug inviteCode owner members createdAt')
+      .populate('members.user', 'name email')
+      .populate('members.roleId', 'name description');
 
     res.status(200).json(workspaces);
   } catch (error) {
@@ -88,7 +102,7 @@ export const getMyWorkspaces = async (req: Request, res: Response): Promise<void
 };
 
 // ================================================================
-// @desc    Get a single workspace by slug (verifies membership)
+// @desc    Get a single workspace by slug (with populated members)
 // @route   GET /api/workspaces/:slug
 // ================================================================
 export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<void> => {
@@ -101,16 +115,21 @@ export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<v
 
     const { slug } = req.params;
 
-    const workspace = await Workspace.findOne({ slug });
+    const workspace = await Workspace.findOne({ slug })
+      .populate('members.user', 'name email')
+      .populate('members.roleId', 'name description');
+
     if (!workspace) {
       res.status(404).json({ message: 'Workspace not found' });
       return;
     }
 
-    // Compare as strings to avoid ObjectId casting issues
-    const isMember = workspace.members.some(
-      m => m.user.toString() === userId.toString()
-    );
+    // Membership check — handle both populated and unpopulated user refs
+    const isMember = workspace.members.some((m: any) => {
+      const memberId = m.user?._id ? m.user._id.toString() : m.user.toString();
+      return memberId === userId.toString();
+    });
+
     if (!isMember) {
       res.status(403).json({ message: 'You are not a member of this workspace' });
       return;
@@ -124,7 +143,7 @@ export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<v
 };
 
 // ================================================================
-// @desc    Switch active workspace (by slug)
+// @desc    Switch active workspace
 // @route   PUT /api/workspaces/:slug/activate
 // ================================================================
 export const switchWorkspace = async (req: Request, res: Response): Promise<void> => {
@@ -165,7 +184,7 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { inviteCode } = req.body;
+    const { inviteCode, roleId } = req.body;
     if (!inviteCode) {
       res.status(400).json({ message: 'Invite code is required' });
       return;
@@ -178,14 +197,31 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
     }
 
     const alreadyMember = workspace.members.some(
-      m => m.user.toString() === userId.toString()
+      (m) => m.user.toString() === userId.toString()
     );
     if (alreadyMember) {
       res.status(400).json({ message: 'You are already a member of this workspace' });
       return;
     }
 
-    workspace.members.push({ user: userId as any, role: 'member', joinedAt: new Date() });
+    // Resolve role
+    let targetRole = null;
+    if (roleId) {
+      targetRole = await Role.findById(roleId);
+    }
+    if (!targetRole) {
+      targetRole = await Role.findOne({ name: 'Viewer', isSystem: true });
+    }
+    if (!targetRole) {
+      res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
+      return;
+    }
+
+    workspace.members.push({
+      user: userId as any,
+      roleId: targetRole._id as any,
+      joinedAt: new Date(),
+    });
     await workspace.save();
 
     await User.findByIdAndUpdate(userId, {

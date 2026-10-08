@@ -42,6 +42,14 @@ const AuthPage = () => {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data));
 
+        // Handle pending invite from the /accept-invite flow
+        const pendingInviteToken = sessionStorage.getItem('pendingInviteToken');
+        if (pendingInviteToken) {
+          sessionStorage.removeItem('pendingInviteToken');
+          navigate(`/accept-invite/${pendingInviteToken}`);
+          return;
+        }
+
         // Handle pending invite code from the /join/:code page
         const pendingInvite = sessionStorage.getItem('pendingInvite');
         if (pendingInvite) {

@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
+import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
 
 interface Workspace {
@@ -41,23 +42,30 @@ interface SidebarProps {
   children: React.ReactNode;
 }
 
+// ============================================================
+// Nav config — each item can declare a required permission.
+// `permission: null` means "always visible to any workspace member".
+// ============================================================
 const navMain = [
-  { title: 'Dashboard', key: 'dashboard', icon: LayoutDashboard },
-  { title: 'Tasks', key: 'tasks', icon: CheckSquare },
-  { title: 'Projects', key: 'projects', icon: FolderKanban },
-  { title: 'Team Members', key: 'team', icon: Users },
-  { title: 'Calendar', key: 'calendar', icon: Calendar },
-  { title: 'Reports', key: 'reports', icon: BarChart3 },
+  { title: 'Dashboard', key: 'dashboard', icon: LayoutDashboard, permission: null },
+  { title: 'Tasks', key: 'tasks', icon: CheckSquare, permission: 'tasks:read' },
+  { title: 'Projects', key: 'projects', icon: FolderKanban, permission: 'projects:read' },
+  { title: 'Team Members', key: 'team', icon: Users, permission: 'users:read' },
+  { title: 'Calendar', key: 'calendar', icon: Calendar, permission: null },
+  { title: 'Reports', key: 'reports', icon: BarChart3, permission: 'reports:read' },
 ];
 
 const navGeneral = [
-  { title: 'Help & Center', key: 'help', icon: HelpCircle },
+  { title: 'Help & Center', key: 'help', icon: HelpCircle, permission: null },
 ];
 
 const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+
+  // ===== RBAC =====
+  const { can, loading: permissionsLoading } = usePermissions();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
@@ -70,8 +78,12 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
-  // The URL is the source of truth. Fall back only for the switcher display.
-  const targetSlug = workspaceSlug || activeWorkspace?.slug || user?.activeWorkspaceSlug || '';
+  // Target slug for navigation
+  const targetSlug =
+    workspaceSlug ||
+    user?.activeWorkspaceSlug ||
+    activeWorkspace?.slug ||
+    '';
 
   const isActive = (key: string) => location.pathname === `/${targetSlug}/${key}`;
 
@@ -96,7 +108,6 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       const list: Workspace[] = response.data || [];
       setWorkspaces(list);
 
-      // Match the URL slug if present, otherwise the user's active workspace
       const fromUrl = workspaceSlug ? list.find(w => w.slug === workspaceSlug) : null;
       const active = fromUrl || list.find(w => w._id === user?.activeWorkspace) || list[0];
       setActiveWorkspace(active || null);
@@ -115,7 +126,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, workspaceSlug]);
 
-  // Sync active workspace in DB when URL slug changes (fire-and-forget, no navigation)
+  // Sync active workspace in DB when URL slug changes
   useEffect(() => {
     if (!workspaceSlug) return;
     api.put(`/workspaces/${workspaceSlug}/activate`).catch(err => {
@@ -150,6 +161,21 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
     setWorkspaceOpen(false);
     setCreateWorkspaceOpen(true);
   };
+
+  // ===== Filter nav items by permission =====
+  // While permissions are loading, show nothing permission-gated
+  // to avoid flashing restricted items.
+  const visibleMain = navMain.filter((item) => {
+    if (!item.permission) return true;
+    if (permissionsLoading) return false;
+    return can(item.permission);
+  });
+
+  const visibleGeneral = navGeneral.filter((item) => {
+    if (!item.permission) return true;
+    if (permissionsLoading) return false;
+    return can(item.permission);
+  });
 
   return (
     <SidebarProvider>
@@ -222,7 +248,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
           <SidebarGroup>
             <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
             <SidebarMenu>
-              {navMain.map((item) => {
+              {visibleMain.map((item) => {
                 const Icon = item.icon;
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -245,7 +271,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
           <SidebarGroup>
             <SidebarGroupLabel>General</SidebarGroupLabel>
             <SidebarMenu>
-              {navGeneral.map((item) => {
+              {visibleGeneral.map((item) => {
                 const Icon = item.icon;
                 return (
                   <SidebarMenuItem key={item.title}>
