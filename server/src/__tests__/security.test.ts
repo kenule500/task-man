@@ -40,6 +40,13 @@ describe('readConfig', () => {
     expect(errors.join(' ')).toMatch(/CLIENT_URL is required/);
   });
 
+  it('uses the Vercel production domain when CLIENT_URL is not set', () => {
+    const { config, errors } = readConfig({ ...base, NODE_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: 'taskman.example.app' });
+    expect(errors).toEqual([]);
+    expect(config.clientUrl).toBe('https://taskman.example.app');
+    expect(config.corsOrigins).toEqual(['https://taskman.example.app']);
+  });
+
   it('parses a comma separated CORS allow-list without trailing slashes', () => {
     const { config } = readConfig({ ...base, CORS_ORIGIN: 'https://app.example.com/, https://admin.example.com' });
     expect(config.corsOrigins).toEqual(['https://app.example.com', 'https://admin.example.com']);

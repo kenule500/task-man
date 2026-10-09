@@ -32,7 +32,11 @@ const splitList = (value: string | undefined) =>
 export const readConfig = (source: NodeJS.ProcessEnv): ConfigCheck => {
   const nodeEnv = source.NODE_ENV || 'development';
   const isProduction = nodeEnv === 'production';
-  const clientUrl = (source.CLIENT_URL || 'http://localhost:5173').replace(/\/$/, '');
+  // On Vercel the production domain is exposed as a system variable, so a same-origin
+  // deployment works without hard-coding CLIENT_URL before the first deploy.
+  const vercelUrl = source.VERCEL_PROJECT_PRODUCTION_URL ? `https://${source.VERCEL_PROJECT_PRODUCTION_URL}` : '';
+  const explicitClientUrl = source.CLIENT_URL || vercelUrl;
+  const clientUrl = (explicitClientUrl || 'http://localhost:5173').replace(/\/$/, '');
   const corsOrigins = splitList(source.CORS_ORIGIN);
 
   const config: AppConfig = {
@@ -59,7 +63,7 @@ export const readConfig = (source: NodeJS.ProcessEnv): ConfigCheck => {
       : null;
   if (secretProblem) (isProduction || !config.jwtSecret ? errors : warnings).push(secretProblem);
 
-  if (isProduction && !source.CLIENT_URL) errors.push('CLIENT_URL is required in production (used in email links and CORS).');
+  if (isProduction && !explicitClientUrl) errors.push('CLIENT_URL is required in production (used in email links and CORS).');
 
   return { config, errors, warnings };
 };
