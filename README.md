@@ -14,6 +14,18 @@ Design references: [Renza tasks screen](https://dribbble.com/shots/27514201-Task
 [Planora](https://dribbble.com/shots/25991082-Planora-Minimal-Task-Management-Dashboard-UI). UI rules live in [DESIGN.md](DESIGN.md);
 contributor conventions in [AGENTS.md](AGENTS.md).
 
+## Live demo
+
+**https://taskman-mauve.vercel.app** — web app and API on one origin (Vercel + MongoDB Atlas).
+
+Try every permission level with the seeded accounts (one per role) in `demo-workspace`:
+`demo@taskman.test` (Product Owner), `scrum@taskman.test` (Scrum Master), `dev@taskman.test` (Developer),
+`member@taskman.test` (Team Member), `viewer@taskman.test` (Viewer). The shared test password is the
+`DEMO_PASSWORD` constant in `server/src/scripts/seed.ts`.
+
+What changed in the latest integration (security fixes, new features, tests, deployment) is documented in
+[docs/IMPLEMENTATION_REPORT.md](docs/IMPLEMENTATION_REPORT.md).
+
 ## Features
 
 ### Core
