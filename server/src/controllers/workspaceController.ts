@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
+import { SYSTEM_ROLES } from '../config/permissions.js';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
@@ -255,6 +256,13 @@ export const validateUpdateWorkspace = [
     .withMessage('Workspace name must be 60 characters or fewer'),
 ];
 
+// Seniority of the system roles (Product Owner first); custom roles come after them.
+const SYSTEM_ROLE_ORDER = SYSTEM_ROLES.map(role => role.name);
+const roleRank = (role: { name: string; isSystem?: boolean }): number => {
+  const index = role.isSystem ? SYSTEM_ROLE_ORDER.indexOf(role.name) : -1;
+  return index === -1 ? SYSTEM_ROLE_ORDER.length : index;
+};
+
 // ================================================================
 // @desc    List workspace members
 // @route   GET /api/workspaces/:slug/members
@@ -297,7 +305,8 @@ export const getWorkspaceMembers = async (req: Request, res: Response): Promise<
           joinedAt: m.joinedAt,
         };
       })
-      .filter((m: unknown): m is NonNullable<typeof m> => m !== null);
+      .filter((m: unknown): m is NonNullable<typeof m> => m !== null)
+      .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
 
     res.status(200).json(members);
   } catch (error) {

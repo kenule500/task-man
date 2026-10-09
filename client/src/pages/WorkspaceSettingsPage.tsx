@@ -449,6 +449,7 @@ const WorkspaceSettingsPage = () => {
       </AlertDialog>
 
       <RoleEditorModal
+        key={`${editingRole?._id ?? 'new'}-${editorOpen}`}
         open={editorOpen}
         onOpenChange={setEditorOpen}
         workspaceSlug={workspaceSlug!}

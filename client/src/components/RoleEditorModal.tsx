@@ -36,9 +36,10 @@ const RoleEditorModal = ({
   role,
   onSaved,
 }: RoleEditorModalProps) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [permissions, setPermissions] = useState<string[]>([]);
+  // Initial values come from the role; the parent remounts the modal per role (key)
+  const [name, setName] = useState(role?.name || '');
+  const [description, setDescription] = useState(role?.description || '');
+  const [permissions, setPermissions] = useState<string[]>(role?.permissions || []);
   const [permissionGroups, setPermissionGroups] = useState<Record<string, PermissionOption[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,16 +58,6 @@ const RoleEditorModal = ({
       }
     })();
   }, [open]);
-
-  // Reset form when opening
-  useEffect(() => {
-    if (open) {
-      setName(role?.name || '');
-      setDescription(role?.description || '');
-      setPermissions(role?.permissions || []);
-      setError('');
-    }
-  }, [open, role]);
 
   const togglePermission = (key: string) => {
     setPermissions((prev) =>
