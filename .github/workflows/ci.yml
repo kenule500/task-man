@@ -13,6 +13,16 @@ jobs:
   server:
     name: Server (typecheck, test, build)
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: server
@@ -28,6 +38,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Integration tests (real MongoDB)
+        run: pnpm test:integration
+        env:
+          MONGO_URI: mongodb://127.0.0.1:27017
+          JWT_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          NODE_ENV: test
       - run: pnpm build
 
   client:
