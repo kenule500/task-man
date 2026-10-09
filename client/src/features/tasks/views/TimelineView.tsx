@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ds';
 import { StatusDot } from '../components/TaskBadges';
+import { AssigneeStack } from '../components/TaskChips';
 import { STATUS_META } from '../constants';
 import { diffInDays, formatDate, isWeekend, startOfDay } from '../lib/date';
 import {
@@ -39,7 +40,9 @@ const previewRow = (row: TimelineRow, drag: DragState | null): TimelineRow => {
 };
 
 /** Gantt chart: bars from start to due date, dependency arrows, drag to reschedule. */
-const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate'>) => {
+const TimelineView = ({
+  tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true,
+}: Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'>) => {
   const [zoom, setZoom] = useState<Zoom>(getInitialZoom);
   const [drag, setDrag] = useState<DragState | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +70,7 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
 
   // ---- pointer drag (move the bar, or resize from its right edge) ----
   const startDrag = (event: PointerEvent<HTMLElement>, task: Task, mode: DragState['mode']) => {
-    if (event.button !== 0) return;
+    if (!canWrite || event.button !== 0) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     setDrag({ id: task._id, mode, originX: event.clientX, delta: 0 });
@@ -93,12 +96,12 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
       suppressClickRef.current = false;
       return;
     }
-    onEdit(task);
+    (onOpen ?? onEdit)(task);
   };
 
   // ---- keyboard: ←/→ move by a day, Shift+←/→ change the duration ----
   const handleBarKeyDown = (event: KeyboardEvent, task: Task) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (!canWrite || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
     event.preventDefault();
     const step = event.key === 'ArrowRight' ? 1 : -1;
     void onUpdate(task._id, event.shiftKey ? resizeTask(task, step) : shiftTask(task, step));
@@ -111,7 +114,7 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
           icon={<ChartGantt />}
           title="Nothing scheduled yet"
           description="Add tasks with a start and due date to see them on the timeline."
-          action={<Button onClick={() => onCreate()} className="h-9 bg-primary hover:bg-primary-hover text-white">Add task</Button>}
+          action={canWrite ? <Button onClick={() => onCreate()} className="h-9 bg-primary hover:bg-primary-hover text-white">Add task</Button> : undefined}
         />
       </div>
     );
@@ -161,13 +164,14 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
               <li key={task._id} style={{ height: ROW_HEIGHT }} className="flex items-center border-b border-slate-50 px-3 sm:px-4">
                 <button
                   type="button"
-                  onClick={() => onEdit(task)}
+                  onClick={() => (onOpen ?? onEdit)(task)}
                   title={task.title}
-                  className="flex h-full min-w-0 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
+                  className="flex h-full min-w-0 flex-1 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
                 >
                   <StatusDot status={task.status} />
                   <span className={cn('truncate', task.status === 'completed' && 'text-slate-400 line-through')}>{task.title}</span>
                 </button>
+                <AssigneeStack users={task.assignees} max={2} className="ml-2 hidden sm:inline-flex" />
               </li>
             ))}
           </ul>
@@ -279,20 +283,23 @@ const TimelineView = ({ tasks, onUpdate, onEdit, onCreate }: Pick<TaskViewProps,
                       onPointerCancel={() => setDrag(null)}
                       onClick={() => handleBarClick(task)}
                       onKeyDown={event => handleBarKeyDown(event, task)}
-                      aria-label={`${task.title}, ${STATUS_META[task.status].label}, ${dates}. Arrow keys move, Shift+Arrow keys change the due date.`}
+                      aria-label={`${task.title}, ${STATUS_META[task.status].label}, ${dates}.${canWrite ? ' Arrow keys move, Shift+Arrow keys change the due date.' : ''}`}
                       title={`${task.title} · ${dates}`}
                       className={cn(
-                        'relative h-full touch-none cursor-grab select-none rounded-md border text-left text-xs font-medium shadow-sm active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+                        'relative h-full select-none rounded-md border text-left text-xs font-medium shadow-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+                        canWrite && 'touch-none cursor-grab active:cursor-grabbing',
                         STATUS_META[task.status].surface,
                         drag?.id === task._id && 'ring-2 ring-primary/40',
                       )}
                     >
                       {labelInside && <span className="block truncate px-2">{task.title}</span>}
-                      <span
-                        aria-hidden
-                        onPointerDown={event => startDrag(event, task, 'resize')}
-                        className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-md hover:bg-black/10"
-                      />
+                      {canWrite && (
+                        <span
+                          aria-hidden
+                          onPointerDown={event => startDrag(event, task, 'resize')}
+                          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-md hover:bg-black/10"
+                        />
+                      )}
                     </button>
                     {!labelInside && <span className="pointer-events-none ml-2 whitespace-nowrap text-xs text-slate-600">{task.title}</span>}
                   </div>

@@ -1,11 +1,21 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { tasksApi } from '../api';
-import { useTasks } from '../hooks/useTasks';
+import { DELETE_UNDO_MS, useTasks } from '../hooks/useTasks';
 import { makeTask } from './fixtures';
 
 jest.mock('../api', () => ({
   ...jest.requireActual('../api'),
-  tasksApi: { list: jest.fn(), create: jest.fn(), update: jest.fn(), remove: jest.fn() },
+  tasksApi: {
+    list: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+    addComment: jest.fn(),
+    removeComment: jest.fn(),
+    uploadAttachment: jest.fn(),
+    removeAttachment: jest.fn(),
+    downloadAttachment: jest.fn(),
+  },
 }));
 
 const api = tasksApi as jest.Mocked<typeof tasksApi>;
@@ -64,16 +74,93 @@ describe('useTasks', () => {
     expect(result.current.error).toBe('This dependency would create a cycle');
   });
 
-  it('deletes a task and detaches it from dependants', async () => {
-    const { result } = await renderLoaded();
-    api.remove.mockResolvedValue();
+  it('maps assignee ids to known users while an update is in flight', async () => {
+    const ada = { _id: 'u1', name: 'Ada' };
+    const { result } = await renderLoaded([makeTask({ _id: 'a', assignees: [ada] }), makeTask({ _id: 'b' })]);
+    api.update.mockReturnValue(new Promise(() => {}));
 
-    await act(async () => {
-      await result.current.deleteTask('a');
+    act(() => {
+      void result.current.updateTask('b', { assignees: ['u1'] });
+    });
+    expect(result.current.tasks[1].assignees).toEqual([ada]);
+  });
+
+  describe('undoable delete', () => {
+    afterEach(() => {
+      jest.useRealTimers();
     });
 
-    expect(result.current.tasks.map(t => t._id)).toEqual(['b']);
-    expect(result.current.tasks[0].dependencies).toEqual([]);
+    const renderWithFakeTimers = async () => {
+      jest.useFakeTimers();
+      api.list.mockResolvedValue([makeTask({ _id: 'a', title: 'A' }), makeTask({ _id: 'b', dependencies: ['a'] })]);
+      const hook = renderHook(() => useTasks('acme'));
+      await waitFor(() => expect(hook.result.current.loading).toBe(false));
+      return hook;
+    };
+
+    it('hides the task at once and only calls the API after the undo window', async () => {
+      const { result } = await renderWithFakeTimers();
+      api.remove.mockResolvedValue();
+
+      act(() => result.current.deleteTask('a'));
+      expect(result.current.tasks.map(t => t._id)).toEqual(['b']);
+      expect(result.current.tasks[0].dependencies).toEqual([]);
+
+      await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS - 100); });
+      expect(api.remove).not.toHaveBeenCalled();
+
+      await act(async () => { jest.advanceTimersByTime(200); });
+      expect(api.remove).toHaveBeenCalledWith('acme', 'a');
+      expect(result.current.tasks.map(t => t._id)).toEqual(['b']);
+      expect(result.current.tasks[0].dependencies).toEqual([]);
+    });
+
+    it('restores the task, with its dependants, when undone and never calls the API', async () => {
+      const { result } = await renderWithFakeTimers();
+
+      act(() => result.current.deleteTask('a'));
+      act(() => result.current.undoDelete('a'));
+      expect(result.current.tasks.map(t => t._id)).toEqual(['a', 'b']);
+      expect(result.current.tasks[1].dependencies).toEqual(['a']);
+
+      await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS * 2); });
+      expect(api.remove).not.toHaveBeenCalled();
+    });
+
+    it('brings the task back and reports the error when the server refuses', async () => {
+      const { result } = await renderWithFakeTimers();
+      api.remove.mockRejectedValue({ response: { data: { message: 'Not allowed' } } });
+
+      act(() => result.current.deleteTask('a'));
+      await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS); });
+
+      expect(result.current.tasks.map(t => t._id)).toEqual(['a', 'b']);
+      expect(result.current.error).toBe('Not allowed');
+    });
+
+    it('sends pending deletes immediately when the page is left', async () => {
+      const { result, unmount } = await renderWithFakeTimers();
+      api.remove.mockResolvedValue();
+
+      act(() => result.current.deleteTask('a'));
+      expect(api.remove).not.toHaveBeenCalled();
+
+      unmount();
+      expect(api.remove).toHaveBeenCalledWith('acme', 'a');
+
+      // The expired timer must not delete twice
+      await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS * 2); });
+      expect(api.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('flushes on pagehide', async () => {
+      const { result } = await renderWithFakeTimers();
+      api.remove.mockResolvedValue();
+
+      act(() => result.current.deleteTask('a'));
+      await act(async () => { window.dispatchEvent(new Event('pagehide')); });
+      expect(api.remove).toHaveBeenCalledWith('acme', 'a');
+    });
   });
 
   it('appends created tasks', async () => {
@@ -84,5 +171,55 @@ describe('useTasks', () => {
       await result.current.createTask({ title: 'New', deadline: '2026-10-01' });
     });
     expect(result.current.tasks.map(t => t._id)).toEqual(['new']);
+  });
+
+  describe('comments and attachments', () => {
+    const ada = { _id: 'u1', name: 'Ada' };
+    const comment = { _id: 'c1', author: ada, text: 'Looks good', createdAt: '2026-10-01T10:00:00.000Z' };
+    const attachment = { _id: 'f1', originalName: 'spec.pdf', mimetype: 'application/pdf', size: 10 };
+
+    it('appends a created comment, or takes the whole task when the API returns it', async () => {
+      const { result } = await renderLoaded([makeTask({ _id: 'a' })]);
+      api.addComment.mockResolvedValueOnce(comment);
+
+      await act(async () => { await result.current.addComment('a', 'Looks good'); });
+      expect(result.current.tasks[0].comments).toEqual([comment]);
+
+      api.addComment.mockResolvedValueOnce(makeTask({ _id: 'a', comments: [comment, { ...comment, _id: 'c2' }] }));
+      await act(async () => { await result.current.addComment('a', 'Again'); });
+      expect(result.current.tasks[0].comments).toHaveLength(2);
+    });
+
+    it('fills in the author when the API only returns an id', async () => {
+      const { result } = await renderLoaded([makeTask({ _id: 'a' })]);
+      api.addComment.mockResolvedValueOnce({ ...comment, author: 'u1' } as unknown as typeof comment);
+
+      await act(async () => { await result.current.addComment('a', 'Looks good', ada); });
+      expect(result.current.tasks[0].comments?.[0].author).toEqual(ada);
+    });
+
+    it('removes comments and attachments locally when the API returns no task', async () => {
+      const { result } = await renderLoaded([makeTask({ _id: 'a', comments: [comment], attachments: [attachment] })]);
+      api.removeComment.mockResolvedValue(undefined);
+      api.removeAttachment.mockResolvedValue(undefined);
+
+      await act(async () => {
+        await result.current.removeComment('a', 'c1');
+        await result.current.removeAttachment('a', 'f1');
+      });
+      expect(result.current.tasks[0].comments).toEqual([]);
+      expect(result.current.tasks[0].attachments).toEqual([]);
+    });
+
+    it('adds an uploaded attachment and forwards the progress callback', async () => {
+      const { result } = await renderLoaded([makeTask({ _id: 'a' })]);
+      api.uploadAttachment.mockResolvedValue(attachment);
+
+      const file = new File(['x'], 'spec.pdf', { type: 'application/pdf' });
+      const onProgress = jest.fn();
+      await act(async () => { await result.current.uploadAttachment('a', file, { onProgress }); });
+      expect(api.uploadAttachment).toHaveBeenCalledWith('acme', 'a', file, { onProgress });
+      expect(result.current.tasks[0].attachments).toEqual([attachment]);
+    });
   });
 });

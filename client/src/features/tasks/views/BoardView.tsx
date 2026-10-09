@@ -1,9 +1,10 @@
 import { useMemo, useState, type DragEvent } from 'react';
-import { Plus } from 'lucide-react';
+import { MessageSquare, Paperclip, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DependencyCount, DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
 import TaskActionsMenu from '../components/TaskActionsMenu';
+import { AssigneeStack, LabelList } from '../components/TaskChips';
 import { PRIORITY_META, STATUS_META, TASK_STATUSES } from '../constants';
 import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
 import type { Task, TaskStatus } from '../types';
@@ -16,7 +17,7 @@ interface DropTarget {
 }
 
 /** Kanban board: Pending > In Progress > Completed, with drag & drop between and within columns. */
-const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProps) => {
+const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true }: TaskViewProps) => {
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
@@ -28,6 +29,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
 
   const handleDrop = (event: DragEvent, status: TaskStatus) => {
     event.preventDefault();
+    if (!canWrite) return;
     const id = event.dataTransfer.getData('text/plain') || draggingId;
     const task = tasks.find(t => t._id === id);
     const index = dropTarget?.status === status ? dropTarget.index : columns[status].length;
@@ -78,15 +80,17 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
                   {column.length}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Add task to ${STATUS_META[status].label}`}
-                onClick={() => onCreate({ status })}
-                className="size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700 md:size-7"
-              >
-                <Plus />
-              </Button>
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Add task to ${STATUS_META[status].label}`}
+                  onClick={() => onCreate({ status })}
+                  className="size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700 md:size-7"
+                >
+                  <Plus />
+                </Button>
+              )}
             </header>
 
             <ol className="flex min-h-32 flex-col gap-2.5 px-3 pb-3">
@@ -104,6 +108,8 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
                   {isTarget && dropTarget.index === index && <DropIndicator />}
                   <BoardCard
                     task={task}
+                    canWrite={canWrite}
+                    canDelete={canDelete}
                     dragging={draggingId === task._id}
                     onDragStart={event => {
                       event.dataTransfer.setData('text/plain', task._id);
@@ -113,6 +119,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
                     onDragEnd={resetDrag}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onOpen={onOpen}
                     onMove={handleMove}
                   />
                 </li>
@@ -120,7 +127,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate }: TaskViewProp
               {isTarget && dropTarget.index === column.length && <DropIndicator />}
               {column.length === 0 && !isTarget && (
                 <li className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
-                  Drop tasks here
+                  {canWrite ? 'Drop tasks here' : 'No tasks'}
                 </li>
               )}
             </ol>
@@ -140,19 +147,23 @@ interface BoardCardProps {
   onDragEnd: () => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  onOpen?: (task: Task) => void;
   onMove: (task: Task, status: TaskStatus) => void;
+  canWrite: boolean;
+  canDelete: boolean;
 }
 
-const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, onMove }: BoardCardProps) => {
+const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
 
   return (
     <article
-      draggable
+      draggable={canWrite}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       className={cn(
-        'group cursor-grab rounded-xl border border-t-[3px] border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing',
+        'group rounded-xl border border-t-[3px] border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md',
+        canWrite && 'cursor-grab active:cursor-grabbing',
         PRIORITY_META[task.priority].accent,
         dragging && 'opacity-40',
       )}
@@ -163,14 +174,17 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
+          onOpen={onOpen}
           onMove={onMove}
+          canEdit={canWrite}
+          canDelete={canDelete}
           className="-mt-2.5 -mr-3 md:-mt-1 md:-mr-1.5 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
         />
       </div>
 
       <button
         type="button"
-        onClick={() => onEdit(task)}
+        onClick={() => (onOpen ?? onEdit)(task)}
         className={cn(
           'mt-1 block w-full text-left text-sm font-medium text-slate-900 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary rounded',
           completed && 'text-slate-400 line-through',
@@ -183,11 +197,25 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
           {task.project}
         </span>
       )}
+      <LabelList labels={task.labels} max={4} className="mt-2" />
       {task.description && <p className="mt-1 text-xs text-slate-400 line-clamp-2">{task.description}</p>}
 
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-        <DueDate deadline={task.deadline} completed={completed} />
-        <DependencyCount count={task.dependencies.length} />
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          <DueDate deadline={task.deadline} completed={completed} />
+          <DependencyCount count={task.dependencies.length} />
+          {(task.comments?.length ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs text-slate-400" title="Comments">
+              <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only"> comments</span>
+            </span>
+          )}
+          {(task.attachments?.length ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs text-slate-400" title="Attachments">
+              <Paperclip className="size-3" aria-hidden />{task.attachments?.length}<span className="sr-only"> attachments</span>
+            </span>
+          )}
+        </div>
+        <AssigneeStack users={task.assignees} />
       </div>
     </article>
   );

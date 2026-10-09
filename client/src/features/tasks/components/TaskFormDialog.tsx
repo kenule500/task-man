@@ -8,12 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import type { WorkspaceMember } from '@/features/workspace';
 import { getApiErrorMessage } from '../api';
 import { getDependencyCandidates } from '../lib/dependencies';
+import { collectLabels } from '../lib/labels';
 import {
   toFormValues, toTaskInput, validateTaskForm, type TaskFormErrors, type TaskFormValues,
 } from '../lib/taskForm';
 import type { Task, TaskInput } from '../types';
+import AssigneePicker from './AssigneePicker';
+import LabelInput from './LabelInput';
 import { DueDate, StatusDot } from './TaskBadges';
 import { PrioritySelect, StatusSelect } from './TaskSelects';
 
@@ -27,6 +31,12 @@ interface TaskFormDialogProps {
   /** All workspace tasks, used to pick dependencies. */
   tasks: Task[];
   onSubmit: (input: TaskInput) => Promise<unknown>;
+  /** Workspace members to assign; only passed when the user can read users. */
+  members?: WorkspaceMember[];
+  membersLoading?: boolean;
+  /** Whether the member list may be shown; otherwise only "Assign to me" is offered. */
+  canListMembers?: boolean;
+  currentUser?: { _id: string; name: string } | null;
 }
 
 const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
@@ -35,7 +45,10 @@ const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text
  * Create / edit form shared by every task view.
  * Mount it with a `key` per task so values reset when the target changes.
  */
-const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }: TaskFormDialogProps) => {
+const TaskFormDialog = ({
+  open, onOpenChange, task, defaults, tasks, onSubmit,
+  members = [], membersLoading = false, canListMembers = false, currentUser,
+}: TaskFormDialogProps) => {
   const [values, setValues] = useState<TaskFormValues>(() => toFormValues(task, defaults));
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [submitError, setSubmitError] = useState('');
@@ -46,6 +59,7 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
     () => [...new Set(tasks.map(item => item.project?.trim()).filter((name): name is string => Boolean(name)))].sort(),
     [tasks],
   );
+  const labelSuggestions = useMemo(() => collectLabels(tasks), [tasks]);
   const isEdit = Boolean(task);
 
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
@@ -149,6 +163,24 @@ const TaskFormDialog = ({ open, onOpenChange, task, defaults, tasks, onSubmit }:
               <datalist id="task-project-options">
                 {projectNames.map(name => <option key={name} value={name} />)}
               </datalist>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">Labels</Label>
+              <LabelInput id="task-labels" value={values.labels} onChange={labels => set('labels', labels)} suggestions={labelSuggestions} />
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-slate-700">Assignees</p>
+              <AssigneePicker
+                value={values.assignees}
+                onChange={ids => set('assignees', ids)}
+                members={members}
+                canListMembers={canListMembers}
+                loading={membersLoading}
+                current={task?.assignees ?? []}
+                currentUser={currentUser}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

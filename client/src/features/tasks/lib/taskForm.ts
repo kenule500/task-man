@@ -12,6 +12,9 @@ export interface TaskFormValues {
   /** `YYYY-MM-DD` */
   deadline: string;
   dependencies: string[];
+  labels: string[];
+  /** Assignee user ids */
+  assignees: string[];
 }
 
 export type TaskFormErrors = Partial<Record<'title' | 'deadline' | 'startDate', string>>;
@@ -26,6 +29,8 @@ export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValue
   startDate: task?.startDate ? dateKeyOf(task.startDate) : '',
   deadline: task ? dateKeyOf(task.deadline) : todayKey(),
   dependencies: task?.dependencies ?? [],
+  labels: task?.labels ?? [],
+  assignees: task?.assignees?.map(user => user._id) ?? [],
   ...defaults,
 });
 
@@ -49,4 +54,6 @@ export const toTaskInput = (values: TaskFormValues): TaskInput => ({
   startDate: values.startDate || null,
   deadline: values.deadline,
   dependencies: values.dependencies,
+  labels: values.labels,
+  assignees: values.assignees,
 });

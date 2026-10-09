@@ -48,3 +48,19 @@ export const formatMonth = (date: Date): string =>
 /** True when the due date is before today and the task is not done. */
 export const isOverdue = (deadline: string, completed: boolean): boolean =>
   !completed && dateKeyOf(deadline) < todayKey();
+
+/** "just now", "5 minutes ago", "3 days ago"; falls back to a calendar date after a month. */
+export const formatRelativeTime = (iso: string, now: Date = new Date()): string => {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return '';
+  const seconds = Math.max(0, Math.round((now.getTime() - then.getTime()) / 1000));
+  if (seconds < 45) return 'just now';
+  const plural = (value: number, unit: string) => `${value} ${unit}${value === 1 ? '' : 's'} ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return plural(minutes, 'minute');
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return plural(hours, 'hour');
+  const days = Math.round(hours / 24);
+  if (days < 30) return plural(days, 'day');
+  return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};

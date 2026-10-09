@@ -10,4 +10,10 @@ export interface TaskViewProps {
   onDelete: (task: Task) => void;
   /** Opens the create form, optionally prefilled (day, column...). */
   onCreate: (defaults?: Partial<TaskFormValues>) => void;
+  /** Opens the task detail dialog; views fall back to `onEdit` when omitted. */
+  onOpen?: (task: Task) => void;
+  /** Holds `tasks:write`; `false` makes inline editors read-only and disables drag. Defaults to true. */
+  canWrite?: boolean;
+  /** Holds `tasks:delete`; hides Delete actions. Defaults to true. */
+  canDelete?: boolean;
 }
