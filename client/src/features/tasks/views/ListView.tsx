@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { CheckSquare, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
+// Deep import: the projects index imports the tasks module back
+import ProjectChip from '@/features/projects/components/ProjectChip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EmptyState } from '@/components/ds';
@@ -9,6 +11,7 @@ import {
 } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
 import TaskActionsMenu from '../components/TaskActionsMenu';
+import TaskKey from '../components/TaskKey';
 import { AssigneeStack, LabelList } from '../components/TaskChips';
 import { PrioritySelect, StatusSelect } from '../components/TaskSelects';
 import { dateKeyOf, isOverdue } from '../lib/date';
@@ -133,6 +136,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
         <div className="flex items-center gap-2">
           {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-400" aria-hidden />}
           <TaskTypeIcon type={task.type} />
+          <TaskKey task={task} />
           <div className="min-w-0 flex-1">
             <InlineText
               value={task.title}
@@ -234,11 +238,7 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }:
     )}
     <StoryPoints points={task.storyPoints} />
     {progress && <SubtaskProgress done={progress.done} total={progress.total} />}
-    {task.project && (
-      <span className="max-w-32 shrink-0 truncate text-xs text-slate-500 bg-slate-100 rounded px-1.5" title="Project">
-        {task.project}
-      </span>
-    )}
+    {task.project && <ProjectChip name={task.project} className="max-w-40 shrink-0" />}
     <LabelList labels={task.labels} />
     {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
@@ -268,6 +268,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
           <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
             {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-400" aria-hidden />}
             <TaskTypeIcon type={task.type} />
+            <TaskKey task={task} />
             <div className="min-w-0 flex-1">
               <InlineText
                 value={task.title}

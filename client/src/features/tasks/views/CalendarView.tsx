@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type DragEven
 import { CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { SegmentedControl } from '@/components/ds';
 import { StatusBadge } from '../components/TaskBadges';
 import { AssigneeStack, LabelChip } from '../components/TaskChips';
 import { STATUS_META } from '../constants';
@@ -10,15 +11,25 @@ import {
   addMonths, dateKeyOf, formatDate, formatMonth, isOverdue, parseDateKey, startOfMonth, todayKey,
 } from '../lib/date';
 import { buildUpcoming, type AgendaDay } from '../lib/agenda';
+import { DOT_META, dotStateOf, summarizeDay, type DaySummary } from '../lib/calendarDots';
 import { buildMonthGrid, groupByDeadline, rescheduleToDeadline, type CalendarDay } from '../lib/schedule';
 import { scrollBehavior } from '../lib/scroll';
-import { WEEKDAYS, buildWeek, defaultSelectedKey, formatTaskRange, shiftWeek } from '../lib/week';
+import {
+  WEEKDAYS, buildWeek, defaultSelectedKey, formatTaskRange, readMobileMode, shiftWeek, writeMobileMode,
+  type MobileCalendarMode,
+} from '../lib/week';
 import type { Task } from '../types';
+import ProjectChip from '@/features/projects/components/ProjectChip';
 import type { TaskViewProps } from './types';
 
 const VISIBLE_PER_DAY = 3;
 const FLASH_MS = 1600;
 const SWIPE_PX = 48;
+
+const MODE_OPTIONS: { value: MobileCalendarMode; label: string }[] = [
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
+];
 
 interface CalendarViewProps extends Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'> {
   /** Initial month shown (defaults to the current month). */
@@ -43,6 +54,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
   /** Bumped by "Today"; the effect below scrolls/focuses once the month has rendered. */
   const [todayRequest, setTodayRequest] = useState(0);
   const [flashKey, setFlashKey] = useState<string | null>(null);
+  const [mobileMode, setMobileMode] = useState<MobileCalendarMode>(() => readMobileMode());
   const gridRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
 
@@ -100,6 +112,11 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
     setMonth(startOfMonth(parseDateKey(key)));
   };
 
+  const changeMobileMode = (mode: MobileCalendarMode) => {
+    setMobileMode(mode);
+    writeMobileMode(mode);
+  };
+
   const handleDrop = (event: DragEvent, day: CalendarDay) => {
     event.preventDefault();
     setDragOverKey(null);
@@ -133,14 +150,33 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
         </div>
       </header>
 
-      {/* Phones: week strip, the selected day's tasks, then the month's upcoming agenda */}
+      {/* Phones: week strip or compact month, the selected day's tasks, then the month's upcoming agenda */}
       <div data-testid="calendar-agenda" className="md:hidden">
-        <WeekStrip
-          selectedKey={selectedKey}
-          month={month}
-          tasksByDay={tasksByDay}
-          onSelect={selectDay}
-        />
+        <div className="flex justify-center border-b border-slate-100 px-4 py-2">
+          <SegmentedControl
+            aria-label="Calendar layout"
+            size="sm"
+            options={MODE_OPTIONS}
+            value={mobileMode}
+            onValueChange={changeMobileMode}
+          />
+        </div>
+        {mobileMode === 'week' ? (
+          <WeekStrip
+            selectedKey={selectedKey}
+            month={month}
+            tasksByDay={tasksByDay}
+            onSelect={selectDay}
+          />
+        ) : (
+          <MonthCompact
+            days={days}
+            selectedKey={selectedKey}
+            tasksByDay={tasksByDay}
+            onSelect={selectDay}
+          />
+        )}
+        <DotLegend />
         <DayPanel
           ref={panelRef}
           dayKey={selectedKey}
@@ -191,15 +227,18 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
                   )}
                 >
                   <div className="flex items-center justify-between px-1">
-                    <span
-                      aria-current={day.isToday ? 'date' : undefined}
-                      className={cn(
-                        'flex size-6 items-center justify-center rounded-full text-xs tabular-nums',
-                        day.isToday ? 'bg-primary font-semibold text-white' : day.inMonth ? 'text-slate-700' : 'text-slate-400',
-                      )}
-                    >
-                      {day.date.getDate()}
-                    </span>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        aria-current={day.isToday ? 'date' : undefined}
+                        className={cn(
+                          'flex size-6 items-center justify-center rounded-full text-xs tabular-nums',
+                          day.isToday ? 'bg-primary font-semibold text-white' : day.inMonth ? 'text-slate-700' : 'text-slate-400',
+                        )}
+                      >
+                        {day.date.getDate()}
+                      </span>
+                      <DayDots summary={summarizeDay(dayTasks)} />
+                    </div>
                     {canWrite && (
                       <button
                         type="button"
@@ -247,7 +286,84 @@ interface WeekStripProps {
   onSelect: (key: string) => void;
 }
 
-/** Phone week strip: previous/next week, swipe, one pill per day with a dot when tasks are due. */
+/** Row of up to three small state dots (+N when more); decorative, the day button's label carries the summary. */
+const DayDots = ({ summary, ringed = false }: { summary: DaySummary; ringed?: boolean }) => {
+  if (summary.total === 0) return null;
+  return (
+    <span aria-hidden className="inline-flex items-center gap-0.5">
+      {summary.dots.map((dot, index) => (
+        <span key={index} className={cn('size-1.5 shrink-0 rounded-full', dot.className, ringed && 'ring-1 ring-white')} />
+      ))}
+      {summary.overflow > 0 && (
+        <span className="text-[10px] font-semibold leading-none tabular-nums">+{summary.overflow}</span>
+      )}
+    </span>
+  );
+};
+
+/** Four dots with labels explaining the colors; wraps on narrow phones. */
+const DotLegend = () => (
+  <ul aria-label="Legend" className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2 text-xs text-slate-600">
+    {(['pending', 'in-progress', 'completed', 'overdue'] as const).map(state => (
+      <li key={state} className="flex items-center gap-1.5">
+        <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[state].dot)} />
+        {DOT_META[state].legend}
+      </li>
+    ))}
+  </ul>
+);
+
+const dayLabel = (key: string, summary: DaySummary) =>
+  `${formatDate(key, { weekday: 'long', month: 'long', day: 'numeric' })}${summary.summary ? `, ${summary.summary}` : ''}`;
+
+interface MonthCompactProps {
+  days: CalendarDay[];
+  selectedKey: string;
+  tasksByDay: Map<string, Task[]>;
+  onSelect: (key: string) => void;
+}
+
+/** Phone month grid: 7 columns of small cells with the date and colored dots; tap selects the day. */
+const MonthCompact = ({ days, selectedKey, tasksByDay, onSelect }: MonthCompactProps) => (
+  <div className="border-b border-slate-100 px-2 py-2">
+    <div aria-hidden className="grid grid-cols-7 pb-1">
+      {WEEKDAYS.map(day => (
+        <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wide text-slate-500">{day.slice(0, 2)}</div>
+      ))}
+    </div>
+    <ul aria-label="Month" className="grid grid-cols-7 gap-y-0.5">
+      {days.map(day => {
+        const selected = day.key === selectedKey;
+        const summary = summarizeDay(tasksByDay.get(day.key) ?? []);
+        return (
+          <li key={day.key} className="min-w-0">
+            <button
+              type="button"
+              aria-label={dayLabel(day.key, summary)}
+              aria-pressed={selected}
+              aria-current={day.isToday ? 'date' : undefined}
+              data-phone-day-key={day.key}
+              onClick={() => onSelect(day.key)}
+              className={cn(
+                'mx-auto flex h-10 w-full max-w-10 flex-col items-center justify-center gap-0.5 rounded-lg text-sm tabular-nums transition-colors motion-reduce:transition-none',
+                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+                selected ? 'bg-primary font-semibold text-white shadow-sm' : day.inMonth ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-100',
+                day.isToday && 'ring-2 ring-primary/60 ring-offset-1',
+              )}
+            >
+              <span aria-hidden className="leading-none">{day.date.getDate()}</span>
+              <span aria-hidden className="flex h-1.5 items-center">
+                <DayDots summary={summary} ringed={selected} />
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  </div>
+);
+
+/** Phone week strip: previous/next week, swipe, one pill per day with color-coded dots when tasks are due. */
 const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps) => {
   const week = useMemo(() => buildWeek(parseDateKey(selectedKey), tasksByDay), [selectedKey, tasksByDay]);
   const touchStartX = useRef<number | null>(null);
@@ -274,7 +390,8 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
       >
         {week.map(day => {
           const selected = day.key === selectedKey;
-          const label = `${formatDate(day.key, { weekday: 'long', month: 'long', day: 'numeric' })}${day.count ? `, ${day.count} ${day.count === 1 ? 'task' : 'tasks'}` : ''}`;
+          const summary = summarizeDay(tasksByDay.get(day.key) ?? []);
+          const label = dayLabel(day.key, summary);
           return (
             <li key={day.key} className="min-w-0">
               <button
@@ -284,7 +401,7 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
                 aria-current={day.isToday ? 'date' : undefined}
                 onClick={() => onSelect(day.key)}
                 className={cn(
-                  'flex min-h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl text-xs transition-colors active:scale-95',
+                  'flex min-h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl text-xs transition-colors active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                   selected ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
                   !selected && day.date.getMonth() !== month.getMonth() && 'text-slate-400',
@@ -293,7 +410,9 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
               >
                 <span className="text-[11px] font-medium uppercase tracking-wide" aria-hidden>{day.weekday}</span>
                 <span className="text-base font-semibold tabular-nums" aria-hidden>{day.dayOfMonth}</span>
-                <span aria-hidden className={cn('size-1.5 rounded-full', day.count > 0 ? (selected ? 'bg-white' : 'bg-primary') : 'bg-transparent')} />
+                <span aria-hidden className="flex h-1.5 items-center">
+                  <DayDots summary={summary} ringed={selected} />
+                </span>
               </button>
             </li>
           );
@@ -374,6 +493,7 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
   const range = formatTaskRange(task);
+  const barClass = DOT_META[dotStateOf(task)].dot;
 
   return (
     <button
@@ -381,15 +501,15 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
       onClick={() => onOpen(task)}
       className={cn(
         'relative flex min-h-16 w-full items-stretch gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-3 text-left',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.99]',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.99] motion-reduce:active:scale-100',
         STATUS_META[task.status].surface,
         overdue && 'border-red-200 bg-red-50 text-red-700',
       )}
     >
-      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', overdue ? 'bg-red-500' : STATUS_META[task.status].dot)} />
+      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', barClass)} />
       <span className="min-w-0 flex-1">
         <span className={cn('block truncate text-sm font-semibold', completed && 'line-through opacity-70')}>{task.title}</span>
-        {task.project && <span className="mt-0.5 block truncate text-xs opacity-75">{task.project}</span>}
+        {task.project && <ProjectChip name={task.project} link={false} className="mt-0.5 max-w-full text-xs" />}
         {range && (
           <span className="mt-1.5 inline-flex items-center gap-1 text-xs tabular-nums opacity-80">
             <Clock className="size-3" aria-hidden />
@@ -477,7 +597,7 @@ const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void
         overdue && 'border-red-200 bg-red-50 text-red-700',
       )}
     >
-      <span aria-hidden className={cn('size-2 shrink-0 rounded-full', overdue ? 'bg-red-500' : STATUS_META[task.status].dot)} />
+      <span aria-hidden className={cn('size-2 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
       <span className={cn('min-w-0 flex-1 truncate', completed && 'line-through opacity-70')}>{task.title}</span>
       {task.labels?.slice(0, 2).map(label => <LabelChip key={label} label={label} className="max-w-20 shrink-0" />)}
       <span className="shrink-0 text-xs font-normal opacity-80">
@@ -510,7 +630,7 @@ const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: 
         overdue && 'border-red-200 bg-red-50 text-red-700',
       )}
     >
-      <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', overdue ? 'bg-red-500' : STATUS_META[task.status].dot)} />
+      <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
       <span className={cn('truncate', completed && 'line-through opacity-70')}>{task.title}</span>
       {labels.length > 0 && (
         <span className="ml-auto flex shrink-0 items-center gap-0.5">

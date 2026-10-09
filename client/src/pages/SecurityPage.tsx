@@ -7,6 +7,7 @@ import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
   validateConfirmPassword, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
+import { SignedInDevices } from '@/features/account';
 import { Loader2, Lock } from 'lucide-react';
 
 const validators = {
@@ -56,6 +57,7 @@ const SecurityPage = () => {
   };
 
   return (
+    <div className="space-y-6">
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {message && <Alert tone={message.type}>{message.text}</Alert>}
 
@@ -108,6 +110,8 @@ const SecurityPage = () => {
         </Button>
       </div>
     </form>
+    <SignedInDevices />
+    </div>
   );
 };
 

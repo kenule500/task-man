@@ -43,6 +43,16 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - Product backlog per project; plan, start and complete sprints (unfinished work moves to the backlog or the next sprint)
 - Sprint burndown, velocity history, one active sprint per project
 - Scrum roles: Product Owner, Scrum Master, Developer, Team Member, Viewer
+- Task keys like `WEB-12` (search by key, copy key or link)
+
+### Enterprise
+- **Audit log** (Settings → Audit log): who did what, when and from where, for tasks, projects, sprints, members,
+  invitations and settings; filters, cursor pagination, CSV export; kept 365 days
+- **Task activity** tab: field-by-field history of every task
+- **Signed-in devices**: list sessions, sign out one device or all others
+- **Permission matrix**: roles × permissions overview with sticky headers
+- CSV export of the task list; request ids on every response; health check reports the database
+- Security CI: CodeQL, Dependabot, `pnpm audit --prod` gate; SonarQube config (`sonar-project.properties`); see [SECURITY.md](SECURITY.md)
 
 ### Role-Based Access Control (RBAC)
 - 5 system roles seeded on server startup — cannot be renamed or deleted
@@ -53,7 +63,9 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 
 ### Progressive Web App
 - Installable (Chrome/Edge "Install app", iOS Safari "Add to Home Screen")
-- Mobile bottom navigation with a quick "New task" button, week-strip calendar, status tabs on the board
+- Mobile bottom navigation with a quick "New task" button
+- Board on phones: one-tap "Start → / Done ✓", "Move to…" sheet (long-press or ⋯ menu), per-column pagination
+- Calendar on phones: week strip or month grid with color-coded status dots and a legend
 - Offline app shell via `vite-plugin-pwa` + Workbox
 - Update toast when a new version is deployed
 
@@ -102,6 +114,8 @@ All endpoints are under `/api` and need `Authorization: Bearer <token>` except a
 | Tasks (active workspace) | `GET /api/tasks` · `POST /api/tasks` · `PUT/PATCH /api/tasks/:id` · `DELETE /api/tasks/:id` |
 | Tasks (any of your workspaces) | same routes under `/api/workspaces/:slug/tasks`, plus `/:id/comments` and `/:id/attachments` |
 | Projects and sprints | `GET/POST /api/workspaces/:slug/projects` · `PATCH/DELETE …/projects/:id` · `POST …/projects/:id/sprints` · `PATCH/DELETE …/sprints/:sprintId` · `POST …/sprints/:sprintId/start` · `POST …/sprints/:sprintId/complete` |
+| Activity and audit | `GET /api/workspaces/:slug/tasks/:id/activity` · `GET /api/workspaces/:slug/activity?area=&actor=&before=&format=csv` |
+| Sessions | `GET /api/profile/sessions` · `DELETE /api/profile/sessions/:id` · `POST /api/profile/sessions/revoke-others` |
 | Workspaces, members, roles, invitations, profile | see `server/src/routes/` |
 
 Task list query parameters: `status`, `search` (title or description), `project`, `label`, `assignee=me|<userId>`,

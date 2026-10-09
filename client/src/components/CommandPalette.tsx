@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { cn } from 'cn';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { projectsApi, type Project } from '@/features/projects';
+import { ProjectFolderIcon, projectsApi, type Project } from '@/features/projects';
 import { StatusBadge, tasksApi, type Task } from '@/features/tasks';
 import { COMMAND_GROUPS, buildCommandItems, searchCommands, type CommandItem } from './commandSearch';
 
@@ -210,7 +210,9 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
                           isActive && 'bg-primary/10 text-slate-900',
                         )}
                       >
-                        {Icon && (
+                        {item.project ? (
+                          <ProjectFolderIcon size="sm" color={item.project.color} icon={item.project.icon} />
+                        ) : Icon && (
                           <Icon className={cn('size-4 shrink-0', isActive ? 'text-primary' : 'text-slate-400')} aria-hidden />
                         )}
                         <span className="min-w-0 flex-1">

@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight } from 'lucide-react';
 import {
   Alert,
   Field,
   IconTile,
   PageHeader,
+  SearchInput,
   SectionHeader,
+  SegmentedControl,
   SkeletonCards,
   Surface,
   Tag,
@@ -18,6 +20,14 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import RoleEditorModal from '../components/RoleEditorModal';
+import RolePermissionMatrix from '../components/RolePermissionMatrix';
+import {
+  countMembersByRole,
+  filterRoles,
+  sortRoles,
+  type PermissionCatalog,
+  type RbacRole,
+} from '../components/settings/rbac';
 import ConfirmActionDialog from '../components/ConfirmActionDialog';
 import { usePermissions } from '../hooks/usePermissions';
 import { getApiErrorMessage } from '@/utils/api';
@@ -40,6 +50,17 @@ interface Role {
   isSystem: boolean;
   workspaceId: string | null;
 }
+
+type RolesView = 'cards' | 'matrix';
+
+/** Roles above this count get a search field. */
+const ROLE_SEARCH_THRESHOLD = 6;
+
+const SCROLL_REGION =
+  'max-h-[60dvh] overflow-y-auto overscroll-contain rounded-lg pr-1 [scrollbar-width:thin] [scrollbar-gutter:stable] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
+
+const NO_MATCH =
+  'rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600';
 
 const Feedback = ({ message }: { message: FeedbackMessage | null }) =>
   message ? <Alert tone={message.type}>{message.text}</Alert> : null;
@@ -121,8 +142,17 @@ const WorkspaceSettingsPage = () => {
   const [rolesLoading, setRolesLoading] = useState(true);
   const [rolesMessage, setRolesMessage] = useState<FeedbackMessage | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editingRole, setEditingRole] = useState<RbacRole | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  const [catalog, setCatalog] = useState<PermissionCatalog>({});
+  const [memberCounts, setMemberCounts] = useState<Record<string, number> | undefined>(undefined);
+  const [roleQuery, setRoleQuery] = useState('');
+  // null follows the screen size: matrix from md, cards on phones
+  const [chosenView, setChosenView] = useState<RolesView | null>(null);
+  const [wideScreen] = useState(
+    () => typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 768px)').matches,
+  );
+  const rolesView: RolesView = chosenView ?? (wideScreen ? 'matrix' : 'cards');
 
   const name = draftName ?? workspace?.name ?? '';
   const unchanged = name.trim() === (workspace?.name ?? '');
@@ -141,11 +171,24 @@ const WorkspaceSettingsPage = () => {
     }
   }, [workspaceSlug]);
 
+  // Permission catalog and member counts feed the matrix; both degrade quietly when unavailable
+  const fetchMatrixData = useCallback(async () => {
+    if (!workspaceSlug) return;
+    const [catalogRes, workspaceRes] = await Promise.allSettled([
+      api.get('/roles/permissions'),
+      api.get(`/workspaces/${workspaceSlug}`),
+    ]);
+    if (catalogRes.status === 'fulfilled') setCatalog(catalogRes.value.data || {});
+    if (workspaceRes.status === 'fulfilled') {
+      setMemberCounts(countMembersByRole(workspaceRes.value.data?.members || []));
+    }
+  }, [workspaceSlug]);
+
   useEffect(() => {
     (async () => {
-      await fetchRoles();
+      await Promise.all([fetchRoles(), fetchMatrixData()]);
     })();
-  }, [fetchRoles]);
+  }, [fetchRoles, fetchMatrixData]);
 
   // ==================== Handlers ====================
 
@@ -211,7 +254,7 @@ const WorkspaceSettingsPage = () => {
     setEditorOpen(true);
   };
 
-  const handleEditRole = (role: Role) => {
+  const handleEditRole = (role: RbacRole) => {
     setEditingRole(role);
     setEditorOpen(true);
   };
@@ -230,8 +273,11 @@ const WorkspaceSettingsPage = () => {
     }
   };
 
-  const systemRoles = roles.filter((r) => r.isSystem);
-  const customRoles = roles.filter((r) => !r.isSystem);
+  const visibleRoles = sortRoles(filterRoles(roles, roleQuery));
+  const systemRoles = visibleRoles.filter((r) => r.isSystem);
+  const customRoles = visibleRoles.filter((r) => !r.isSystem);
+  const searching = roleQuery.trim().length > 0;
+  const showRoleSearch = roles.length > ROLE_SEARCH_THRESHOLD;
 
   // ==================== Render ====================
 
@@ -241,6 +287,23 @@ const WorkspaceSettingsPage = () => {
         title="Workspace settings"
         description="Manage the name, invite code and roles for this workspace."
       />
+
+      {canManage && (
+        <Link
+          to={`/${workspaceSlug}/settings/audit`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><ScrollText /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Audit log</span>
+            <span className="block text-xs text-slate-600">See who changed what, when and from where. Export it as CSV.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
 
       {loading ? (
         <div className="space-y-6" aria-busy="true" aria-label="Loading settings">
@@ -370,66 +433,115 @@ const WorkspaceSettingsPage = () => {
               </div>
             )}
 
-            {/* System roles */}
-            <div className="mb-6">
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
-                <Lock className="size-3.5 text-slate-500" aria-hidden />
-                System roles
-                <span className="font-normal normal-case tracking-normal text-slate-600">({systemRoles.length})</span>
-              </h3>
-              {rolesLoading ? (
-                <SkeletonCards count={3} columns="md:grid-cols-2 lg:grid-cols-3" className="gap-3" />
+            {!rolesLoading && roles.length > 0 && (
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                {showRoleSearch ? (
+                  <SearchInput
+                    label="Search roles"
+                    value={roleQuery}
+                    onValueChange={setRoleQuery}
+                    className="w-full sm:max-w-xs"
+                  />
+                ) : (
+                  <span />
+                )}
+                <SegmentedControl
+                  aria-label="Roles view"
+                  value={rolesView}
+                  onValueChange={setChosenView}
+                  options={[
+                    { value: 'cards', label: 'Cards', icon: <LayoutGrid /> },
+                    { value: 'matrix', label: 'Matrix', icon: <Table2 /> },
+                  ]}
+                  className="self-start"
+                />
+              </div>
+            )}
+
+            {rolesLoading ? (
+              <SkeletonCards count={3} columns="md:grid-cols-2 lg:grid-cols-3" className="gap-3" />
+            ) : rolesView === 'matrix' ? (
+              visibleRoles.length === 0 ? (
+                <p role="status" className={NO_MATCH}>
+                  {searching ? <>No roles match &quot;{roleQuery.trim()}&quot;.</> : 'There are no roles yet.'}
+                </p>
+              ) : Object.keys(catalog).length === 0 ? (
+                <Alert tone="info">
+                  The permission list is not available right now, so the matrix cannot be shown. Switch to Cards or reload the page.
+                </Alert>
               ) : (
-                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {systemRoles.map((role) => (
-                    <RoleCard key={role._id} role={role} />
-                  ))}
-                </ul>
-              )}
-            </div>
+                <RolePermissionMatrix
+                  roles={visibleRoles}
+                  catalog={catalog}
+                  memberCounts={memberCounts}
+                  canManage={canManage}
+                  onEditRole={handleEditRole}
+                />
+              )
+            ) : (
+              <div role="region" aria-label="Role cards" tabIndex={0} className={SCROLL_REGION}>
+                {/* System roles */}
+                {(systemRoles.length > 0 || !searching) && (
+                  <div className="mb-6">
+                    <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
+                      <Lock className="size-3.5 text-slate-500" aria-hidden />
+                      System roles
+                      <span className="font-normal normal-case tracking-normal text-slate-600">({systemRoles.length})</span>
+                    </h3>
+                    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {systemRoles.map((role) => (
+                        <RoleCard key={role._id} role={role} />
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-            {/* Custom roles */}
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
-                <Shield className="size-3.5 text-primary" aria-hidden />
-                Custom roles
-                <span className="font-normal normal-case tracking-normal text-slate-600">({customRoles.length})</span>
-              </h3>
+                {/* Custom roles */}
+                <div>
+                  <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    <Shield className="size-3.5 text-primary" aria-hidden />
+                    Custom roles
+                    <span className="font-normal normal-case tracking-normal text-slate-600">({customRoles.length})</span>
+                  </h3>
 
-              {rolesLoading ? (
-                <SkeletonCards count={3} columns="md:grid-cols-2 lg:grid-cols-3" className="gap-3" />
-              ) : customRoles.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-8 text-center">
-                  <IconTile className="mx-auto mb-3">
-                    <Shield />
-                  </IconTile>
-                  <p className="mb-1 text-sm font-semibold text-slate-800">No custom roles yet</p>
-                  <p className="mx-auto mb-4 max-w-sm text-xs text-slate-600">
-                    Create roles tailored to your team, like &quot;Marketing Lead&quot;, &quot;Contractor&quot; or &quot;Auditor&quot;.
-                  </p>
-                  {canManage && (
-                    <Button
-                      onClick={handleCreateRole}
-                      className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover"
-                    >
-                      <Plus aria-hidden /> Create your first role
-                    </Button>
+                  {customRoles.length === 0 && searching ? (
+                    <p role="status" className={NO_MATCH}>
+                      No custom roles match &quot;{roleQuery.trim()}&quot;.
+                    </p>
+                  ) : customRoles.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-8 text-center">
+                      <IconTile className="mx-auto mb-3">
+                        <Shield />
+                      </IconTile>
+                      <p className="mb-1 text-sm font-semibold text-slate-800">No custom roles yet</p>
+                      <p className="mx-auto mb-4 max-w-sm text-xs text-slate-600">
+                        Create roles tailored to your team, like &quot;Marketing Lead&quot;, &quot;Contractor&quot; or &quot;Auditor&quot;.
+                      </p>
+                      {canManage && (
+                        <Button
+                          onClick={handleCreateRole}
+                          className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover"
+                        >
+                          <Plus aria-hidden /> Create your first role
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {customRoles.map((role) => (
+                        <RoleCard
+                          key={role._id}
+                          role={role}
+                          canManage={canManage}
+                          onEdit={handleEditRole}
+                          onDelete={setRoleToDelete}
+                        />
+                      ))}
+                    </ul>
                   )}
                 </div>
-              ) : (
-                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {customRoles.map((role) => (
-                    <RoleCard
-                      key={role._id}
-                      role={role}
-                      canManage={canManage}
-                      onEdit={handleEditRole}
-                      onDelete={setRoleToDelete}
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
+              </div>
+            )}
           </Surface>
         </>
       )}

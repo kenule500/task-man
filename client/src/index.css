@@ -131,6 +131,22 @@
   --duration-slow: 280ms;
 }
 
+/*
+ * Scroll containers are positioning contexts. Without this, absolutely positioned descendants such as
+ * Tailwind's sr-only labels resolve against a far ancestor, escape the scroll box and widen or lengthen
+ * the whole page. Explicit position utilities (sticky, absolute…) still win because utilities come later.
+ */
+@layer base {
+  .overflow-auto, .overflow-x-auto, .overflow-y-auto, .overflow-scroll, .overflow-x-scroll, .overflow-y-scroll {
+    position: relative;
+  }
+}
+
+html {
+  /* Canvas color behind the app, also under overscroll and short pages */
+  background-color: var(--color-slate-50);
+}
+
 body {
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -53,6 +53,35 @@ export const defaultSelectedKey = (month: Date, today = new Date()): string => {
   return toDateKey(inMonth ? today : first);
 };
 
+export type MobileCalendarMode = 'week' | 'month';
+
+export const MOBILE_MODE_KEY = 'taskman.calendar.mobileMode';
+
+const storageOrNull = (): Storage | null => {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch {
+    return null; // storage blocked (private mode, sandboxed iframe)
+  }
+};
+
+/** Phone calendar mode last used; `week` when unset, invalid or storage is unavailable. */
+export const readMobileMode = (storage: Pick<Storage, 'getItem'> | null = storageOrNull()): MobileCalendarMode => {
+  try {
+    return storage?.getItem(MOBILE_MODE_KEY) === 'month' ? 'month' : 'week';
+  } catch {
+    return 'week';
+  }
+};
+
+export const writeMobileMode = (mode: MobileCalendarMode, storage: Pick<Storage, 'setItem'> | null = storageOrNull()): void => {
+  try {
+    storage?.setItem(MOBILE_MODE_KEY, mode);
+  } catch {
+    // preference is optional
+  }
+};
+
 /** "Oct 3 → Oct 10" for tasks with a start date; a single date when it is a one-day task; null without a start. */
 export const formatTaskRange = (task: Pick<Task, 'startDate' | 'deadline'>): string | null => {
   if (!task.startDate) return null;

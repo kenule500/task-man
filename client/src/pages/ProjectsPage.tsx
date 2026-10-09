@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { OptionSelect, useTasks } from '@/features/tasks';
 import {
   NewProjectCard, PROJECT_SORT_OPTIONS, ProjectFolderCard, ProjectFormDialog, filterProjectEntries, sortProjectEntries,
-  summarizeProject, useProjects,
+  summarizeProject, useProjectDirectory, useProjects,
   type Project, type ProjectEntry, type ProjectSort,
 } from '@/features/projects';
 
@@ -26,7 +26,23 @@ const ProjectsPage = () => {
   const canDelete = can('projects:delete');
 
   const projectsState = useProjects(workspaceSlug);
-  const { projects, createProject, updateProject, deleteProject } = projectsState;
+  const { projects } = projectsState;
+  // The sidebar's project list is a separate directory: refresh it after every change made here
+  const directory = useProjectDirectory();
+  const createProject: typeof projectsState.createProject = async input => {
+    const created = await projectsState.createProject(input);
+    void directory.reload();
+    return created;
+  };
+  const updateProject: typeof projectsState.updateProject = async (id, patch) => {
+    const updated = await projectsState.updateProject(id, patch);
+    void directory.reload();
+    return updated;
+  };
+  const deleteProject: typeof projectsState.deleteProject = async id => {
+    await projectsState.deleteProject(id);
+    void directory.reload();
+  };
   const { tasks, loading: tasksLoading, error: tasksError, clearError: clearTasksError } = useTasks(workspaceSlug);
   const loading = projectsState.loading || tasksLoading;
 

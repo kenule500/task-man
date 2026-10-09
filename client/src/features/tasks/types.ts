@@ -31,6 +31,8 @@ export interface TaskAttachment {
 
 export interface Task {
   _id: string;
+  /** Sequential number in the workspace; shown as a key like "WEB-12" (see lib/taskKey.ts). */
+  number?: number;
   title: string;
   description?: string;
   /** Project name ('' = none); projects are listed by the projects API. */

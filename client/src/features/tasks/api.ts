@@ -19,6 +19,31 @@ export interface UploadOptions {
   signal?: AbortSignal;
 }
 
+export type TaskActivityAction =
+  | 'task.created' | 'task.updated' | 'task.deleted' | 'task.commented'
+  | 'task.attachment_added' | 'task.attachment_removed';
+
+export interface TaskActivityChange {
+  field: string;
+  from?: string;
+  to?: string;
+}
+
+export interface TaskActivityEntry {
+  _id: string;
+  action: TaskActivityAction;
+  summary?: string;
+  actor: { _id: string; name: string; avatarUrl?: string } | null;
+  changes: TaskActivityChange[];
+  createdAt: string;
+}
+
+export interface TaskActivityPage {
+  items: TaskActivityEntry[];
+  /** Pass as `before` to get the next (older) page; null on the last page. */
+  nextBefore: string | null;
+}
+
 export const tasksApi = {
   list: async (workspaceSlug: string): Promise<Task[]> => {
     const { data } = await api.get(tasksUrl(workspaceSlug));
@@ -34,6 +59,21 @@ export const tasksApi = {
   },
   remove: async (workspaceSlug: string, id: string): Promise<void> => {
     await api.delete(taskUrl(workspaceSlug, id));
+  },
+
+  /** History of one task, newest first. */
+  activity: async (
+    workspaceSlug: string,
+    id: string,
+    { before, limit }: { before?: string | null; limit?: number } = {},
+  ): Promise<TaskActivityPage> => {
+    const { data } = await api.get(`${taskUrl(workspaceSlug, id)}/activity`, {
+      params: { ...(before ? { before } : {}), ...(limit ? { limit } : {}) },
+    });
+    return {
+      items: Array.isArray(data?.items) ? data.items : [],
+      nextBefore: typeof data?.nextBefore === 'string' ? data.nextBefore : null,
+    };
   },
 
   addComment: async (workspaceSlug: string, id: string, text: string): Promise<TaskOrItem<TaskComment>> => {

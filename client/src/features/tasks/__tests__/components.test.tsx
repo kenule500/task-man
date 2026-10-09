@@ -64,7 +64,7 @@ describe('EmptyState', () => {
 });
 
 describe('TaskActionsMenu', () => {
-  it('has a 40px touch target and "Move to" items for the other statuses', async () => {
+  it('has a 40px touch target and a "Move to" radio group with the current state checked', async () => {
     const onMove = jest.fn();
     const task = makeTask({ title: 'Menu task', status: 'in-progress' });
     render(<TaskActionsMenu task={task} onEdit={jest.fn()} onDelete={jest.fn()} onMove={onMove} />);
@@ -73,15 +73,35 @@ describe('TaskActionsMenu', () => {
     expect(trigger.className).toContain('size-10');
 
     await userEvent.click(trigger);
-    expect(screen.queryByRole('menuitem', { name: /move to in progress/i })).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('menuitem', { name: /move to pending/i }));
+    const radios = await screen.findAllByRole('menuitemradio');
+    expect(radios.map(radio => radio.textContent)).toEqual(['Pending', 'In Progress', 'Completed']);
+    expect(screen.getByRole('menuitemradio', { name: 'In Progress' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: 'Pending' })).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Pending' }));
     expect(onMove).toHaveBeenCalledWith(task, 'pending');
   });
 
-  it('omits "Move to" when no handler is given', async () => {
-    render(<TaskActionsMenu task={makeTask({ title: 'Plain' })} onEdit={jest.fn()} onDelete={jest.fn()} />);
+  it('offers "Move to…" for the sheet when a handler is given', async () => {
+    const onOpenMoveSheet = jest.fn();
+    const task = makeTask({ title: 'Sheet menu' });
+    render(<TaskActionsMenu task={task} onEdit={jest.fn()} onDelete={jest.fn()} onMove={jest.fn()} onOpenMoveSheet={onOpenMoveSheet} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Actions for Sheet menu' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /move to…/i }));
+    expect(onOpenMoveSheet).toHaveBeenCalledWith(task);
+  });
+
+  it('omits "Move to" without a handler or without write access', async () => {
+    const { unmount } = render(<TaskActionsMenu task={makeTask({ title: 'Plain' })} onEdit={jest.fn()} onDelete={jest.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Actions for Plain' }));
     expect(await screen.findByRole('menuitem', { name: /edit/i })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /move to/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    unmount();
+
+    render(<TaskActionsMenu task={makeTask({ title: 'Locked' })} onEdit={jest.fn()} onDelete={jest.fn()} onMove={jest.fn()} onOpen={jest.fn()} canEdit={false} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Actions for Locked' }));
+    expect(await screen.findByRole('menuitem', { name: /view details/i })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
   });
 });

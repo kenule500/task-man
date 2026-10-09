@@ -13,6 +13,12 @@ jest.mock('@/features/tasks/api', () => ({
   tasksApi: { list: jest.fn() },
 }));
 
+// Without it the palette would call a real server; projects are optional for the palette
+jest.mock('@/features/projects/api', () => ({
+  ...jest.requireActual('@/features/projects/api'),
+  projectsApi: { list: jest.fn().mockRejectedValue(new Error('offline')) },
+}));
+
 const api = tasksApi as jest.Mocked<typeof tasksApi>;
 
 const everything = () => true;
@@ -49,12 +55,41 @@ describe('buildCommandItems with loaded projects', () => {
   });
 });
 
+describe('task keys in the palette', () => {
+  const projects = [{
+    _id: 'p1', name: 'Website', key: 'WEB', color: 'blue' as const, icon: 'code' as const, archived: false, sprints: [],
+  }];
+  const keyed = [
+    makeTask({ _id: 'k1', number: 12, title: 'Fix login bug', project: 'Website' }),
+    makeTask({ _id: 'k2', number: 3, title: 'Water the plants' }),
+  ];
+
+  it('shows the key in the hint and finds the task by key or number', () => {
+    const items = buildCommandItems('acme', everything, keyed, projects);
+    const taskItems = items.filter(item => item.group === 'Tasks');
+    expect(taskItems.find(item => item.task?._id === 'k1')?.hint).toBe('WEB-12 · Website');
+    expect(taskItems.find(item => item.task?._id === 'k2')?.hint).toBe('TM-3');
+
+    const titles = (query: string) => searchCommands(query, items).filter(item => item.group === 'Tasks').map(item => item.label);
+    expect(titles('web-12')).toEqual(['Fix login bug']);
+    expect(titles('#12')).toEqual(['Fix login bug']);
+    expect(titles('tm-3')).toEqual(['Water the plants']);
+  });
+
+  it('does not guess a prefix for project tasks while projects are loading', () => {
+    const items = buildCommandItems('acme', everything, keyed);
+    const hints = items.filter(item => item.group === 'Tasks').map(item => item.hint);
+    expect(hints).toEqual(expect.arrayContaining(['Website', 'TM-3']));
+    expect(searchCommands('#12', items).filter(item => item.group === 'Tasks')).toHaveLength(1);
+  });
+});
+
 describe('searchCommands', () => {
   const items = buildCommandItems('acme', everything, tasks);
 
   it('lists pages and the most recent tasks for an empty query', () => {
     const results = searchCommands('', items);
-    expect(results.filter(item => item.group === 'Pages')).toHaveLength(10);
+    expect(results.filter(item => item.group === 'Pages')).toHaveLength(11);
     expect(results.filter(item => item.group === 'Tasks').map(item => item.label)).toEqual([
       'Fix login bug', 'Plan sprint', 'Write launch email',
     ]);

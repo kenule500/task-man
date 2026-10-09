@@ -1,6 +1,7 @@
 import { PRIORITY_META, TASK_STATUSES } from '../constants';
 import { isOverdue } from './date';
 import type { Task, TaskFilters, TaskSort, TaskStatus } from '../types';
+import { matchesKey } from './taskKey';
 
 export const DEFAULT_FILTERS: TaskFilters = {
   search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all',
@@ -8,11 +9,15 @@ export const DEFAULT_FILTERS: TaskFilters = {
 
 type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type'>>;
 
-/** `currentUserId` is needed for the "assigned to me" filter; without it that filter matches nothing. */
+/**
+ * `currentUserId` is needed for the "assigned to me" filter; without it that filter matches nothing.
+ * `projectKeyOf` gives a task's project key so searching "WEB-12" works (without it keys read "TM-12").
+ */
 export const matchesFilters = (
   task: Task,
   { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all' }: MatchableFilters,
   currentUserId?: string,
+  projectKeyOf?: (task: Task) => string | undefined,
 ) => {
   if (status !== 'all' && task.status !== status) return false;
   if (priority !== 'all' && task.priority !== priority) return false;
@@ -21,7 +26,9 @@ export const matchesFilters = (
   if (label !== 'all' && !task.labels?.some(item => item.toLowerCase() === label.toLowerCase())) return false;
   const term = search.trim().toLowerCase();
   if (!term) return true;
-  return task.title.toLowerCase().includes(term) || (task.description?.toLowerCase().includes(term) ?? false);
+  return task.title.toLowerCase().includes(term)
+    || (task.description?.toLowerCase().includes(term) ?? false)
+    || matchesKey(task, term, projectKeyOf?.(task));
 };
 
 const byDeadline = (a: Task, b: Task) => a.deadline.localeCompare(b.deadline);
@@ -37,8 +44,13 @@ const COMPARATORS: Record<TaskSort, (a: Task, b: Task) => number> = {
 export const sortTasks = (tasks: Task[], sort: TaskSort): Task[] => [...tasks].sort(COMPARATORS[sort]);
 
 /** Filter + search + sort in one pass, the way every view consumes tasks. */
-export const applyFilters = (tasks: Task[], filters: TaskFilters, currentUserId?: string): Task[] =>
-  sortTasks(tasks.filter(task => matchesFilters(task, filters, currentUserId)), filters.sort);
+export const applyFilters = (
+  tasks: Task[],
+  filters: TaskFilters,
+  currentUserId?: string,
+  projectKeyOf?: (task: Task) => string | undefined,
+): Task[] =>
+  sortTasks(tasks.filter(task => matchesFilters(task, filters, currentUserId, projectKeyOf)), filters.sort);
 
 /** Board columns: tasks grouped by status, ordered by their manual position. */
 export const groupByStatus = (tasks: Task[]): Record<TaskStatus, Task[]> => {

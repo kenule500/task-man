@@ -8,7 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import {
   ProjectFormDialog, ProjectIcon, ProjectWorkspace, SprintFormDialog, colorStyleOf, suggestSprintDates, suggestSprintName,
-  useProjects,
+  useProjectDirectory, useProjects,
   type Sprint,
 } from '@/features/projects';
 
@@ -22,6 +22,7 @@ const ProjectDetailPage = () => {
   const {
     projects, loading, error, clearError, updateProject, createSprint, updateSprint, startSprint, completeSprint, deleteSprint,
   } = useProjects(workspaceSlug);
+  const directory = useProjectDirectory();
   const project = projects.find(item => item._id === projectId);
 
   // Completing or deleting a sprint moves tasks on the server. `useTasks` has no reload, so the
@@ -131,6 +132,7 @@ const ProjectDetailPage = () => {
               project={project}
               onSubmit={async input => {
                 await updateProject(project._id, input);
+                void directory.reload();
                 toast.success('Project saved');
               }}
             />

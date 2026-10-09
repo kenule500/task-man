@@ -1,4 +1,4 @@
-import { buildWeek, defaultSelectedKey, formatTaskRange, shiftWeek, startOfWeek } from '../lib/week';
+import { MOBILE_MODE_KEY, buildWeek, defaultSelectedKey, formatTaskRange, readMobileMode, shiftWeek, startOfWeek, writeMobileMode } from '../lib/week';
 import { closestColumnIndex } from '../lib/scroll';
 import { groupByDeadline } from '../lib/schedule';
 import { makeTask } from './fixtures';
@@ -62,5 +62,22 @@ describe('closestColumnIndex', () => {
     expect(closestColumnIndex([-300, 20, 340], 0)).toBe(1);
     expect(closestColumnIndex([-600, -300, 40], 0)).toBe(2);
     expect(closestColumnIndex([], 0)).toBe(0);
+  });
+});
+
+describe('mobile calendar mode', () => {
+  it('defaults to week and reads a stored month', () => {
+    expect(readMobileMode({ getItem: () => null })).toBe('week');
+    expect(readMobileMode({ getItem: () => 'bogus' })).toBe('week');
+    expect(readMobileMode({ getItem: key => (key === MOBILE_MODE_KEY ? 'month' : null) })).toBe('month');
+    expect(readMobileMode(null)).toBe('week');
+  });
+
+  it('stores the mode and survives a failing storage', () => {
+    const setItem = jest.fn();
+    writeMobileMode('month', { setItem });
+    expect(setItem).toHaveBeenCalledWith('taskman.calendar.mobileMode', 'month');
+    expect(() => writeMobileMode('week', { setItem: () => { throw new Error('quota'); } })).not.toThrow();
+    expect(readMobileMode({ getItem: () => { throw new Error('denied'); } })).toBe('week');
   });
 });
