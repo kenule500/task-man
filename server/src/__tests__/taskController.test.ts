@@ -1,19 +1,27 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import Task from '../models/taskModel.js';
+import { deleteFiles } from '../utils/gridfs.js';
 import {
   createTask,
+  getTasks,
   deleteTask,
   updateTask,
   validateCreateTask,
   validateUpdateTask,
 } from '../controllers/taskController.js';
 
+jest.mock('../utils/gridfs.js', () => ({ deleteFiles: jest.fn().mockResolvedValue(undefined) }));
+
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
   TASK_STATUSES: ['pending', 'in-progress', 'completed'],
   TASK_PRIORITIES: ['low', 'medium', 'high'],
+  MAX_LABELS: 10,
+  MAX_LABEL_LENGTH: 40,
   default: {
+    populate: jest.fn(async (docs: unknown) => docs),
+    aggregate: jest.fn(),
     create: jest.fn(),
     find: jest.fn(),
     findOne: jest.fn(),
@@ -24,12 +32,15 @@ jest.mock('../models/taskModel.js', () => ({
 
 const TaskMock = Task as unknown as Record<string, jest.Mock>;
 const workspaceId = new Types.ObjectId();
+const memberId = new Types.ObjectId().toString();
+const outsiderId = new Types.ObjectId().toString();
+const workspace = { _id: workspaceId, members: [{ user: new Types.ObjectId(memberId) }] };
 const taskId = new Types.ObjectId().toString();
 
 type TestResponse = Response & { statusCode?: number; body?: any };
 
 const createResponse = (): TestResponse => {
-  const res = { locals: { workspace: { _id: workspaceId } } } as unknown as TestResponse;
+  const res = {} as unknown as TestResponse;
   res.status = jest.fn((code: number) => {
     res.statusCode = code;
     return res;
@@ -42,7 +53,7 @@ const createResponse = (): TestResponse => {
 };
 
 const createRequest = (body: Record<string, unknown>, params: Record<string, string> = {}) =>
-  ({ body, params, user: { _id: 'user-1' } }) as unknown as Request;
+  ({ body, params, query: {}, user: { _id: 'user-1' }, workspace }) as unknown as Request;
 
 const runValidators = async (validators: { run: (req: Request) => Promise<unknown> }[], req: Request) => {
   for (const validator of validators) await validator.run(req);
@@ -176,5 +187,123 @@ describe('deleteTask', () => {
       { workspace: workspaceId, dependencies: deletedId },
       { $pull: { dependencies: deletedId } },
     );
+  });
+});
+
+describe('labels and assignees', () => {
+  beforeEach(() => {
+    TaskMock.create.mockImplementation(async (data: unknown) => data);
+    TaskMock.find.mockReturnValue({ select: () => ({ lean: async () => [] }) });
+  });
+
+  it('normalizes labels: trims, drops blanks and duplicates', async () => {
+    const req = createRequest({
+      title: 'Ship', deadline: '2026-10-01', labels: ['  Bug ', 'bug', '', 'Ui   polish'],
+    });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.labels).toEqual(['Bug', 'Ui polish']);
+  });
+
+  it('rejects labels over 40 characters or more than 10 labels', async () => {
+    const long = createRequest({ title: 'Ship', deadline: '2026-10-01', labels: ['x'.repeat(41)] });
+    const resLong = createResponse();
+    await runValidators(validateCreateTask, long);
+    await createTask(long, resLong);
+    expect(resLong.statusCode).toBe(400);
+
+    const many = createRequest({
+      title: 'Ship', deadline: '2026-10-01', labels: Array.from({ length: 11 }, (_, i) => `l${i}`),
+    });
+    const resMany = createResponse();
+    await runValidators(validateCreateTask, many);
+    await createTask(many, resMany);
+    expect(resMany.statusCode).toBe(400);
+    expect(TaskMock.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts assignees that are workspace members', async () => {
+    const req = createRequest({ title: 'Ship', deadline: '2026-10-01', assignees: [memberId, memberId] });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.assignees).toEqual([memberId]);
+  });
+
+  it('rejects assignees outside the workspace on create and update', async () => {
+    const req = createRequest({ title: 'Ship', deadline: '2026-10-01', assignees: [outsiderId] });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/members/i);
+
+    TaskMock.findOne.mockResolvedValue(createTaskDocument({ deadline: new Date('2026-10-05') }));
+    const updateReq = createRequest({ assignees: [outsiderId] }, { id: taskId });
+    const updateRes = createResponse();
+    await runValidators(validateUpdateTask, updateReq);
+    await updateTask(updateReq, updateRes);
+    expect(updateRes.statusCode).toBe(400);
+  });
+
+  it('rejects malformed assignee ids', async () => {
+    const req = createRequest({ title: 'Ship', deadline: '2026-10-01', assignees: ['nope'] });
+    const res = createResponse();
+    await runValidators(validateCreateTask, req);
+    await createTask(req, res);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('updates labels and assignees', async () => {
+    const doc = createTaskDocument({ deadline: new Date('2026-10-05') });
+    TaskMock.findOne.mockResolvedValue(doc);
+    const req = createRequest({ labels: [' a ', 'A'], assignees: [memberId] }, { id: taskId });
+    const res = createResponse();
+    await runValidators(validateUpdateTask, req);
+    await updateTask(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(doc.labels).toEqual(['a']);
+    expect(doc.assignees).toEqual([memberId]);
+  });
+});
+
+describe('getTasks', () => {
+  it('filters by the current user for assignee=me and populates public fields only', async () => {
+    const userId = new Types.ObjectId();
+    TaskMock.aggregate.mockResolvedValue([{ title: 'A' }]);
+    const req = { ...createRequest({}), query: { assignee: 'me', label: 'bug' }, user: { _id: userId } } as unknown as Request;
+    const res = createResponse();
+    await getTasks(req, res);
+
+    const [pipeline] = TaskMock.aggregate.mock.calls[0];
+    expect(pipeline[0].$match).toMatchObject({ workspace: workspaceId, labels: 'bug' });
+    expect(String(pipeline[0].$match.assignees)).toBe(userId.toString());
+    expect(TaskMock.populate).toHaveBeenCalledWith(
+      [{ title: 'A' }],
+      [
+        { path: 'assignees', select: 'name avatarUrl' },
+        { path: 'comments.author', select: 'name avatarUrl' },
+      ],
+    );
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe('deleteTask attachments', () => {
+  it('deletes the GridFS files of a deleted task', async () => {
+    const fileId = new Types.ObjectId();
+    TaskMock.findOneAndDelete.mockResolvedValue({ _id: new Types.ObjectId(taskId), attachments: [{ fileId }] });
+    TaskMock.updateMany.mockResolvedValue({});
+    const res = createResponse();
+    await deleteTask(createRequest({}, { id: taskId }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(deleteFiles).toHaveBeenCalledWith([fileId]);
   });
 });
