@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CheckSquare, Clock, FolderKanban, ListTodo, Plus } from 'lucide-react';
 import {
   Alert, EmptyState, Field, IconTile, PageHeader, ProgressBar, SectionHeader, SkeletonCards,
-  StatCard, Surface, Tag, UserAvatar, fieldMessageId,
+  StatCard, Surface, Tag, UserAvatar, fieldMessageId, toast,
 } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,6 +121,16 @@ const DesignSystemPage = () => {
             <Alert tone="warning">You're offline. Changes can't be saved until you reconnect.</Alert>
             <Alert tone="error" onDismiss={() => undefined}>This dependency would create a cycle.</Alert>
           </div>
+          <Specimen label="Toasts (transient feedback, bottom of the screen)">
+            <Button variant="outline" onClick={() => toast.success('Task created')}>Success toast</Button>
+            <Button variant="outline" onClick={() => toast.error('Could not save your change.')}>Error toast</Button>
+            <Button
+              variant="outline"
+              onClick={() => toast({ title: 'Task deleted', description: 'Launch v1', action: { label: 'Undo', onClick: () => toast.success('Task restored') } })}
+            >
+              Toast with action (Undo)
+            </Button>
+          </Specimen>
           <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" />
           <Surface padding="none">
             <EmptyState icon={<FolderKanban />} title="No projects yet" description="Set a Project on a task and it will appear here with its progress." action={<Button className="bg-primary text-white hover:bg-primary-hover">Add task</Button>} />

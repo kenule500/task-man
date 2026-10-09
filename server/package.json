@@ -10,7 +10,9 @@
     "test": "jest",
     "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js -c jest.integration.config.cjs --runInBand",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:workspace": "tsx src/scripts/seedWorkspace.ts",
+    "test:coverage": "jest --coverage --coverageReporters=text-summary --coverageReporters=lcov"
   },
   "keywords": [],
   "author": "",
