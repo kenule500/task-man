@@ -29,6 +29,7 @@ import {
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import taskRoutes from './taskRoutes.js';
+import projectRoutes from './projectRoutes.js';
 
 const router: Router = express.Router();
 
@@ -146,5 +147,8 @@ router.delete(
 // Task routes protect themselves internally
 // ============================================================
 router.use('/:slug/tasks', taskRoutes);
+
+// Workspace-scoped projects and their sprints
+router.use('/:slug/projects', projectRoutes);
 
 export default router;

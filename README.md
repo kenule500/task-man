@@ -32,10 +32,17 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 ### Core
 - Sign up with email verification, login, password reset, sessions you can revoke (sign out other devices)
 - Workspaces with invite codes; members and roles; workspace settings
-- Tasks: title, description, status, priority, start/due dates, project, dependencies
+- Tasks: title, description, status, priority, start/due dates, project, dependencies, labels, assignees, comments, attachments
 - Views: List (inline editing), Board (drag and drop), Calendar (drag to reschedule), Timeline (Gantt with dependency arrows)
 - Search, status and priority filters, sorting (also available as API query parameters)
-- Dashboard overview, Projects progress, Reports, Team page
+- Dashboard overview, Projects, Reports, Team page, searchable Help/FAQ, global search (Ctrl/Cmd + K)
+
+### Scrum / agile
+- **Projects** (folders with color, icon and key) → **sprints** → **tasks** → **subtasks**
+- Work item types (story, task, bug, spike) and story points
+- Product backlog per project; plan, start and complete sprints (unfinished work moves to the backlog or the next sprint)
+- Sprint burndown, velocity history, one active sprint per project
+- Scrum roles: Product Owner, Scrum Master, Developer, Team Member, Viewer
 
 ### Role-Based Access Control (RBAC)
 - 5 system roles seeded on server startup — cannot be renamed or deleted
@@ -46,6 +53,7 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 
 ### Progressive Web App
 - Installable (Chrome/Edge "Install app", iOS Safari "Add to Home Screen")
+- Mobile bottom navigation with a quick "New task" button, week-strip calendar, status tabs on the board
 - Offline app shell via `vite-plugin-pwa` + Workbox
 - Update toast when a new version is deployed
 
@@ -83,9 +91,30 @@ The client fetches `/api/auth/currentuser?workspaceSlug=<slug>` on every workspa
 | `reports:read` | Analytics |
 | `settings:manage` | Workspace settings |
 
+## API
+
+All endpoints are under `/api` and need `Authorization: Bearer <token>` except auth and health.
+
+| Area | Endpoints |
+|---|---|
+| Health | `GET /api/health` |
+| Auth | `POST /api/auth/signup` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/verify-email/:token` · `POST /api/auth/forgot-password` · `POST /api/auth/reset-password/:token` |
+| Tasks (active workspace) | `GET /api/tasks` · `POST /api/tasks` · `PUT/PATCH /api/tasks/:id` · `DELETE /api/tasks/:id` |
+| Tasks (any of your workspaces) | same routes under `/api/workspaces/:slug/tasks`, plus `/:id/comments` and `/:id/attachments` |
+| Projects and sprints | `GET/POST /api/workspaces/:slug/projects` · `PATCH/DELETE …/projects/:id` · `POST …/projects/:id/sprints` · `PATCH/DELETE …/sprints/:sprintId` · `POST …/sprints/:sprintId/start` · `POST …/sprints/:sprintId/complete` |
+| Workspaces, members, roles, invitations, profile | see `server/src/routes/` |
+
+Task list query parameters: `status`, `search` (title or description), `project`, `label`, `assignee=me|<userId>`,
+`sort=createdAt|deadline|priority|position`, `from`, `to`. Tasks are shared by the workspace team (RBAC decides who
+can read, edit or delete); use `assignee=me` for "my tasks".
+
 ## Getting started
 
-Requirements: Node.js 22+, pnpm 10+, MongoDB 7+ (local or Atlas).
+Requirements: Node.js 22+, pnpm 10+, MongoDB 7+ (local or Atlas). Check them with:
+
+```bash
+node -v && pnpm -v && mongosh --quiet --eval "db.runCommand({ ping: 1 })"
+```
 
 ```bash
 pnpm install
@@ -98,3 +127,24 @@ pnpm dev       # API on http://localhost:5000
 
 # in another terminal
 pnpm --filter client dev                 # web app on http://localhost:5173
+
+## Branching and releases
+
+- `main` is always deployable; production (Vercel) deploys from it.
+- Work happens on `feature/<topic>` or `fix/<topic>` branches, merged through pull requests.
+- CI (GitHub Actions) must be green before merging: type checks, lint, unit tests, integration tests on MongoDB 7, build.
+
+## Verified on the deployed app
+
+Sign up → create a workspace → create, edit, filter, sort and delete tasks → board drag and drop → calendar and
+timeline → projects, sprints and subtasks → invite a teammate with a role → sign out. Checked on
+https://taskman-mauve.vercel.app after each release (desktop and a 375 px phone viewport).
+
+## Known limitations
+
+- Email delivery needs `RESEND_API_KEY` (or SMTP) in the host settings; until then sign-ups are auto-verified.
+- The session token is kept in `localStorage` (an HttpOnly cookie is planned now that the app is same-origin).
+- No real-time updates between teammates yet: reload to see others' changes.
+- Offline mode is read-only (the app shell and last data are cached; edits need a connection).
+- Deleting a task asks for confirmation and can still be undone for 6 seconds.
+

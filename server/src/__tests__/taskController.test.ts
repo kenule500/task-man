@@ -19,6 +19,8 @@ jest.mock('../models/taskModel.js', () => ({
   TASK_PRIORITIES: ['low', 'medium', 'high'],
   MAX_LABELS: 10,
   MAX_LABEL_LENGTH: 40,
+  MAX_STORY_POINTS: 100,
+  TASK_TYPES: ['story', 'task', 'bug', 'spike'],
   default: {
     populate: jest.fn(async (docs: unknown) => docs),
     aggregate: jest.fn(),
@@ -27,6 +29,8 @@ jest.mock('../models/taskModel.js', () => ({
     findOne: jest.fn(),
     findOneAndDelete: jest.fn(),
     updateMany: jest.fn(),
+    deleteMany: jest.fn(),
+    exists: jest.fn(),
   },
 }));
 
@@ -178,15 +182,32 @@ describe('deleteTask', () => {
   it('deletes the task and detaches it from dependants', async () => {
     const deletedId = new Types.ObjectId(taskId);
     TaskMock.findOneAndDelete.mockResolvedValue({ _id: deletedId });
+    TaskMock.find.mockReturnValue({ select: () => ({ lean: async () => [] }) });
     TaskMock.updateMany.mockResolvedValue({});
     const res = createResponse();
     await deleteTask(createRequest({}, { id: taskId }), res);
 
     expect(res.statusCode).toBe(200);
+    expect(TaskMock.deleteMany).not.toHaveBeenCalled();
     expect(TaskMock.updateMany).toHaveBeenCalledWith(
-      { workspace: workspaceId, dependencies: deletedId },
-      { $pull: { dependencies: deletedId } },
+      { workspace: workspaceId, dependencies: { $in: [deletedId] } },
+      { $pull: { dependencies: { $in: [deletedId] } } },
     );
+  });
+
+  it('deletes the subtasks of a deleted parent and detaches them too', async () => {
+    const deletedId = new Types.ObjectId(taskId);
+    const subtaskId = new Types.ObjectId();
+    TaskMock.findOneAndDelete.mockResolvedValue({ _id: deletedId });
+    TaskMock.find.mockReturnValue({ select: () => ({ lean: async () => [{ _id: subtaskId, attachments: [] }] }) });
+    TaskMock.deleteMany.mockResolvedValue({});
+    TaskMock.updateMany.mockResolvedValue({});
+    const res = createResponse();
+    await deleteTask(createRequest({}, { id: taskId }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(TaskMock.deleteMany).toHaveBeenCalledWith({ _id: { $in: [subtaskId] } });
+    expect(res.body).toMatchObject({ id: taskId, subtasks: [String(subtaskId)] });
   });
 });
 

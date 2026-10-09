@@ -2,11 +2,16 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import Task, {
+  ITask,
   MAX_LABELS,
   MAX_LABEL_LENGTH,
+  MAX_STORY_POINTS,
   TASK_PRIORITIES,
   TASK_STATUSES,
+  TASK_TYPES,
 } from '../models/taskModel.js';
+import Project from '../models/projectModel.js';
+import Sprint from '../models/sprintModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
@@ -21,7 +26,7 @@ import {
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
   'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
-  'labels', 'assignees',
+  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent',
 ] as const;
 
 // People shown on tasks: never expose email, password hashes or tokens
@@ -50,6 +55,11 @@ const optionalFieldRules = [
   body('priority').optional().isIn(TASK_PRIORITIES).withMessage('Invalid priority'),
   body('startDate').optional({ values: 'null' }).isISO8601().withMessage('Invalid start date'),
   body('position').optional().isNumeric().withMessage('Invalid position'),
+  body('type').optional().isIn(TASK_TYPES).withMessage('Invalid type'),
+  body('storyPoints').optional({ values: 'null' }).isInt({ min: 0, max: MAX_STORY_POINTS })
+    .withMessage(`Story points must be a whole number from 0 to ${MAX_STORY_POINTS}`),
+  body('sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
+  body('parent').optional({ values: 'null' }).isMongoId().withMessage('Invalid parent task'),
   body('dependencies').optional().isArray().withMessage('Dependencies must be a list'),
   body('assignees').optional().isArray({ max: 50 }).withMessage('Assignees must be a list'),
   body('labels').optional().isArray({ max: 50 }).withMessage('Labels must be a list')
@@ -129,6 +139,47 @@ const assertValidAssignees = (workspace: IWorkspace, assignees: string[]) => {
   }
 };
 
+/** The sprint must belong to the workspace and still be open; returns it with its project's name. */
+const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprintId: string) => {
+  const sprint = await Sprint.findOne({ _id: sprintId, workspace: workspaceId });
+  if (!sprint) throw new TaskRuleError('Sprint not found in this workspace');
+  if (sprint.status === 'completed') throw new TaskRuleError('This sprint is completed');
+  const project = await Project.findOne({ _id: sprint.project, workspace: workspaceId }).select('name').lean();
+  if (!project) throw new TaskRuleError('Sprint not found in this workspace');
+  return { sprint, projectName: project.name };
+};
+
+/** Subtasks are one level deep: the parent must be a top-level task of the workspace. */
+const findValidParent = async (workspaceId: mongoose.Types.ObjectId, taskId: string | null, parentId: string) => {
+  if (taskId && parentId === taskId) throw new TaskRuleError('A task cannot be its own parent');
+  const parent = await Task.findOne({ _id: parentId, workspace: workspaceId }).select('parent project sprint').lean();
+  if (!parent) throw new TaskRuleError('Parent task not found in this workspace');
+  if (parent.parent) throw new TaskRuleError('Subtasks cannot have subtasks');
+  if (taskId && await Task.exists({ workspace: workspaceId, parent: taskId })) {
+    throw new TaskRuleError('A task with subtasks cannot become a subtask');
+  }
+  return parent;
+};
+
+/**
+ * Keeps project and sprint consistent: a task in a sprint belongs to the sprint's project.
+ * Choosing a sprint moves the task to its project; changing the project leaves the sprint.
+ */
+const reconcileSprint = async (
+  task: ITask,
+  workspaceId: mongoose.Types.ObjectId,
+  changed: { sprint: boolean; project: boolean },
+) => {
+  if (!task.sprint || !(changed.sprint || changed.project)) return;
+  if (changed.sprint) {
+    task.set('project', (await findOpenSprint(workspaceId, String(task.sprint))).projectName);
+    return;
+  }
+  const sprint = await Sprint.findOne({ _id: task.sprint, workspace: workspaceId }).select('project').lean();
+  const project = sprint && await Project.findOne({ _id: sprint.project }).select('name').lean();
+  if (task.project !== project?.name) task.set('sprint', null);
+};
+
 export const handleError = (res: Response, error: unknown, context: string) => {
   if (error instanceof TaskRuleError) {
     res.status(400).json({ message: error.message });
@@ -169,7 +220,10 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
 
   try {
     const workspace = workspaceOf(req);
-    const { title, description, project, status, priority, startDate, deadline, position } = req.body;
+    const { title, description, status, priority, startDate, deadline, position, type, storyPoints } = req.body;
+    let { project } = req.body;
+    let sprint: string | null = req.body.sprint ?? null;
+    const parentId: string | null = req.body.parent ?? null;
     const dependencies = normalizeIds(req.body.dependencies);
     const assignees = normalizeIds(req.body.assignees);
     const labels = normalizeLabels(req.body.labels);
@@ -180,10 +234,23 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     await assertValidDependencies(workspace._id as mongoose.Types.ObjectId, null, dependencies);
     assertValidAssignees(workspace, assignees);
 
+    const workspaceId = workspace._id as mongoose.Types.ObjectId;
+    // Subtasks join their parent's project and sprint unless told otherwise
+    if (parentId) {
+      const parent = await findValidParent(workspaceId, null, parentId);
+      if (project === undefined) project = parent.project;
+      if (req.body.sprint === undefined && parent.sprint) sprint = String(parent.sprint);
+    }
+    if (sprint) project = (await findOpenSprint(workspaceId, sprint)).projectName;
+
     const task = await Task.create({
       title,
       description,
       project,
+      type,
+      storyPoints: storyPoints ?? null,
+      sprint,
+      parent: parentId,
       status,
       priority,
       startDate: start,
@@ -239,13 +306,30 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
         task.set('startDate', value ? new Date(value) : undefined);
       } else if (field === 'deadline') {
         task.set('deadline', new Date(value));
+      } else if (field === 'parent') {
+        if (value) await findValidParent(workspace._id as mongoose.Types.ObjectId, id, String(value));
+        task.set('parent', value || null);
+      } else if (field === 'sprint' || field === 'storyPoints') {
+        task.set(field, value ?? null);
       } else {
         task.set(field, value);
       }
     }
 
     assertDateOrder(task.startDate, task.deadline);
+    await reconcileSprint(task as unknown as ITask, workspace._id as mongoose.Types.ObjectId, {
+      sprint: 'sprint' in req.body,
+      project: 'project' in req.body,
+    });
     await task.save();
+
+    // Subtasks follow their parent between projects and sprints
+    if ('sprint' in req.body || 'project' in req.body) {
+      await Task.updateMany(
+        { workspace: workspace._id, parent: task._id },
+        { $set: { project: task.project, sprint: task.sprint ?? null } },
+      );
+    }
 
     res.status(200).json(await populateTasks(task));
   } catch (error) {
@@ -254,7 +338,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
 };
 
 // ================================================================
-// @desc    Delete a task, its stored files, and detach it from tasks that depended on it
+// @desc    Delete a task with its subtasks and stored files, and detach them from tasks that depended on them
 // @route   DELETE /api/workspaces/:slug/tasks/:id
 // ================================================================
 export const deleteTask = async (req: Request, res: Response): Promise<void> => {
@@ -270,14 +354,18 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    const subtasks = await Task.find({ workspace: workspace._id, parent: task._id }).select('attachments').lean();
+    if (subtasks.length > 0) await Task.deleteMany({ _id: { $in: subtasks.map(sub => sub._id) } });
+    const removedIds = [task._id, ...subtasks.map(sub => sub._id)];
+
     await Task.updateMany(
-      { workspace: workspace._id, dependencies: task._id },
-      { $pull: { dependencies: task._id } },
+      { workspace: workspace._id, dependencies: { $in: removedIds } },
+      { $pull: { dependencies: { $in: removedIds } } },
     );
     // Attachments live in GridFS, so they are removed explicitly
-    await deleteFiles((task.attachments ?? []).map(attachment => attachment.fileId));
+    await deleteFiles([task, ...subtasks].flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 
-    res.status(200).json({ message: 'Task deleted', id });
+    res.status(200).json({ message: 'Task deleted', id, subtasks: subtasks.map(sub => String(sub._id)) });
   } catch (error) {
     handleError(res, error, 'deleteTask');
   }

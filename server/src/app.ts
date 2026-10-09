@@ -7,6 +7,7 @@ import connectDB from './config/db.js';
 import { getConfig } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
 import workspaceRoutes from './routes/workspaceRoutes.js';
+import activeTaskRoutes from './routes/activeTaskRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
@@ -108,6 +109,8 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/workspaces', workspaceRoutes);
+// Alias for the active workspace's tasks (GET/POST /api/tasks, PUT/PATCH/DELETE /api/tasks/:id)
+app.use('/api/tasks', activeTaskRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/roles', roleRoutes);
 
