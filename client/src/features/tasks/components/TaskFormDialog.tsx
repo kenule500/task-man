@@ -8,16 +8,18 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import type { Project } from '@/features/projects';
 import type { WorkspaceMember } from '@/features/workspace';
 import { getApiErrorMessage } from '../api';
 import { getDependencyCandidates } from '../lib/dependencies';
 import { collectLabels } from '../lib/labels';
 import {
-  toFormValues, toTaskInput, validateTaskForm, type TaskFormErrors, type TaskFormValues,
+  sprintBelongsTo, toFormValues, toTaskInput, validateTaskForm, type TaskFormErrors, type TaskFormValues,
 } from '../lib/taskForm';
 import type { Task, TaskInput } from '../types';
 import AssigneePicker from './AssigneePicker';
 import LabelInput from './LabelInput';
+import TaskScrumFields from './TaskScrumFields';
 import { DueDate, StatusDot } from './TaskBadges';
 import { PrioritySelect, StatusSelect } from './TaskSelects';
 
@@ -37,7 +39,11 @@ interface TaskFormDialogProps {
   /** Whether the member list may be shown; otherwise only "Assign to me" is offered. */
   canListMembers?: boolean;
   currentUser?: { _id: string; name: string } | null;
+  /** Workspace projects with their sprints, to plan the task into a sprint. */
+  projects?: Project[];
 }
+
+const NO_PROJECTS: Project[] = [];
 
 const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
 
@@ -47,7 +53,7 @@ const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text
  */
 const TaskFormDialog = ({
   open, onOpenChange, task, defaults, tasks, onSubmit,
-  members = [], membersLoading = false, canListMembers = false, currentUser,
+  members = [], membersLoading = false, canListMembers = false, currentUser, projects = NO_PROJECTS,
 }: TaskFormDialogProps) => {
   const [values, setValues] = useState<TaskFormValues>(() => toFormValues(task, defaults));
   const [errors, setErrors] = useState<TaskFormErrors>({});
@@ -56,14 +62,25 @@ const TaskFormDialog = ({
 
   const candidates = useMemo(() => getDependencyCandidates(tasks, task?._id), [tasks, task?._id]);
   const projectNames = useMemo(
-    () => [...new Set(tasks.map(item => item.project?.trim()).filter((name): name is string => Boolean(name)))].sort(),
-    [tasks],
+    () => [...new Set([
+      ...projects.filter(project => !project.archived).map(project => project.name),
+      ...tasks.map(item => item.project?.trim()).filter((name): name is string => Boolean(name)),
+    ])].sort(),
+    [tasks, projects],
   );
   const labelSuggestions = useMemo(() => collectLabels(tasks), [tasks]);
   const isEdit = Boolean(task);
 
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
     setValues(current => ({ ...current, [key]: value }));
+
+  /** Changing the project leaves a sprint of the old project, as the server does. */
+  const setProject = (project: string) =>
+    setValues(current => ({
+      ...current,
+      project,
+      sprint: current.sprint && sprintBelongsTo(projects, project, current.sprint) ? current.sprint : '',
+    }));
 
   const toggleDependency = (id: string, checked: boolean) =>
     set('dependencies', checked ? [...values.dependencies, id] : values.dependencies.filter(dep => dep !== id));
@@ -77,7 +94,7 @@ const TaskFormDialog = ({
     setSaving(true);
     setSubmitError('');
     try {
-      const result = await onSubmit(toTaskInput(values));
+      const result = await onSubmit(toTaskInput(values, task));
       if (result === null) {
         setSubmitError('Your changes could not be saved. Please try again.');
         return;
@@ -153,7 +170,7 @@ const TaskFormDialog = ({
               <Input
                 id="task-project"
                 value={values.project}
-                onChange={e => set('project', e.target.value)}
+                onChange={e => setProject(e.target.value)}
                 placeholder="Group tasks under a project (optional)"
                 className={fieldClass}
                 maxLength={60}
@@ -164,6 +181,8 @@ const TaskFormDialog = ({
                 {projectNames.map(name => <option key={name} value={name} />)}
               </datalist>
             </div>
+
+            <TaskScrumFields values={values} onChange={set} projects={projects} isSubtask={Boolean(task?.parent)} />
 
             <div className="space-y-1.5">
               <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">Labels</Label>

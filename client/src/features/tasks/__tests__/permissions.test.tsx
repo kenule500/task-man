@@ -279,6 +279,16 @@ describe('TaskPage', () => {
     await userEvent.click(table.getByRole('button', { name: 'Actions for Alpha' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: /delete/i }));
 
+    // Asks first: cancelling keeps the task
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent('Delete this task?');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(table.getByRole('button', { name: 'Alpha' })).toBeInTheDocument();
+
+    await userEvent.click(table.getByRole('button', { name: 'Actions for Alpha' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /delete/i }));
+    await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
+
     expect(table.queryByRole('button', { name: 'Alpha' })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Task deleted');
     expect(api.remove).not.toHaveBeenCalled();
@@ -296,6 +306,7 @@ describe('TaskPage', () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     await user.click(within(screen.getByTestId('list-table')).getByRole('button', { name: 'Actions for Alpha' }));
     await user.click(await screen.findByRole('menuitem', { name: /delete/i }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
     expect(api.remove).not.toHaveBeenCalled();
 
     await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS + 100); });

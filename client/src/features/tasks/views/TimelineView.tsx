@@ -3,7 +3,7 @@ import { AlertTriangle, ChartGantt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ds';
-import { StatusDot } from '../components/TaskBadges';
+import { StatusDot, TaskTypeIcon } from '../components/TaskBadges';
 import { AssigneeStack } from '../components/TaskChips';
 import { STATUS_META } from '../constants';
 import { diffInDays, formatDate, isWeekend, startOfDay } from '../lib/date';
@@ -292,7 +292,12 @@ const TimelineView = ({
                         drag?.id === task._id && 'ring-2 ring-primary/40',
                       )}
                     >
-                      {labelInside && <span className="block truncate px-2">{task.title}</span>}
+                      {labelInside && (
+                        <span className="flex items-center gap-1 px-2">
+                          <TaskTypeIcon type={task.type} className="size-3" />
+                          <span className="truncate">{task.title}</span>
+                        </span>
+                      )}
                       {canWrite && (
                         <span
                           aria-hidden
@@ -301,7 +306,12 @@ const TimelineView = ({
                         />
                       )}
                     </button>
-                    {!labelInside && <span className="pointer-events-none ml-2 whitespace-nowrap text-xs text-slate-600">{task.title}</span>}
+                    {!labelInside && (
+                      <span className="pointer-events-none ml-2 inline-flex items-center gap-1 whitespace-nowrap text-xs text-slate-600">
+                        <TaskTypeIcon type={task.type} className="size-3" />
+                        {task.title}
+                      </span>
+                    )}
                   </div>
                 );
               })}

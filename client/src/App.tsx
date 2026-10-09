@@ -1,6 +1,7 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { PermissionProvider } from './context/PermissionProvider';
-import { Toaster } from './components/ds';
+import { SkeletonCards, Toaster } from './components/ds';
 import PermissionRoute from './components/PermissionRoute';
 import WorkspaceLayout from './components/WorkspaceLayout';
 import LandingPage from './pages/LandingPage';
@@ -20,11 +21,14 @@ import SecurityPage from './pages/SecurityPage';
 import SettingsLayout from './components/SettingsLayout';
 import TaskPage from './pages/TaskPage';
 import ProjectsPage from './pages/ProjectsPage';
+import ProjectDetailPage from './pages/ProjectDetailPage';
 import ReportsPage from './pages/ReportsPage';
 import HelpPage from './pages/HelpPage';
-import DesignSystemPage from './pages/DesignSystemPage';
 import PwaPrompt from './pwa/PwaPrompt';
 import OfflineBanner from './pwa/OfflineBanner';
+
+// The style guide is large and public; load it only when someone opens it
+const DesignSystemPage = lazy(() => import('./pages/DesignSystemPage'));
 
 function App() {
   return (
@@ -34,7 +38,14 @@ function App() {
           <Routes>
             {/* ========== Public routes ========== */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/design-system" element={<DesignSystemPage />} />
+            <Route
+              path="/design-system"
+              element={
+                <Suspense fallback={<div className="mx-auto max-w-5xl p-6"><SkeletonCards count={3} columns="sm:grid-cols-3" /></div>}>
+                  <DesignSystemPage />
+                </Suspense>
+              }
+            />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/signup" element={<AuthPage />} />
             <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
@@ -73,6 +84,16 @@ function App() {
                 element={
                   <PermissionRoute permission="projects:read">
                     <ProjectsPage />
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Project detail (sprints, backlog, overview): requires projects:read */}
+              <Route
+                path="/:workspaceSlug/projects/:projectId"
+                element={
+                  <PermissionRoute permission="projects:read">
+                    <ProjectDetailPage />
                   </PermissionRoute>
                 }
               />

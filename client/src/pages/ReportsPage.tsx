@@ -1,11 +1,14 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import ActiveSprints from '@/components/dashboard/ActiveSprints';
+import { usePermissions } from '@/hooks/usePermissions';
+import { VelocityChart, averageVelocity, sprintVelocities, useProjects } from '@/features/projects';
 import { AlarmClock, CalendarClock, CheckSquare, ListTodo } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, PageHeader, SectionHeader, SkeletonCards, StatCard, Surface, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import {
-  DueDate, PRIORITY_META, STATUS_META, StatusBadge, TASK_PRIORITIES, TASK_STATUSES, buildReport, useTasks,
+  DueDate, PRIORITY_META, STATUS_META, StatusBadge, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, TASK_TYPE_META, buildReport, useTasks,
   type Task,
 } from '@/features/tasks';
 
@@ -63,8 +66,17 @@ const TaskList = ({ tasks, empty }: { tasks: Task[]; empty: string }) =>
 const ReportsPage = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { tasks, loading, error, clearError } = useTasks(workspaceSlug);
+  const { can } = usePermissions();
+  const { projects } = useProjects(can('projects:read') ? workspaceSlug : undefined);
 
   const report = useMemo(() => buildReport(tasks), [tasks]);
+  // Scrum metrics count top-level work items (subtasks are part of their parent)
+  const workItems = useMemo(() => tasks.filter(task => !task.parent), [tasks]);
+  const byType = useMemo(
+    () => Object.fromEntries(TASK_TYPES.map(type => [type, workItems.filter(task => (task.type ?? 'task') === type).length])),
+    [workItems],
+  );
+  const velocityProjects = projects.filter(project => sprintVelocities(project.sprints).length > 0);
 
   const maxWeek = Math.max(1, ...report.completedPerWeek.map(week => week.count));
 
@@ -99,6 +111,32 @@ const ReportsPage = () => {
                   <BarRow key={priority} label={PRIORITY_META[priority].label} count={report.byPriority[priority]} total={report.total} dot={PRIORITY_META[priority].dot} />
                 ))}
               </ul>
+            </Panel>
+          </div>
+
+          <ActiveSprints projects={projects} tasks={tasks} slug={workspaceSlug ?? ''} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <Panel title="Work by type">
+              <ul className="space-y-3">
+                {TASK_TYPES.map(type => (
+                  <BarRow key={type} label={TASK_TYPE_META[type].label} count={byType[type]} total={workItems.length} dot={TASK_TYPE_META[type].dot} />
+                ))}
+              </ul>
+            </Panel>
+            <Panel title="Sprint velocity">
+              {velocityProjects.length === 0 ? (
+                <p className="text-sm text-slate-600">Velocity appears after the first completed sprint.</p>
+              ) : (
+                <div className="space-y-5">
+                  {velocityProjects.map(project => (
+                    <div key={project._id}>
+                      <p className="mb-2 text-xs font-semibold text-slate-700">{project.name}</p>
+                      <VelocityChart velocities={sprintVelocities(project.sprints)} average={averageVelocity(project.sprints)} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 

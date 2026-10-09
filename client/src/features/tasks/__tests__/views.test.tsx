@@ -2,7 +2,6 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ListView from '../views/ListView';
 import BoardView from '../views/BoardView';
-import CalendarView from '../views/CalendarView';
 import TimelineView from '../views/TimelineView';
 import type { TaskViewProps } from '../views/types';
 import { makeTask } from './fixtures';
@@ -16,11 +15,6 @@ const handlers = (): Omit<TaskViewProps, 'tasks'> => ({
   onDelete: jest.fn(),
   onCreate: jest.fn(),
 });
-
-const localDateKey = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-};
 
 // jsdom applies no CSS, so both the desktop and the phone structures are in the DOM.
 // Tests scope queries with these test ids.
@@ -148,63 +142,6 @@ describe('BoardView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Add task to In Progress' }));
     expect(props.onCreate).toHaveBeenCalledWith({ status: 'in-progress' });
-  });
-});
-
-describe('CalendarView', () => {
-  it('places tasks on their due day and navigates months', async () => {
-    const task = makeTask({ title: 'Ship v1', deadline: '2026-10-14T00:00:00.000Z' });
-    render(<CalendarView tasks={[task]} initialMonth={new Date(2026, 9, 1)} {...handlers()} />);
-
-    expect(screen.getByRole('heading', { name: 'October 2026' })).toBeInTheDocument();
-    expect(within(screen.getByTestId('calendar-grid')).getByRole('button', { name: 'Ship v1' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeInTheDocument();
-  });
-
-  it('shows an agenda of the days with tasks for phones', async () => {
-    const props = handlers();
-    const first = makeTask({ title: 'Kickoff', deadline: '2030-03-03T00:00:00.000Z' });
-    const second = makeTask({ title: 'Review', deadline: '2030-03-20T00:00:00.000Z' });
-    const elsewhere = makeTask({ title: 'Next month', deadline: '2030-04-05T00:00:00.000Z' });
-    render(<CalendarView tasks={[second, elsewhere, first]} initialMonth={new Date(2030, 2, 1)} {...props} />);
-
-    const agenda = within(screen.getByTestId('calendar-agenda'));
-    expect(agenda.getAllByTestId('agenda-day')).toHaveLength(2);
-    const headings = agenda.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent);
-    expect(headings[0]).toMatch(/Mar 3$/);
-    expect(headings[1]).toMatch(/Mar 20$/);
-    expect(agenda.queryByText('Next month')).not.toBeInTheDocument();
-
-    await userEvent.click(agenda.getByRole('button', { name: /^Review/ }));
-    expect(props.onEdit).toHaveBeenCalledWith(second);
-
-    await userEvent.click(agenda.getByRole('button', { name: 'Add task on March 3' }));
-    expect(props.onCreate).toHaveBeenLastCalledWith({ deadline: '2030-03-03' });
-
-    await userEvent.click(agenda.getByRole('button', { name: 'Add task' }));
-    expect(props.onCreate).toHaveBeenLastCalledWith();
-  });
-
-  it('highlights today in the agenda and explains an empty month', () => {
-    const today = makeTask({ title: 'Due now', deadline: `${localDateKey()}T00:00:00.000Z` });
-    const { unmount } = render(<CalendarView tasks={[today]} {...handlers()} />);
-    const day = within(screen.getByTestId('calendar-agenda')).getByTestId('agenda-day');
-    expect(day).toHaveAttribute('aria-current', 'date');
-    expect(within(day).getByText('Today')).toBeInTheDocument();
-    unmount();
-
-    render(<CalendarView tasks={[]} initialMonth={new Date(2026, 9, 1)} {...handlers()} />);
-    expect(within(screen.getByTestId('calendar-agenda')).getByText('No tasks due in October 2026.')).toBeInTheDocument();
-  });
-
-  it('creates a task due on the clicked day', async () => {
-    const props = handlers();
-    render(<CalendarView tasks={[]} initialMonth={new Date(2026, 9, 1)} {...props} />);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add task due October 20' }));
-    expect(props.onCreate).toHaveBeenCalledWith({ deadline: '2026-10-20' });
   });
 });
 

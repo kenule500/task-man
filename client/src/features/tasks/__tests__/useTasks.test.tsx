@@ -163,6 +163,77 @@ describe('useTasks', () => {
     });
   });
 
+  describe('subtasks', () => {
+    const family = () => [
+      makeTask({ _id: 'p', title: 'Parent', project: 'Web', sprint: null }),
+      makeTask({ _id: 'c1', parent: 'p', project: 'Web', sprint: null }),
+      makeTask({ _id: 'c2', parent: 'p', project: 'Web', sprint: null, dependencies: ['c1'] }),
+      makeTask({ _id: 'other', dependencies: ['c1'] }),
+    ];
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('hides the subtasks of a pending delete and deletes them locally once it commits', async () => {
+      jest.useFakeTimers();
+      api.list.mockResolvedValue(family());
+      const { result } = renderHook(() => useTasks('acme'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      api.remove.mockResolvedValue();
+
+      act(() => result.current.deleteTask('p'));
+      expect(result.current.tasks.map(t => t._id)).toEqual(['other']);
+      expect(result.current.tasks[0].dependencies).toEqual([]);
+
+      act(() => result.current.undoDelete('p'));
+      expect(result.current.tasks).toHaveLength(4);
+
+      act(() => result.current.deleteTask('p'));
+      await act(async () => { jest.advanceTimersByTime(DELETE_UNDO_MS + 100); });
+      expect(api.remove).toHaveBeenCalledTimes(1);
+      expect(result.current.tasks.map(t => t._id)).toEqual(['other']);
+    });
+
+    it('creates a subtask under its parent', async () => {
+      const { result } = await renderLoaded(family());
+      api.create.mockResolvedValue(makeTask({ _id: 'c3', parent: 'p' }));
+
+      await act(async () => {
+        await result.current.createTask({ title: 'Third', parent: 'p', deadline: '2026-10-10' });
+      });
+      expect(api.create).toHaveBeenCalledWith('acme', expect.objectContaining({ parent: 'p' }));
+      expect(result.current.tasks.map(t => t._id)).toContain('c3');
+    });
+
+    it('moves subtasks along when their parent changes sprint', async () => {
+      const { result } = await renderLoaded(family());
+      api.update.mockResolvedValue(makeTask({ _id: 'p', project: 'Mobile', sprint: 's9' }));
+
+      await act(async () => { await result.current.updateTask('p', { sprint: 's9' }); });
+      const child = result.current.tasks.find(t => t._id === 'c1');
+      expect(child).toMatchObject({ project: 'Mobile', sprint: 's9' });
+      expect(result.current.tasks.find(t => t._id === 'other')?.sprint).toBeUndefined();
+    });
+
+    it('reloads the list from the server', async () => {
+      const { result } = await renderLoaded(family());
+      api.list.mockResolvedValue([makeTask({ _id: 'fresh' })]);
+
+      await act(async () => { await result.current.reload(); });
+      expect(result.current.tasks.map(t => t._id)).toEqual(['fresh']);
+    });
+
+    it('keeps the tasks and reports an error when a reload fails', async () => {
+      const { result } = await renderLoaded(family());
+      api.list.mockRejectedValue({ response: { data: { message: 'Offline' } } });
+
+      await act(async () => { await result.current.reload(); });
+      expect(result.current.tasks).toHaveLength(4);
+      expect(result.current.error).toBe('Offline');
+    });
+  });
+
   it('appends created tasks', async () => {
     const { result } = await renderLoaded([]);
     api.create.mockResolvedValue(makeTask({ _id: 'new' }));
