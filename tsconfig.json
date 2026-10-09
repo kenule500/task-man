@@ -1,0 +1,18 @@
+{
+  // Used by Vercel to compile the serverless entry (api/index.ts), which re-exports the Express app.
+  // Mirrors server/tsconfig.json and includes the Express type augmentation (req.user, req.workspace…).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["./server/node_modules/@types"],
+    "types": ["node"]
+  },
+  "include": ["api/**/*.ts", "server/src/types/**/*.d.ts"],
+  "exclude": ["node_modules", "client", "server/dist"]
+}
