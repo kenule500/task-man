@@ -77,6 +77,23 @@ client/src/
 - **Pure logic first:** anything non-visual goes in `lib/` or `utils/` with a Jest test.
 - **Secrets:** never commit `.env`. Seed credentials are test-only and live in `server/src/scripts/seed.ts`.
 
+## Working rules for contributors and coding agents
+
+- Work on a feature branch, never on `main`; open a PR against `kenule500/task-man:main`.
+- Commit author is the human contributor; no tool or AI attribution lines in commits or PRs.
+- Run against a **local** MongoDB (`MONGO_URI=mongodb://127.0.0.1:27017/task-man`); `pnpm seed` refuses non-local URIs.
+- After changes run the quality gates above and check the affected view in the browser
+  (`http://localhost:5173/demo-workspace/tasks?view=list|board|calendar|timeline`).
+
+## Gotchas
+
+- `client/src/App.css` is not imported; theme tokens live in `client/src/index.css` (`@theme`).
+- `import.meta.env` is only read in `client/src/config.ts` (Jest maps it to `client/test/config.stub.ts`).
+- jsdom lacks `PointerEvent`; `client/jest.setup.ts` polyfills it for Base UI.
+- `tsc -b` uses the root `client/tsconfig.json`; tests are type-checked by `tsconfig.test.json`.
+- Native HTML5 drag and drop is used for board/calendar; the Gantt uses pointer events
+  (keyboard: arrows move, Shift+arrows resize).
+
 ## Definition of done
 
 Typecheck, lint, tests and build pass; the feature is checked in the browser (empty, loading,
