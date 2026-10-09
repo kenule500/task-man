@@ -43,6 +43,7 @@ const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCall
 
 const upload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 },
   fileFilter,
 }).single('file');

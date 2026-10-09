@@ -42,8 +42,8 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
     }
 
     const { name } = req.body;
-    if (!name || !name.trim()) {
-      res.status(400).json({ message: 'Workspace name is required' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 60) {
+      res.status(400).json({ message: 'Workspace name is required (60 characters max)' });
       return;
     }
 

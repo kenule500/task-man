@@ -33,6 +33,11 @@ export const findCustomRoleOr404 = async (
   roleId: string,
   res: Response
 ): Promise<IRole | null> => {
+  // Malformed ids are "not found", not a CastError 500
+  if (!mongoose.isValidObjectId(roleId)) {
+    res.status(404).json({ message: 'Custom role not found' });
+    return null;
+  }
   const role = await Role.findOne({
     _id: roleId,
     workspaceId,

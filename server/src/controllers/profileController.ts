@@ -88,6 +88,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       }
       updates[field] = value.trim();
     }
+    if (updates.theme !== undefined && !['light', 'dark', 'system'].includes(updates.theme as string)) {
+      res.status(400).json({ message: 'Theme must be light, dark or system' });
+      return;
+    }
     // Rendered as an <img src>: only http(s) URLs (no javascript:/data: payloads)
     if (typeof updates.avatarUrl === 'string' && updates.avatarUrl && !/^https?:\/\/\S+$/i.test(updates.avatarUrl)) {
       res.status(400).json({ message: 'Avatar URL must start with http:// or https://' });
@@ -119,13 +123,22 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
     const userId = requireUserId(req, res);
     if (!userId) return;
 
-    const { email, taskAssigned, taskCompleted, weeklyDigest } = req.body;
+    // Update only the provided switches, and only with real booleans
+    const keys = ['email', 'taskAssigned', 'taskCompleted', 'weeklyDigest'] as const;
+    const updates: Record<string, boolean> = {};
+    for (const key of keys) {
+      const value = req.body[key];
+      if (value === undefined) continue;
+      if (typeof value !== 'boolean') {
+        res.status(400).json({ message: `${key} must be true or false` });
+        return;
+      }
+      updates[`notifications.${key}`] = value;
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        notifications: { email, taskAssigned, taskCompleted, weeklyDigest },
-      },
+      { $set: updates },
       { returnDocument: 'after', runValidators: true }
     ).select(USER_PRIVATE_FIELDS);
 

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { isWorkspaceOwner } from '../utils/workspaceHelpers.js';
 import Role from '../models/roleModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { PERMISSIONS } from '../config/permissions.js';
@@ -10,6 +11,16 @@ import {
   findCustomRoleOr404,
   hasRoleNameConflict,
 } from '../utils/roleHelpers.js';
+
+
+/** Privilege ceiling: only the workspace owner may define permissions beyond their own. */
+const withinOwnPermissions = (req: Request, permissions: string[]): boolean => {
+  const workspace = req.workspace!;
+  const actorId = String((req as { user?: { _id?: unknown } }).user?._id ?? '');
+  if (isWorkspaceOwner(workspace, actorId)) return true;
+  const own = req.permissions ?? [];
+  return permissions.every(permission => own.includes(permission));
+};
 
 // ================================================================
 // @desc    List all roles available to a workspace
@@ -84,6 +95,10 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
       });
       return;
     }
+    if (!withinOwnPermissions(req, permissions)) {
+      res.status(403).json({ message: "You can't create a role with more access than your own" });
+      return;
+    }
 
     // Check for duplicate name in this workspace
     const conflict = await hasRoleNameConflict(workspace._id, name);
@@ -155,6 +170,10 @@ export const updateCustomRole = async (req: Request, res: Response): Promise<voi
         res.status(400).json({
           message: `Unknown permission(s): ${invalidPerms.join(', ')}`,
         });
+        return;
+      }
+      if (!withinOwnPermissions(req, permissions)) {
+        res.status(403).json({ message: "You can't give a role more access than your own" });
         return;
       }
       role.permissions = permissions;
