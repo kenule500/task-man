@@ -4,6 +4,7 @@ import Workspace from '../models/workspaceModel.js';
 import Role from '../models/roleModel.js';
 import { requireUserId } from '../utils/controllerHelpers.js';
 import { findMember, isWorkspaceOwner } from '../utils/workspaceHelpers.js';
+import { canGrantRole, findAssignableRole } from '../utils/roleAccess.js';
 
 // ================================================================
 // @desc    Change a member's role
@@ -36,8 +37,8 @@ export const changeMemberRole = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Validate role
-    const role = await Role.findById(roleId);
+    // Only this workspace's custom roles or system roles can be assigned
+    const role = await findAssignableRole(workspace._id as mongoose.Types.ObjectId, roleId);
     if (!role) {
       res.status(404).json({ message: 'Role not found' });
       return;
@@ -47,6 +48,19 @@ export const changeMemberRole = async (req: Request, res: Response): Promise<voi
     const member = findMember(workspace, targetUserId);
     if (!member) {
       res.status(404).json({ message: 'Member not found in this workspace' });
+      return;
+    }
+
+    // Privilege ceiling: nobody but the owner can act above their own access level
+    const actorIsOwner = isWorkspaceOwner(workspace, currentUserId);
+    const actorPermissions = req.permissions ?? [];
+    const currentRole = await Role.findById(member.roleId);
+    if (currentRole && !canGrantRole(actorPermissions, currentRole, actorIsOwner)) {
+      res.status(403).json({ message: "You can't change the role of someone with more access than you" });
+      return;
+    }
+    if (!canGrantRole(actorPermissions, role, actorIsOwner)) {
+      res.status(403).json({ message: "You can't grant a role with more access than your own" });
       return;
     }
 
@@ -95,6 +109,13 @@ export const removeMember = async (req: Request, res: Response): Promise<void> =
     const member = findMember(workspace, targetUserId);
     if (!member) {
       res.status(404).json({ message: 'Member not found in this workspace' });
+      return;
+    }
+
+    // Privilege ceiling: only the owner can remove someone with more access
+    const memberRole = await Role.findById(member.roleId);
+    if (memberRole && !canGrantRole(req.permissions ?? [], memberRole, isWorkspaceOwner(workspace, currentUserId))) {
+      res.status(403).json({ message: "You can't remove someone with more access than you" });
       return;
     }
 

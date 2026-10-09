@@ -102,7 +102,9 @@ Adding a component: build it from tokens and existing primitives, add it to `com
 
 - Every drag interaction has a keyboard alternative (menu "Move to…", arrow keys on Gantt bars).
 - Optimistic updates: the UI changes immediately; failures roll back and show a dismissible red banner.
-- Destructive actions confirm with an `AlertDialog`; everything else is instant and reversible.
+- Deleting a task is instant with a 6-second **Undo** toast (the request is sent when the toast expires);
+  other destructive actions (remove member, delete role, regenerate invite code) confirm with `ConfirmActionDialog`.
+- Feedback uses toasts (`toast()` from `@/components/ds`) for success and errors; inline `Alert` for page-level problems.
 - Focus is always visible (`focus-visible` ring or outline in primary).
 - Empty states explain what to do next; loading uses skeleton cards, not spinners.
 - Motion stays subtle (≤150ms color/shadow transitions); no decorative animation.

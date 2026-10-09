@@ -2,7 +2,9 @@ import { useMemo, useState, type DragEvent } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { LabelChip } from '../components/TaskChips';
 import { STATUS_META } from '../constants';
+import { getLabelStyle } from '../lib/labels';
 import { addMonths, dateKeyOf, formatDate, formatMonth, isOverdue, startOfMonth } from '../lib/date';
 import { buildAgenda, type AgendaDay } from '../lib/agenda';
 import { buildMonthGrid, groupByDeadline, rescheduleToDeadline, type CalendarDay } from '../lib/schedule';
@@ -12,13 +14,14 @@ import type { TaskViewProps } from './types';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const VISIBLE_PER_DAY = 3;
 
-interface CalendarViewProps extends Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate'> {
+interface CalendarViewProps extends Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'> {
   /** Initial month shown (defaults to the current month). */
   initialMonth?: Date;
 }
 
 /** Month grid placing tasks on their due date. Drag a task to another day to reschedule it. */
-const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: CalendarViewProps) => {
+const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true, initialMonth }: CalendarViewProps) => {
+  const open = onOpen ?? onEdit;
   const [month, setMonth] = useState(() => startOfMonth(initialMonth ?? new Date()));
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -30,6 +33,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: Calen
   const handleDrop = (event: DragEvent, day: CalendarDay) => {
     event.preventDefault();
     setDragOverKey(null);
+    if (!canWrite) return;
     const task = tasks.find(t => t._id === event.dataTransfer.getData('text/plain'));
     if (task && dateKeyOf(task.deadline) !== day.key) void onUpdate(task._id, rescheduleToDeadline(task, day.key));
   };
@@ -53,7 +57,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: Calen
 
       {/* Phones: agenda of the days that have tasks */}
       <div data-testid="calendar-agenda" className="md:hidden">
-        <CalendarAgenda days={agenda} monthLabel={formatMonth(month)} onEdit={onEdit} onCreate={onCreate} />
+        <CalendarAgenda days={agenda} monthLabel={formatMonth(month)} onOpen={open} onCreate={onCreate} canWrite={canWrite} />
       </div>
 
       {/* Tablet and desktop: month grid */}
@@ -98,20 +102,22 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: Calen
                     >
                       {day.date.getDate()}
                     </span>
-                    <button
-                      type="button"
-                      aria-label={`Add task due ${day.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
-                      onClick={() => onCreate({ deadline: day.key })}
-                      className="rounded p-0.5 text-slate-400 opacity-0 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 group-hover:opacity-100"
-                    >
-                      <Plus className="size-3.5" />
-                    </button>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        aria-label={`Add task due ${day.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
+                        onClick={() => onCreate({ deadline: day.key })}
+                        className="rounded p-0.5 text-slate-400 opacity-0 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   <ul className="mt-1 space-y-1">
                     {visible.map(task => (
                       <li key={task._id}>
-                        <CalendarChip task={task} onEdit={onEdit} />
+                        <CalendarChip task={task} onOpen={open} draggable={canWrite} />
                       </li>
                     ))}
                   </ul>
@@ -135,17 +141,21 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, initialMonth }: Calen
   );
 };
 
-interface CalendarAgendaProps extends Pick<TaskViewProps, 'onEdit' | 'onCreate'> {
+interface CalendarAgendaProps extends Pick<TaskViewProps, 'onCreate'> {
   days: AgendaDay[];
   monthLabel: string;
+  onOpen: (task: Task) => void;
+  canWrite: boolean;
 }
 
 /** Phone layout: days of the month with tasks, grouped under a date heading. */
-const CalendarAgenda = ({ days, monthLabel, onEdit, onCreate }: CalendarAgendaProps) => (
+const CalendarAgenda = ({ days, monthLabel, onOpen, onCreate, canWrite }: CalendarAgendaProps) => (
   <div className="p-4">
-    <Button onClick={() => onCreate()} className="h-10 w-full bg-primary text-white hover:bg-primary-hover">
-      <Plus /> Add task
-    </Button>
+    {canWrite && (
+      <Button onClick={() => onCreate()} className="h-10 w-full bg-primary text-white hover:bg-primary-hover">
+        <Plus /> Add task
+      </Button>
+    )}
 
     {days.length === 0 ? (
       <p className="py-8 text-center text-sm text-slate-500">No tasks due in {monthLabel}.</p>
@@ -158,20 +168,22 @@ const CalendarAgenda = ({ days, monthLabel, onEdit, onCreate }: CalendarAgendaPr
                 {formatDate(day.key, { weekday: 'short', month: 'short', day: 'numeric' })}
                 {day.isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">Today</span>}
               </h3>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Add task on ${formatDate(day.key, { month: 'long', day: 'numeric' })}`}
-                onClick={() => onCreate({ deadline: day.key })}
-                className="size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-              >
-                <Plus />
-              </Button>
+              {canWrite && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Add task on ${formatDate(day.key, { month: 'long', day: 'numeric' })}`}
+                  onClick={() => onCreate({ deadline: day.key })}
+                  className="size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                >
+                  <Plus />
+                </Button>
+              )}
             </div>
             <ul className={cn('mt-1 space-y-1.5 border-l-2 pl-3', day.isToday ? 'border-primary' : 'border-slate-100')}>
               {day.tasks.map(task => (
                 <li key={task._id}>
-                  <AgendaItem task={task} onEdit={onEdit} />
+                  <AgendaItem task={task} onOpen={onOpen} />
                 </li>
               ))}
             </ul>
@@ -182,14 +194,14 @@ const CalendarAgenda = ({ days, monthLabel, onEdit, onCreate }: CalendarAgendaPr
   </div>
 );
 
-const AgendaItem = ({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }) => {
+const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) => {
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
 
   return (
     <button
       type="button"
-      onClick={() => onEdit(task)}
+      onClick={() => onOpen(task)}
       className={cn(
         'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium',
         STATUS_META[task.status].surface,
@@ -198,6 +210,7 @@ const AgendaItem = ({ task, onEdit }: { task: Task; onEdit: (task: Task) => void
     >
       <span aria-hidden className={cn('size-2 shrink-0 rounded-full', overdue ? 'bg-red-500' : STATUS_META[task.status].dot)} />
       <span className={cn('min-w-0 flex-1 truncate', completed && 'line-through opacity-70')}>{task.title}</span>
+      {task.labels?.slice(0, 2).map(label => <LabelChip key={label} label={label} className="max-w-20 shrink-0" />)}
       <span className="shrink-0 text-xs font-normal opacity-80">
         {STATUS_META[task.status].label}
         {overdue && <span className="sr-only"> (overdue)</span>}
@@ -206,28 +219,38 @@ const AgendaItem = ({ task, onEdit }: { task: Task; onEdit: (task: Task) => void
   );
 };
 
-const CalendarChip =({ task, onEdit }: { task: Task; onEdit: (task: Task) => void }) => {
+const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: Task) => void; draggable: boolean }) => {
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
+  const labels = task.labels ?? [];
 
   return (
     <button
       type="button"
-      draggable
+      draggable={draggable}
       onDragStart={event => {
         event.dataTransfer.setData('text/plain', task._id);
         event.dataTransfer.effectAllowed = 'move';
       }}
-      onClick={() => onEdit(task)}
-      title={`${task.title} · ${STATUS_META[task.status].label}`}
+      onClick={() => onOpen(task)}
+      title={`${task.title} · ${STATUS_META[task.status].label}${labels.length ? ` · ${labels.join(', ')}` : ''}`}
       className={cn(
-        'flex w-full cursor-grab items-center gap-1.5 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium active:cursor-grabbing',
+        'flex w-full items-center gap-1.5 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium',
+        draggable && 'cursor-grab active:cursor-grabbing',
         STATUS_META[task.status].surface,
         overdue && 'border-red-200 bg-red-50 text-red-700',
       )}
     >
       <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', overdue ? 'bg-red-500' : STATUS_META[task.status].dot)} />
       <span className={cn('truncate', completed && 'line-through opacity-70')}>{task.title}</span>
+      {labels.length > 0 && (
+        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          {labels.slice(0, 3).map(label => (
+            <span key={label} aria-hidden className={cn('size-2 rounded-full ring-1 ring-white', getLabelStyle(label).dot)} />
+          ))}
+          <span className="sr-only">Labels: {labels.join(', ')}</span>
+        </span>
+      )}
     </button>
   );
 };

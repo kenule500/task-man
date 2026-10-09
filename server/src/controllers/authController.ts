@@ -36,7 +36,8 @@ const emailRule = () =>
 // Validation rules
 // ============================================================
 export const validateSignup = [
-  body('name').notEmpty().withMessage('Name is required').trim().escape(),
+  body('name').isString().trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 80 }).withMessage('Name must be 80 characters or fewer'),
   emailRule(),
   passwordRule('password'),
 ];
@@ -60,8 +61,9 @@ export const validateResetPassword = [passwordRule('password')];
 /** Whether the app should auto-verify new signups (dev convenience). */
 const isDevAutoVerify = (): boolean => process.env.DEV_AUTO_VERIFY === 'true';
 
+// jti makes every token unique, so each login gets its own revocable session
 const generateToken = (id: string): string => {
-  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h' });
+  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h', jwtid: crypto.randomUUID() });
 };
 
 /** Build an absolute URL to a frontend path (e.g. /verify-email/abc123). */
@@ -147,7 +149,8 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         });
       } catch (emailError) {
         console.error('⚠️ Verification email failed to send:', emailError);
-        console.log('📧 Verification link (for manual testing):', verifyLink);
+        // The link is a credential: only print it for local development
+        if (process.env.NODE_ENV !== 'production') console.log('📧 Verification link (for manual testing):', verifyLink);
       }
     }
 
@@ -482,6 +485,15 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 export const saveOnboarding = async (req: Request, res: Response): Promise<void> => {
   try {
     const { role, useCase, teamSize, workspaceName } = req.body;
+    if (workspaceName !== undefined && workspaceName !== null
+      && (typeof workspaceName !== 'string' || workspaceName.trim().length > 60)) {
+      res.status(400).json({ message: 'Workspace name must be text of 60 characters or fewer' });
+      return;
+    }
+    if ([role, useCase, teamSize].some(value => value !== undefined && (typeof value !== 'string' || value.length > 80))) {
+      res.status(400).json({ message: 'Invalid onboarding answers' });
+      return;
+    }
     const userId = (req as { user?: { _id?: string } }).user?._id;
     if (!userId) {
       res.status(401).json({ message: 'Not authorized' });

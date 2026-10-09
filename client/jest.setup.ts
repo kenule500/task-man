@@ -14,3 +14,10 @@ if (typeof window.PointerEvent === 'undefined') {
   }
   window.PointerEvent = PointerEventPolyfill as unknown as typeof PointerEvent;
 }
+
+// react-router needs TextEncoder/TextDecoder, which jsdom does not provide.
+import { TextDecoder, TextEncoder } from 'node:util';
+
+if (typeof globalThis.TextEncoder === 'undefined') {
+  Object.assign(globalThis, { TextEncoder, TextDecoder });
+}

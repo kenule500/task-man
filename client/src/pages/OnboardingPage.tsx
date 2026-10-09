@@ -1,63 +1,124 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { updateStoredUser, getStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Field, IconTile, Surface, fieldMessageId } from '@/components/ds';
+import { Alert, Field, IconTile, ProgressBar, fieldMessageId } from '@/components/ds';
+import { AuthPageShell } from '@/components/auth/AuthPageShell';
+import { cn } from '@/lib/utils';
 import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
   Briefcase,
+  Loader2,
   Target,
   User,
   Sparkles,
+  type LucideIcon,
 } from 'lucide-react';
+
+const STEP_COUNT = 4;
+
+const ROLES: { value: string; label: string; icon: LucideIcon }[] = [
+  { value: 'developer', label: 'Developer', icon: User },
+  { value: 'designer', label: 'Designer', icon: Target },
+  { value: 'manager', label: 'Manager', icon: Briefcase },
+  { value: 'founder', label: 'Founder', icon: Target },
+];
+
+const USE_CASES = [
+  { value: 'personal', label: 'Personal tasks', desc: 'Track my own to-dos' },
+  { value: 'team', label: 'Team projects', desc: 'Collaborate with my team' },
+  { value: 'clients', label: 'Client work', desc: 'Manage multiple clients' },
+  { value: 'study', label: 'Study planning', desc: 'Organize my learning' },
+];
+
+const TEAM_SIZES = ['Just me', '2-5 people', '6-20 people', '20+ people'];
+
+const OPTION_BASE =
+  'rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
+const optionClass = (selected: boolean) =>
+  cn(OPTION_BASE, selected ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white hover:border-slate-300');
+
+interface StepHeadingProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+}
+
+const StepHeading = ({ icon, title, description, headingRef }: StepHeadingProps) => (
+  <>
+    <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
+      {icon}
+    </IconTile>
+    <h1 ref={headingRef} tabIndex={-1} className="mb-3 text-2xl font-bold tracking-tight text-slate-900 outline-none sm:text-3xl">
+      {title}
+    </h1>
+    <p className="mx-auto mb-8 max-w-md text-slate-600 sm:mb-10">{description}</p>
+  </>
+);
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     role: '',
     useCase: '',
     teamSize: '',
     workspaceName: '',
   });
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   const { user } = useAuthGuard({ requireOnboarding: false });
 
-  // ============================================================
-  // GUARD: If user is already onboarded, send them to their workspace
-  // ============================================================
+  // If the user is already onboarded, send them to their workspace
   useEffect(() => {
     if (user?.onboardingComplete && user.activeWorkspaceSlug) {
       navigate(`/${user.activeWorkspaceSlug}/dashboard`, { replace: true });
     }
   }, [navigate, user]);
 
-  // ============================================================
-  // NAVIGATION BETWEEN STEPS
-  // ============================================================
+  // Move focus to the new step's heading so keyboard and screen reader users follow along
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    // The last step autofocuses its input instead
+    if (step < STEP_COUNT) headingRef.current?.focus();
+  }, [step]);
+
+  const canProceed = () => {
+    if (step === 1) return !!formData.role;
+    if (step === 2) return !!formData.useCase;
+    if (step === 3) return !!formData.teamSize;
+    if (step === 4) return formData.workspaceName.trim().length >= 2;
+    return false;
+  };
+
   const handleNext = async () => {
-    if (step < 4) {
+    if (!canProceed()) return;
+    if (step < STEP_COUNT) {
       setStep(step + 1);
       return;
     }
 
     // Final step — save everything
     setSaving(true);
+    setError('');
     try {
-      const response = await api.post('/auth/onboarding', formData);
+      const response = await api.post('/auth/onboarding', { ...formData, workspaceName: formData.workspaceName.trim() });
       const workspace = response.data.workspace;
 
-      // If the backend returned an existing workspace (idempotency case),
-      // we still need the slug.
       if (!workspace?.slug) {
-        console.error('Onboarding response missing workspace slug');
-        navigate('/dashboard');
+        setError('Your workspace was created but we could not open it. Sign in again to continue.');
         return;
       }
 
@@ -71,11 +132,9 @@ const OnboardingPage = () => {
       });
 
       navigate(`/${workspace.slug}/dashboard`, { replace: true });
-    } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      console.error('Failed to save onboarding:', axiosError.response?.data?.message);
-      // Still let them through on soft failure
-      navigate('/dashboard');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'We could not create your workspace. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -85,233 +144,178 @@ const OnboardingPage = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  // ============================================================
-  // STEP OPTIONS
-  // ============================================================
-  const roles = [
-    { value: 'developer', label: 'Developer', icon: User },
-    { value: 'designer', label: 'Designer', icon: Target },
-    { value: 'manager', label: 'Manager', icon: Briefcase },
-    { value: 'founder', label: 'Founder', icon: Target },
-  ];
-
-  const useCases = [
-    { value: 'personal', label: 'Personal tasks', desc: 'Track my own to-dos' },
-    { value: 'team', label: 'Team projects', desc: 'Collaborate with my team' },
-    { value: 'clients', label: 'Client work', desc: 'Manage multiple clients' },
-    { value: 'study', label: 'Study planning', desc: 'Organize my learning' },
-  ];
-
-  const teamSizes = ['Just me', '2-5 people', '6-20 people', '20+ people'];
-
-  const canProceed = () => {
-    if (step === 1) return !!formData.role;
-    if (step === 2) return !!formData.useCase;
-    if (step === 3) return !!formData.teamSize;
-    if (step === 4) return formData.workspaceName.trim().length >= 2;
-    return false;
-  };
-
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Surface padding="lg" className="max-w-2xl w-full rounded-3xl border-slate-200 shadow-xl">
-        {/* Progress Bar */}
-        <div className="mb-8 flex items-center justify-center gap-2 sm:mb-10">
-          {[1, 2, 3, 4].map((s) => (
-            <div
-              key={s}
-              className={`h-1.5 rounded-full transition-all ${
-                s <= step ? 'w-12 bg-primary' : 'w-6 bg-slate-200'
-              }`}
-            />
-          ))}
-        </div>
+    <AuthPageShell wide>
+      <div className="mb-8 sm:mb-10">
+        <p className="mb-2 text-center text-xs font-medium text-slate-600">
+          Step {step} of {STEP_COUNT}
+        </p>
+        <ProgressBar value={(step / STEP_COUNT) * 100} label={`Onboarding progress, step ${step} of ${STEP_COUNT}`} className="mx-auto max-w-xs" />
+      </div>
 
+      <div className="text-center">
         {/* ============================== STEP 1: Role ============================== */}
         {step === 1 && (
-          <div className="text-center">
-            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
-              <CheckCircle2 />
-            </IconTile>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">
-              Welcome, {user?.name}! 🎉
-            </h1>
-            <p className="text-slate-500 mb-8 sm:mb-10 max-w-md mx-auto">
-              You're all set up. Let's personalize your workspace with a few quick questions.
-            </p>
-
-            <div className="space-y-2 text-left max-w-md mx-auto mb-8 sm:mb-10">
-              <p className="text-sm font-semibold text-slate-700 mb-4">
-                What best describes you?
-              </p>
+          <>
+            <StepHeading
+              headingRef={headingRef}
+              icon={<CheckCircle2 />}
+              title={`Welcome${user?.name ? `, ${user.name.trim().split(/\s+/)[0]}` : ''}`}
+              description="You are all set up. Answer a few quick questions to personalize your workspace."
+            />
+            <fieldset className="mx-auto mb-8 max-w-md text-left sm:mb-10">
+              <legend className="mb-4 text-sm font-semibold text-slate-800">What best describes you?</legend>
               <div className="grid grid-cols-2 gap-3">
-                {roles.map((role) => {
-                  const Icon = role.icon;
-                  const isSelected = formData.role === role.value;
+                {ROLES.map(({ value, label, icon: Icon }) => {
+                  const selected = formData.role === value;
                   return (
                     <button
-                      key={role.value}
+                      key={value}
                       type="button"
-                      onClick={() => setFormData({ ...formData, role: role.value })}
-                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
-                        isSelected
-                          ? 'border-primary bg-primary/5'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
+                      aria-pressed={selected}
+                      onClick={() => setFormData({ ...formData, role: value })}
+                      className={cn(optionClass(selected), 'flex min-h-14 items-center gap-3')}
                     >
-                      <Icon
-                        className={`w-5 h-5 ${
-                          isSelected ? 'text-primary' : 'text-slate-400'
-                        }`}
-                      />
-                      <span className="font-medium text-slate-900 text-sm">
-                        {role.label}
-                      </span>
+                      <Icon className={cn('size-5', selected ? 'text-primary' : 'text-slate-500')} aria-hidden />
+                      <span className="text-sm font-medium text-slate-900">{label}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
-          </div>
+            </fieldset>
+          </>
         )}
 
         {/* ============================== STEP 2: Use Case ============================== */}
         {step === 2 && (
-          <div className="text-center">
-            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
-              <Target />
-            </IconTile>
-            <h1 className="text-2xl font-bold text-slate-900 mb-3">
-              What will you use TaskMan for?
-            </h1>
-            <p className="text-slate-500 mb-8 sm:mb-10">This helps us tailor your experience.</p>
-
-            <div className="space-y-3 max-w-md mx-auto mb-8 sm:mb-10">
-              {useCases.map((uc) => {
-                const isSelected = formData.useCase === uc.value;
+          <>
+            <StepHeading headingRef={headingRef} icon={<Target />} title="What will you use TaskMan for?" description="This helps us tailor your experience." />
+            <div className="mx-auto mb-8 max-w-md space-y-3 sm:mb-10">
+              {USE_CASES.map((useCase) => {
+                const selected = formData.useCase === useCase.value;
                 return (
                   <button
-                    key={uc.value}
+                    key={useCase.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, useCase: uc.value })}
-                    className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
+                    aria-pressed={selected}
+                    onClick={() => setFormData({ ...formData, useCase: useCase.value })}
+                    className={cn(optionClass(selected), 'flex min-h-14 w-full items-start gap-4')}
                   >
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center flex-shrink-0 ${
-                        isSelected ? 'border-primary bg-primary' : 'border-slate-300'
-                      }`}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2',
+                        selected ? 'border-primary bg-primary' : 'border-slate-400',
+                      )}
                     >
-                      {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm">{uc.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{uc.desc}</p>
-                    </div>
+                      {selected && <span className="size-2 rounded-full bg-white" />}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-slate-900">{useCase.label}</span>
+                      <span className="mt-0.5 block text-xs text-slate-600">{useCase.desc}</span>
+                    </span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </>
         )}
 
         {/* ============================== STEP 3: Team Size ============================== */}
         {step === 3 && (
-          <div className="text-center">
-            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
-              <Briefcase />
-            </IconTile>
-            <h1 className="text-2xl font-bold text-slate-900 mb-3">
-              How big is your team?
-            </h1>
-            <p className="text-slate-500 mb-8 sm:mb-10">Just so we can customize your dashboard.</p>
-
-            <div className="space-y-3 max-w-md mx-auto mb-8 sm:mb-10">
-              {teamSizes.map((size) => {
-                const isSelected = formData.teamSize === size;
+          <>
+            <StepHeading headingRef={headingRef} icon={<Briefcase />} title="How big is your team?" description="Just so we can customize your dashboard." />
+            <div className="mx-auto mb-8 max-w-md space-y-3 sm:mb-10">
+              {TEAM_SIZES.map((size) => {
+                const selected = formData.teamSize === size;
                 return (
                   <button
                     key={size}
                     type="button"
+                    aria-pressed={selected}
                     onClick={() => setFormData({ ...formData, teamSize: size })}
-                    className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                      isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
+                    className={cn(optionClass(selected), 'block min-h-14 w-full')}
                   >
-                    <span className="font-medium text-slate-900 text-sm">{size}</span>
+                    <span className="text-sm font-medium text-slate-900">{size}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </>
         )}
 
         {/* ============================== STEP 4: Name Workspace ============================== */}
         {step === 4 && (
-          <div className="text-center">
-            <IconTile size="lg" className="mx-auto mb-6 size-20 rounded-3xl [&_svg]:size-10">
-              <Sparkles />
-            </IconTile>
-            <h1 className="text-2xl font-bold text-slate-900 mb-3">
-              Name your workspace
-            </h1>
-            <p className="text-slate-500 mb-8 sm:mb-10">
-              This is where your tasks live. You can invite teammates later.
-            </p>
-
-            <Field
-              label="Workspace Name"
-              htmlFor="workspaceName"
-              hint="You can rename this anytime in Settings."
-              className="mx-auto mb-8 max-w-md text-left sm:mb-10"
+          <>
+            <StepHeading
+              headingRef={headingRef}
+              icon={<Sparkles />}
+              title="Name your workspace"
+              description="This is where your tasks live. You can invite teammates later."
+            />
+            {error && <Alert tone="error" className="mx-auto mb-6 max-w-md text-left">{error}</Alert>}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleNext();
+              }}
             >
-              <Input
-                id="workspaceName"
-                aria-describedby={fieldMessageId('workspaceName')}
-                type="text"
-                placeholder="e.g., Acme Corp, My Team, Personal"
-                value={formData.workspaceName}
-                onChange={(e) =>
-                  setFormData({ ...formData, workspaceName: e.target.value })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && canProceed()) handleNext();
-                }}
-                autoFocus
-                className="h-12 bg-slate-50 border-slate-200 rounded-xl text-base"
-                maxLength={60}
-              />
-            </Field>
-          </div>
+              <Field
+                label="Workspace name"
+                htmlFor="workspaceName"
+                required
+                hint="At least 2 characters. You can rename it anytime in Settings."
+                className="mx-auto mb-8 max-w-md text-left sm:mb-10"
+              >
+                <Input
+                  id="workspaceName"
+                  name="workspaceName"
+                  aria-describedby={fieldMessageId('workspaceName')}
+                  type="text"
+                  required
+                  autoComplete="organization"
+                  placeholder="e.g. Acme Corp, My Team, Personal"
+                  value={formData.workspaceName}
+                  onChange={(e) => setFormData({ ...formData, workspaceName: e.target.value })}
+                  autoFocus
+                  className="h-12 rounded-xl border-slate-300 bg-white text-base md:text-base"
+                  maxLength={60}
+                />
+              </Field>
+            </form>
+          </>
         )}
+      </div>
 
-        {/* ============================== NAVIGATION ============================== */}
-        <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-6 sm:mt-10">
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-            disabled={step === 1 || saving}
-            className="h-10 rounded-xl gap-2 text-slate-500"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </Button>
+      {/* ============================== NAVIGATION ============================== */}
+      <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-6 sm:mt-10">
+        <Button
+          variant="ghost"
+          onClick={handleBack}
+          disabled={step === 1 || saving}
+          className="h-11 gap-2 rounded-xl text-slate-700"
+        >
+          <ArrowLeft className="size-4" aria-hidden /> Back
+        </Button>
 
-          <Button
-            onClick={handleNext}
-            disabled={!canProceed() || saving}
-            className="h-10 rounded-xl gap-2 bg-primary hover:bg-primary-hover text-white px-6"
-          >
-            {saving ? 'Creating workspace...' : step === 4 ? 'Finish' : 'Continue'}
-            {!saving && <ArrowRight className="w-4 h-4" />}
-          </Button>
-        </div>
-      </Surface>
-    </div>
+        <Button
+          onClick={handleNext}
+          disabled={!canProceed() || saving}
+          className="h-11 gap-2 rounded-xl bg-primary px-6 text-white hover:bg-primary-hover"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Creating workspace...
+            </>
+          ) : (
+            <>
+              {step === STEP_COUNT ? 'Create workspace' : 'Continue'}
+              <ArrowRight className="size-4" aria-hidden />
+            </>
+          )}
+        </Button>
+      </div>
+    </AuthPageShell>
   );
 };
 

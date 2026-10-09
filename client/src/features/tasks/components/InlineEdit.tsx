@@ -9,13 +9,16 @@ interface InlineTextProps {
   label: string;
   className?: string;
   inputClassName?: string;
+  /** Shows the text as a plain button that calls `onOpen` instead of editing (no `tasks:write`). */
+  readOnly?: boolean;
+  onOpen?: () => void;
 }
 
 /**
  * Click-to-edit text. Enter or blur saves, Escape cancels.
  * Empty values are rejected (the previous value is kept).
  */
-export const InlineText = ({ value, onSave, label, className, inputClassName }: InlineTextProps) => {
+export const InlineText = ({ value, onSave, label, className, inputClassName, readOnly = false, onOpen }: InlineTextProps) => {
   const [draft, setDraft] = useState<string | null>(null);
 
   const commit = () => {
@@ -28,6 +31,19 @@ export const InlineText = ({ value, onSave, label, className, inputClassName }: 
     if (event.key === 'Enter') commit();
     if (event.key === 'Escape') setDraft(null);
   };
+
+  if (readOnly) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        title="Open details"
+        className={cn('block w-full truncate rounded-md px-2 py-1 -mx-2 text-left hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary', className)}
+      >
+        {value}
+      </button>
+    );
+  }
 
   if (draft !== null) {
     return (
@@ -62,17 +78,19 @@ interface InlineDateProps {
   label: string;
   min?: string;
   className?: string;
+  /** Plain text instead of a picker (no `tasks:write`). */
+  readOnly?: boolean;
 }
 
 /**
  * Shows the date in the app format ("Oct 1, 2026"); clicking opens the native picker.
  * The real `<input type="date">` sits on top (transparent) so keyboard entry still works.
  */
-export const InlineDate = ({ value, onSave, label, min, className }: InlineDateProps) => (
-  <span className={cn('relative inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs tabular-nums hover:bg-slate-100 focus-within:ring-2 focus-within:ring-primary/30', className)}>
+export const InlineDate = ({ value, onSave, label, min, className, readOnly = false }: InlineDateProps) => (
+  <span className={cn('relative inline-flex h-7 items-center gap-1 rounded-md px-1.5 text-xs tabular-nums', !readOnly && 'hover:bg-slate-100 focus-within:ring-2 focus-within:ring-primary/30', className)}>
     <CalendarDays className="size-3" aria-hidden />
     {formatDate(value)}
-    <input
+    {!readOnly && <input
       type="date"
       aria-label={label}
       value={value}
@@ -86,6 +104,6 @@ export const InlineDate = ({ value, onSave, label, min, className }: InlineDateP
       }}
       onChange={event => event.target.value && event.target.value !== value && onSave(event.target.value)}
       className="absolute inset-0 cursor-pointer opacity-0"
-    />
+    />}
   </span>
 );

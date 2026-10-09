@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { PermissionProvider } from './context/PermissionProvider';
+import { Toaster } from './components/ds';
 import PermissionRoute from './components/PermissionRoute';
 import WorkspaceLayout from './components/WorkspaceLayout';
 import LandingPage from './pages/LandingPage';
@@ -127,6 +128,7 @@ function App() {
         {/* PWA components — must be inside the provider so they can use context */}
         <OfflineBanner />
         <PwaPrompt />
+        <Toaster />
       </PermissionProvider>
     </Router>
   );

@@ -1,36 +1,43 @@
-import { useState } from 'react';
-import api from '../utils/api';
+import { useEffect, useState } from 'react';
+import api, { getApiErrorMessage } from '../utils/api';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, Field, Surface } from '@/components/ds';
-import { Lock } from 'lucide-react';
+import { Alert, Surface } from '@/components/ds';
+import PasswordField from '@/components/auth/PasswordField';
+import { useFormValidation } from '@/components/auth/useFormValidation';
+import {
+  validateConfirmPassword, validateNewPassword, validateRequiredPassword,
+} from '@/components/auth/validation';
+import { Loader2, Lock } from 'lucide-react';
+
+const validators = {
+  currentPassword: (value: string) => validateRequiredPassword(value),
+  newPassword: (value: string) => validateNewPassword(value),
+  confirmPassword: (value: string, all: { newPassword: string; currentPassword: string; confirmPassword: string }) =>
+    validateConfirmPassword(value, all.newPassword),
+};
+
+const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 const SecurityPage = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordData, setPasswordData] = useState(EMPTY);
+  const { errorFor, touch, validateAll, reset } = useFormValidation(passwordData, validators);
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
+  // Success messages fade after a few seconds; errors stay until the next attempt
+  useEffect(() => {
+    if (message?.type !== 'success') return;
+    const timer = window.setTimeout(() => setMessage(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 3000);
-  };
+  const setField = (field: keyof typeof EMPTY) => (value: string) =>
+    setPasswordData((current) => ({ ...current, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showMessage('error', 'New passwords do not match');
-      return;
-    }
-    if (passwordData.newPassword.length < 8) {
-      showMessage('error', 'Password must be at least 8 characters');
-      return;
-    }
+    setMessage(null);
+    if (!validateAll()) return;
 
     setSaving(true);
     try {
@@ -38,64 +45,55 @@ const SecurityPage = () => {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      showMessage('success', 'Password changed successfully');
+      setPasswordData(EMPTY);
+      reset();
+      setMessage({ type: 'success', text: 'Password changed. Your other devices have been signed out.' });
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      showMessage('error', axiosError.response?.data?.message || 'Failed to change password');
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Failed to change password. Check your current password and try again.') });
     } finally {
       setSaving(false);
     }
   };
 
-  const CONTROL = 'h-11 bg-slate-50 border-slate-200 rounded-lg';
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6">
       {message && <Alert tone={message.type}>{message.text}</Alert>}
 
       <Surface padding="lg">
         <div className="mb-6">
-          <h2 className="font-semibold text-slate-900">Change Password</h2>
-          <p className="mt-1 text-sm text-slate-500">Update your password to keep your account secure</p>
+          <h2 className="font-semibold text-slate-900">Change password</h2>
+          <p className="mt-1 text-sm text-slate-600">Update your password to keep your account secure.</p>
         </div>
 
         <div className="max-w-md space-y-5">
-          <Field label="Current Password" htmlFor="currentPassword">
-            <Input
-              id="currentPassword"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={passwordData.currentPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-              className={CONTROL}
-            />
-          </Field>
-
-          <Field label="New Password" htmlFor="newPassword">
-            <Input
-              id="newPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              className={CONTROL}
-            />
-          </Field>
-
-          <Field label="Confirm New Password" htmlFor="confirmPassword">
-            <Input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-              className={CONTROL}
-            />
-          </Field>
+          <PasswordField
+            id="currentPassword"
+            label="Current password"
+            value={passwordData.currentPassword}
+            onChange={setField('currentPassword')}
+            onBlur={() => touch('currentPassword')}
+            error={errorFor('currentPassword')}
+            autoComplete="current-password"
+          />
+          <PasswordField
+            id="newPassword"
+            label="New password"
+            value={passwordData.newPassword}
+            onChange={setField('newPassword')}
+            onBlur={() => touch('newPassword')}
+            error={errorFor('newPassword')}
+            autoComplete="new-password"
+            showStrength
+          />
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm new password"
+            value={passwordData.confirmPassword}
+            onChange={setField('confirmPassword')}
+            onBlur={() => touch('confirmPassword')}
+            error={errorFor('confirmPassword')}
+            autoComplete="new-password"
+          />
         </div>
       </Surface>
 
@@ -105,8 +103,8 @@ const SecurityPage = () => {
           disabled={saving}
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
-          <Lock className="w-4 h-4" />
-          {saving ? 'Updating...' : 'Update Password'}
+          {saving ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> : <Lock className="size-4" aria-hidden />}
+          {saving ? 'Updating...' : 'Update password'}
         </Button>
       </div>
     </form>

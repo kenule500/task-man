@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Mail, UserPlus } from 'lucide-react';
 import api from '../utils/api';
-import { Button } from '@/components/ui/button';
+import { Alert, Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter,
-  DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { AlertCircle, Mail, UserPlus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { validateEmail } from '@/components/auth/validation';
+import FormDialog from './FormDialog';
 
 interface Role {
   _id: string;
@@ -22,6 +20,9 @@ interface InviteMemberModalProps {
   onInvited?: () => void;
 }
 
+const SELECT =
+  'h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm';
+
 const InviteMemberModal = ({
   open,
   onOpenChange,
@@ -29,6 +30,7 @@ const InviteMemberModal = ({
   onInvited,
 }: InviteMemberModalProps) => {
   const [email, setEmail] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const [roleId, setRoleId] = useState('');
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,14 +38,15 @@ const InviteMemberModal = ({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Fetch roles available to this workspace
+  const emailError = emailTouched ? validateEmail(email) : '';
+
+  // Fetch roles available to this workspace (system + custom)
   useEffect(() => {
     if (!open || !workspaceSlug) return;
 
     (async () => {
       try {
         setLoadingRoles(true);
-        // ✅ Workspace-scoped endpoint (system + custom roles)
         const response = await api.get(`/workspaces/${workspaceSlug}/roles`);
         setRoles(response.data || []);
         if (response.data?.length > 0) {
@@ -53,16 +56,32 @@ const InviteMemberModal = ({
         }
       } catch (err) {
         console.error('Failed to load roles:', err);
+        setError('We could not load the roles. Close this dialog and try again.');
       } finally {
         setLoadingRoles(false);
       }
     })();
   }, [open, workspaceSlug]);
 
+  // Close shortly after a successful invite (cleared if the dialog closes first)
+  useEffect(() => {
+    if (!success) return;
+    const timer = window.setTimeout(() => {
+      setSuccess(false);
+      onOpenChange(false);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [success, onOpenChange]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    setEmailTouched(true);
+    if (validateEmail(email)) {
+      document.getElementById('invite-email')?.focus();
+      return;
+    }
     setLoading(true);
 
     try {
@@ -73,14 +92,11 @@ const InviteMemberModal = ({
 
       setSuccess(true);
       setEmail('');
+      setEmailTouched(false);
       if (onInvited) onInvited();
-      setTimeout(() => {
-        setSuccess(false);
-        onOpenChange(false);
-      }, 1500);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError.response?.data?.message || 'Failed to send invitation');
+      setError(axiosError.response?.data?.message || 'We could not send the invitation. Try again.');
     } finally {
       setLoading(false);
     }
@@ -89,126 +105,80 @@ const InviteMemberModal = ({
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
       setEmail('');
+      setEmailTouched(false);
       setError('');
       setSuccess(false);
     }
     onOpenChange(isOpen);
   };
 
+  const selectedRole = roles.find((r) => r._id === roleId);
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden bg-white border border-gray-200 shadow-2xl rounded-2xl gap-0">
+    <FormDialog
+      open={open}
+      onOpenChange={handleClose}
+      icon={<UserPlus aria-hidden />}
+      title="Invite a member"
+      description="Send an invitation to join this workspace."
+      onSubmit={handleSubmit}
+      submitLabel="Send invitation"
+      submittingLabel="Sending..."
+      submitting={loading}
+      submitDisabled={!roleId || loadingRoles}
+      error={error}
+    >
+      {success && <Alert tone="success">Invitation sent.</Alert>}
 
-        {/* Header */}
-        <div className="px-6 pt-6 pb-5 border-b border-gray-200">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <UserPlus className="w-5 h-5 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <DialogHeader className="p-0 space-y-0">
-                <DialogTitle className="text-lg font-bold text-slate-900 leading-tight">
-                  Invite a member
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-500 mt-1 leading-relaxed">
-                  Send an invitation to join this workspace.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-          </div>
+      <Field label="Email address" htmlFor="invite-email" required error={emailError}>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden />
+          <Input
+            id="invite-email"
+            type="email"
+            required
+            inputMode="email"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => setEmailTouched(true)}
+            aria-invalid={!!emailError}
+            aria-describedby={emailError ? fieldMessageId('invite-email') : undefined}
+            placeholder="teammate@company.com"
+            className="h-11 rounded-lg border-slate-300 bg-white pl-9 text-base shadow-none placeholder:text-slate-500 md:text-sm"
+            autoFocus
+          />
         </div>
+      </Field>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-4">
-
-            {error && (
-              <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
-                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {success && (
-              <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                ✓ Invitation sent successfully
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="invite-email"
-                className="text-sm font-medium text-slate-700"
-              >
-                Email Address <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  id="invite-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="teammate@company.com"
-                  className="h-11 pl-9 bg-white border border-gray-300 rounded-lg text-sm shadow-none"
-                  required
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="invite-role"
-                className="text-sm font-medium text-slate-700"
-              >
-                Role <span className="text-red-500">*</span>
-              </Label>
-              {loadingRoles ? (
-                <div className="h-11 bg-slate-100 rounded-lg animate-pulse" />
-              ) : (
-                <select
-                  id="invite-role"
-                  value={roleId}
-                  onChange={(e) => setRoleId(e.target.value)}
-                  className="w-full h-11 px-3 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-gray-400"
-                  required
-                >
-                  {roles.map((role) => (
-                    <option key={role._id} value={role._id}>
-                      {role.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {roles.length > 0 && roleId && (
-                <p className="text-xs text-slate-400">
-                  {roles.find((r) => r._id === roleId)?.description}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="!m-0 px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleClose(false)}
-              className="rounded-lg h-10 border-gray-300 text-slate-700 hover:bg-gray-100 text-sm font-medium shadow-none"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading || !email.trim() || !roleId}
-              className="rounded-lg bg-primary hover:bg-primary-hover text-white h-10 text-sm font-medium shadow-sm px-5"
-            >
-              {loading ? 'Sending...' : 'Send Invitation'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Field
+        label="Role"
+        htmlFor="invite-role"
+        required
+        hint={selectedRole?.description || undefined}
+      >
+        {loadingRoles ? (
+          <Skeleton className="h-11 w-full rounded-lg bg-slate-200" />
+        ) : (
+          <select
+            id="invite-role"
+            value={roleId}
+            onChange={(e) => setRoleId(e.target.value)}
+            aria-describedby={selectedRole?.description ? fieldMessageId('invite-role') : undefined}
+            className={SELECT}
+            required
+          >
+            {roles.map((role) => (
+              <option key={role._id} value={role._id}>
+                {role.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+    </FormDialog>
   );
 };
 

@@ -1,20 +1,28 @@
-const Footer = () => {
-  return (
-    <footer className="bg-white border-t border-gray-100 py-12">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center text-white text-xs font-bold">T</div>
-          <span className="text-lg font-bold text-gray-900">TaskMan</span>
-        </div>
-        <p className="text-gray-400 text-sm">© {new Date().getFullYear()} TaskMan. Built for builders.</p>
-        <div className="flex gap-6 text-sm text-gray-500">
-          <a href="#" className="hover:text-primary transition-colors">Privacy</a>
-          <a href="#" className="hover:text-primary transition-colors">Terms</a>
-          <a href="#" className="hover:text-primary transition-colors">Contact</a>
-        </div>
+import { Link } from 'react-router-dom';
+
+const LINK =
+  'inline-flex min-h-10 items-center rounded px-1 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-primary';
+
+const Footer = () => (
+  <footer className="border-t border-gray-100 bg-white py-10 md:py-12">
+    <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row">
+      <div className="flex items-center gap-2">
+        <span aria-hidden className="flex size-6 items-center justify-center rounded bg-primary text-xs font-bold text-white">T</span>
+        <span className="text-lg font-bold text-gray-900">TaskMan</span>
       </div>
-    </footer>
-  );
-};
+
+      <nav aria-label="Footer">
+        <ul className="flex flex-wrap items-center justify-center gap-x-5 text-sm text-gray-600">
+          <li><a href="#features" className={LINK}>Features</a></li>
+          <li><a href="#teams" className={LINK}>Teams and roles</a></li>
+          <li><Link to="/design-system" className={LINK}>Design system</Link></li>
+          <li><Link to="/login" className={LINK}>Sign in</Link></li>
+        </ul>
+      </nav>
+
+      <p className="text-sm text-gray-600">© {new Date().getFullYear()} TaskMan</p>
+    </div>
+  </footer>
+);
 
 export default Footer;

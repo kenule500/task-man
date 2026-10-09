@@ -199,7 +199,8 @@ const AVATAR_SIZES = { sm: 'size-7 text-[11px]', md: 'size-9 text-xs', lg: 'size
 export const UserAvatar = ({ name, src, size = 'md', className }: UserAvatarProps) => (
   <Avatar className={cn(AVATAR_SIZES[size], className)}>
     {src && <AvatarImage src={src} alt="" />}
-    <AvatarFallback className="bg-primary/10 font-semibold text-primary">{getInitials(name)}</AvatarFallback>
+    {/* Inherit the font size set on the avatar (the primitive hard-codes text-sm) */}
+    <AvatarFallback className="bg-primary/10 font-semibold text-primary text-[length:inherit] leading-none">{getInitials(name)}</AvatarFallback>
   </Avatar>
 );
 
@@ -222,7 +223,7 @@ export const StatCard = ({ title, value, subtitle, icon, colorClass = 'text-prim
     </div>
     <div>
       <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">{value}</p>
-      {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
+      {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
     </div>
   </Surface>
 );
@@ -252,7 +253,7 @@ export const Field = ({ label, htmlFor, required, hint, error, children, classNa
     </label>
     {children}
     {(error || hint) && (
-      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-red-600' : 'text-slate-400')}>
+      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-red-600' : 'text-slate-500')}>
         {error ?? hint}
       </p>
     )}

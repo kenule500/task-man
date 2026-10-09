@@ -1,4 +1,5 @@
-import { buildTaskFilter, buildTaskSort, parseTaskListQuery } from '../utils/taskQuery.js';
+import { Types } from 'mongoose';
+import { buildTaskFilter, buildTaskSort, normalizeLabels, parseTaskListQuery } from '../utils/taskQuery.js';
 
 describe('parseTaskListQuery', () => {
   it('falls back to safe defaults for missing or unknown values', () => {
@@ -6,6 +7,8 @@ describe('parseTaskListQuery', () => {
       status: undefined,
       search: undefined,
       project: undefined,
+      assignee: undefined,
+      label: undefined,
       sort: 'createdAt',
       from: undefined,
       to: undefined,
@@ -36,6 +39,52 @@ describe('parseTaskListQuery', () => {
     expect(parseTaskListQuery({ project: 'p'.repeat(200) }).project).toHaveLength(60);
     expect(parseTaskListQuery({ project: '   ' }).project).toBeUndefined();
     expect(parseTaskListQuery({ project: { $ne: '' } }).project).toBeUndefined();
+  });
+});
+
+describe('assignee and label query', () => {
+  const userId = new Types.ObjectId().toString();
+
+  it('accepts "me" and valid object ids, rejects everything else', () => {
+    expect(parseTaskListQuery({ assignee: 'me' }).assignee).toBe('me');
+    expect(parseTaskListQuery({ assignee: userId }).assignee).toBe(userId);
+    expect(parseTaskListQuery({ assignee: 'someone' }).assignee).toBeUndefined();
+    expect(parseTaskListQuery({ assignee: { $ne: null } }).assignee).toBeUndefined();
+    expect(parseTaskListQuery({ assignee: [userId] }).assignee).toBeUndefined();
+  });
+
+  it('trims and caps the label and ignores non-strings', () => {
+    expect(parseTaskListQuery({ label: '  bug ' }).label).toBe('bug');
+    expect(parseTaskListQuery({ label: 'x'.repeat(100) }).label).toHaveLength(40);
+    expect(parseTaskListQuery({ label: { $ne: '' } }).label).toBeUndefined();
+    expect(parseTaskListQuery({ label: '  ' }).label).toBeUndefined();
+  });
+
+  it('filters assignees by the current user for "me"', () => {
+    const filter = buildTaskFilter('ws1', { sort: 'createdAt', assignee: 'me' }, userId);
+    expect(filter.assignees).toBeInstanceOf(Types.ObjectId);
+    expect(String(filter.assignees)).toBe(userId);
+  });
+
+  it('filters by an explicit user id and by label', () => {
+    const filter = buildTaskFilter('ws1', { sort: 'createdAt', assignee: userId, label: 'bug' });
+    expect(String(filter.assignees)).toBe(userId);
+    expect(filter.labels).toBe('bug');
+  });
+
+  it('matches nothing for "me" without a user', () => {
+    expect(buildTaskFilter('ws1', { sort: 'createdAt', assignee: 'me' }).assignees).toEqual({ $in: [] });
+  });
+});
+
+describe('normalizeLabels', () => {
+  it('trims, collapses spaces, drops blanks and case-insensitive duplicates', () => {
+    expect(normalizeLabels([' Bug ', 'bug', '', '  ', 'Ui   polish', 3, null])).toEqual(['Bug', 'Ui polish']);
+  });
+
+  it('returns an empty list for non-arrays', () => {
+    expect(normalizeLabels('bug')).toEqual([]);
+    expect(normalizeLabels(undefined)).toEqual([]);
   });
 });
 

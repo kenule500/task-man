@@ -29,24 +29,14 @@ const sendServerError = (res: Response, context: string, error: unknown): void =
 const USER_PRIVATE_FIELDS =
   '-password -verificationToken -verificationTokenExpires -resetPasswordToken -resetPasswordExpires';
 
-/** Minimum password length. */
-const MIN_PASSWORD_LENGTH = 6;
+// Sessions store SHA-256 token hashes: use the shared helpers so "keep the
+// current session" matches (a local identity hash signed everyone out).
+import { getBearerToken, hashToken } from '../utils/tokens.js';
+import { MIN_PASSWORD_LENGTH } from './authController.js';
 
-/** Extract the token from an `Authorization: Bearer xxx` header. */
-const getBearerToken = (authorizationHeader?: string): string | null => {
-  if (!authorizationHeader) return null;
-  const [scheme, token] = authorizationHeader.split(' ');
-  if (scheme !== 'Bearer' || !token) return null;
-  return token;
-};
-
-/** Hash a token for storage (matches whatever the session model uses). */
-const hashToken = (token: string): string => {
-  // If your session model stores raw tokens, this returns the same string.
-  // If it stores hashed tokens (e.g. SHA-256), replace this with:
-  //   import crypto from 'crypto';
-  //   return crypto.createHash('sha256').update(token).digest('hex');
-  return token;
+/** Maximum lengths of the editable profile fields. */
+const PROFILE_FIELD_LIMITS: Record<string, number> = {
+  name: 80, avatarUrl: 500, bio: 280, jobTitle: 80, phone: 30, timezone: 64, language: 10, theme: 10,
 };
 
 // ================================================================
@@ -89,9 +79,23 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+      const value = req.body[field];
+      if (value === undefined) continue;
+      // Strings only (objects would reach the update as operators or cast errors)
+      if (typeof value !== 'string' || value.length > (PROFILE_FIELD_LIMITS[field] ?? 280)) {
+        res.status(400).json({ message: `Invalid ${field}` });
+        return;
       }
+      updates[field] = value.trim();
+    }
+    if (updates.theme !== undefined && !['light', 'dark', 'system'].includes(updates.theme as string)) {
+      res.status(400).json({ message: 'Theme must be light, dark or system' });
+      return;
+    }
+    // Rendered as an <img src>: only http(s) URLs (no javascript:/data: payloads)
+    if (typeof updates.avatarUrl === 'string' && updates.avatarUrl && !/^https?:\/\/\S+$/i.test(updates.avatarUrl)) {
+      res.status(400).json({ message: 'Avatar URL must start with http:// or https://' });
+      return;
     }
 
     const user = await User.findByIdAndUpdate(userId, updates, {
@@ -119,13 +123,22 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
     const userId = requireUserId(req, res);
     if (!userId) return;
 
-    const { email, taskAssigned, taskCompleted, weeklyDigest } = req.body;
+    // Update only the provided switches, and only with real booleans
+    const keys = ['email', 'taskAssigned', 'taskCompleted', 'weeklyDigest'] as const;
+    const updates: Record<string, boolean> = {};
+    for (const key of keys) {
+      const value = req.body[key];
+      if (value === undefined) continue;
+      if (typeof value !== 'boolean') {
+        res.status(400).json({ message: `${key} must be true or false` });
+        return;
+      }
+      updates[`notifications.${key}`] = value;
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        notifications: { email, taskAssigned, taskCompleted, weeklyDigest },
-      },
+      { $set: updates },
       { returnDocument: 'after', runValidators: true }
     ).select(USER_PRIVATE_FIELDS);
 

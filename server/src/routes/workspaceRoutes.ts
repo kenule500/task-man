@@ -12,6 +12,7 @@ import {
 } from '../controllers/workspaceController.js';
 import {
   createInvitation,
+  validateCreateInvitation,
   listInvitations,
   cancelInvitation,
 } from '../controllers/invitationController.js';
@@ -79,6 +80,7 @@ router.post(
   '/:slug/invitations',
   protect,
   requirePermission('users:write'),
+  validateCreateInvitation,
   createInvitation
 );
 router.get(

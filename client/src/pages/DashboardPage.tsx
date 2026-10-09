@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   AlertCircle,
   CalendarDays,
@@ -16,19 +16,23 @@ import {
 } from 'lucide-react';
 import {
   Alert,
-  EmptyState,
   IconTile,
   PageHeader,
   SectionHeader,
   SkeletonCards,
   StatCard,
   Surface,
+  Tag,
   surfaceVariants,
 } from '@/components/ds';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import api from '../utils/api';
 import { usePermissions } from '../hooks/usePermissions';
+import GetStartedChecklist from '@/components/dashboard/GetStartedChecklist';
+import {
+  buildChecklist, hasTriedBoard, isChecklistComplete, markBoardTried,
+} from '@/components/dashboard/getStarted';
 import {
   DueDate,
   PriorityIndicator,
@@ -84,22 +88,22 @@ const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCa
   <Surface as="section" padding="sm" className="sm:p-5">
     <SectionHeader
       className="mb-3"
-      title={tone === 'danger' ? <span className="text-red-600">{title}</span> : title}
+      title={tone === 'danger' ? <span className="text-red-700">{title}</span> : title}
       count={total}
     />
     {tasks.length === 0 ? (
-      <p className="text-sm text-slate-500 py-4">{emptyText}</p>
+      <p className="py-4 text-sm text-slate-600">{emptyText}</p>
     ) : (
       <ul className="divide-y divide-slate-100">
         {tasks.map((task) => (
           <li key={task._id}>
             <Link
               to={`/${slug}/tasks?view=list`}
-              className="flex items-center justify-between gap-3 py-3 rounded-lg hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary px-2 -mx-2"
+              className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary"
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{task.title}</p>
-                <div className="flex items-center gap-3 mt-1">
+                <p className="truncate text-sm font-medium text-slate-900">{task.title}</p>
+                <div className="mt-1 flex items-center gap-3">
                   <DueDate deadline={task.deadline} completed={task.status === 'completed'} />
                   <PriorityIndicator priority={task.priority} />
                 </div>
@@ -111,9 +115,9 @@ const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCa
       </ul>
     )}
     {total > tasks.length && (
-      <p className="text-xs text-slate-400 mt-3">
+      <p className="mt-3 text-xs text-slate-600">
         Showing {tasks.length} of {total}.{' '}
-        <Link to={`/${slug}/tasks?view=list`} className="text-primary font-medium hover:underline">
+        <Link to={`/${slug}/tasks?view=list`} className="font-medium text-primary hover:underline">
           View all
         </Link>
       </p>
@@ -129,44 +133,28 @@ const DashboardSkeleton = () => (
 );
 
 const DashboardPage = () => {
-  const navigate = useNavigate();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
 
   // ===== RBAC integration =====
-  const { user, role, can, loading: permissionLoading } = usePermissions();
+  const { user, role, can } = usePermissions();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaceCount, setWorkspaceCount] = useState(0);
   const [workspaceLoading, setWorkspaceLoading] = useState(!!workspaceSlug);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
-  // ===== Task data (owned by task dev) =====
+  // ===== Task data (owned by the tasks module) =====
   const { tasks, loading: tasksLoading, error: tasksError } = useTasks(workspaceSlug);
 
-  // Auth guard
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    if (permissionLoading) return;
-    if (!user) return;
-  }, [navigate, permissionLoading, user]);
-
-  // Fetch workspace info
+  // Fetch workspace info (member count, invite code)
   useEffect(() => {
     if (!workspaceSlug) return;
 
     (async () => {
       try {
         setWorkspaceLoading(true);
-        const [workspaceRes, allWorkspacesRes] = await Promise.all([
-          api.get(`/workspaces/${workspaceSlug}`),
-          api.get('/workspaces'),
-        ]);
+        const workspaceRes = await api.get(`/workspaces/${workspaceSlug}`);
         setWorkspace(workspaceRes.data);
-        setWorkspaceCount(allWorkspacesRes.data?.length || 0);
       } catch (err) {
         console.error('Failed to load workspace:', err);
       } finally {
@@ -195,11 +183,16 @@ const DashboardPage = () => {
     };
   }, [tasks]);
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     if (!workspace?.inviteCode) return;
-    navigator.clipboard.writeText(workspace.inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(workspace.inviteCode);
+      setCopyFailed(false);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopyFailed(true);
+    }
   };
 
   if (!user) return null;
@@ -209,14 +202,14 @@ const DashboardPage = () => {
   const memberCount = workspace?.members?.length ?? 0;
   const canManageUsers = can('users:write');
 
-  const goToTasks = (
-    <Button
-      onClick={() => navigate(`/${slug}/tasks`)}
-      className="h-10 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9"
-    >
-      Go to tasks
-    </Button>
-  );
+  const ready = !tasksLoading && !workspaceLoading;
+  const checklist = buildChecklist({
+    taskCount: tasks.length,
+    memberCount,
+    boardTried: hasTriedBoard(slug),
+    canInvite: canManageUsers,
+  });
+  const showChecklist = ready && !tasksError && !isChecklistComplete(checklist);
 
   return (
     <>
@@ -229,60 +222,61 @@ const DashboardPage = () => {
             : 'Here is your workspace at a glance.'
         }
         actions={
-          <div className="flex items-center gap-3">
+          <>
             {role && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm flex-shrink-0">
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-semibold text-slate-700">{role.name}</span>
-              </div>
+              <Tag tone="neutral" className="!flex-none px-3 py-1.5">
+                <Shield className="size-3.5 text-primary" aria-hidden />
+                <span className="sr-only">Your role: </span>
+                {role.name}
+              </Tag>
             )}
-            {goToTasks}
-          </div>
+            <Link
+              to={`/${slug}/tasks`}
+              className={buttonVariants({ className: 'h-10 rounded-lg bg-primary px-4 text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9' })}
+            >
+              Go to tasks
+            </Link>
+          </>
         }
       />
 
       {tasksError && <Alert tone="error">{tasksError}</Alert>}
 
-      {/* ===== Task stats or empty state ===== */}
+      {showChecklist && <GetStartedChecklist steps={checklist} workspaceSlug={slug} />}
+
+      {/* ===== Task stats ===== */}
       {tasksLoading ? (
         <DashboardSkeleton />
-      ) : tasks.length === 0 && !tasksError ? (
-        <Surface padding="none">
-          <EmptyState
-            icon={<CheckSquare />}
-            title="No tasks yet"
-            description="Create your first task to see your progress and deadlines here."
-            action={goToTasks}
-          />
-        </Surface>
       ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total Tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
-            <StatCard className="p-4 sm:p-5" title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
-            <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
-            <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
-          </div>
+        tasks.length > 0 && (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
+              <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
+              <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
+              <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
+            </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <TaskListCard
-              title="Due this week"
-              tone="default"
-              tasks={dueThisWeek.slice(0, MAX_ROWS)}
-              total={dueThisWeek.length}
-              slug={slug}
-              emptyText="Nothing due in the next 7 days."
-            />
-            <TaskListCard
-              title="Overdue"
-              tone="danger"
-              tasks={overdue.slice(0, MAX_ROWS)}
-              total={overdue.length}
-              slug={slug}
-              emptyText="You are all caught up. No overdue tasks."
-            />
-          </div>
-        </>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <TaskListCard
+                title="Due this week"
+                tone="default"
+                tasks={dueThisWeek.slice(0, MAX_ROWS)}
+                total={dueThisWeek.length}
+                slug={slug}
+                emptyText="Nothing due in the next 7 days."
+              />
+              <TaskListCard
+                title="Overdue"
+                tone="danger"
+                tasks={overdue.slice(0, MAX_ROWS)}
+                total={overdue.length}
+                slug={slug}
+                emptyText="You are all caught up. No overdue tasks."
+              />
+            </div>
+          </>
+        )
       )}
 
       {/* ===== Quick views ===== */}
@@ -295,6 +289,7 @@ const DashboardPage = () => {
             <Link
               key={view}
               to={`/${slug}/tasks?view=${view}`}
+              onClick={view === 'board' ? () => markBoardTried(slug) : undefined}
               className={cn(
                 surfaceVariants({ radius: 'lg', padding: 'sm', interactive: true }),
                 'flex items-start gap-3 focus-visible:outline-2 focus-visible:outline-primary',
@@ -305,7 +300,7 @@ const DashboardPage = () => {
               </IconTile>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-900">{label}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+                <p className="mt-0.5 text-xs text-slate-600">{hint}</p>
               </div>
             </Link>
           ))}
@@ -319,26 +314,25 @@ const DashboardPage = () => {
             <Users />
           </IconTile>
           <div className="min-w-0">
-            <p className="text-2xl font-bold text-slate-900 tabular-nums">
-              {workspaceLoading ? '-' : memberCount}
+            <p className="text-2xl font-bold tabular-nums text-slate-900">
+              {workspaceLoading ? <span aria-label="Loading">-</span> : memberCount}
             </p>
-            <p className="text-xs text-slate-400">
-              {memberCount === 1 ? 'Member (just you so far)' : 'Members'} ·{' '}
-              {workspaceLoading ? '-' : workspaceCount} workspace{workspaceCount !== 1 ? 's' : ''} joined
+            <p className="text-xs text-slate-600">
+              {memberCount === 1 ? 'Member (just you so far)' : 'Members'}
             </p>
           </div>
         </Surface>
 
-        {/* Invite code — permission gated */}
+        {/* Invite code: permission gated */}
         {workspace?.inviteCode && canManageUsers && (
           <Surface className="lg:col-span-2">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="mb-1 text-sm font-semibold text-slate-900">
+                <h2 className="mb-1 text-sm font-semibold text-slate-900">
                   Invite teammates to this workspace
-                </p>
-                <p className="text-xs text-slate-500">
-                  Share this code. They will be able to join instantly.
+                </h2>
+                <p className="text-xs text-slate-600">
+                  Share this code. They can join instantly.
                 </p>
               </div>
 
@@ -353,16 +347,22 @@ const DashboardPage = () => {
                 >
                   {copied ? (
                     <>
-                      <Check className="w-3.5 h-3.5" /> Copied
+                      <Check className="size-3.5" aria-hidden /> Copied
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5" /> Copy
+                      <Copy className="size-3.5" aria-hidden /> Copy
                     </>
                   )}
+                  <span className="sr-only"> invite code</span>
                 </button>
               </div>
             </div>
+            {copyFailed && (
+              <p role="alert" className="mt-3 text-xs text-red-700">
+                Could not copy automatically. Select the code and copy it manually.
+              </p>
+            )}
           </Surface>
         )}
       </div>

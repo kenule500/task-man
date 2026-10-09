@@ -1,6 +1,7 @@
-import { useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { IconTile, Surface, Tag } from '@/components/ds';
+import { buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '../hooks/usePermissions';
 
 interface ForbiddenPageProps {
@@ -8,54 +9,43 @@ interface ForbiddenPageProps {
 }
 
 const ForbiddenPage = ({ requiredPermission }: ForbiddenPageProps) => {
-  const navigate = useNavigate();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { role } = usePermissions();
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh]">
-      <div className="text-center max-w-md">
-        <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6">
-          <ShieldAlert className="w-10 h-10 text-red-600" />
-        </div>
+    <Surface padding="lg" className="mx-auto mt-6 w-full max-w-lg text-center sm:mt-12">
+      <IconTile tone="danger" size="lg" className="mx-auto mb-5 size-16 rounded-2xl [&_svg]:size-8">
+        <ShieldAlert />
+      </IconTile>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">
-          Access Denied
-        </h1>
-        <p className="text-slate-500 mb-6 text-sm leading-relaxed">
-          You don't have permission to view this page
-          {role ? (
-            <>
-              {' '}with your current role:{' '}
-              <span className="font-semibold text-slate-700">{role.name}</span>
-            </>
-          ) : null}
-          .
+      <h1 className="mb-2 text-2xl font-bold tracking-tight text-slate-900">You do not have access to this page</h1>
+      <p className="mb-6 text-sm leading-relaxed text-slate-600">
+        Your role
+        {role ? (
+          <>
+            {' '}
+            <span className="font-semibold text-slate-800">{role.name}</span>
+          </>
+        ) : null}{' '}
+        does not include the permission this page needs. Ask a workspace owner or admin to update your role.
+      </p>
+
+      {requiredPermission && (
+        <p className="mb-6 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-600">
+          Required permission
+          <Tag tone="neutral">
+            <code className="font-mono">{requiredPermission}</code>
+          </Tag>
         </p>
+      )}
 
-        {requiredPermission && (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 inline-flex items-center gap-2 mb-8">
-            <span className="text-xs text-slate-500">Required:</span>
-            <code className="text-xs font-mono font-semibold text-slate-700">
-              {requiredPermission}
-            </code>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button
-            onClick={() => navigate(`/${workspaceSlug}/dashboard`)}
-            className="rounded-xl gap-2 bg-primary hover:bg-primary-hover text-white"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </Button>
-        </div>
-
-        <p className="text-xs text-slate-400 mt-6">
-          Need more access? Ask a workspace owner to update your role.
-        </p>
-      </div>
-    </div>
+      <Link
+        to={workspaceSlug ? `/${workspaceSlug}/dashboard` : '/'}
+        className={buttonVariants({ className: 'h-11 gap-2 rounded-lg bg-primary px-5 text-white hover:bg-primary-hover' })}
+      >
+        <ArrowLeft aria-hidden /> Back to dashboard
+      </Link>
+    </Surface>
   );
 };
 

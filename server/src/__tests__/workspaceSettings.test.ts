@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import User from '../models/userModel.js';
+import Workspace from '../models/workspaceModel.js';
 import {
   getWorkspaceMembers,
   regenerateInviteCode,
@@ -10,7 +10,7 @@ import {
 
 jest.mock('../models/workspaceModel.js', () => ({
   __esModule: true,
-  default: { exists: jest.fn(), find: jest.fn(), findOne: jest.fn(), create: jest.fn() },
+  default: { exists: jest.fn(), find: jest.fn(), findOne: jest.fn(), findById: jest.fn(), create: jest.fn() },
 }));
 
 jest.mock('../models/userModel.js', () => ({
@@ -18,124 +18,117 @@ jest.mock('../models/userModel.js', () => ({
   default: { find: jest.fn(), findByIdAndUpdate: jest.fn() },
 }));
 
-const UserMock = User as unknown as Record<string, jest.Mock>;
+jest.mock('../models/roleModel.js', () => ({
+  __esModule: true,
+  default: { find: jest.fn(), findOne: jest.fn(), findById: jest.fn() },
+}));
 
-const ownerId = new Types.ObjectId();
-const adminId = new Types.ObjectId();
-const memberAId = new Types.ObjectId();
-const memberBId = new Types.ObjectId();
+const WorkspaceMock = Workspace as unknown as Record<string, jest.Mock>;
 
 type TestResponse = Response & { statusCode?: number; body?: any };
 
-const createWorkspace = () => ({
-  name: 'Acme',
-  slug: 'acme',
-  inviteCode: 'OLDCODE',
-  members: [
-    { user: memberBId, role: 'member', joinedAt: new Date('2026-03-01') },
-    { user: adminId, role: 'admin', joinedAt: new Date('2026-02-01') },
-    { user: memberAId, role: 'member', joinedAt: new Date('2026-04-01') },
-    { user: ownerId, role: 'owner', joinedAt: new Date('2026-01-01') },
-  ],
-  save: jest.fn().mockResolvedValue(undefined),
-});
-
-const createResponse = (workspace = createWorkspace()): TestResponse => {
-  const res = { locals: { workspace } } as unknown as TestResponse;
+const createResponse = (): TestResponse => {
+  const res = { locals: {} } as unknown as TestResponse;
   res.status = jest.fn((code: number) => {
     res.statusCode = code;
     return res;
   }) as unknown as Response['status'];
-  res.json = jest.fn((payload: unknown) => {
-    res.body = payload;
+  res.json = jest.fn((body: unknown) => {
+    res.body = body;
     return res;
   }) as unknown as Response['json'];
   return res;
 };
 
-const createRequest = (userId: Types.ObjectId, body: Record<string, unknown> = {}) =>
-  ({ body, params: { slug: 'acme' }, user: { _id: userId } }) as unknown as Request;
+const createWorkspace = () => ({
+  _id: new Types.ObjectId(),
+  name: 'Acme',
+  slug: 'acme',
+  inviteCode: 'OLDCODE',
+  members: [],
+  save: jest.fn().mockResolvedValue(undefined),
+});
+
+// requirePermission (tested separately) attaches the workspace before these handlers run
+const createRequest = (workspace: ReturnType<typeof createWorkspace>, body: Record<string, unknown> = {}) =>
+  ({ body, params: { slug: workspace.slug }, workspace }) as unknown as Request;
 
 const runValidators = async (validators: { run: (req: Request) => Promise<unknown> }[], req: Request) => {
   for (const validator of validators) await validator.run(req);
 };
 
-beforeEach(() => jest.clearAllMocks());
+const role = (name: string, isSystem = true) => ({ _id: new Types.ObjectId(), name, description: '', isSystem });
+const user = (name: string) => ({
+  _id: new Types.ObjectId(), name, email: `${name.toLowerCase().replace(' ', '.')}@test.dev`, avatarUrl: '', jobTitle: '',
+});
 
 describe('getWorkspaceMembers', () => {
-  const users = [
-    { _id: ownerId, name: 'Zed Owner', email: 'o@x.com', avatarUrl: '', jobTitle: 'CEO' },
-    { _id: adminId, name: 'Ann Admin', email: 'a@x.com', avatarUrl: '', jobTitle: '' },
-    { _id: memberAId, name: 'Bob', email: 'b@x.com', avatarUrl: '', jobTitle: 'Dev' },
-    { _id: memberBId, name: 'Amy', email: 'm@x.com', avatarUrl: '', jobTitle: '' },
-  ];
-
-  it('lists owner first, then admins, then members by name, without sensitive fields', async () => {
-    const select = jest.fn().mockResolvedValue(users);
-    UserMock.find.mockReturnValue({ select });
+  it('lists members by role seniority, custom roles last, then by name', async () => {
+    const workspace = createWorkspace();
+    WorkspaceMock.findById.mockReturnValue({
+      populate: () => ({
+        populate: async () => ({
+          members: [
+            { user: user('Zoe Dev'), roleId: role('Developer'), joinedAt: new Date() },
+            { user: user('Ana Custom'), roleId: role('QA Lead', false), joinedAt: new Date() },
+            { user: user('Owner One'), roleId: role('Product Owner'), joinedAt: new Date() },
+            { user: user('Adam Dev'), roleId: role('Developer'), joinedAt: new Date() },
+            { user: null, roleId: role('Viewer'), joinedAt: new Date() },
+          ],
+        }),
+      }),
+    });
     const res = createResponse();
-    await getWorkspaceMembers(createRequest(ownerId), res);
+    await getWorkspaceMembers(createRequest(workspace), res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.map((m: { name: string }) => m.name)).toEqual(['Zed Owner', 'Ann Admin', 'Amy', 'Bob']);
-    expect(res.body.map((m: { role: string }) => m.role)).toEqual(['owner', 'admin', 'member', 'member']);
-    expect(res.body[0]).toEqual(expect.objectContaining({ email: 'o@x.com', jobTitle: 'CEO', joinedAt: expect.any(Date) }));
-    expect(select).toHaveBeenCalledWith('name email avatarUrl jobTitle');
-    expect(JSON.stringify(res.body)).not.toMatch(/password|token/i);
+    expect(res.body.map((m: { name: string }) => m.name)).toEqual(['Owner One', 'Adam Dev', 'Zoe Dev', 'Ana Custom']);
+    expect(Object.keys(res.body[0]).sort()).toEqual(['_id', 'avatarUrl', 'email', 'jobTitle', 'joinedAt', 'name', 'role']);
+  });
+
+  it('returns 404 when the workspace disappeared', async () => {
+    WorkspaceMock.findById.mockReturnValue({ populate: () => ({ populate: async () => null }) });
+    const res = createResponse();
+    await getWorkspaceMembers(createRequest(createWorkspace()), res);
+    expect(res.statusCode).toBe(404);
   });
 });
 
 describe('updateWorkspace', () => {
-  it('forbids regular members', async () => {
-    const req = createRequest(memberAId, { name: 'New name' });
-    const res = createResponse();
-    await runValidators(validateUpdateWorkspace, req);
-    await updateWorkspace(req, res);
-
-    expect(res.statusCode).toBe(403);
-    expect((res.locals.workspace as { save: jest.Mock }).save).not.toHaveBeenCalled();
-  });
-
-  it('rejects an empty or too long name', async () => {
-    for (const name of ['   ', 'x'.repeat(61)]) {
-      const req = createRequest(ownerId, { name });
-      const res = createResponse();
-      await runValidators(validateUpdateWorkspace, req);
-      await updateWorkspace(req, res);
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.errors[0].path).toBe('name');
-    }
-  });
-
   it('renames with a trimmed name and keeps the slug', async () => {
-    const req = createRequest(adminId, { name: '  New name  ' });
+    const workspace = createWorkspace();
+    const req = createRequest(workspace, { name: '  Acme Labs  ' });
     const res = createResponse();
     await runValidators(validateUpdateWorkspace, req);
     await updateWorkspace(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toMatchObject({ name: 'New name', slug: 'acme' });
-    expect((res.locals.workspace as { save: jest.Mock }).save).toHaveBeenCalled();
+    expect(workspace.name).toBe('Acme Labs');
+    expect(workspace.slug).toBe('acme');
+    expect(workspace.save).toHaveBeenCalled();
+  });
+
+  it.each([[''], ['x'.repeat(61)], [{ $gt: '' }]])('rejects an invalid name %p', async name => {
+    const workspace = createWorkspace();
+    const req = createRequest(workspace, { name });
+    const res = createResponse();
+    await runValidators(validateUpdateWorkspace, req);
+    await updateWorkspace(req, res);
+
+    expect(res.statusCode).toBe(400);
+    expect(workspace.save).not.toHaveBeenCalled();
   });
 });
 
 describe('regenerateInviteCode', () => {
-  it('forbids regular members', async () => {
+  it('generates and returns a new code', async () => {
+    const workspace = createWorkspace();
     const res = createResponse();
-    await regenerateInviteCode(createRequest(memberBId), res);
-
-    expect(res.statusCode).toBe(403);
-    expect(res.locals.workspace.inviteCode).toBe('OLDCODE');
-  });
-
-  it('generates a new code for admins', async () => {
-    const res = createResponse();
-    await regenerateInviteCode(createRequest(adminId), res);
+    await regenerateInviteCode(createRequest(workspace), res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.inviteCode).toMatch(/^[0-9A-F]{12}$/);
+    expect(res.body.inviteCode).toMatch(/^[A-F0-9]{12}$/);
     expect(res.body.inviteCode).not.toBe('OLDCODE');
-    expect(res.locals.workspace.save).toHaveBeenCalled();
+    expect(workspace.save).toHaveBeenCalled();
   });
 });

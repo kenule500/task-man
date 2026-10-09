@@ -21,6 +21,42 @@ describe('matchesFilters', () => {
     expect(matchesFilters(task, { search: '', status: 'in-progress' })).toBe(true);
     expect(matchesFilters(task, { search: '', status: 'completed' })).toBe(false);
   });
+
+  describe('assignee and label filters', () => {
+    const ada = { _id: 'u1', name: 'Ada' };
+    const mine = makeTask({ assignees: [ada], labels: ['Bug', 'design'] });
+    const others = makeTask({ assignees: [{ _id: 'u2', name: 'Grace' }], labels: ['ops'] });
+    const bare = makeTask();
+    const base = { search: '', status: 'all' as const };
+
+    it('keeps only tasks assigned to the current user', () => {
+      const filters = { ...base, assignedToMe: true };
+      expect(matchesFilters(mine, filters, 'u1')).toBe(true);
+      expect(matchesFilters(others, filters, 'u1')).toBe(false);
+      expect(matchesFilters(bare, filters, 'u1')).toBe(false);
+    });
+
+    it('matches nothing for "assigned to me" without a signed-in user', () => {
+      expect(matchesFilters(mine, { ...base, assignedToMe: true })).toBe(false);
+      expect(matchesFilters(mine, { ...base, assignedToMe: false })).toBe(true);
+    });
+
+    it('filters by label case-insensitively and ignores "all"', () => {
+      expect(matchesFilters(mine, { ...base, label: 'bug' })).toBe(true);
+      expect(matchesFilters(others, { ...base, label: 'bug' })).toBe(false);
+      expect(matchesFilters(bare, { ...base, label: 'bug' })).toBe(false);
+      expect(matchesFilters(bare, { ...base, label: 'all' })).toBe(true);
+    });
+
+    it('combines with applyFilters', () => {
+      const result = applyFilters(
+        [mine, others, bare],
+        { search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: true, label: 'design' },
+        'u1',
+      );
+      expect(result).toEqual([mine]);
+    });
+  });
 });
 
 describe('sortTasks', () => {

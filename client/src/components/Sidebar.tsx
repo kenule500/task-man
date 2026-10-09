@@ -1,5 +1,5 @@
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useEffect, useState, useRef } from 'react';
+import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown,
@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/sidebar';
 
 import { UserAvatar } from '@/components/ds';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import { usePermissions } from '../hooks/usePermissions';
@@ -53,6 +57,9 @@ const navGeneral = [
   { title: 'Help & Center', key: 'help', icon: HelpCircle, permission: null },
 ];
 
+/** 40px rows on touch, compact from `md`. */
+const MENU_ITEM = 'min-h-10 md:min-h-0';
+
 // ============================================================
 // NavGroup — renders a group of nav items with permission filtering
 // and auto-closes the mobile sheet after navigation.
@@ -68,7 +75,8 @@ interface NavGroupProps {
   label: string;
   items: NavItem[];
   isActive: (key: string) => boolean;
-  onNavigate: (key: string) => void;
+  /** Route for a nav key (onboarding when no workspace is known yet) */
+  hrefFor: (key: string) => string;
   can: (permission: string) => boolean;
   permissionsLoading: boolean;
 }
@@ -77,7 +85,7 @@ const NavGroup = ({
   label,
   items,
   isActive,
-  onNavigate,
+  hrefFor,
   can,
   permissionsLoading,
 }: NavGroupProps) => {
@@ -101,16 +109,17 @@ const NavGroup = ({
               tooltip={title}
               className="max-md:h-10"
               render={
-                <button
+                <Link
+                  to={hrefFor(key)}
+                  aria-current={isActive(key) ? 'page' : undefined}
                   onClick={() => {
                     if (isMobile) setOpenMobile(false);
-                    onNavigate(key);
                   }}
                   className="w-full"
                 >
                   <Icon />
                   <span>{title}</span>
-                </button>
+                </Link>
               }
             />
           </SidebarMenuItem>
@@ -132,12 +141,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
 
-  const [workspaceOpen, setWorkspaceOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
-
-  const workspaceRef = useRef<HTMLDivElement>(null);
-  const userRef = useRef<HTMLDivElement>(null);
 
   // Target slug for navigation
   const targetSlug =
@@ -155,20 +159,6 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       : location.pathname.split('/')[2];
   const pageTitle =
     [...navMain, ...navGeneral].find((item) => item.key === section)?.title ?? '';
-
-  // Click-outside detection
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (workspaceRef.current && !workspaceRef.current.contains(e.target as Node)) {
-        setWorkspaceOpen(false);
-      }
-      if (userRef.current && !userRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Fetch workspaces
   const fetchWorkspaces = async () => {
@@ -204,48 +194,30 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   }, [workspaceSlug]);
 
   const handleSwitchWorkspace = (ws: Workspace) => {
-    setWorkspaceOpen(false);
     navigate(`/${ws.slug}/dashboard`);
   };
 
-  const handleNav = (key: string) => {
-    if (!targetSlug) {
-      navigate('/onboarding');
-      return;
-    }
-    navigate(`/${targetSlug}/${key}`);
-  };
-
-  const handleGoToProfile = () => {
-    setUserMenuOpen(false);
-    navigate('/settings/profile');
-  };
-
-  const handleLogoutClick = () => {
-    setUserMenuOpen(false);
-    onLogout();
-  };
-
-  const handleOpenCreateWorkspace = () => {
-    setWorkspaceOpen(false);
-    setCreateWorkspaceOpen(true);
-  };
+  const hrefFor = (key: string) => (targetSlug ? `/${targetSlug}/${key}` : '/onboarding');
 
   return (
     <SidebarProvider>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-lg focus:outline-2 focus:outline-primary"
+      >
+        Skip to content
+      </a>
       <ShadcnSidebar collapsible="icon" className="border-r border-gray-300">
         {/* ========== Workspace Switcher ========== */}
         <SidebarHeader className="pt-[max(0.5rem,env(safe-area-inset-top))]">
           <SidebarMenu>
             <SidebarMenuItem>
-              <div className="relative" ref={workspaceRef}>
-                <SidebarMenuButton
-                  size="lg"
-                  onClick={() => setWorkspaceOpen(!workspaceOpen)}
-                  className="cursor-pointer"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<SidebarMenuButton size="lg" className="cursor-pointer" aria-label="Switch workspace" />}
                 >
                   <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-white">
-                    <Sparkles className="size-4" />
+                    <Sparkles className="size-4" aria-hidden />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-bold">
@@ -255,44 +227,36 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                       {workspaces.length} {workspaces.length === 1 ? 'workspace' : 'workspaces'}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </SidebarMenuButton>
-
-                {workspaceOpen && (
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50">
-                    <div className="px-3 py-2 text-xs font-medium text-slate-500">
-                      My Workspaces
-                    </div>
-                    <div className="h-px bg-slate-100 mx-1" />
-
+                  <ChevronsUpDown className="ml-auto size-4" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>My workspaces</DropdownMenuLabel>
                     {workspaces.map((ws) => (
-                      <button
+                      <DropdownMenuItem
                         key={ws._id}
                         onClick={() => handleSwitchWorkspace(ws)}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
+                        className={MENU_ITEM}
                       >
-                        <div className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                        <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">
                           {ws.name.charAt(0).toUpperCase()}
-                        </div>
+                        </span>
                         <span className="flex-1 truncate">{ws.name}</span>
                         {activeWorkspace?._id === ws._id && (
-                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                          <>
+                            <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                            <span className="sr-only">(current)</span>
+                          </>
                         )}
-                      </button>
+                      </DropdownMenuItem>
                     ))}
-
-                    <div className="h-px bg-slate-100 mx-1" />
-
-                    <button
-                      onClick={handleOpenCreateWorkspace}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create workspace
-                    </button>
-                  </div>
-                )}
-              </div>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setCreateWorkspaceOpen(true)} className={MENU_ITEM}>
+                    <Plus aria-hidden /> Create workspace
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
@@ -303,7 +267,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             label="Main Menu"
             items={navMain}
             isActive={isActive}
-            onNavigate={handleNav}
+            hrefFor={hrefFor}
             can={can}
             permissionsLoading={permissionsLoading}
           />
@@ -311,7 +275,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             label="General"
             items={navGeneral}
             isActive={isActive}
-            onNavigate={handleNav}
+            hrefFor={hrefFor}
             can={can}
             permissionsLoading={permissionsLoading}
           />
@@ -321,56 +285,35 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
         <SidebarFooter className="border-t border-slate-100 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <SidebarMenu>
             <SidebarMenuItem>
-              <div className="relative" ref={userRef}>
-                <SidebarMenuButton
-                  size="lg"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="cursor-pointer"
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<SidebarMenuButton size="lg" className="cursor-pointer" aria-label="Account menu" />}
                 >
                   <UserAvatar name={user?.name || 'User'} className="size-8" />
-                  <div className="grid flex-1 text-left text-sm leading-tight overflow-hidden">
+                  <div className="grid flex-1 overflow-hidden text-left text-sm leading-tight">
                     <span className="truncate font-semibold">{user?.name || 'User'}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {user?.email || 'user@taskman.com'}
-                    </span>
+                    <span className="truncate text-xs text-muted-foreground">{user?.email || ''}</span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4 text-slate-400" />
-                </SidebarMenuButton>
-
-                {userMenuOpen && (
-                  <div className="absolute bottom-full left-0 mb-1 w-64 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50">
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <UserAvatar name={user?.name || 'User'} className="size-8" />
-                      <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                        <span className="truncate font-semibold">{user?.name}</span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {user?.email}
-                        </span>
-                      </div>
+                  <ChevronsUpDown className="ml-auto size-4 text-slate-500" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top" className="w-64">
+                  <div className="flex items-center gap-2 px-1.5 py-2">
+                    <UserAvatar name={user?.name || 'User'} className="size-8" />
+                    <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{user?.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
                     </div>
-
-                    <div className="h-px bg-slate-100 mx-1" />
-
-                    <button
-                      onClick={handleGoToProfile}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left hover:bg-slate-50 cursor-pointer"
-                    >
-                      <User className="w-4 h-4" />
-                      Profile
-                    </button>
-
-                    <div className="h-px bg-slate-100 mx-1" />
-
-                    <button
-                      onClick={handleLogoutClick}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 md:py-2 text-sm text-left text-red-600 hover:bg-red-50 cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Log out
-                    </button>
                   </div>
-                )}
-              </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/settings/profile')} className={MENU_ITEM}>
+                    <User aria-hidden /> Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={onLogout} className={MENU_ITEM}>
+                    <LogOut aria-hidden /> Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
@@ -400,7 +343,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             )}
           </div>
         </header>
-        <div className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
+        <div id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 outline-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
           {children}
         </div>
       </SidebarInset>

@@ -1,54 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, Field, Surface } from '@/components/ds';
-import { Lock, Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Alert } from '@/components/ds';
+import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
+import PasswordField from '@/components/auth/PasswordField';
+import { useFormValidation } from '@/components/auth/useFormValidation';
+import { validateConfirmPassword, validateNewPassword } from '@/components/auth/validation';
+import { Lock, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+
+const validators = {
+  password: (value: string) => validateNewPassword(value),
+  confirmPassword: (value: string, all: { password: string; confirmPassword: string }) =>
+    validateConfirmPassword(value, all.password),
+};
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [values, setValues] = useState({ password: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const { errorFor, touch, validateAll } = useFormValidation(values, validators);
+
+  // Send the user on to sign in after a short pause (cleared if they leave first)
+  useEffect(() => {
+    if (!success) return;
+    const timer = window.setTimeout(() => navigate('/login'), 3000);
+    return () => window.clearTimeout(timer);
+  }, [success, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
+    if (!validateAll()) return;
     setLoading(true);
 
     try {
-      await api.post(`/auth/reset-password/${token}`, { password });
+      await api.post(`/auth/reset-password/${token}`, { password: values.password });
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 3000);
-    } catch (error: unknown) {
-      const axiosError = error as { 
-        response?: { 
-          data?: { 
-            message?: string; 
-            errors?: { msg: string }[] 
-          } 
-        } 
-      };
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string; errors?: { msg: string }[] } } };
       setError(
-        axiosError.response?.data?.message || 
-        axiosError.response?.data?.errors?.[0]?.msg || 
-        'Something went wrong'
+        axiosError.response?.data?.message ||
+          axiosError.response?.data?.errors?.[0]?.msg ||
+          'We could not reset your password. The link may have expired.',
       );
     } finally {
       setLoading(false);
@@ -57,83 +54,64 @@ const ResetPasswordPage = () => {
 
   if (success) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <Surface padding="lg" className="max-w-md w-full border-slate-200 shadow-xl text-center">
-          <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Password Reset!</h1>
-          <p className="text-slate-500 mb-8">
-            Your password has been updated. Redirecting you to login...
-          </p>
-          <Link to="/login">
-            <Button className="w-full h-11 rounded-xl gap-2 bg-primary hover:bg-primary-hover text-white">
-              Go to Login <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
-        </Surface>
-      </div>
+      <AuthPageShell>
+        <AuthStatusHeader
+          icon={<CheckCircle2 />}
+          tone="success"
+          title="Password updated"
+          description="You can now sign in with your new password. Taking you to sign in..."
+        />
+        <Link to="/login" className={buttonVariants({ className: 'h-11 w-full gap-2 rounded-xl bg-primary text-white hover:bg-primary-hover' })}>
+          Go to sign in <ArrowRight className="size-4" aria-hidden />
+        </Link>
+      </AuthPageShell>
     );
   }
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <Surface padding="lg" className="max-w-md w-full border-slate-200 shadow-xl">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Set new password</h1>
-          <p className="text-slate-500 text-sm">Your new password must be different from previously used passwords.</p>
-        </div>
+    <AuthPageShell>
+      <AuthStatusHeader icon={<Lock />} title="Set a new password" description="Choose a password you have not used before." />
 
-        {error && <Alert tone="error" className="mb-6">{error}</Alert>}
+      {error && (
+        <Alert tone="error" className="mb-6">
+          {error}{' '}
+          <Link to="/forgot-password" className="font-semibold underline">Request a new link</Link>
+        </Alert>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <Field label="New Password" htmlFor="password">
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="h-11 bg-slate-50 border-slate-200 rounded-lg pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </Field>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <PasswordField
+          id="password"
+          label="New password"
+          value={values.password}
+          onChange={(password) => setValues((current) => ({ ...current, password }))}
+          onBlur={() => touch('password')}
+          error={errorFor('password')}
+          autoComplete="new-password"
+          showStrength
+        />
+        <PasswordField
+          id="confirmPassword"
+          label="Confirm new password"
+          value={values.confirmPassword}
+          onChange={(confirmPassword) => setValues((current) => ({ ...current, confirmPassword }))}
+          onBlur={() => touch('confirmPassword')}
+          error={errorFor('confirmPassword')}
+          autoComplete="new-password"
+          hint="Type it again to make sure it matches."
+        />
 
-          <Field label="Confirm Password" htmlFor="confirmPassword">
-            <Input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              className="h-11 bg-slate-50 border-slate-200 rounded-lg"
-            />
-          </Field>
-
-          <Button 
-            type="submit" 
-            disabled={loading}
-            className="w-full h-11 rounded-xl bg-primary hover:bg-primary-hover text-white"
-          >
-            {loading ? 'Resetting...' : 'Reset Password'}
-          </Button>
-        </form>
-      </Surface>
-    </div>
+        <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-primary text-base text-white hover:bg-primary-hover">
+          {loading ? (
+            <>
+              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Updating...
+            </>
+          ) : (
+            'Update password'
+          )}
+        </Button>
+      </form>
+    </AuthPageShell>
   );
 };
 

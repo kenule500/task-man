@@ -1,34 +1,31 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Shield, Plus, Pencil, Trash2, Lock, KeyRound } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check } from 'lucide-react';
 import {
   Alert,
   Field,
+  IconTile,
   PageHeader,
   SectionHeader,
+  SkeletonCards,
   Surface,
+  Tag,
+  fieldMessageId,
+  surfaceVariants,
 } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 import RoleEditorModal from '../components/RoleEditorModal';
+import ConfirmActionDialog from '../components/ConfirmActionDialog';
 import { usePermissions } from '../hooks/usePermissions';
 import { getApiErrorMessage } from '@/utils/api';
 import { useWorkspaceData, workspaceApi } from '@/features/workspace';
 import api from '../utils/api';
 
 const INPUT =
-  'h-11 bg-white border border-gray-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none outline-none';
+  'h-11 rounded-lg border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-500 md:text-sm';
 
 interface FeedbackMessage {
   type: 'success' | 'error';
@@ -47,13 +44,64 @@ interface Role {
 const Feedback = ({ message }: { message: FeedbackMessage | null }) =>
   message ? <Alert tone={message.type}>{message.text}</Alert> : null;
 
+const permissionCount = (role: Role) =>
+  `${role.permissions.length} permission${role.permissions.length !== 1 ? 's' : ''}`;
+
+interface RoleCardProps {
+  role: Role;
+  canManage?: boolean;
+  onEdit?: (role: Role) => void;
+  onDelete?: (role: Role) => void;
+}
+
+const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) => (
+  <li
+    className={cn(
+      surfaceVariants({ radius: 'lg', padding: 'sm' }),
+      'flex flex-col shadow-none',
+      role.isSystem ? 'bg-slate-50/60' : 'border-slate-200',
+    )}
+  >
+    <div className="mb-2 flex items-start justify-between gap-2">
+      <IconTile size="sm" tone={role.isSystem ? 'neutral' : 'primary'}>
+        <Shield />
+      </IconTile>
+      {role.isSystem ? (
+        <Tag size="sm" className="uppercase tracking-wider">System</Tag>
+      ) : (
+        canManage && (
+          <div className="-mr-2 -mt-2 flex items-center">
+            <Button
+              variant="ghost"
+              onClick={() => onEdit?.(role)}
+              aria-label={`Edit role ${role.name}`}
+              className="size-10 rounded-lg text-slate-500 hover:bg-primary/10 hover:text-primary md:size-8"
+            >
+              <Pencil aria-hidden />
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onDelete?.(role)}
+              aria-label={`Delete role ${role.name}`}
+              className="size-10 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 md:size-8"
+            >
+              <Trash2 aria-hidden />
+            </Button>
+          </div>
+        )
+      )}
+    </div>
+    <h4 className="mb-0.5 truncate text-sm font-semibold text-slate-900">{role.name}</h4>
+    <p className="mb-2 line-clamp-2 min-h-8 text-xs text-slate-600">{role.description || 'No description'}</p>
+    <p className="mt-auto text-xs tabular-nums text-slate-600">{permissionCount(role)}</p>
+  </li>
+);
+
 const WorkspaceSettingsPage = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
 
-  // Workspace data — provided by the other dev's hook
-  const { workspace, setWorkspace, loading, error } =
-  useWorkspaceData(workspaceSlug);
+  const { workspace, setWorkspace, loading, error } = useWorkspaceData(workspaceSlug);
 
   const canManage = can('settings:manage');
 
@@ -66,12 +114,15 @@ const WorkspaceSettingsPage = () => {
   const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<FeedbackMessage | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // ==================== Roles state ====================
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesMessage, setRolesMessage] = useState<FeedbackMessage | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
 
   const name = draftName ?? workspace?.name ?? '';
   const unchanged = name.trim() === (workspace?.name ?? '');
@@ -84,7 +135,7 @@ const WorkspaceSettingsPage = () => {
       const response = await api.get(`/workspaces/${workspaceSlug}/roles`);
       setRoles(response.data || []);
     } catch (err) {
-      console.error('Failed to load roles:', err);
+      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, 'We could not load the roles.') });
     } finally {
       setRolesLoading(false);
     }
@@ -124,6 +175,7 @@ const WorkspaceSettingsPage = () => {
     if (!workspaceSlug) return;
     setRegenerating(true);
     setInviteMessage(null);
+    setConfirmingRegenerate(false);
     try {
       const { inviteCode } = await workspaceApi.regenerateInvite(workspaceSlug);
       setWorkspace((current) =>
@@ -140,7 +192,17 @@ const WorkspaceSettingsPage = () => {
       });
     } finally {
       setRegenerating(false);
-      setConfirmingRegenerate(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!workspace?.inviteCode) return;
+    try {
+      await navigator.clipboard.writeText(workspace.inviteCode);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setInviteMessage({ type: 'error', text: 'Could not copy automatically. Select the code and copy it manually.' });
     }
   };
 
@@ -154,14 +216,17 @@ const WorkspaceSettingsPage = () => {
     setEditorOpen(true);
   };
 
-  const handleDeleteRole = async (role: Role) => {
-    if (!window.confirm(`Delete the role "${role.name}"? This cannot be undone.`)) return;
+  const handleDeleteRole = async () => {
+    const role = roleToDelete;
+    if (!role) return;
+    setRoleToDelete(null);
+    setRolesMessage(null);
     try {
       await api.delete(`/workspaces/${workspaceSlug}/roles/${role._id}`);
-      setRoles(roles.filter((r) => r._id !== role._id));
-    } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      alert(axiosError.response?.data?.message || 'Failed to delete role');
+      setRoles((current) => current.filter((r) => r._id !== role._id));
+      setRolesMessage({ type: 'success', text: `Role "${role.name}" deleted.` });
+    } catch (err) {
+      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, 'We could not delete the role.') });
     }
   };
 
@@ -172,10 +237,9 @@ const WorkspaceSettingsPage = () => {
 
   return (
     <div className="max-w-4xl space-y-6">
-
       <PageHeader
-        title="Workspace Settings"
-        description="Manage the name, invite code, and roles for this workspace."
+        title="Workspace settings"
+        description="Manage the name, invite code and roles for this workspace."
       />
 
       {loading ? (
@@ -193,7 +257,7 @@ const WorkspaceSettingsPage = () => {
         <>
           {!canManage && (
             <Alert tone="info">
-              You don't have permission to change these settings. This view is read-only.
+              You do not have permission to change these settings. This view is read-only.
             </Alert>
           )}
 
@@ -213,11 +277,13 @@ const WorkspaceSettingsPage = () => {
               >
                 <Input
                   id="workspace-name"
+                  aria-describedby={fieldMessageId('workspace-name')}
                   value={name}
                   onChange={(e) => setDraftName(e.target.value)}
                   maxLength={60}
                   readOnly={!canManage}
                   required
+                  autoComplete="off"
                   className={INPUT}
                 />
               </Field>
@@ -226,7 +292,7 @@ const WorkspaceSettingsPage = () => {
                 <Button
                   type="submit"
                   disabled={saving || !name.trim() || unchanged}
-                  className="h-10 w-full rounded-lg bg-primary px-5 text-sm font-medium text-white shadow-sm hover:bg-primary-hover sm:w-auto"
+                  className="h-11 w-full rounded-lg bg-primary px-5 text-sm font-medium text-white shadow-sm hover:bg-primary-hover sm:h-10 sm:w-auto"
                 >
                   {saving ? 'Saving...' : 'Save changes'}
                 </Button>
@@ -240,24 +306,35 @@ const WorkspaceSettingsPage = () => {
               className="mb-1"
               title={<span id="invite-heading">Invite code</span>}
             />
-            <p className="mb-4 text-xs text-slate-500">
+            <p className="mb-4 text-xs text-slate-600">
               Teammates join with this code. Regenerating it invalidates the old code and links.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <code className="break-all rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-center font-mono text-sm font-semibold tracking-wider text-slate-700 sm:text-left">
                 {workspace.inviteCode}
               </code>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCopyCode}
+                className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
+              >
+                {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+                {copied ? 'Copied' : 'Copy code'}
+              </Button>
               {canManage && (
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={regenerating}
                   onClick={() => setConfirmingRegenerate(true)}
-                  className="h-10 gap-2 rounded-lg border-gray-300 text-sm text-slate-700 shadow-none hover:bg-gray-100"
+                  className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
                 >
-                  <KeyRound className="w-4 h-4" /> Regenerate invite code
+                  <KeyRound aria-hidden /> {regenerating ? 'Regenerating...' : 'Regenerate code'}
                 </Button>
               )}
             </div>
+            <p role="status" className="sr-only">{copied ? 'Invite code copied to clipboard' : ''}</p>
             {inviteMessage && (
               <div className="mt-4">
                 <Feedback message={inviteMessage} />
@@ -267,150 +344,90 @@ const WorkspaceSettingsPage = () => {
 
           {/* ==================== 3. Roles & Permissions ==================== */}
           <Surface as="section" aria-labelledby="roles-heading" className="sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <SectionHeader
                   className="mb-0"
-                  title={<span id="roles-heading">Roles & Permissions</span>}
+                  title={<span id="roles-heading">Roles and permissions</span>}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="mt-1 text-xs text-slate-600">
                   Define custom roles and their permissions for this workspace.
                 </p>
               </div>
               {canManage && (
                 <Button
                   onClick={handleCreateRole}
-                  className="rounded-lg gap-2 bg-primary hover:bg-primary-hover text-white h-10 px-5 shrink-0"
+                  className="h-11 shrink-0 gap-2 rounded-lg bg-primary px-5 text-white hover:bg-primary-hover sm:h-10"
                 >
-                  <Plus className="w-4 h-4" /> New Role
+                  <Plus aria-hidden /> New role
                 </Button>
               )}
             </div>
 
+            {rolesMessage && (
+              <div className="mb-5">
+                <Alert tone={rolesMessage.type} onDismiss={() => setRolesMessage(null)}>{rolesMessage.text}</Alert>
+              </div>
+            )}
+
             {/* System roles */}
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  System Roles
-                </h3>
-                <span className="text-xs text-slate-400">({systemRoles.length})</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {systemRoles.map((role) => (
-                  <div
-                    key={role._id}
-                    className="bg-slate-50/50 rounded-xl border border-slate-200 p-4"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                        <Shield className="w-3.5 h-3.5 text-slate-500" />
-                      </div>
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-100 px-1.5 py-0.5 rounded">
-                        System
-                      </span>
-                    </div>
-                    <h4 className="font-semibold text-slate-900 text-sm mb-0.5">
-                      {role.name}
-                    </h4>
-                    <p className="text-xs text-slate-500 line-clamp-2 mb-2">
-                      {role.description}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <Lock className="size-3.5 text-slate-500" aria-hidden />
+                System roles
+                <span className="font-normal normal-case tracking-normal text-slate-600">({systemRoles.length})</span>
+              </h3>
+              {rolesLoading ? (
+                <SkeletonCards count={3} columns="md:grid-cols-2 lg:grid-cols-3" className="gap-3" />
+              ) : (
+                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {systemRoles.map((role) => (
+                    <RoleCard key={role._id} role={role} />
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Custom roles */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Custom Roles
-                </h3>
-                <span className="text-xs text-slate-400">({customRoles.length})</span>
-              </div>
+              <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
+                <Shield className="size-3.5 text-primary" aria-hidden />
+                Custom roles
+                <span className="font-normal normal-case tracking-normal text-slate-600">({customRoles.length})</span>
+              </h3>
 
               {rolesLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse h-[150px]"
-                    >
-                      <div className="w-8 h-8 bg-slate-200 rounded-lg mb-2" />
-                      <div className="h-3 w-20 bg-slate-200 rounded mb-2" />
-                      <div className="h-2.5 w-full bg-slate-100 rounded mb-1" />
-                      <div className="h-2.5 w-2/3 bg-slate-100 rounded" />
-                    </div>
-                  ))}
-                </div>
+                <SkeletonCards count={3} columns="md:grid-cols-2 lg:grid-cols-3" className="gap-3" />
               ) : customRoles.length === 0 ? (
-                <div className="bg-slate-50/50 rounded-xl border border-dashed border-slate-300 p-8 text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <Shield className="w-5 h-5 text-primary" />
-                  </div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-1">
-                    No custom roles yet
-                  </h4>
-                  <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto">
-                    Create roles tailored to your team — like "Marketing Lead",
-                    "Contractor", or "Auditor".
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-8 text-center">
+                  <IconTile className="mx-auto mb-3">
+                    <Shield />
+                  </IconTile>
+                  <p className="mb-1 text-sm font-semibold text-slate-800">No custom roles yet</p>
+                  <p className="mx-auto mb-4 max-w-sm text-xs text-slate-600">
+                    Create roles tailored to your team, like &quot;Marketing Lead&quot;, &quot;Contractor&quot; or &quot;Auditor&quot;.
                   </p>
                   {canManage && (
                     <Button
                       onClick={handleCreateRole}
-                      className="rounded-lg gap-2 bg-primary hover:bg-primary-hover text-white h-9 text-sm"
+                      className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Create your first role
+                      <Plus aria-hidden /> Create your first role
                     </Button>
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {customRoles.map((role) => (
-                    <div
+                    <RoleCard
                       key={role._id}
-                      className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow group relative"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Shield className="w-3.5 h-3.5 text-primary" />
-                        </div>
-                        {canManage && (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleEditRole(role)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
-                              title="Edit role"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteRole(role)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete role"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <h4 className="font-semibold text-slate-900 text-sm mb-0.5 truncate">
-                        {role.name}
-                      </h4>
-                      <p className="text-xs text-slate-500 line-clamp-2 mb-2 h-8">
-                        {role.description || 'No description'}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
+                      role={role}
+                      canManage={canManage}
+                      onEdit={handleEditRole}
+                      onDelete={setRoleToDelete}
+                    />
                   ))}
-                </div>
+                </ul>
               )}
             </div>
           </Surface>
@@ -419,36 +436,26 @@ const WorkspaceSettingsPage = () => {
 
       {/* ==================== Modals ==================== */}
 
-      <AlertDialog
+      <ConfirmActionDialog
         open={confirmingRegenerate}
-        onOpenChange={(open) => !open && setConfirmingRegenerate(false)}
-      >
-        <AlertDialogContent className="bg-white border border-gray-200 shadow-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-bold text-slate-900">
-              Regenerate the invite code?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-slate-500">
-              The current code and any shared invite links stop working immediately.
-              Existing members keep their access.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="bg-gray-50 border-t border-gray-200">
-            <AlertDialogCancel className="border-gray-300 text-slate-700 hover:bg-gray-100">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {regenerating ? 'Regenerating...' : 'Regenerate code'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onOpenChange={setConfirmingRegenerate}
+        title="Regenerate the invite code?"
+        description="The current code and any shared invite links stop working immediately. Existing members keep their access."
+        confirmLabel="Regenerate code"
+        onConfirm={handleRegenerate}
+      />
+
+      <ConfirmActionDialog
+        open={roleToDelete !== null}
+        onOpenChange={(open) => !open && setRoleToDelete(null)}
+        title={`Delete the role "${roleToDelete?.name ?? ''}"?`}
+        description="Members who have this role may lose access. This cannot be undone."
+        confirmLabel="Delete role"
+        onConfirm={handleDeleteRole}
+      />
 
       <RoleEditorModal
+        key={`${editingRole?._id ?? 'new'}-${editorOpen}`}
         open={editorOpen}
         onOpenChange={setEditorOpen}
         workspaceSlug={workspaceSlug!}
