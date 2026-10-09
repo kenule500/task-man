@@ -1,5 +1,6 @@
 /** Server limit for one attachment. */
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+/** Matches the API default (ATTACHMENT_MAX_MB=4), which fits serverless request limits. */
+export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
 
 export const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -24,7 +25,7 @@ export const fileKindFromMimetype = (mimetype: string): FileKind => {
 /** Client-side check before uploading; returns an error message or `null`. */
 export const validateAttachment = (file: { name: string; size: number }): string | null => {
   if (file.size === 0) return `"${file.name}" is empty.`;
-  if (file.size > MAX_ATTACHMENT_BYTES) return `"${file.name}" is larger than 10 MB.`;
+  if (file.size > MAX_ATTACHMENT_BYTES) return `"${file.name}" is larger than ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB.`;
   return null;
 };
 

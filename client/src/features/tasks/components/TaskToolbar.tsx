@@ -35,7 +35,8 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
   const assignedToMe = Boolean(filters.assignedToMe);
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    // Status pills on their own row; search and filters on the next one (no awkward wrapping)
+    <div className="flex flex-col gap-3">
       <FilterPills
         className="min-w-0"
         aria-label="Filter by status"

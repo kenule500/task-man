@@ -3,7 +3,7 @@ import multer, { FileFilterCallback } from 'multer';
 
 // Serverless hosts cap request bodies (Vercel: 4.5 MB), so the limit is configurable.
 const maxMb = Number(process.env.ATTACHMENT_MAX_MB);
-export const MAX_ATTACHMENT_BYTES = (Number.isFinite(maxMb) && maxMb > 0 ? maxMb : 10) * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = (Number.isFinite(maxMb) && maxMb > 0 ? maxMb : 4) * 1024 * 1024;
 
 // No svg/html: served back from our origin they would allow stored XSS.
 export const ALLOWED_ATTACHMENT_TYPES = [

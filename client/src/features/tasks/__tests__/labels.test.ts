@@ -75,7 +75,7 @@ describe('file helpers', () => {
     expect(isImageMimetype('image/webp')).toBe(true);
     expect(isImageMimetype('application/pdf')).toBe(false);
     expect(validateAttachment({ name: 'a.pdf', size: 1024 })).toBeNull();
-    expect(validateAttachment({ name: 'big.zip', size: MAX_ATTACHMENT_BYTES + 1 })).toMatch(/larger than 10 MB/);
+    expect(validateAttachment({ name: 'big.zip', size: MAX_ATTACHMENT_BYTES + 1 })).toMatch(/larger than 4 MB/);
     expect(validateAttachment({ name: 'empty.txt', size: 0 })).toMatch(/empty/);
   });
 });

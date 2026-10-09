@@ -12,7 +12,7 @@ import { dateKeyOf, isOverdue } from '../lib/date';
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
 
-const GRID = 'grid grid-cols-[2.5rem_minmax(0,1fr)_7.5rem_9.5rem_9.5rem_4.5rem] items-center gap-4';
+const GRID = 'grid grid-cols-[2.5rem_minmax(0,1fr)_6rem_7.5rem_9.5rem_9.5rem_4.5rem] items-center gap-4';
 
 interface ListViewProps extends TaskViewProps {
   /** Total before filtering, to tell "no tasks" apart from "no matches". */
@@ -37,9 +37,9 @@ const ListView = ({ tasks, totalCount, onUpdate, onEdit, onDelete, onOpen, canWr
         <>
           {/* Desktop and tablet: table */}
           <div data-testid="list-table" className="hidden overflow-x-auto md:block">
-            <div role="table" aria-label="Tasks" className="min-w-[760px]">
+            <div role="table" aria-label="Tasks" className="min-w-[860px]">
               <div role="row" className={cn(GRID, 'px-6 py-4 border-b border-slate-100 bg-slate-50/50')}>
-                {['Done', 'Task Name', 'Priority', 'Status', 'Due Date'].map((header, i) => (
+                {['Done', 'Task Name', 'Assignees', 'Priority', 'Status', 'Due Date'].map((header, i) => (
                   <div key={header} role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <span className={cn(i === 0 && 'sr-only')}>{header}</span>
                   </div>
@@ -118,7 +118,12 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
           onOpen={openTask({ task, onOpen, onEdit })}
           className={titleClass}
         />
-        <TaskMeta task={task} />
+        <TaskMeta task={task} showAssignees={false} />
+      </div>
+
+      <div role="cell" className="flex items-center">
+        <AssigneeStack users={task.assignees} />
+        {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-400" aria-label="Unassigned">—</span>}
       </div>
 
       <div role="cell">
@@ -187,7 +192,7 @@ const ActivityCounts = ({ task }: { task: Task }) => {
 };
 
 /** Project, labels, description, counters and assignees under a task title. */
-const TaskMeta = ({ task, className }: { task: Task; className?: string }) => (
+const TaskMeta = ({ task, className, showAssignees = true }: { task: Task; className?: string; showAssignees?: boolean }) => (
   <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5', className)}>
     {task.project && (
       <span className="max-w-32 shrink-0 truncate text-xs text-slate-500 bg-slate-100 rounded px-1.5" title="Project">
@@ -195,10 +200,10 @@ const TaskMeta = ({ task, className }: { task: Task; className?: string }) => (
       </span>
     )}
     <LabelList labels={task.labels} />
-    {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-400 line-clamp-1">{task.description}</p>}
+    {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
     <ActivityCounts task={task} />
-    <AssigneeStack users={task.assignees} className="ml-auto" />
+    {showAssignees && <AssigneeStack users={task.assignees} className="ml-auto" />}
   </div>
 );
 

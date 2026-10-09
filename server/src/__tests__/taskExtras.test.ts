@@ -245,7 +245,7 @@ describe('uploadAttachmentFile middleware', () => {
     expect(res.body.message).toMatch(/type/i);
   });
 
-  it('answers 400 for a file over 10 MB', async () => {
+  it('answers 400 for a file over the size limit', async () => {
     const { res } = await run(multipart('big.zip', 'application/zip', Buffer.alloc(MAX_ATTACHMENT_BYTES + 1024)));
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toMatch(/too large/i);

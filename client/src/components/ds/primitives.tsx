@@ -199,7 +199,8 @@ const AVATAR_SIZES = { sm: 'size-7 text-[11px]', md: 'size-9 text-xs', lg: 'size
 export const UserAvatar = ({ name, src, size = 'md', className }: UserAvatarProps) => (
   <Avatar className={cn(AVATAR_SIZES[size], className)}>
     {src && <AvatarImage src={src} alt="" />}
-    <AvatarFallback className="bg-primary/10 font-semibold text-primary">{getInitials(name)}</AvatarFallback>
+    {/* Inherit the font size set on the avatar (the primitive hard-codes text-sm) */}
+    <AvatarFallback className="bg-primary/10 font-semibold text-primary text-[length:inherit] leading-none">{getInitials(name)}</AvatarFallback>
   </Avatar>
 );
 
