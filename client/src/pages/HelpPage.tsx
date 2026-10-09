@@ -29,10 +29,16 @@ const Kbd = ({ children }: { children: ReactNode }) => (
   </kbd>
 );
 
+const SHORTCUTS: { keys: ReactNode; action: string }[] = [
+  { keys: <Kbd>N</Kbd>, action: 'Create a new task' },
+  { keys: <Kbd>/</Kbd>, action: 'Focus the search box' },
+  { keys: <><Kbd>1</Kbd> <Kbd>2</Kbd> <Kbd>3</Kbd> <Kbd>4</Kbd></>, action: 'Switch view: List, Board, Calendar, Timeline' },
+];
+
 const HelpPage = () => (
   <AppShell>
     <div className="w-full max-w-3xl space-y-6">
-      <PageHeader title="Help & Center" description="Short guides for getting the most out of TaskMan." />
+      <PageHeader title="Help center" description="Short guides for getting the most out of TaskMan." />
 
       <div className="space-y-3">
         <HelpSection title="Getting started" defaultOpen>
@@ -43,7 +49,10 @@ const HelpPage = () => (
           <ul className="list-disc space-y-1 pl-5">
             <li>Open <strong>Tasks</strong> in the sidebar and choose <strong>Add Task</strong> to create your first task.</li>
             <li>Give it a title, a due date, a priority and, optionally, a start date and prerequisites.</li>
-            <li>Share the invite code from the dashboard or the Team page so teammates can join your workspace.</li>
+            <li>
+              Invite teammates by email from <strong>Team members</strong>, or share the invite code from the dashboard
+              or <strong>Settings</strong>.
+            </li>
             <li>Use the workspace switcher at the top of the sidebar to move between workspaces.</li>
           </ul>
         </HelpSection>
@@ -86,12 +95,40 @@ const HelpPage = () => (
           </ul>
         </HelpSection>
 
-        <HelpSection title="Keyboard tips">
+        <HelpSection title="Teams, roles and permissions">
+          <p>
+            Every member has a role that decides what they can see and change. Pages and buttons you cannot use are
+            hidden, and opening one by link shows an access message instead.
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>Owners and admins invite people by email under <strong>Team members</strong> and pick a role for each invitation.</li>
+            <li>Change a member&apos;s role from the role menu on their row; remove them with the bin button.</li>
+            <li>Under <strong>Settings &gt; Roles and permissions</strong> you can create custom roles with exactly the permissions you want.</li>
+            <li>Regenerating the invite code stops the old code and links from working; existing members keep access.</li>
+          </ul>
+        </HelpSection>
+
+        <HelpSection title="Keyboard shortcuts">
+          <p>
+            These work on the Tasks page whenever you are not typing in a field. Press <Kbd>Esc</Kbd> to leave a field
+            first.
+          </p>
+          <dl className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            {SHORTCUTS.map(({ keys, action }) => (
+              <div key={action} className="flex items-center justify-between gap-4 px-3 py-2.5">
+                <dt className="text-slate-700">{action}</dt>
+                <dd className="flex shrink-0 items-center gap-1">{keys}</dd>
+              </div>
+            ))}
+          </dl>
+          <h3 className="pt-1 text-sm font-semibold text-slate-900">Moving around</h3>
           <ul className="list-disc space-y-1 pl-5">
             <li><Kbd>Tab</Kbd> and <Kbd>Shift</Kbd> + <Kbd>Tab</Kbd> move focus; the focused control always has a blue outline.</li>
             <li><Kbd>Enter</Kbd> or <Kbd>Space</Kbd> activates buttons and opens menus; <Kbd>Esc</Kbd> closes dialogs and menus.</li>
+            <li>Inside a menu, <Kbd>↑</Kbd> and <Kbd>↓</Kbd> move between items.</li>
             <li><Kbd>←</Kbd> <Kbd>→</Kbd> on a timeline bar moves it by a day; add <Kbd>Shift</Kbd> to change its length.</li>
             <li>Board cards offer a <strong>Move to…</strong> menu as an alternative to dragging.</li>
+            <li>Choose <strong>Skip to content</strong> (the first Tab stop on every page) to jump past the sidebar.</li>
           </ul>
         </HelpSection>
 

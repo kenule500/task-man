@@ -222,7 +222,7 @@ export const StatCard = ({ title, value, subtitle, icon, colorClass = 'text-prim
     </div>
     <div>
       <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">{value}</p>
-      {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
+      {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
     </div>
   </Surface>
 );
@@ -252,7 +252,7 @@ export const Field = ({ label, htmlFor, required, hint, error, children, classNa
     </label>
     {children}
     {(error || hint) && (
-      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-red-600' : 'text-slate-400')}>
+      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-red-600' : 'text-slate-500')}>
         {error ?? hint}
       </p>
     )}

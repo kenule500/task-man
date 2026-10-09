@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { Button } from '@/components/ui/button';
-import {
-  Loader2, XCircle, Users, ArrowRight,
-} from 'lucide-react';
+import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Alert, Tag } from '@/components/ds';
+import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
+import { Loader2, XCircle, Users, ArrowRight } from 'lucide-react';
 
 interface Invitation {
   workspace: { _id: string; name: string; slug: string };
@@ -14,13 +15,24 @@ interface Invitation {
   expiresAt: string;
 }
 
+const formatExpiry = (iso: string): string => {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const getErrorMessage = (err: unknown, fallback: string): string =>
+  (err as { response?: { data?: { message?: string } } }).response?.data?.message || fallback;
+
 const AcceptInvitePage = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,8 +41,7 @@ const AcceptInvitePage = () => {
         const response = await api.get(`/invitations/${token}`);
         setInvitation(response.data);
       } catch (err: unknown) {
-        const axiosError = err as { response?: { data?: { message?: string } } };
-        setError(axiosError.response?.data?.message || 'Failed to load invitation');
+        setLoadError(getErrorMessage(err, 'Failed to load invitation.'));
       } finally {
         setLoading(false);
       }
@@ -39,8 +50,7 @@ const AcceptInvitePage = () => {
   }, [token]);
 
   const handleAccept = async () => {
-    const authToken = localStorage.getItem('token');
-    if (!authToken) {
+    if (!getToken()) {
       // Save pending invite and redirect to login
       sessionStorage.setItem('pendingInviteToken', token || '');
       navigate('/login');
@@ -48,120 +58,107 @@ const AcceptInvitePage = () => {
     }
 
     setSubmitting(true);
+    setActionError('');
     try {
       const response = await api.post(`/invitations/${token}/accept`);
       const workspace = response.data.workspace;
 
       // Update stored user's active workspace
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        userData.activeWorkspace = workspace._id;
-        userData.activeWorkspaceSlug = workspace.slug;
-        localStorage.setItem('user', JSON.stringify(userData));
+      if (getStoredUser()) {
+        updateStoredUser({ activeWorkspace: workspace._id, activeWorkspaceSlug: workspace.slug });
       }
 
       navigate(`/${workspace.slug}/dashboard`);
     } catch (err: unknown) {
-      const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError.response?.data?.message || 'Failed to accept invitation');
+      setActionError(getErrorMessage(err, 'Failed to accept the invitation. Try again.'));
       setSubmitting(false);
     }
   };
 
   const handleDecline = async () => {
     setSubmitting(true);
+    setActionError('');
     try {
       await api.post(`/invitations/${token}/decline`);
       navigate('/');
-    } catch {
+    } catch (err: unknown) {
+      setActionError(getErrorMessage(err, 'Failed to decline the invitation. Try again.'));
       setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
+      <AuthPageShell>
+        <AuthStatusHeader icon={<Loader2 />} spin title="Loading invitation" description="Please wait..." />
+      </AuthPageShell>
     );
   }
 
-  if (error || !invitation) {
+  if (loadError || !invitation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-            <XCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Invitation Invalid</h1>
-          <p className="text-slate-500 mb-6">{error || 'This invitation is no longer valid.'}</p>
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full h-11 rounded-xl">
-            Back to Home
-          </Button>
-        </div>
-      </div>
+      <AuthPageShell>
+        <AuthStatusHeader
+          icon={<XCircle />}
+          tone="danger"
+          title="Invitation not valid"
+          description={loadError || 'This invitation is no longer valid. Ask the person who invited you to send a new one.'}
+        />
+        <Link to="/" className={buttonVariants({ variant: 'outline', className: 'h-11 w-full rounded-xl' })}>
+          Back to home
+        </Link>
+      </AuthPageShell>
     );
   }
+
+  const expiry = formatExpiry(invitation.expiresAt);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <Users className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">
-            You've been invited!
-          </h1>
-          <p className="text-slate-500 text-sm leading-relaxed">
-            <span className="font-semibold text-slate-700">{invitation.invitedBy.name}</span>
-            {' '}invited you to join{' '}
-            <span className="font-semibold text-slate-700">{invitation.workspace.name}</span>
-          </p>
-        </div>
+    <AuthPageShell>
+      <AuthStatusHeader
+        icon={<Users />}
+        title="You have been invited"
+        description={
+          <>
+            <span className="font-semibold text-slate-800">{invitation.invitedBy.name}</span> invited you to join{' '}
+            <span className="font-semibold text-slate-800">{invitation.workspace.name}</span>.
+          </>
+        }
+      />
 
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Your Role
-            </span>
-            <span className="text-sm font-semibold text-primary">
-              {invitation.role.name}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500">
-            {invitation.role.description}
-          </p>
+      <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-600">Your role</span>
+          <Tag tone="primary">{invitation.role.name}</Tag>
         </div>
-
-        <div className="flex flex-col gap-3">
-          <Button
-            onClick={handleAccept}
-            disabled={submitting}
-            className="w-full h-11 rounded-xl bg-primary hover:bg-primary-hover text-white gap-2"
-          >
-            {submitting ? 'Joining...' : (
-              <>
-                Accept Invitation <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={handleDecline}
-            disabled={submitting}
-            variant="outline"
-            className="w-full h-11 rounded-xl"
-          >
-            Decline
-          </Button>
-        </div>
-
-        <p className="text-xs text-slate-400 text-center mt-6">
-          This invitation expires in 3 days.
-        </p>
+        {invitation.role.description && <p className="text-sm text-slate-600">{invitation.role.description}</p>}
       </div>
-    </div>
+
+      {actionError && <Alert tone="error" className="mb-4">{actionError}</Alert>}
+
+      <div className="flex flex-col gap-3">
+        <Button
+          onClick={handleAccept}
+          disabled={submitting}
+          className="h-11 w-full gap-2 rounded-xl bg-primary text-white hover:bg-primary-hover"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Joining...
+            </>
+          ) : (
+            <>
+              Accept invitation <ArrowRight className="size-4" aria-hidden />
+            </>
+          )}
+        </Button>
+        <Button onClick={handleDecline} disabled={submitting} variant="outline" className="h-11 w-full rounded-xl">
+          Decline
+        </Button>
+      </div>
+
+      {expiry && <p className="mt-6 text-center text-xs text-slate-600">This invitation expires on {expiry}.</p>}
+    </AuthPageShell>
   );
 };
 

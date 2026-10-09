@@ -63,8 +63,8 @@ const NotificationsPage = () => {
 
       <Surface padding="lg">
         <div className="mb-6">
-          <h2 className="font-semibold text-slate-900">Email Notifications</h2>
-          <p className="mt-1 text-sm text-slate-500">Choose what updates you want to receive</p>
+          <h2 className="font-semibold text-slate-900">Email notifications</h2>
+          <p className="mt-1 text-sm text-slate-600">Choose what updates you want to receive</p>
         </div>
 
         <div className="divide-y divide-slate-100">
@@ -74,7 +74,7 @@ const NotificationsPage = () => {
               <div key={key} className="flex items-start justify-between py-4">
                 <div className="flex-1 pr-4">
                   <p id={`notif-${key}`} className="text-sm font-medium text-slate-900">{label}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                  <p className="mt-0.5 text-xs text-slate-600">{desc}</p>
                 </div>
                 <button
                   type="button"
@@ -82,12 +82,12 @@ const NotificationsPage = () => {
                   aria-checked={enabled}
                   aria-labelledby={`notif-${key}`}
                   onClick={() => setNotifications({ ...notifications, [key]: !enabled })}
-                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    enabled ? 'bg-primary' : 'bg-slate-300'
+                  className={`relative h-6 w-11 shrink-0 rounded-full motion-safe:transition-colors before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    enabled ? 'bg-primary' : 'bg-slate-500'
                   }`}
                 >
                   <span
-                    className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
+                    className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
                       enabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
@@ -104,8 +104,8 @@ const NotificationsPage = () => {
           disabled={saving}
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving...' : 'Save Preferences'}
+          <Save className="size-4" aria-hidden />
+          {saving ? 'Saving...' : 'Save preferences'}
         </Button>
       </div>
     </form>

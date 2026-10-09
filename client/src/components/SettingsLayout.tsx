@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { User, Bell, Lock } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { PageHeader } from '@/components/ds';
@@ -12,7 +12,6 @@ const sections = [
 
 const SettingsLayout = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Determine active section from URL
   const activeSection = location.pathname.split('/').pop() || 'profile';
@@ -30,25 +29,24 @@ const SettingsLayout = () => {
           {sections.map(({ id, label, description, icon: Icon }) => {
             const active = activeSection === id;
             return (
-              <button
+              <Link
                 key={id}
-                type="button"
+                to={`/settings/${id}`}
                 aria-current={active ? 'page' : undefined}
-                onClick={() => navigate(`/settings/${id}`)}
                 className={cn(
                   'flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-xl p-3 text-left transition-colors lg:w-full lg:items-start lg:gap-3',
                   'focus-visible:outline-2 focus-visible:outline-primary',
                   active ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100',
                 )}
               >
-                <Icon className={cn('size-4 shrink-0 lg:mt-0.5', active ? 'text-primary' : 'text-slate-400')} aria-hidden />
+                <Icon className={cn('size-4 shrink-0 lg:mt-0.5', active ? 'text-primary' : 'text-slate-500')} aria-hidden />
                 <div className="min-w-0">
                   <p className="whitespace-nowrap text-sm font-medium">{label}</p>
-                  <p className={cn('mt-0.5 hidden truncate text-xs lg:block', active ? 'text-primary/70' : 'text-slate-400')}>
+                  <p className={cn('mt-0.5 hidden truncate text-xs lg:block', active ? 'text-primary/80' : 'text-slate-600')}>
                     {description}
                   </p>
                 </div>
-              </button>
+              </Link>
             );
           })}
         </nav>
