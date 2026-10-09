@@ -239,12 +239,24 @@ removed `About`, `Pricing`, `TrustedBy` (fake content).
 
 ---
 
-## 10. Owner actions and known limitations
+## 10. Follow-up additions
+
+- **Email via Resend:** `server/src/utils/sendEmail.ts` sends through the Resend HTTP API when `RESEND_API_KEY` is set
+  (falls back to SMTP, then to console output in development; production refuses to silently drop emails).
+  Auto-verification stays on until a sending domain is verified.
+- **Signup screen:** shows "Your account is ready" when the server auto-verified the account (it always said
+  "Check your email" before).
+- **`seed:workspace` script:** adds a demo project to any existing workspace (`--slug`), replacing only its own demo tasks.
+- **Design system docs and style guide:** [`docs/DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md); toasts added to `/design-system`.
+- **More Jest tests:** email providers and template escaping (server), signup screens and a style-guide smoke test
+  (client); `test:coverage` scripts in both packages.
+
+## 11. Owner actions and known limitations
 
 1. **Rotate the MongoDB Atlas password now.** The old credentials were committed in the repository history before
    `server/.env` was untracked, and they still work. After rotating, update `MONGO_URI` in Vercel.
-2. **Email:** configure an SMTP provider (`EMAIL_HOST`, …) in Vercel and set `DEV_AUTO_VERIFY=false` to re-enable email
-   verification; password-reset emails need SMTP.
+2. **Email:** add `RESEND_API_KEY` in Vercel (and verify a domain + set `EMAIL_FROM` to reach any inbox), then set
+   `DEV_AUTO_VERIFY=false` to re-enable email verification; password-reset emails need a provider.
 3. The JWT is stored in `localStorage`; moving to an HttpOnly cookie is now simpler because the app is same-origin.
 4. `braces` and `sprintf-js` advisories have no patched release yet (dev tooling only, not shipped).
 5. No real-time sync between users; other members' changes appear after a reload.

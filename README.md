@@ -23,8 +23,9 @@ Try every permission level with the seeded accounts (one per role) in `demo-work
 `member@taskman.test` (Team Member), `viewer@taskman.test` (Viewer). The shared test password is the
 `DEMO_PASSWORD` constant in `server/src/scripts/seed.ts`.
 
-What changed in the latest integration (security fixes, new features, tests, deployment) is documented in
-[docs/IMPLEMENTATION_REPORT.md](docs/IMPLEMENTATION_REPORT.md).
+Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architecture, tests) ·
+[Implementation report](docs/IMPLEMENTATION_REPORT.md) (what changed, how, every file) ·
+[Design system](docs/DESIGN_SYSTEM.md) (live at [/design-system](https://taskman-mauve.vercel.app/design-system)).
 
 ## Features
 

@@ -11,7 +11,7 @@ import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
   validateEmail, validateName, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
-import { ArrowRight, LayoutGrid, Loader2, Mail, Shield, Smartphone } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LayoutGrid, Loader2, Mail, Shield, Smartphone } from 'lucide-react';
 
 const INPUT =
   'h-12 rounded-xl border-slate-300 bg-white text-base text-slate-900 shadow-sm placeholder:text-slate-500 md:text-base';
@@ -38,6 +38,8 @@ const apiErrorMessage = (error: unknown): string => {
 const AuthScreen = ({ mode }: { mode: Mode }) => {
   const isLogin = mode === 'login';
   const [showVerifyMessage, setShowVerifyMessage] = useState(false);
+  // When the server verifies new accounts itself (no email needed), say so instead of "check your email"
+  const [accountReady, setAccountReady] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -98,6 +100,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
         }
       } else {
         // ===== SIGNUP FLOW =====
+        setAccountReady(response.data?.requiresVerification === false);
         setShowVerifyMessage(true);
       }
     } catch (err: unknown) {
@@ -110,6 +113,29 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   // ============================================================
   // "Check Your Email" screen after successful signup
   // ============================================================
+  if (showVerifyMessage && accountReady) {
+    return (
+      <AuthPageShell>
+        <AuthStatusHeader
+          icon={<CheckCircle2 />}
+          title="Your account is ready"
+          description={
+            <>
+              <span className="font-semibold text-slate-800">{formData.email.trim()}</span> is verified. Sign in to set up
+              your workspace.
+            </>
+          }
+        />
+        <Link
+          to="/login"
+          className="flex min-h-11 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Sign in
+        </Link>
+      </AuthPageShell>
+    );
+  }
+
   if (showVerifyMessage) {
     return (
       <AuthPageShell>

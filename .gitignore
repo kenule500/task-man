@@ -12,3 +12,4 @@ build
 !.vscode/extensions.json
 .vercel
 .env*
+coverage/
