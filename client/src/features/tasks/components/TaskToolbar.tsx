@@ -1,8 +1,9 @@
-import { ArrowUpDown, Flag, Search, Tag, UserCheck } from 'lucide-react';
+import { useId, useState } from 'react';
+import { ArrowUpDown, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, type SelectOption } from '../constants';
-import type { TaskFilters, TaskPriority, TaskSort, TaskStatus } from '../types';
+import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
+import type { TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } from '../types';
 import FilterPills from './FilterPills';
 import { OptionSelect } from './TaskSelects';
 
@@ -12,6 +13,8 @@ const PRIORITY_FILTER_OPTIONS: SelectOption<TaskPriority | 'all'>[] = [
   { value: 'all', label: 'All priorities' },
   ...PRIORITY_OPTIONS,
 ];
+
+const TYPE_FILTER_OPTIONS: SelectOption<TaskType | 'all'>[] = [{ value: 'all', label: 'All types' }, ...TASK_TYPE_OPTIONS];
 
 interface TaskToolbarProps {
   filters: TaskFilters;
@@ -33,6 +36,15 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
     ...labels.map(label => ({ value: label, label })),
   ];
   const assignedToMe = Boolean(filters.assignedToMe);
+  // Phones show search + a "Filters" toggle; the other controls fold away until asked for
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersId = useId();
+  const activeFilterCount = [
+    assignedToMe,
+    (filters.label ?? 'all') !== 'all',
+    (filters.type ?? 'all') !== 'all',
+    filters.priority !== 'all',
+  ].filter(Boolean).length;
 
   return (
     // Status pills on their own row; search and filters on the next one (no awkward wrapping)
@@ -45,8 +57,9 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
         onChange={status => onChange({ ...filters, status })}
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-        <div className="relative col-span-2 sm:w-56">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex gap-2 sm:contents">
+        <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden />
           <Input
             type="search"
@@ -57,6 +70,25 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
             onChange={e => onChange({ ...filters, search: e.target.value })}
           />
         </div>
+        <button
+          type="button"
+          aria-expanded={showFilters}
+          aria-controls={filtersId}
+          onClick={() => setShowFilters(open => !open)}
+          className={cn(
+            'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary sm:hidden',
+            showFilters || activeFilterCount > 0 ? 'border-primary text-primary' : 'border-slate-200 bg-white text-slate-700',
+          )}
+        >
+          <SlidersHorizontal className="size-4" aria-hidden /> Filters
+          {activeFilterCount > 0 && (
+            <span className="rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-white">
+              {activeFilterCount}<span className="sr-only"> active</span>
+            </span>
+          )}
+        </button>
+        </div>
+        <div id={filtersId} className={cn('grid grid-cols-2 gap-2 sm:contents', !showFilters && 'max-sm:hidden')}>
         {canFilterMine && (
           <button
             type="button"
@@ -81,6 +113,14 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
           />
         )}
         <OptionSelect
+          aria-label="Filter by type"
+          icon={<Layers className="size-3.5 text-slate-400" aria-hidden />}
+          value={filters.type ?? 'all'}
+          options={TYPE_FILTER_OPTIONS}
+          onChange={type => onChange({ ...filters, type })}
+          className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
+        />
+        <OptionSelect
           aria-label="Filter by priority"
           icon={<Flag className="size-3.5 text-slate-400" aria-hidden />}
           value={filters.priority}
@@ -98,6 +138,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
             className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
           />
         )}
+        </div>
       </div>
     </div>
   );

@@ -1,14 +1,17 @@
 import { useMemo, type ReactNode } from 'react';
-import { Link2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, CornerDownRight, Link2, Pencil, Trash2 } from 'lucide-react';
 import { UserAvatar } from '@/components/ds';
+import type { Project } from '@/features/projects';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import type { UploadOptions } from '../api';
 import { dateKeyOf, formatDate, isOverdue } from '../lib/date';
-import type { Task, TaskUser } from '../types';
-import { DueDate, PriorityIndicator, StatusBadge, StatusDot } from './TaskBadges';
+import { getSubtasks } from '../lib/subtasks';
+import type { Task, TaskPatch, TaskUser } from '../types';
+import SubtaskList from './SubtaskList';
+import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge } from './TaskBadges';
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
 import TaskComments from './TaskComments';
@@ -20,6 +23,12 @@ export interface TaskDetailActions {
   uploadAttachment: (taskId: string, file: File, options?: UploadOptions) => Promise<void>;
   removeAttachment: (taskId: string, attachmentId: string) => Promise<void>;
   downloadAttachment: (taskId: string, attachmentId: string) => Promise<Blob>;
+  /** Creates a subtask under `parent`; the subtask section is read-only without it. */
+  createSubtask?: (parent: Task, title: string) => Promise<unknown>;
+  /** Used to tick subtasks off; without it the checkboxes are disabled. */
+  updateTask?: (taskId: string, patch: TaskPatch) => Promise<unknown>;
+  /** Shows another task in the dialog (a subtask, or its parent). */
+  openTask?: (task: Task) => void;
 }
 
 interface TaskDetailDialogProps {
@@ -36,6 +45,8 @@ interface TaskDetailDialogProps {
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
   actions: TaskDetailActions;
+  /** Workspace projects with their sprints, to name the task's sprint. */
+  projects?: Project[];
 }
 
 const Detail = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -50,7 +61,7 @@ const Detail = ({ label, children }: { label: string; children: ReactNode }) => 
  * editing the fields stays in `TaskFormDialog` (button below).
  */
 const TaskDetailDialog = ({
-  task, onOpenChange, tasks, currentUser, canWrite, canDelete, onEdit, onDelete, actions,
+  task, onOpenChange, tasks, currentUser, canWrite, canDelete, onEdit, onDelete, actions, projects = [],
 }: TaskDetailDialogProps) => {
   // Names for ids we only know by reference (attachment uploaders)
   const userNames = useMemo(() => {
@@ -69,12 +80,30 @@ const TaskDetailDialog = ({
     .map(id => tasks.find(item => item._id === id))
     .filter((item): item is Task => Boolean(item));
   const taskId = task._id;
+  const parent = task.parent ? tasks.find(item => item._id === task.parent) : undefined;
+  const subtasks = task.parent ? [] : getSubtasks(tasks, taskId);
+  const sprintName = task.sprint
+    ? projects.flatMap(project => project.sprints).find(sprint => sprint._id === task.sprint)?.name ?? 'Sprint'
+    : null;
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-gray-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
         <DialogHeader className="shrink-0 space-y-2 border-b border-gray-200 px-4 pt-5 pb-4 pr-12 sm:px-6 sm:pt-6">
+          {parent && actions.openTask && (
+            <button
+              type="button"
+              onClick={() => actions.openTask?.(parent)}
+              className="-ml-1 inline-flex min-h-11 max-w-full items-center gap-1.5 rounded px-1 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary sm:min-h-0"
+            >
+              <ArrowLeft className="size-4 shrink-0" aria-hidden />
+              <span className="shrink-0">Back to parent</span>
+              <span className="truncate font-normal text-slate-500" title={parent.title}>{parent.title}</span>
+            </button>
+          )}
           <div className="flex flex-wrap items-center gap-2">
+            <TaskTypeBadge type={task.type} />
+            <StoryPoints points={task.storyPoints} />
             <StatusBadge status={task.status} />
             <PriorityIndicator priority={task.priority} />
             {task.project && (
@@ -97,6 +126,27 @@ const TaskDetailDialog = ({
               <span className={overdue ? 'font-medium text-red-600' : undefined}>
                 {completed ? 'Completed' : overdue ? 'Overdue' : 'On track'}
               </span>
+            </Detail>
+            {task.parent && (
+              <Detail label="Parent task">
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <CornerDownRight className="size-3 shrink-0 text-slate-400" aria-hidden />
+                  {parent && actions.openTask ? (
+                    <button
+                      type="button"
+                      onClick={() => actions.openTask?.(parent)}
+                      className="min-w-0 rounded text-left text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                    >
+                      Subtask of <span className="font-medium">{parent.title}</span>
+                    </button>
+                  ) : (
+                    <span className="truncate">Subtask of {parent?.title ?? 'another task'}</span>
+                  )}
+                </span>
+              </Detail>
+            )}
+            <Detail label="Sprint">
+              {sprintName ?? <span className="text-slate-400">{task.project ? 'Backlog' : 'None'}</span>}
             </Detail>
             <Detail label="Labels">
               {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-400">None</span>}
@@ -137,6 +187,18 @@ const TaskDetailDialog = ({
             )}
           </section>
 
+          {!task.parent && (subtasks.length > 0 || (canWrite && actions.createSubtask)) && (
+            <SubtaskList
+              subtasks={subtasks}
+              canWrite={canWrite}
+              canDelete={canDelete}
+              onAdd={actions.createSubtask ? (title => actions.createSubtask!(task, title)) : undefined}
+              onToggle={actions.updateTask ? ((subtask, completed) => { void actions.updateTask?.(subtask._id, { status: completed ? 'completed' : 'pending' }); }) : undefined}
+              onOpen={actions.openTask}
+              onDelete={onDelete}
+            />
+          )}
+
           <TaskAttachments
             attachments={task.attachments ?? []}
             userNames={userNames}
@@ -164,7 +226,7 @@ const TaskDetailDialog = ({
                 onClick={() => onDelete(task)}
                 className="h-10 gap-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
               >
-                <Trash2 className="size-4" aria-hidden /> Delete task
+                <Trash2 className="size-4" aria-hidden /> {task.parent ? 'Delete subtask' : 'Delete task'}
               </Button>
             )}
           </div>

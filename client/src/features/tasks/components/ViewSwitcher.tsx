@@ -21,7 +21,7 @@ interface ViewSwitcherProps {
 const ViewSwitcher = ({ value, onChange, views = TASK_VIEWS }: ViewSwitcherProps) => (
   <Tabs value={value} onValueChange={next => onChange(next as TaskView)}>
     {/* Scrolls inside the tab list on very narrow screens, never the page */}
-    <TabsList aria-label="Task views" className="h-12 w-full justify-start overflow-x-auto bg-slate-100 border border-slate-200 rounded-lg sm:h-9 sm:w-fit">
+    <TabsList aria-label="Task views" className="h-12 w-full justify-start overflow-x-auto [scrollbar-width:none] bg-slate-100 border border-slate-200 rounded-lg sm:h-9 sm:w-fit">
       {views.map(view => {
         const { label, icon: Icon } = VIEW_META[view];
         return (

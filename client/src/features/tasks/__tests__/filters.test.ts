@@ -3,6 +3,19 @@ import {
 } from '../lib/filters';
 import { makeTask } from './fixtures';
 
+describe('type filter', () => {
+  const base = { search: '', status: 'all' as const };
+
+  it('matches the type, treating a missing type as task', () => {
+    const bug = makeTask({ type: 'bug' });
+    const plain = makeTask();
+    expect(matchesFilters(bug, { ...base, type: 'bug' })).toBe(true);
+    expect(matchesFilters(plain, { ...base, type: 'bug' })).toBe(false);
+    expect(matchesFilters(plain, { ...base, type: 'task' })).toBe(true);
+    expect(matchesFilters(bug, { ...base, type: 'all' })).toBe(true);
+  });
+});
+
 describe('matchesFilters', () => {
   const task = makeTask({ title: 'Write release notes', description: 'Changelog for v1', status: 'in-progress' });
 

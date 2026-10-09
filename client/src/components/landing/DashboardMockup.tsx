@@ -38,8 +38,8 @@ const DashboardMockup = () => {
 
   const priorityStyles: Record<string, string> = {
     'High': 'text-red-600',
-    'Medium': 'text-amber-600',
-    'Low': 'text-emerald-600',
+    'Medium': 'text-amber-700',
+    'Low': 'text-emerald-700',
   };
 
   return (

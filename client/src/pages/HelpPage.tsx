@@ -1,27 +1,13 @@
-import type { ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { ChevronDown, Keyboard, LifeBuoy, Search, SearchX, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { PageHeader, surfaceVariants } from '@/components/ds';
+import { EmptyState, IconTile, PageHeader, SectionHeader, Surface, Tag } from '@/components/ds';
+import { Input } from '@/components/ui/input';
+import {
+  FAQ_CATEGORIES, highlightSegments, queryTerms, searchFaq, type FaqResult,
+} from '@/content/faq';
 import { cn } from '@/lib/utils';
-
-interface HelpSectionProps {
-  title: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-}
-
-const HelpSection = ({ title, defaultOpen = false, children }: HelpSectionProps) => (
-  <details
-    open={defaultOpen}
-    className={cn(surfaceVariants({ padding: 'none' }), 'group transition-shadow open:shadow-md')}
-  >
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-4 sm:px-5 text-sm font-semibold text-slate-900 focus-visible:outline-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
-      {title}
-      <ChevronDown className="size-4 text-slate-400 transition-transform group-open:rotate-180" aria-hidden />
-    </summary>
-    <div className="space-y-3 px-4 pb-5 sm:px-5 text-sm leading-relaxed text-slate-700">{children}</div>
-  </details>
-);
 
 const Kbd = ({ children }: { children: ReactNode }) => (
   <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-xs text-slate-700">
@@ -30,133 +16,296 @@ const Kbd = ({ children }: { children: ReactNode }) => (
 );
 
 const SHORTCUTS: { keys: ReactNode; action: string }[] = [
-  { keys: <Kbd>N</Kbd>, action: 'Create a new task' },
-  { keys: <Kbd>/</Kbd>, action: 'Focus the search box' },
-  { keys: <><Kbd>1</Kbd> <Kbd>2</Kbd> <Kbd>3</Kbd> <Kbd>4</Kbd></>, action: 'Switch view: List, Board, Calendar, Timeline' },
+  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>K</Kbd></>, action: 'Search from anywhere (Cmd+K on Mac)' },
+  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>B</Kbd></>, action: 'Show or hide the sidebar' },
+  { keys: <><Kbd>←</Kbd> <Kbd>→</Kbd></>, action: 'Timeline: move the focused bar one day' },
+  { keys: <><Kbd>Shift</Kbd> + <Kbd>←</Kbd> <Kbd>→</Kbd></>, action: 'Timeline: resize the focused bar' },
+  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd></>, action: 'Send a comment (Cmd+Enter on Mac)' },
+  { keys: <Kbd>T</Kbd>, action: 'Calendar: jump to today' },
+  { keys: <Kbd>Esc</Kbd>, action: 'Close dialogs and menus' },
 ];
 
-const HelpPage = () => (
-  <AppShell>
-    <div className="w-full max-w-3xl space-y-6">
-      <PageHeader title="Help center" description="Short guides for getting the most out of TaskMan." />
+const Highlighted = ({ text, terms }: { text: string; terms: string[] }) => (
+  <>
+    {highlightSegments(text, terms).map((segment, index) =>
+      segment.match ? (
+        <mark key={index} className="rounded-sm bg-amber-100 px-0.5 text-slate-900">{segment.text}</mark>
+      ) : (
+        <span key={index}>{segment.text}</span>
+      ),
+    )}
+  </>
+);
 
-      <div className="space-y-3">
-        <HelpSection title="Getting started" defaultOpen>
-          <p>
-            A workspace holds your tasks and your team. After onboarding you land on the dashboard, which shows
-            totals, what is due this week and what is overdue.
+interface FaqEntryProps {
+  item: FaqResult;
+  terms: string[];
+  open: boolean;
+  onToggle: () => void;
+  showCategory: boolean;
+}
+
+const FaqEntry = ({ item, terms, open, onToggle, showCategory }: FaqEntryProps) => {
+  const baseId = useId();
+  const buttonId = `${baseId}-q`;
+  const panelId = `${baseId}-a`;
+
+  return (
+    <li className="border-b border-slate-100 last:border-b-0">
+      <h3>
+        <button
+          type="button"
+          id={buttonId}
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={onToggle}
+          className="flex min-h-12 w-full items-start justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-5"
+        >
+          <span className="min-w-0">
+            <Highlighted text={item.question} terms={terms} />
+            {showCategory && (
+              <Tag size="sm" className="ml-2 align-middle font-normal">{item.categoryTitle}</Tag>
+            )}
+          </span>
+          <ChevronDown
+            className={cn('mt-0.5 size-4 shrink-0 text-slate-400 motion-safe:transition-transform', open && 'rotate-180')}
+            aria-hidden
+          />
+        </button>
+      </h3>
+      <div
+        id={panelId}
+        role="region"
+        aria-labelledby={buttonId}
+        inert={!open}
+        className={cn(
+          'grid motion-safe:transition-[grid-template-rows] motion-safe:duration-200',
+          open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <p className="whitespace-pre-line px-4 pb-4 text-sm leading-relaxed text-slate-700 sm:px-5">
+            <Highlighted text={item.answer} terms={terms} />
           </p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Open <strong>Tasks</strong> in the sidebar and choose <strong>Add Task</strong> to create your first task.</li>
-            <li>Give it a title, a due date, a priority and, optionally, a start date and prerequisites.</li>
-            <li>
-              Invite teammates by email from <strong>Team members</strong>, or share the invite code from the dashboard
-              or <strong>Settings</strong>.
-            </li>
-            <li>Use the workspace switcher at the top of the sidebar to move between workspaces.</li>
-          </ul>
-        </HelpSection>
+        </div>
+      </div>
+    </li>
+  );
+};
 
-        <HelpSection title="The four views">
-          <p>All views show the same tasks and stay in sync. Switch between them with the view switcher on the Tasks page.</p>
-          <ul className="list-disc space-y-2 pl-5">
-            <li>
-              <strong>List:</strong> a dense table. Click a title, status, priority or date to edit it inline. The
-              actions menu on each row is always reachable by keyboard.
-            </li>
-            <li>
-              <strong>Board:</strong> columns for Pending, In Progress and Completed. Drag a card to another column
-              to change its status. Without a mouse, open the card menu and choose <strong>Move to…</strong>.
-            </li>
-            <li>
-              <strong>Calendar:</strong> a month grid of deadlines. Click a day to add a task on that date and click
-              a chip to edit it.
-            </li>
-            <li>
-              <strong>Timeline:</strong> a Gantt chart of start and due dates. Drag a bar to reschedule it, or focus a
-              bar and press <Kbd>←</Kbd> / <Kbd>→</Kbd> to move it one day. <Kbd>Shift</Kbd> + <Kbd>←</Kbd> /{' '}
-              <Kbd>→</Kbd> resizes the bar instead.
-            </li>
-          </ul>
-        </HelpSection>
+const HelpPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
+  const [categoryId, setCategoryId] = useState<string>('all');
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
 
-        <HelpSection title="Dependencies and conflicts">
-          <p>
-            A task can depend on other tasks that must finish first. Pick prerequisites in the task form; the count
-            appears on list rows and board cards, and the timeline draws grey arrows between linked bars.
-          </p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Circular dependencies are rejected with the message "This dependency would create a cycle".</li>
-            <li>
-              A scheduling conflict appears when a task starts before its prerequisite is due. The timeline shows a
-              red dashed arrow so you can move one of the two dates.
-            </li>
-            <li>Deleting a task removes it from the prerequisites of other tasks.</li>
-          </ul>
-        </HelpSection>
+  // Keep ?q= in sync without adding history entries
+  useEffect(() => {
+    const current = searchParams.get('q') ?? '';
+    if (current === query) return;
+    const next = new URLSearchParams(searchParams);
+    if (query) next.set('q', query);
+    else next.delete('q');
+    setSearchParams(next, { replace: true });
+  }, [query, searchParams, setSearchParams]);
 
-        <HelpSection title="Teams, roles and permissions">
-          <p>
-            Every member has a role that decides what they can see and change. Pages and buttons you cannot use are
-            hidden, and opening one by link shows an access message instead.
-          </p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Owners and admins invite people by email under <strong>Team members</strong> and pick a role for each invitation.</li>
-            <li>Change a member&apos;s role from the role menu on their row; remove them with the bin button.</li>
-            <li>Under <strong>Settings &gt; Roles and permissions</strong> you can create custom roles with exactly the permissions you want.</li>
-            <li>Regenerating the invite code stops the old code and links from working; existing members keep access.</li>
-          </ul>
-        </HelpSection>
+  const terms = useMemo(() => queryTerms(query), [query]);
+  const matches = useMemo(() => searchFaq(query), [query]);
+  const countByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const match of matches) counts[match.categoryId] = (counts[match.categoryId] ?? 0) + 1;
+    return counts;
+  }, [matches]);
 
-        <HelpSection title="Keyboard shortcuts">
-          <p>
-            These work on the Tasks page whenever you are not typing in a field. Press <Kbd>Esc</Kbd> to leave a field
-            first.
+  const visible = categoryId === 'all' ? matches : matches.filter((match) => match.categoryId === categoryId);
+  const searching = terms.length > 0;
+
+  const toggle = (id: string) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const clearFilters = () => {
+    setQuery('');
+    setCategoryId('all');
+  };
+
+  const countLabel = `${visible.length} ${visible.length === 1 ? 'answer' : 'answers'}${
+    searching ? ` for "${query.trim()}"` : ''
+  }`;
+
+  // Without a search, group by category; with one, show a single ranked list
+  const groups = searching
+    ? [{ id: 'results', title: '', items: visible }]
+    : FAQ_CATEGORIES
+        .map((category) => ({
+          id: category.id,
+          title: category.title,
+          items: visible.filter((match) => match.categoryId === category.id),
+        }))
+        .filter((group) => group.items.length > 0);
+
+  return (
+    <AppShell>
+      <div className="w-full max-w-3xl space-y-6">
+        <PageHeader title="Help center" description="Answers to common questions about TaskMan." />
+
+        <Surface padding="md" className="space-y-4 bg-gradient-to-br from-primary/5 to-white">
+          <div role="search">
+            <label htmlFor="help-search" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Search help
+            </label>
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <Input
+                id="help-search"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && query) {
+                    event.preventDefault();
+                    setQuery('');
+                  }
+                }}
+                placeholder="Try “sprint”, “invite” or “offline”"
+                autoComplete="off"
+                enterKeyHint="search"
+                className="h-12 rounded-xl border-slate-300 bg-white pl-11 pr-12 text-base shadow-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <X className="size-4" aria-hidden />
+                </button>
+              )}
+            </div>
+            <p role="status" aria-live="polite" className="mt-2 text-xs text-slate-600">
+              {countLabel}
+            </p>
+          </div>
+
+          <div role="group" aria-label="Filter by topic" className="flex flex-wrap gap-2">
+            {[{ id: 'all', title: 'All topics', count: matches.length }, ...FAQ_CATEGORIES.map((category) => ({
+              id: category.id,
+              title: category.title,
+              count: countByCategory[category.id] ?? 0,
+            }))].map((chip) => {
+              const active = categoryId === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCategoryId(chip.id)}
+                  className={cn(
+                    'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+                    active
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+                    !active && chip.count === 0 && 'text-slate-500',
+                  )}
+                >
+                  {chip.title}
+                  <span className={cn('tabular-nums', active ? 'text-white/80' : 'text-slate-500')}>{chip.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Surface>
+
+        {visible.length === 0 ? (
+          <Surface padding="none">
+            <EmptyState
+              icon={<SearchX />}
+              title="No answers found"
+              description={
+                searching
+                  ? `Nothing matches "${query.trim()}". Try fewer or different words, or pick another topic. Still stuck? Contact your workspace owner.`
+                  : 'There are no answers in this topic yet. Contact your workspace owner.'
+              }
+              action={
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="min-h-10 rounded-lg px-3 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  Clear search and filters
+                </button>
+              }
+            />
+          </Surface>
+        ) : (
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <Surface key={group.id} as="section" padding="none" aria-label={group.title || 'Search results'} className="overflow-hidden">
+                {group.title && (
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 sm:px-5">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-700">{group.title}</h2>
+                  </div>
+                )}
+                <ul>
+                  {group.items.map((item) => (
+                    <FaqEntry
+                      key={item.id}
+                      item={item}
+                      terms={terms}
+                      open={openIds.has(item.id)}
+                      onToggle={() => toggle(item.id)}
+                      showCategory={searching}
+                    />
+                  ))}
+                </ul>
+              </Surface>
+            ))}
+          </div>
+        )}
+
+        <Surface as="section" aria-labelledby="shortcuts-heading" className="sm:p-6">
+          <SectionHeader
+            icon={<Keyboard className="size-4" aria-hidden />}
+            title={<span id="shortcuts-heading">Keyboard shortcuts</span>}
+          />
+          <p className="mb-3 text-xs text-slate-600">
+            Shortcuts that need a single key work when you are not typing in a field.
           </p>
           <dl className="divide-y divide-slate-100 rounded-lg border border-slate-200">
             {SHORTCUTS.map(({ keys, action }) => (
-              <div key={action} className="flex items-center justify-between gap-4 px-3 py-2.5">
-                <dt className="text-slate-700">{action}</dt>
-                <dd className="flex shrink-0 items-center gap-1">{keys}</dd>
+              <div key={action} className="flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <dt className="text-sm text-slate-700">{action}</dt>
+                <dd className="flex shrink-0 flex-wrap items-center gap-1">{keys}</dd>
               </div>
             ))}
           </dl>
-          <h3 className="pt-1 text-sm font-semibold text-slate-900">Moving around</h3>
-          <ul className="list-disc space-y-1 pl-5">
-            <li><Kbd>Tab</Kbd> and <Kbd>Shift</Kbd> + <Kbd>Tab</Kbd> move focus; the focused control always has a blue outline.</li>
-            <li><Kbd>Enter</Kbd> or <Kbd>Space</Kbd> activates buttons and opens menus; <Kbd>Esc</Kbd> closes dialogs and menus.</li>
-            <li>Inside a menu, <Kbd>↑</Kbd> and <Kbd>↓</Kbd> move between items.</li>
-            <li><Kbd>←</Kbd> <Kbd>→</Kbd> on a timeline bar moves it by a day; add <Kbd>Shift</Kbd> to change its length.</li>
-            <li>Board cards offer a <strong>Move to…</strong> menu as an alternative to dragging.</li>
-            <li>Choose <strong>Skip to content</strong> (the first Tab stop on every page) to jump past the sidebar.</li>
-          </ul>
-        </HelpSection>
+        </Surface>
 
-        <HelpSection title="Account and security">
-          <ul className="list-disc space-y-1 pl-5">
-            <li>Edit your name, job title and other details under <strong>Settings &gt; Profile</strong>.</li>
-            <li>
-              Changing your password signs you out of all your other devices. This device stays signed in; the others
-              must sign in again with the new password.
-            </li>
-            <li>If your session expires you are returned to the sign-in page with a notice; your work is saved on the server.</li>
-            <li>Forgot your password? Use <strong>Forgot password</strong> on the sign-in page to get a reset link by email.</li>
-          </ul>
-        </HelpSection>
-
-        <HelpSection title="Contact">
-          <p>
-            Something not working or missing? Ask a workspace owner first, as they can manage members and invite
-            codes from the Team page. For product questions or bug reports, email{' '}
-            <a href="mailto:support@taskman.io" className="text-primary font-medium hover:underline">
-              support@taskman.io
-            </a>{' '}
-            with the page you were on and what you expected to happen.
-          </p>
-        </HelpSection>
+        <Surface as="section" aria-labelledby="contact-heading" className="flex items-start gap-3 sm:p-6">
+          <IconTile><LifeBuoy /></IconTile>
+          <div className="min-w-0 text-sm leading-relaxed text-slate-700">
+            <h2 id="contact-heading" className="font-semibold text-slate-900">Still need help?</h2>
+            <p className="mt-1">
+              Ask a workspace owner first, as they can manage members and invite codes from the Team page. For
+              product questions or bug reports, email{' '}
+              <a href="mailto:support@taskman.io" className="font-medium text-primary hover:underline">
+                support@taskman.io
+              </a>{' '}
+              with the page you were on and what you expected to happen.
+            </p>
+          </div>
+        </Surface>
       </div>
-    </div>
-  </AppShell>
-);
+    </AppShell>
+  );
+};
 
 export default HelpPage;

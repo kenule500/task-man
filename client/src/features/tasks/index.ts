@@ -12,14 +12,23 @@ export * from './lib/taskForm';
 export * from './lib/reports';
 export * from './lib/labels';
 export * from './lib/files';
+export * from './lib/subtasks';
 
-export { StatusBadge, StatusDot, PriorityIndicator, DueDate, DependencyCount } from './components/TaskBadges';
-export { OptionSelect, StatusSelect, PrioritySelect } from './components/TaskSelects';
+export {
+  StatusBadge, StatusDot, PriorityIndicator, DueDate, DependencyCount,
+  TaskTypeIcon, TaskTypeBadge, StoryPoints, SubtaskProgress,
+} from './components/TaskBadges';
+export {
+  OptionSelect, StatusSelect, PrioritySelect, TypeSelect, StoryPointsSelect, SprintSelect,
+} from './components/TaskSelects';
 export { InlineText, InlineDate } from './components/InlineEdit';
 export { default as TaskActionsMenu } from './components/TaskActionsMenu';
 export { default as TaskFormDialog } from './components/TaskFormDialog';
+export { default as ConfirmTaskDelete } from './components/ConfirmTaskDelete';
 export { default as TaskDetailDialog, type TaskDetailActions } from './components/TaskDetailDialog';
 export { LabelChip, LabelList, AssigneeStack } from './components/TaskChips';
+export { default as SubtaskList } from './components/SubtaskList';
+export { default as TaskScrumFields } from './components/TaskScrumFields';
 export { default as LabelInput } from './components/LabelInput';
 export { default as AssigneePicker } from './components/AssigneePicker';
 export { EmptyState } from '@/components/ds';

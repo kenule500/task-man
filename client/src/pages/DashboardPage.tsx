@@ -30,6 +30,8 @@ import { cn } from '@/lib/utils';
 import api from '../utils/api';
 import { usePermissions } from '../hooks/usePermissions';
 import GetStartedChecklist from '@/components/dashboard/GetStartedChecklist';
+import ActiveSprints from '@/components/dashboard/ActiveSprints';
+import { useProjects } from '@/features/projects';
 import {
   buildChecklist, hasTriedBoard, isChecklistComplete, markBoardTried,
 } from '@/components/dashboard/getStarted';
@@ -145,6 +147,7 @@ const DashboardPage = () => {
 
   // ===== Task data (owned by the tasks module) =====
   const { tasks, loading: tasksLoading, error: tasksError } = useTasks(workspaceSlug);
+  const { projects } = useProjects(can('projects:read') ? workspaceSlug : undefined);
 
   // Fetch workspace info (member count, invite code)
   useEffect(() => {
@@ -256,6 +259,8 @@ const DashboardPage = () => {
               <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
               <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
             </div>
+
+            <ActiveSprints projects={projects} tasks={tasks} slug={slug} />
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <TaskListCard

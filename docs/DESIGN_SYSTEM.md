@@ -1,83 +1,163 @@
 # TaskMan Design System
 
 One shared visual language for every TaskMan screen: tokens, accessible components and patterns, built on
-**shadcn (Base UI)** primitives and **Tailwind CSS v4**.
+**shadcn (Base UI)** primitives and **Tailwind CSS v4**. Version **2.0**.
 
 ## Where to find it
 
 | What | Where |
 |---|---|
-| **Live style guide** (every component, variant and state, no login needed) | **Production:** https://taskman-mauve.vercel.app/design-system · **Local:** http://localhost:5173/design-system (or http://127.0.0.1:5173/design-system) |
+| **Live style guide** (documentation site: search, section navigation, every component with live variants, states, code and props; no login needed) | **Production:** https://taskman-mauve.vercel.app/design-system · **Local:** http://localhost:5173/design-system |
 | Link from the app | Landing page footer → **Design system** |
-| Design system code | `client/src/components/ds/` — import from `@/components/ds` |
+| Design system components | `client/src/components/ds/`, import from `@/components/ds` |
 | Base primitives (shadcn / Base UI) | `client/src/components/ui/` |
-| Design tokens | `client/src/index.css` (`@theme`) |
-| Style guide page source | `client/src/pages/DesignSystemPage.tsx` |
-| Rules (colors, layout, mobile, accessibility, PWA) | [`DESIGN.md`](../DESIGN.md) |
+| Design tokens | `client/src/index.css` (`@theme` and `:root`) |
+| Style guide source | `client/src/pages/DesignSystemPage.tsx` (shell, search, navigation) and `client/src/pages/design-system/` (`registry.ts`, `tokens.ts`, `contrast.ts`, `kit.tsx`, `sections/*`) |
+| Rules (colors, layout, mobile, Scrum visuals, accessibility, PWA) | [`DESIGN.md`](../DESIGN.md) |
 | Teammate UI rules | [`perfect-ui-rules.md`](../perfect-ui-rules.md) |
+
+The guide is organized as **Start** (overview, principles, changelog) · **Foundations** (color, typography, spacing,
+radius, elevation, motion, z-index, breakpoints, iconography) · **Components** (one page each) · **Patterns** ·
+**Content** · **Accessibility**. It is a single page with anchors (`/design-system#c-button`); on phones the side
+navigation becomes a "Jump to section" select.
 
 ## Architecture: three layers
 
 ```
 components/ui        shadcn primitives (Base UI): Button, Input, Select, Tabs, Dialog, DropdownMenu, Avatar, Skeleton…
       ▲
-components/ds        TaskMan design system: PageHeader, Surface, StatCard, Alert, Tag, Field, toast… (no routing, no data)
+components/ds        TaskMan design system: PageHeader, Surface, Tag, Field, SegmentedControl, toast… (no routing, no data)
       ▲
-features/*           feature components: StatusBadge, TaskChips, TaskDetailDialog, FilterPills…  →  pages
+features/*           feature components: StatusBadge, TaskChips, TaskDetailDialog, FilterPills, project and sprint cards…  →  pages
 ```
 
 Rule: **reuse the highest layer that fits** before writing new markup. The authenticated page frame
-(`components/AppShell.tsx`: guard + sidebar + content column) sits outside `ds` because it depends on routing and the session.
+(`components/AppShell.tsx`: guard + sidebar + content column) and the mobile tab bar / command palette sit outside
+`ds` because they depend on routing, the session and permissions.
 
 ## Foundations (tokens)
 
-| Token | Value | Use |
+Tokens come in two tiers. Tier 1 are the shadcn variables every primitive reads (they keep their names). Tier 2 are
+**semantic tokens named by job**, added in v2: use them in new code instead of raw slate steps. The style guide
+shows each one with its hex value, usage and computed WCAG contrast ratio; a test (`pages/design-system/__tests__/tokens.test.ts`)
+fails when the documented hex values drift from `index.css`.
+
+### Color roles
+
+| Token (`--color-…`) | Hex | Use |
 |---|---|---|
-| `primary` | `#2563EB` (hover `#1D4ED8`) | Primary actions, active states, focus, "today" markers |
-| Background | `slate-50` | Page canvas |
-| Surface | `white` + `slate-100` border + `shadow-sm` | Cards, tables, panels |
-| Text | `slate-900` titles · `slate-700` body · `slate-500` meta (AA contrast) | |
-| Status | Pending `slate` · In Progress `blue` · Completed `emerald` | Badges, dots, columns, bars |
-| Priority | High `red` · Medium `amber` · Low `emerald` | Dots, card accents |
-| Overdue | `red-600` + "(overdue)" for screen readers | Never color alone |
-| Radius | `rounded-lg` controls · `rounded-xl` cards · `rounded-2xl` page cards | |
-| Type | Inter; 24/700 page title · 18/700 section · 14/600 card heading · 14 body · 12 meta; `tabular-nums` for numbers and dates | |
-| Motion | ≤150 ms color/shadow transitions; global `prefers-reduced-motion` rule | |
+| `primary` / `primary-hover` | `#2563EB` / `#1D4ED8` | Primary actions, active states, links |
+| `canvas` | `#F8FAFC` | App background behind cards |
+| `surface-raised` | `#FFFFFF` | Cards, tables, toolbars, popovers |
+| `surface-sunken` | `#F1F5F9` | Wells: segmented control track, kbd, empty tiles |
+| `border` / `border-subtle` / `border-strong` | `#E2E8F0` / `#F1F5F9` / `#CBD5E1` | Default borders / hairlines inside a card / inputs and key caps |
+| `text-strong` | `#0F172A` | Titles and values |
+| `text-body` | `#334155` | Paragraphs and table cells |
+| `text-subtle` | `#64748B` | Meta, helper text, placeholders (4.76:1 on white) |
+| `text-faint` | `#94A3B8` | Decorative only; never text |
+| `focus` | `#2563EB` | 2px focus outline |
+| `destructive` | `#DC2626` | Destructive actions and errors |
 
-## Components (`@/components/ds`)
+Legacy names still work: `background`, `surface`, `foreground`, `muted-foreground`, `ring`, `text-main`, `text-muted`.
 
-| Component | Purpose | Key props |
+### Status, priority, type, project
+
+| Group | Tokens | Values |
 |---|---|---|
-| `PageHeader` | Page `h1`, subtitle, primary actions (full width on phones) | `title`, `description`, `actions` |
-| `Surface` | White card / panel | `padding` none·sm·md·lg · `radius` lg·xl · `interactive` · `as` |
-| `SectionHeader` | Heading row inside a Surface | `title`, `count`, `icon`, `action` |
-| `StatCard` | Key number in a stat row | `title`, `value`, `subtitle`, `icon`, `colorClass` |
-| `Alert` | Inline message (`error` → `role="alert"`, others `role="status"`) | `tone` info·success·warning·error · `title` · `onDismiss` |
-| `toast()` + `Toaster` | Transient feedback, optional action (e.g. **Undo**) | `toast.success(text)`, `toast.error(text)`, `toast({ title, description, action })` |
-| `EmptyState` | Explains an empty list and offers the next action | `title`, `description`, `icon`, `action` |
-| `SkeletonCards` | Loading placeholders (preferred over spinners) | `count`, `columns` |
-| `ProgressBar` | Completion bar, green at 100%, exposed to screen readers | `value`, `label`, `showValue` |
-| `Tag` | Roles, categories, small states | `tone` neutral·primary·success·warning·danger·dark · `size` sm·md |
-| `IconTile` | Decorative icon in a tinted square | `tone`, `size` |
-| `UserAvatar` | Person image with initials fallback | `name`, `src`, `size` sm·md·lg |
-| `Field` + `fieldMessageId()` | Label + control + hint/error wired with `aria-describedby` | `label`, `htmlFor`, `required`, `hint`, `error` |
+| Status | `status-pending`, `-fg`, `-bg` | `#94A3B8`, `#334155`, `#F1F5F9` |
+| | `status-in-progress`, `-fg`, `-bg` | `#2563EB`, `#1D4ED8`, `#EFF6FF` |
+| | `status-completed`, `-fg`, `-bg` | `#10B981`, `#047857`, `#ECFDF5` |
+| Priority | `priority-high` / `-text` | `#EF4444` marker / `#DC2626` text |
+| | `priority-medium` / `-text` | `#F59E0B` marker / `#B45309` text |
+| | `priority-low` / `-text` | `#10B981` marker / `#047857` text |
+| Task type | `type-story` / `-bg` (emerald) | `#047857` / `#ECFDF5` |
+| | `type-task` / `-bg` (blue) | `#1D4ED8` / `#EFF6FF` |
+| | `type-bug` / `-bg` (red) | `#B91C1C` / `#FEF2F2` |
+| | `type-spike` / `-bg` (violet) | `#6D28D9` / `#F5F3FF` |
+| Project palette | `project-blue` `violet` `rose` `orange` `amber` `emerald` `teal` `slate` | `#2563EB` `#7C3AED` `#E11D48` `#EA580C` `#D97706` `#059669` `#0D9488` `#475569` |
 
-Variants are `cva` recipes in `ds/variants.ts` (`surfaceVariants`, `tagVariants`, `alertVariants`, `iconTileVariants`)
-so new components can reuse them. Shared dialogs live next to the shell: `FormDialog` (full-screen on phones, sticky footer)
-and `ConfirmActionDialog` (destructive confirmations).
+Marker colors (priority dots, `status-*` dots) are for shapes. For words use the `-text` / `-fg` tokens, which pass AA.
+Overdue stays `red-600` plus a screen-reader "(overdue)". Never color alone.
 
-### Feature components (tasks)
+### Scales
 
-`StatusBadge`, `StatusDot`, `PriorityIndicator`, `DueDate`, `DependencyCount`, `FilterPills`, `OptionSelect`,
-`StatusSelect`, `PrioritySelect`, `InlineText`, `InlineDate`, `LabelChip`/`LabelList`, `AssigneeStack`, `TaskActionsMenu`,
-`TaskFormDialog`, `TaskDetailDialog` — exported from `@/features/tasks`. The four views (List, Board, Calendar, Timeline)
-share the `TaskViewProps` contract.
+| Scale | Tokens / values | Notes |
+|---|---|---|
+| Type | Inter. Page title 24/32/700 (20 on phones) · section 18/28/700 · card heading 14/20/600 · body 14/20/400 · meta 12/16/400 · overline 12/16/600 uppercase · code 12 mono | `tabular-nums` for dates and counts |
+| Spacing | 4px base; Tailwind steps 1 (4) · 2 (8) · 3 (12) · 4 (16) · 5 (20) · 6 (24) · 8 (32) · 10 (40) · 12 (48) · 16 (64) | Card padding 16 on phones, 20 from `sm` |
+| Radius | `--radius-control` 8px (`rounded-lg`) · `--radius-card` 12px (`rounded-xl`) · `--radius-page` 16px (`rounded-2xl`) · `full` | |
+| Elevation | `shadow-raised` (cards) · `shadow-floating` (popovers, hover lift) · `shadow-overlay` (dialogs) · `bg-scrim` (`--color-scrim`, slate-900 at 50%) | |
+| Z-index | `--z-base` 0 · `--z-sticky` 10 · `--z-nav` 30 · `--z-overlay` 40 · `--z-modal` 50 · `--z-toast` 60 · `--z-tooltip` 70 | Use `z-(--z-nav)` |
+| Motion | Durations `--duration-instant` 80ms · `-fast` 150ms · `-base` 200ms · `-slow` 280ms. Easings `ease-standard` `cubic-bezier(0.2,0,0,1)`, `ease-enter` `(0,0,0.2,1)`, `ease-exit` `(0.4,0,1,1)` | Transform and opacity only; exits faster than entries; global `prefers-reduced-motion` rule |
+| Breakpoints | `sm` 640 · `md` 768 (sidebar docks, tab bar hides) · `lg` 1024 · `xl` 1280 | Mobile first; 360px minimum |
+| Icons | Lucide, outline, stroke 2, sizes 16 / 20 / 24 | Decorative icons are `aria-hidden` |
+
+## Components
+
+Import from `@/components/ds` unless noted. **Maturity:** `stable` = used across the app, API frozen except additive
+changes · `beta` = new in v2, API may still change in a minor version.
+
+| Component | Purpose | Maturity | Key props |
+|---|---|---|---|
+| `PageHeader` | Page `h1`, subtitle, primary actions (full width on phones) | stable | `title`, `description`, `actions`, `headingLevel` |
+| `Surface` | White card / panel | stable | `padding` none·sm·md·lg, `radius` lg·xl, `interactive`, `as` |
+| `SectionHeader` | Heading row inside a Surface | stable | `title`, `count`, `icon`, `action` |
+| `StatCard` | Key number in a stat row | stable | `title`, `value`, `subtitle`, `icon`, `colorClass` |
+| `Alert` | Inline message (`error` → `role="alert"`) | stable | `tone`, `title`, `onDismiss` |
+| `toast()` + `Toaster` | Transient feedback with optional Undo | stable | `toast.success(text)`, `toast({ title, description, action })` |
+| `EmptyState` | Explains an empty list, offers the next action | stable | `title`, `description`, `icon`, `action` |
+| `ErrorState` | Failed page or panel: what happened · why · what to do | beta | `title`, `reason`, `nextStep`, `action` |
+| `SkeletonCards` | Loading placeholders (preferred over spinners) | stable | `count`, `columns` |
+| `ProgressBar` | Linear completion, green at 100% | stable | `value`, `label`, `showValue` |
+| `ProgressRing` | Circular completion for compact cards | beta | `value`, `label`, `size`, `strokeWidth`, `showValue` |
+| `Tag` | Roles, categories, small states | stable | `tone`, `size` |
+| `StatusPill` | Workflow status as dot + text | beta | `status`, `size` |
+| `TypeBadge` | Scrum work item type as icon + name | beta | `type`, `size` |
+| `IconTile` | Decorative icon in a tinted square | stable | `tone`, `size` |
+| `UserAvatar` | Person image with initials fallback | stable | `name`, `src`, `size` |
+| `AvatarStack` | Overlapping avatars with `+N` | beta | `people`, `max`, `size` |
+| `Field` + `fieldMessageId()` | Label + control + hint/error | stable | `label`, `htmlFor`, `required`, `hint`, `error` |
+| `Kbd` | Keyboard key cap | beta | `size` |
+| `SearchInput` | Search field with icon and clear button | beta | `label`, `value`, `onValueChange`, `onClear` |
+| `SegmentedControl` | One-of-few choice (`radiogroup`, arrow keys) | beta | `options`, `value`, `onValueChange`, `aria-label`, `size` |
+| `Breadcrumbs` | Path to the current page | beta | `items`, `label`, `renderLink` |
+| `Disclosure` / `Accordion` | Expandable region(s) | beta | `title`, `open`, `defaultOpen`; `items`, `type`, `defaultOpenIds` |
+| `Timeline` + `ActivityItem` | Chronological activity list | beta | `actor`, `timestamp`, `timeLabel`, `icon` |
+| `Divider` | Rule, optionally labelled | stable | `label` |
+| `TooltipHint` | Tooltip around one focusable element | beta | `label`, `side` |
+
+shadcn primitives in `@/components/ui` (all **stable**, documented in the guide): `Button`, `Input`, `Select`,
+`Checkbox`, `Tabs`, `Dialog`, `DropdownMenu`, `Tooltip`, `Avatar`, `Skeleton`; also `Textarea`, `AlertDialog`, `Sheet`, `Sidebar`.
+Shared dialogs next to the shell: `FormDialog` (full-screen on phones, sticky footer) and `ConfirmActionDialog` (destructive confirmations).
+
+Variants are `cva` recipes in `ds/variants.ts` (`surfaceVariants`, `tagVariants`, `alertVariants`, `iconTileVariants`,
+`statusPillVariants`, `typeBadgeVariants`, `kbdVariants`, `segmentedItemVariants`) so new components can reuse them.
+
+**Feature components** (`@/features/tasks`, `@/features/projects`): `StatusBadge`, `StatusDot`, `PriorityIndicator`, `DueDate`,
+`DependencyCount`, `FilterPills`, `OptionSelect`, `StatusSelect`, `PrioritySelect`, `InlineText`, `InlineDate`, `LabelChip`/`LabelList`,
+`AssigneeStack`, `TaskActionsMenu`, `TaskFormDialog`, `TaskDetailDialog`, the four views (List, Board, Calendar, Timeline) sharing `TaskViewProps`.
+The Scrum project and sprint components live in `features/projects`; the guide shows static mocks built from `ds` until they are wired in.
+
+### Per-component documentation template
+
+Every component page in the guide has the same eight parts, built with `ComponentDoc` (`pages/design-system/kit.tsx`):
+
+1. **Purpose**: one or two sentences, including when not to use it.
+2. **Anatomy**: numbered list of parts.
+3. **Variants**: live examples of every variant.
+4. **States**: default, hover, focus-visible, disabled, loading, error where they apply.
+5. **Accessibility**: roles, keyboard map, labelling.
+6. **Do and don't**: two short cards.
+7. **Code**: a copyable snippet (the Copy button guards `navigator.clipboard`).
+8. **Props**: a handwritten table (name, type, default, description).
+
+A test renders the page and fails if a component page is missing any part.
 
 ## Usage example
 
 ```tsx
 import AppShell from '@/components/AppShell';
-import { Alert, EmptyState, PageHeader, SectionHeader, Surface, Tag, toast } from '@/components/ds';
+import { Alert, EmptyState, PageHeader, SectionHeader, SegmentedControl, Surface, Tag, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 
 export default function ProjectsPage() {
@@ -88,7 +168,7 @@ export default function ProjectsPage() {
         description="Track progress of tasks grouped by project"
         actions={<Button onClick={() => toast.success('Project created')}>New project</Button>}
       />
-      <Alert tone="warning">You're offline. Changes can't be saved until you reconnect.</Alert>
+      <Alert tone="warning">You are offline. Changes cannot be saved until you reconnect.</Alert>
       <Surface>
         <SectionHeader title="Website v1" count={6} action={<Tag tone="success">On track</Tag>} />
         <EmptyState title="No tasks yet" description="Add a task with this project to see it here." />
@@ -100,20 +180,51 @@ export default function ProjectsPage() {
 
 ## Patterns
 
-- **Responsive:** mobile first (`sm` 640 · `md` 768 · `lg` 1024). No horizontal page scroll at 360 px; tables become
-  stacked cards, the calendar becomes an agenda, board columns become a horizontal snap row; 40 px touch targets on phones;
-  `text-base` inputs (no iOS zoom); dialogs full-screen with a sticky footer.
-- **Accessibility:** one `h1` per page, labelled icon buttons, visible focus, keyboard alternatives for every drag
-  (menu "Move to…", arrow keys on Gantt bars), AA contrast, reduced motion.
-- **Feedback:** optimistic updates; deleting a task shows a 6-second **Undo** toast; other destructive actions confirm
-  with `ConfirmActionDialog`; page-level problems use `Alert`.
-- **Permissions:** UI hides what the role can't do (e.g. Viewers see read-only views); the API enforces it anyway.
+Documented with live examples in the guide (Patterns group):
 
-## Adding a component
+- **Forms and validation:** labels you can see; validate on submit, then on change; message under the field with `Field`; `aria-invalid` +
+  `aria-describedby`; an error alert summarizing two or more problems; focus moves to the first invalid field; busy buttons keep their label.
+- **Empty, loading, error:** `EmptyState` (first use and no results are different), `SkeletonCards`, `ErrorState` or `Alert`, and an amber offline banner.
+- **Feedback:** optimistic updates; toast for results; **Undo** toast (6 seconds) for deleting a task; `ConfirmActionDialog` only for what cannot be undone.
+- **Navigation:** sidebar (md and up) · bottom tab bar (below md, 48px, safe-area padded, `aria-current`) · command palette (Ctrl/Cmd+K, labelled dialog,
+  combobox + listbox) · breadcrumbs three levels deep.
+- **Data views:** list, board, calendar and timeline share `TaskViewProps` and the toolbar; each has a phone shape and a keyboard alternative to drag.
+- **Scrum visuals:** project folder cards (tab in the project color), sprint cards, burndown (SVG with a text alternative), backlog rows with `TypeBadge`.
+- **Mobile and PWA:** safe areas, 44px targets, 16px inputs, installable, app shell cached only, opt-in updates, offline banner.
+- **Permissions:** the UI hides what the role cannot do; the API enforces it anyway.
 
-1. Build it from tokens and existing primitives in `client/src/components/ds/`.
+## Content
+
+- **Voice:** professional, literal, brief. Sentence case everywhere; **no exclamation marks**; "you" for the person.
+- **Error messages:** *what happened · why · what to do*. "We could not save your changes. You are offline. Reconnect and try again." Never raw API errors.
+- **Button and link labels:** verb first ("Create task", "Start sprint"), match the dialog title, name the destructive result ("Remove member"), never "OK" or "Click here".
+- **Dates and numbers:** dates are calendar days (`YYYY-MM-DD` on the wire; format with `lib/date.ts`, never `new Date('YYYY-MM-DD')` for display);
+  `Intl` for locale formats; `tabular-nums`; correct plurals; overdue in words.
+
+## Accessibility (WCAG 2.2 AA)
+
+The guide lists ten checks with an honest status for TaskMan today. Update the status in the same pull request that changes it.
+
+| # | Check | Status | Note |
+|---|---|---|---|
+| 1 | Keyboard operable | Pass | Native elements and Base UI; menu or arrow-key alternative for every drag |
+| 2 | Focus visible | Pass | Ring or 2px outline on every interactive element |
+| 3 | Contrast | Partial | Text tokens pass. Existing priority labels still use `amber-600` (3.2:1); migrate to `priority-medium-text` |
+| 4 | Labels | Pass | `Field` with `aria-describedby`; no placeholder-only labels |
+| 5 | Landmarks and one `h1` | Pass | `PageHeader` is the `h1`; the shell supplies `main`; skip link on the guide |
+| 6 | Reduced motion | Pass | Global `prefers-reduced-motion` rule |
+| 7 | Zoom 200% / reflow | Pass | Mobile first, no horizontal page scroll at 360px |
+| 8 | Touch targets | Partial | 44px on phones; dense desktop controls are 28–32px |
+| 9 | Names for assistive tech | Pass | Icon buttons labelled; progress, groups and charts named |
+| 10 | Forced colors | To audit | Selected states that rely only on background are not yet checked in high contrast |
+
+## Adding or changing a component
+
+1. Build it from tokens and existing primitives in `client/src/components/ds/` (semantic tokens, `cva` recipe in `variants.ts` if it has variants).
 2. Export it from `ds/index.ts`.
-3. Add a test in `ds/__tests__/` (Jest + Testing Library).
-4. Show its variants and states on the style guide (`pages/DesignSystemPage.tsx`) — the page is smoke-tested in
-   `pages/__tests__/DesignSystemPage.test.tsx`.
-5. Document it in the table above and in `DESIGN.md`.
+3. Add a test in `ds/__tests__/` (Jest + Testing Library): roles, names, keyboard.
+4. Document it in the guide: add a `ComponentDoc` page in `pages/design-system/sections/` (all eight template parts) and one line in `pages/design-system/registry.ts`.
+   The smoke test `pages/__tests__/DesignSystemPage.test.tsx` fails if the page is missing, has duplicate ids, or lacks a template part.
+5. New color or scale value? Add it to `index.css`, to `pages/design-system/tokens.ts` (the sync test compares the two) and to the tables above.
+6. Set its maturity (`beta` until it has shipped in two screens), list it in the table above and in [`DESIGN.md`](../DESIGN.md) if it adds a rule.
+7. Run the quality gates: `pnpm --filter client typecheck && pnpm --filter client lint && pnpm --filter client test`.

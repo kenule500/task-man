@@ -54,7 +54,11 @@ const FormDialog = ({
       </div>
 
       <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:flex-none sm:px-6 sm:py-5">
+        {/* The body must be allowed to shrink (min-h-0, flex-initial) so it scrolls inside the capped dialog on every breakpoint */}
+        <div
+          data-slot="form-dialog-body"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-gutter:stable] [scrollbar-width:thin] sm:flex-initial sm:px-6 sm:py-5"
+        >
           {error && <Alert tone="error">{error}</Alert>}
           {children}
         </div>

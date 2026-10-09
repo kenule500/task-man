@@ -2,9 +2,14 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export const TASK_STATUSES = ['pending', 'in-progress', 'completed'] as const;
 export const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
+// Scrum work item types
+export const TASK_TYPES = ['story', 'task', 'bug', 'spike'] as const;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+export type TaskType = (typeof TASK_TYPES)[number];
+
+export const MAX_STORY_POINTS = 100;
 
 export const MAX_LABELS = 10;
 export const MAX_LABEL_LENGTH = 40;
@@ -34,8 +39,15 @@ export interface ITask extends Document {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
-  // Free-text label used to group tasks on the Projects page
+  type: TaskType;
+  // Effort estimate (Scrum story points); unset = not estimated
+  storyPoints?: number | null;
+  // Name of the project (see projectModel); '' = no project
   project: string;
+  // Sprint the task is planned in; unset = product backlog
+  sprint?: mongoose.Types.ObjectId | null;
+  // Parent task when this is a subtask (one level deep)
+  parent?: mongoose.Types.ObjectId | null;
   startDate?: Date;
   deadline: Date;
   // Manual ordering inside a board column (lower comes first)
@@ -74,7 +86,11 @@ const taskSchema: Schema = new Schema({
   description: { type: String, default: '', trim: true, maxlength: 2000 },
   status: { type: String, enum: TASK_STATUSES, default: 'pending' },
   priority: { type: String, enum: TASK_PRIORITIES, default: 'medium' },
+  type: { type: String, enum: TASK_TYPES, default: 'task' },
+  storyPoints: { type: Number, min: 0, max: MAX_STORY_POINTS, default: null },
   project: { type: String, default: '', trim: true, maxlength: 60 },
+  sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null },
+  parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
   startDate: { type: Date },
   deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },
@@ -108,6 +124,8 @@ taskSchema.index({ workspace: 1, deadline: 1 });
 taskSchema.index({ workspace: 1, position: 1 });
 taskSchema.index({ workspace: 1, assignees: 1 });
 taskSchema.index({ workspace: 1, labels: 1 });
+taskSchema.index({ workspace: 1, sprint: 1 });
+taskSchema.index({ workspace: 1, parent: 1 });
 
 // Keep completedAt in sync with the status so reports can rely on it
 taskSchema.pre('save', function () {

@@ -18,6 +18,23 @@ Defined in `client/src/index.css` (`@theme`). Use the semantic token or the list
 | Font | Inter (body); `tabular-nums` for dates and counts | |
 | Radius | `rounded-lg` controls, `rounded-xl` cards in lists, `rounded-2xl` page cards | |
 
+### Semantic tokens (tier 2, `index.css`)
+
+Named by job; prefer them in new code. Full tables with hex values and contrast ratios live on `/design-system`
+and in `docs/DESIGN_SYSTEM.md`.
+
+| Group | Tokens | Rule |
+|---|---|---|
+| Surfaces and text | `canvas`, `surface-raised`, `surface-sunken`, `border-subtle`, `border-strong`, `text-strong`, `text-body`, `text-subtle`, `text-faint`, `focus` | `text-faint` is decorative, never text |
+| Status | `status-pending|in-progress|completed` (+ `-fg`, `-bg`) | Dot color, text color, soft background |
+| Priority | `priority-high|medium|low` (marker) and `-text` (AA words) | Markers for dots and accents, `-text` for labels |
+| Task type | `type-story|task|bug|spike` (+ `-bg`) | Emerald, blue, red, violet; always icon plus name |
+| Project palette | `project-blue|violet|rose|orange|amber|emerald|teal|slate` | Folder tab, dot, sprint header; never a text color |
+| Elevation | `shadow-raised` (cards) · `shadow-floating` (popovers) · `shadow-overlay` (dialogs) · `bg-scrim` | Borders do most of the separating |
+| Z-index | `--z-base` 0 · `sticky` 10 · `nav` 30 · `overlay` 40 · `modal` 50 · `toast` 60 · `tooltip` 70 | Use `z-(--z-nav)`; no `z-[9999]` |
+| Motion | `--duration-instant|fast|base|slow` 80/150/200/280ms; `ease-standard|enter|exit` | Transform and opacity only; exits faster than entries |
+| Spacing | 4px base | Card padding 16 on phones, 20 from `sm` |
+
 ## Meaning colors (single source: `features/tasks/constants.ts`)
 
 | Status | Badge | Dot |
@@ -48,10 +65,40 @@ screen-reader "(overdue)" label. Never use color as the only signal: pair it wit
 - **Timeline:** sticky task-name column, day/week zoom, weekends shaded, blue today line, grey
   dependency arrows, red dashed arrows for scheduling conflicts.
 
+
+### Navigation
+
+- **Sidebar** (md and up): workspace switcher, primary destinations, settings last. Below `md` it is a sheet.
+- **Mobile bottom tab bar** (`components/MobileTabBar.tsx`, below `md` only): 4–5 items, icon + 11px label, 48px tall,
+  `aria-current="page"` and a 2px primary bar on the active tab, `bg-white/95` with a top border, padded with
+  `env(safe-area-inset-*)`, `z-(--z-nav)`. Slots a role cannot use stay empty so positions do not shift. Page content
+  needs bottom padding equal to the bar so nothing hides behind it.
+- **Command palette** (`components/CommandPalette.tsx`, Ctrl/Cmd+K): labelled dialog, search field, results as a
+  listbox (arrows move, Enter runs, Escape closes), shortcut hints with `Kbd`, results filtered by permission. Every
+  item is also reachable through the normal navigation.
+- **Breadcrumbs** only three or more levels deep (Projects › Website › Sprint 4).
+
+### Scrum visuals
+
+Hierarchy: project → sprint → story → task/subtask. Documented live under Patterns → Scrum on `/design-system`.
+
+- **Type colors:** story emerald, task blue, bug red, spike violet (`type-*` tokens, 700 shades). Always `TypeBadge` (icon + name);
+  never color a whole row by type.
+- **Project palette:** eight colors (`project-*`). A project folder card is a white card with a colored tab at its top-left,
+  the project dot beside the name, a `ProgressRing`, open-task count and an `AvatarStack`. The color is never used for text.
+- **Sprint card:** name, date range with days left, `StatusPill` (Planned = pending, Active = in progress, Completed), goal line,
+  `ProgressBar` of points completed, "21 of 34 points done".
+- **Burndown:** solid primary line for remaining, dashed grey line for ideal, labelled axes, and a text alternative stating the
+  headline number (`role="img"` + `aria-label`). Never color alone.
+- **Backlog row:** checkbox, `TypeBadge`, monospace key (`WEB-12`), title (truncates; wraps below on phones), priority dot + word,
+  story points in a neutral pill, `AvatarStack`. Reordering has a menu alternative to dragging.
+- **Points** are unitless numbers (Fibonacci-style scale); show "pts" only in totals.
+
 ## Components
 
 Three layers; always reuse the highest layer that fits before writing markup.
-Open **`/design-system`** (public route, `pages/DesignSystemPage.tsx`) to see every component live.
+Open **`/design-system`** (public route; shell in `pages/DesignSystemPage.tsx`, content in `pages/design-system/`) to see tokens,
+components, patterns, content rules and the accessibility checklist, with search and live examples.
 
 1. **Primitives:** `components/ui` (shadcn Base UI): `Button`, `Input`, `Textarea`, `Select`, `Tabs`,
    `Checkbox`, `Dialog`, `AlertDialog`, `DropdownMenu`, `Avatar`, `Skeleton`, `Sidebar`. Generated; restyle through tokens.
@@ -71,6 +118,18 @@ Open **`/design-system`** (public route, `pages/DesignSystemPage.tsx`) to see ev
 | `IconTile` | Decorative icon in a tinted square | `tone`, `size` |
 | `UserAvatar` | People (image or initials) | `name`, `src`, `size` |
 | `Field` | Label + control + hint/error (`fieldMessageId(id)` for `aria-describedby`) | `label`, `htmlFor`, `required`, `hint`, `error` |
+| `ErrorState` | Failed page or panel: what happened · why · what to do (`role="alert"`) | `title`, `reason`, `nextStep`, `action` |
+| `ProgressRing` | Circular progress on compact cards (`role="progressbar"`) | `value`, `label`, `size`, `strokeWidth` |
+| `StatusPill` / `TypeBadge` | Status (dot + text) and Scrum type (icon + name) from the status and type tokens | `status` · `type`, `size` |
+| `AvatarStack` | Assignees with `+N` overflow, group labelled with every name | `people`, `max`, `size` |
+| `Kbd` | Keyboard shortcut key cap | `size` |
+| `SearchInput` | Search with icon, clear button, Escape to clear | `label`, `value`, `onValueChange` |
+| `SegmentedControl` | Choose one of 2–5 (`radiogroup`, arrows, Home/End) | `options`, `value`, `onValueChange`, `aria-label` |
+| `Breadcrumbs` | Path to the current page (`aria-current="page"`) | `items`, `label`, `renderLink` |
+| `Disclosure` / `Accordion` | Expandable regions (`aria-expanded`, `aria-controls`) | `title`, `open`; `items`, `type` |
+| `Timeline` / `ActivityItem` | Chronological activity with `<time>` | `actor`, `timestamp`, `timeLabel` |
+| `Divider` | Rule, optionally labelled | `label` |
+| `TooltipHint` | Tooltip for one focusable element (icon buttons) | `label`, `side` |
 
    The authenticated page frame is `components/AppShell.tsx` (guard + sidebar + content column; children or
    `(user) => …`). It stays outside `ds` because it depends on routing and the session.
@@ -81,14 +140,17 @@ Open **`/design-system`** (public route, `pages/DesignSystemPage.tsx`) to see ev
    `TaskFormDialog`, `ConfirmDeleteDialog`) and `features/workspace`.
 
 Adding a component: build it from tokens and existing primitives, add it to `components/ds` with a test in
-`components/ds/__tests__`, show its variants and states on the style guide page, and list it here.
+`components/ds/__tests__`, document it on the style guide (a `ComponentDoc` page in `pages/design-system/sections/` plus a line in
+`pages/design-system/registry.ts`: purpose, anatomy, variants, states, accessibility, do/don't, code, props), and list it here.
+`docs/DESIGN_SYSTEM.md` has the full checklist and the maturity (stable/beta) of every component.
 
 ## Responsive & mobile
 
 - Mobile first; breakpoints `sm` 640, `md` 768 (sidebar becomes a sheet below it), `lg` 1024, `xl` 1280.
 - No horizontal page scroll at 360px. Wide content scrolls inside its own container (timeline) or changes
   shape: tables → stacked cards, calendar grid → agenda list, board columns → horizontal snap scroller.
-- Touch targets ≥ 40px below `md`; actions hidden behind hover on desktop are always visible on touch.
+- Touch targets ≥ 40px below `md` (44px for the tab bar, disclosure triggers and menu rows); actions hidden behind hover on desktop are always visible on touch.
+- Phones get the bottom tab bar (see Navigation); fixed bars pad with `env(safe-area-inset-*)`.
 - Inputs use `text-base` on mobile (prevents iOS zoom); dialogs become near full-screen with a sticky footer.
 - Respect safe areas (`env(safe-area-inset-*)`) for fixed elements (PWA standalone mode).
 
@@ -107,9 +169,11 @@ Adding a component: build it from tokens and existing primitives, add it to `com
 - Feedback uses toasts (`toast()` from `@/components/ds`) for success and errors; inline `Alert` for page-level problems.
 - Focus is always visible (`focus-visible` ring or outline in primary).
 - Empty states explain what to do next; loading uses skeleton cards, not spinners.
-- Motion stays subtle (≤150ms color/shadow transitions); no decorative animation.
+- Motion stays subtle (≤150ms color/shadow transitions); no decorative animation. Animate transform and opacity only, exits faster than
+  entries, durations from the motion tokens, and everything collapses under `prefers-reduced-motion`.
 
 ## Copy
 
-Sentence case, plain verbs on buttons ("Create task", "Save changes", "Delete task"), errors that say what
-happened and how to fix it ("Start date must be on or before the due date.").
+Sentence case, plain verbs on buttons ("Create task", "Save changes", "Delete task"), no exclamation marks, errors that say
+*what happened · why · what to do* ("We could not save your changes. You are offline. Reconnect and try again.").
+Never show raw API errors. Details: `/design-system` → Content.

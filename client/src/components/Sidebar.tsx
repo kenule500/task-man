@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown,
-  Sparkles, Plus, Check, User, Settings, type LucideIcon,
+  Sparkles, Plus, Check, User, Settings, Search, type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
+import CommandPalette from './CommandPalette';
+import MobileTabBar from './MobileTabBar';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
 import type { StoredUser } from '../utils/session';
@@ -56,6 +58,12 @@ const navGeneral = [
   // Help is always visible
   { title: 'Help & Center', key: 'help', icon: HelpCircle, permission: null },
 ];
+
+/** "⌘K" on Apple devices, "Ctrl K" elsewhere. */
+const shortcutLabel = () =>
+  typeof navigator !== 'undefined' && /mac|iphone|ipad|ipod/i.test(navigator.platform || navigator.userAgent || '')
+    ? '⌘K'
+    : 'Ctrl K';
 
 /** 40px rows on touch, compact from `md`. */
 const MENU_ITEM = 'min-h-10 md:min-h-0';
@@ -142,6 +150,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
 
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Target slug for navigation
   const targetSlug =
@@ -159,6 +168,19 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       : location.pathname.split('/')[2];
   const pageTitle =
     [...navMain, ...navGeneral].find((item) => item.key === section)?.title ?? '';
+
+  // Ctrl/Cmd+K opens the search from anywhere in the app
+  useEffect(() => {
+    if (!targetSlug) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [targetSlug]);
 
   // Fetch workspaces
   const fetchWorkspaces = async () => {
@@ -342,11 +364,48 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
               </span>
             )}
           </div>
+          {targetSlug && (
+            <div className="ml-auto flex items-center">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+                aria-haspopup="dialog"
+                className="inline-flex size-10 items-center justify-center rounded-lg text-slate-600 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary md:hidden"
+              >
+                <Search className="size-5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                aria-haspopup="dialog"
+                className="hidden h-9 w-64 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500 outline-none transition-colors hover:border-slate-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-primary md:flex lg:w-80"
+              >
+                <Search className="size-4 shrink-0" aria-hidden />
+                <span className="flex-1 truncate text-left">Search tasks, pages…</span>
+                <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[11px] font-medium text-slate-500">
+                  {shortcutLabel()}
+                </kbd>
+              </button>
+            </div>
+          )}
         </header>
-        <div id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 outline-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
+        <div id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 outline-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
           {children}
         </div>
       </SidebarInset>
+
+      {/* ========== Mobile bottom navigation + global search ========== */}
+      <MobileTabBar slug={targetSlug} />
+      {targetSlug && (
+        <CommandPalette
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          slug={targetSlug}
+          can={can}
+          permissionsLoading={permissionsLoading}
+        />
+      )}
 
       {/* ========== Create Workspace Modal ========== */}
       <CreateWorkspaceModal

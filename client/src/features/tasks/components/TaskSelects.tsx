@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PRIORITY_OPTIONS, STATUS_OPTIONS, type SelectOption } from '../constants';
-import type { TaskPriority, TaskStatus } from '../types';
+import type { Project } from '@/features/projects';
+import { PRIORITY_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
+import {
+  BACKLOG_VALUE, NO_ESTIMATE_VALUE, findProjectByName, parseStoryPoints, sprintOptionsFor, storyPointOptions,
+} from '../lib/taskForm';
+import type { TaskPriority, TaskStatus, TaskType } from '../types';
 
 const OptionDot = ({ className }: { className?: string }) =>
   className ? <span aria-hidden className={cn('size-2 shrink-0 rounded-full', className)} /> : null;
@@ -70,3 +74,48 @@ export const StatusSelect = ({ 'aria-label': label = 'Status', ...props }: Prese
 export const PrioritySelect = ({ 'aria-label': label = 'Priority', ...props }: PresetSelectProps<TaskPriority>) => (
   <OptionSelect options={PRIORITY_OPTIONS} aria-label={label} {...props} />
 );
+
+export const TypeSelect = ({ 'aria-label': label = 'Type', ...props }: PresetSelectProps<TaskType>) => (
+  <OptionSelect options={TASK_TYPE_OPTIONS} aria-label={label} {...props} />
+);
+
+interface StoryPointsSelectProps extends Omit<PresetSelectProps<string>, 'options' | 'value' | 'onChange'> {
+  /** null = not estimated */
+  value: number | null;
+  onChange: (value: number | null) => void;
+}
+
+/** Fibonacci estimates; an off-scale value from the API is kept as an extra option. */
+export const StoryPointsSelect = ({ value, onChange, 'aria-label': label = 'Story points', ...props }: StoryPointsSelectProps) => (
+  <OptionSelect
+    options={storyPointOptions(value)}
+    value={value === null ? NO_ESTIMATE_VALUE : String(value)}
+    onChange={next => onChange(parseStoryPoints(next))}
+    aria-label={label}
+    {...props}
+  />
+);
+
+interface SprintSelectProps extends Omit<PresetSelectProps<string>, 'options' | 'value' | 'onChange'> {
+  projects: Project[];
+  /** Project name of the task; sprints are listed for this project only. */
+  project: string;
+  /** Sprint id, '' = backlog */
+  value: string;
+  onChange: (sprintId: string) => void;
+}
+
+/** Backlog plus the planned and active sprints of the task's project; disabled without a (known) project. */
+export const SprintSelect = ({ projects, project, value, onChange, disabled, 'aria-label': label = 'Sprint', ...props }: SprintSelectProps) => {
+  const known = Boolean(findProjectByName(projects, project));
+  return (
+    <OptionSelect
+      options={sprintOptionsFor(projects, project, value)}
+      value={value || BACKLOG_VALUE}
+      onChange={next => onChange(next === BACKLOG_VALUE ? '' : next)}
+      aria-label={label}
+      disabled={disabled || !known}
+      {...props}
+    />
+  );
+};

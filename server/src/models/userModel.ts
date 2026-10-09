@@ -80,6 +80,15 @@ const userSchema: Schema = new Schema({
   activeWorkspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
 }, {
   timestamps: true,
+  // Defence in depth: serialized users never carry the password hash or token hashes
+  toJSON: {
+    transform: (_doc, ret: Record<string, unknown>) => {
+      delete ret.password;
+      delete ret.verificationToken;
+      delete ret.resetPasswordToken;
+      return ret;
+    },
+  },
 });
 
 userSchema.pre('save', async function () {

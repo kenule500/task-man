@@ -15,7 +15,8 @@ A walkthrough of what the team built, how it works and how to demo it — prepar
 
 ## 1. What TaskMan is
 
-A MERN task manager for teams: sign up, create or join a workspace, invite teammates with roles, and plan work in
+A MERN task manager for software teams: sign up, create or join a workspace, invite teammates with Scrum roles, organise
+work as **projects → sprints → tasks → subtasks** (story points, burndown, velocity), and plan it in
 **four synchronized views** — List, Board (Kanban), Calendar and Timeline (Gantt) — with comments, file attachments,
 labels, assignees and dependencies. It is installable as a **PWA** and works on phones.
 
@@ -52,13 +53,16 @@ Seeded accounts in `demo-workspace` — one per role. The shared test password i
 5. **Calendar.** Drag a task to another day; click a day to create a task due that day.
 6. **Timeline (Gantt).** Bars from start to due date, **dependency arrows**, red dashed arrows for scheduling conflicts;
    drag or use arrow keys to move, Shift + arrows to resize.
-7. **Delete a task → Undo** in the toast: the task comes back (nothing was deleted on the server).
-8. **Team Members / Settings.** Roles, invitations, custom roles with a permission matrix, regenerate the invite code.
-9. **Sign out → sign in as Viewer.** Same board, **read-only**: no "Add Task", no drag, Team and Settings hidden;
+7. **Delete a task** → confirm → **Undo** in the toast: the task comes back (nothing was deleted on the server).
+8. **Projects → Website v1.** Folder cards; open the project: active sprint with burndown, planned and completed
+   sprints, the backlog (move a story into a sprint), subtasks checklist in a story's details. Complete a sprint to see
+   unfinished work move to the backlog. **Ctrl/Cmd + K** finds any page, task, project, sprint or help answer.
+9. **Team Members / Settings.** Roles, invitations, custom roles with a permission matrix, regenerate the invite code.
+10. **Sign out → sign in as Viewer.** Same board, **read-only**: no "Add Task", no drag, Team and Settings hidden;
    direct API writes return **403**.
-10. **Phone.** Resize to 375 px (or open on a phone): cards instead of tables, agenda instead of the month grid,
-    installable as an app (PWA).
-11. **Design system.** `/design-system`: tokens, components, states — the building blocks of every screen.
+11. **Phone.** Resize to 375 px (or open on a phone): bottom navigation with a New task button, week-strip calendar,
+    status tabs on the board, installable as an app (PWA).
+12. **Design system.** `/design-system`: foundations, 34 documented components, patterns, content and accessibility rules.
 
 ## 4. Architecture
 
@@ -93,9 +97,9 @@ Vercel ── static web app (client/dist)
 
 | Suite | Command | Tests |
 |---|---|---|
-| Server unit tests | `pnpm --filter server test` | 127 |
-| Server **integration** tests on a real MongoDB | `pnpm --filter server test:integration` | 184 |
-| Client unit/component tests | `pnpm --filter client test` | 197 |
+| Server unit tests | `pnpm --filter server test` | 128 |
+| Server **integration** tests on a real MongoDB | `pnpm --filter server test:integration` | 202 |
+| Client unit/component tests | `pnpm --filter client test` | 413 |
 | Coverage reports | `pnpm --filter server test:coverage` · `pnpm --filter client test:coverage` | — |
 | Type checks / lint / build | `pnpm --filter client typecheck && pnpm --filter client lint && pnpm --filter client build` | — |
 

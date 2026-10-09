@@ -154,7 +154,7 @@ const RoleEditorModal = ({
 
       <div className="space-y-2">
         <p id="role-permissions-label" className="text-sm font-medium text-slate-700">Permissions</p>
-        <div role="group" aria-labelledby="role-permissions-label" className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200">
+        <div role="group" aria-labelledby="role-permissions-label" className="divide-y divide-gray-100 rounded-lg border border-gray-200 sm:max-h-[50dvh] sm:overflow-y-auto sm:overscroll-contain [scrollbar-width:thin]">
           {!permissionsLoaded && <p className="p-4 text-sm text-slate-600">Loading permissions...</p>}
           {Object.entries(permissionGroups).map(([group, perms]) => {
             const keys = perms.map((p) => p.key);
@@ -164,7 +164,7 @@ const RoleEditorModal = ({
             return (
               <fieldset key={group} className="bg-white">
                 <legend className="sr-only">{group}</legend>
-                <div className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-1.5">
+                <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-gray-100 bg-slate-50 px-4 py-1.5">
                   <span aria-hidden className="text-xs font-semibold uppercase tracking-wider text-slate-700">
                     {group}
                     <span className="ml-2 font-normal normal-case tracking-normal text-slate-600 tabular-nums">

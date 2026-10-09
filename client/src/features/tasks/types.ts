@@ -1,5 +1,7 @@
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
+/** Scrum work item type. */
+export type TaskType = 'story' | 'task' | 'bug' | 'spike';
 export type TaskSort = 'createdAt' | 'deadline' | 'priority';
 export type TaskView = 'list' | 'board' | 'calendar' | 'timeline';
 
@@ -31,10 +33,18 @@ export interface Task {
   _id: string;
   title: string;
   description?: string;
-  /** Free-text label used to group tasks on the Projects page. */
+  /** Project name ('' = none); projects are listed by the projects API. */
   project?: string;
   status: TaskStatus;
   priority: TaskPriority;
+  /** Defaults to 'task' on the server. */
+  type?: TaskType;
+  /** Story points estimate; null = not estimated. */
+  storyPoints?: number | null;
+  /** Sprint id; null/unset = product backlog. */
+  sprint?: string | null;
+  /** Parent task id when this is a subtask. */
+  parent?: string | null;
   /** ISO date string. Optional: tasks without a start are shown as one-day bars. */
   startDate?: string | null;
   /** ISO date string. */
@@ -61,6 +71,10 @@ export interface TaskInput {
   project?: string;
   status?: TaskStatus;
   priority?: TaskPriority;
+  type?: TaskType;
+  storyPoints?: number | null;
+  sprint?: string | null;
+  parent?: string | null;
   startDate?: string | null;
   deadline: string;
   position?: number;
@@ -81,6 +95,8 @@ export interface TaskFilters {
   assignedToMe?: boolean;
   /** Only tasks carrying this label (`'all'` or unset = any). */
   label?: string;
+  /** Only this work item type (`'all'` or unset = any). */
+  type?: TaskType | 'all';
 }
 
 /** Max labels per task (mirrors the server). */

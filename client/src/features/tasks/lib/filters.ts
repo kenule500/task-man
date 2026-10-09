@@ -3,19 +3,20 @@ import { isOverdue } from './date';
 import type { Task, TaskFilters, TaskSort, TaskStatus } from '../types';
 
 export const DEFAULT_FILTERS: TaskFilters = {
-  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all',
+  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all',
 };
 
-type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label'>>;
+type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type'>>;
 
 /** `currentUserId` is needed for the "assigned to me" filter; without it that filter matches nothing. */
 export const matchesFilters = (
   task: Task,
-  { search, status, priority = 'all', assignedToMe = false, label = 'all' }: MatchableFilters,
+  { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all' }: MatchableFilters,
   currentUserId?: string,
 ) => {
   if (status !== 'all' && task.status !== status) return false;
   if (priority !== 'all' && task.priority !== priority) return false;
+  if (type !== 'all' && (task.type ?? 'task') !== type) return false;
   if (assignedToMe && !(currentUserId && task.assignees?.some(user => user._id === currentUserId))) return false;
   if (label !== 'all' && !task.labels?.some(item => item.toLowerCase() === label.toLowerCase())) return false;
   const term = search.trim().toLowerCase();

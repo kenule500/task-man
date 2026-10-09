@@ -66,10 +66,13 @@ export const useTasks = (workspaceSlug: string | undefined) => {
   /** Tasks the UI shows: pending deletes are hidden and no longer referenced as dependencies. */
   const tasks = useMemo(() => {
     if (pendingIds.size === 0) return allTasks;
+    // Deleting a task deletes its subtasks, so they disappear with it
+    const hidden = new Set(pendingIds);
+    for (const task of allTasks) if (task.parent && pendingIds.has(task.parent)) hidden.add(task._id);
     return allTasks
-      .filter(task => !pendingIds.has(task._id))
-      .map(task => (task.dependencies?.some(dep => pendingIds.has(dep))
-        ? { ...task, dependencies: task.dependencies.filter(dep => !pendingIds.has(dep)) }
+      .filter(task => !hidden.has(task._id))
+      .map(task => (task.dependencies?.some(dep => hidden.has(dep))
+        ? { ...task, dependencies: task.dependencies.filter(dep => !hidden.has(dep)) }
         : task));
   }, [allTasks, pendingIds]);
 
@@ -81,8 +84,13 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     pendingRef.current.delete(id);
     try {
       await tasksApi.remove(entry.slug, id);
-      // The server also detaches the task from dependants; mirror that locally.
-      setTasks(current => current.filter(task => task._id !== id).map(task => detachDependency(task, id)));
+      // The server also deletes the subtasks and detaches the tasks from dependants; mirror that locally.
+      setTasks(current => {
+        const removed = new Set([id, ...current.filter(task => task.parent === id).map(task => task._id)]);
+        return current
+          .filter(task => !removed.has(task._id))
+          .map(task => [...removed].reduce(detachDependency, task));
+      });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not delete the task.'));
     } finally {
@@ -136,7 +144,18 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [flushDeletes]);
 
-  /** Creates a task; throws so forms can show the server's validation message. */
+  /** Fetches the list again, for changes made server-side (sprint start/complete move tasks around). */
+  const reload = useCallback(async (): Promise<void> => {
+    if (!workspaceSlug) return;
+    try {
+      setTasks(await tasksApi.list(workspaceSlug));
+      setError('');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load tasks.'));
+    }
+  }, [workspaceSlug]);
+
+  /** Creates a task (or a subtask when `input.parent` is set); throws so forms can show the server's validation message. */
   const createTask = useCallback(async (input: TaskInput): Promise<Task | null> => {
     if (!workspaceSlug) return null;
     const created = await tasksApi.create(workspaceSlug, input);
@@ -156,7 +175,12 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     setTasks(current => current.map(task => (task._id === id ? applyPatch(task, patch, directory) : task)));
     try {
       const saved = await tasksApi.update(workspaceSlug, id, patch);
-      setTasks(current => current.map(task => (task._id === id ? saved : task)));
+      const regrouped = 'sprint' in patch || 'project' in patch;
+      setTasks(current => current.map(task => {
+        if (task._id === id) return saved;
+        // Subtasks follow their parent between projects and sprints
+        return regrouped && task.parent === id ? { ...task, project: saved.project, sprint: saved.sprint ?? null } : task;
+      }));
       return saved;
     } catch (err) {
       setTasks(current => current.map(task => (task._id === id ? previous : task)));
@@ -254,6 +278,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     loading,
     error,
     clearError,
+    reload,
     createTask,
     updateTask,
     deleteTask,
