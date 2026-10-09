@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import mongoose from 'mongoose';
+import { recordActivity } from '../utils/activity.js';
 import Invitation from '../models/invitationModel.js';
 import Workspace from '../models/workspaceModel.js';
 import Role from '../models/roleModel.js';
@@ -93,6 +94,10 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
       expiresAt,
     });
 
+    await recordActivity(req, {
+      action: 'invitation.sent', summary: normalizedEmail, changes: [{ field: 'role', to: role.name }],
+    });
+
     // Send the invitation email
     const inviter = await User.findById(inviterId).select('name');
     const acceptLink = buildInviteLink(token);
@@ -176,6 +181,7 @@ export const cancelInvitation = async (req: Request, res: Response): Promise<voi
       return;
     }
 
+    await recordActivity(req, { action: 'invitation.cancelled', summary: invitation.email });
     res.status(200).json({ message: 'Invitation cancelled' });
   } catch (error) {
     console.error('cancelInvitation error:', error);

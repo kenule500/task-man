@@ -15,6 +15,8 @@ import Sprint from '../models/sprintModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
+import { diffFields, recordActivity } from '../utils/activity.js';
+import { ensureTaskNumbers, reserveTaskNumbers } from '../utils/taskNumbers.js';
 import {
   buildTaskFilter,
   buildTaskSort,
@@ -37,6 +39,11 @@ const POPULATE_PATHS = [
 ];
 
 export class TaskRuleError extends Error {}
+
+// Fields whose changes are written to the activity log (description changes are noted without the text)
+const AUDITED_FIELDS = [
+  'title', 'status', 'priority', 'type', 'storyPoints', 'project', 'startDate', 'deadline', 'labels',
+] as const;
 
 /** The workspace attached by requirePermission (req.workspace). */
 export const workspaceOf = (req: Request): IWorkspace => req.workspace as IWorkspace;
@@ -197,6 +204,7 @@ export const getTasks = async (req: Request, res: Response): Promise<void> => {
   try {
     const workspace = workspaceOf(req);
     const query = parseTaskListQuery(req.query as Record<string, unknown>);
+    await ensureTaskNumbers(workspace._id as mongoose.Types.ObjectId);
 
     const tasks = await Task.aggregate([
       { $match: buildTaskFilter(workspace._id, query, req.user?._id) },
@@ -243,7 +251,9 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     }
     if (sprint) project = (await findOpenSprint(workspaceId, sprint)).projectName;
 
+    const number = await reserveTaskNumbers(workspaceId);
     const task = await Task.create({
+      number,
       title,
       description,
       project,
@@ -263,6 +273,10 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       workspace: workspace._id,
     });
 
+    await recordActivity(req, {
+      action: 'task.created', summary: task.title, task: task._id as mongoose.Types.ObjectId,
+      changes: parentId ? [{ field: 'parent', to: parentId }] : [],
+    });
     res.status(201).json(await populateTasks(task));
   } catch (error) {
     handleError(res, error, 'createTask');
@@ -288,6 +302,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    const before = task.toObject() as unknown as Record<string, unknown>;
     for (const field of EDITABLE_FIELDS) {
       if (!(field in req.body)) continue;
       const value = req.body[field];
@@ -322,6 +337,19 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       project: 'project' in req.body,
     });
     await task.save();
+
+    const after = task.toObject() as unknown as Record<string, unknown>;
+    const changes = diffFields(before, after, AUDITED_FIELDS);
+    if (String(before.sprint ?? '') !== String(after.sprint ?? '')) {
+      changes.push({ field: 'sprint', from: before.sprint ? String(before.sprint) : undefined, to: after.sprint ? String(after.sprint) : undefined });
+    }
+    if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
+      changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
+    }
+    if (before.description !== after.description) changes.push({ field: 'description' });
+    if (changes.length > 0) {
+      await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
+    }
 
     // Subtasks follow their parent between projects and sprints
     if ('sprint' in req.body || 'project' in req.body) {
@@ -365,6 +393,12 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
     // Attachments live in GridFS, so they are removed explicitly
     await deleteFiles([task, ...subtasks].flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 
+    await recordActivity(req, {
+      action: 'task.deleted',
+      summary: task.title,
+      task: task._id as mongoose.Types.ObjectId,
+      changes: subtasks.length > 0 ? [{ field: 'subtasks', from: String(subtasks.length) }] : [],
+    });
     res.status(200).json({ message: 'Task deleted', id, subtasks: subtasks.map(sub => String(sub._id)) });
   } catch (error) {
     handleError(res, error, 'deleteTask');

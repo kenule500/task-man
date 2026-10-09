@@ -17,6 +17,7 @@ import {
 } from '../middleware/uploadMiddleware.js';
 import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
 
+jest.mock('../utils/activity.js', () => ({ ...jest.requireActual('../utils/activity.js'), recordActivity: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
   TASK_STATUSES: ['pending', 'in-progress', 'completed'],

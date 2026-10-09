@@ -12,6 +12,14 @@ import {
 } from '../controllers/taskController.js';
 
 jest.mock('../utils/gridfs.js', () => ({ deleteFiles: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../utils/taskNumbers.js', () => ({
+  reserveTaskNumbers: jest.fn().mockResolvedValue(1),
+  ensureTaskNumbers: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('../utils/activity.js', () => ({
+  ...jest.requireActual('../utils/activity.js'),
+  recordActivity: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
@@ -68,6 +76,7 @@ const createTaskDocument = (fields: Record<string, unknown>) => {
   const doc: Record<string, any> = { ...fields };
   doc.set = jest.fn((key: string, value: unknown) => { doc[key] = value; });
   doc.save = jest.fn().mockResolvedValue(doc);
+  doc.toObject = jest.fn(() => ({ ...doc }));
   return doc;
 };
 

@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import { findDefaultRole, roleRank } from '../utils/roleAccess.js';
+import { recordActivity } from '../utils/activity.js';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
@@ -317,8 +318,12 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
 
   try {
     const workspace = req.workspace!;
+    const previousName = workspace.name;
     workspace.name = req.body.name;
     await workspace.save();
+    if (previousName !== workspace.name) {
+      await recordActivity(req, { action: 'workspace.updated', summary: workspace.name, changes: [{ field: 'name', from: previousName, to: workspace.name }] });
+    }
     res.status(200).json(workspace);
   } catch (error) {
     console.error('updateWorkspace error:', error);
@@ -336,6 +341,7 @@ export const regenerateInviteCode = async (req: Request, res: Response): Promise
     const workspace = req.workspace!;
     workspace.inviteCode = generateInviteCode();
     await workspace.save();
+    await recordActivity(req, { action: 'workspace.invite_code_regenerated', summary: workspace.name });
     res.status(200).json({ inviteCode: workspace.inviteCode });
   } catch (error) {
     console.error('regenerateInviteCode error:', error);

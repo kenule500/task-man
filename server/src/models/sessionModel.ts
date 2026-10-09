@@ -41,5 +41,10 @@ const sessionSchema: Schema = new Schema({
   timestamps: true
 });
 
+// Access tokens live 1 hour (see authController); a day later MongoDB removes the session record (TTL index)
+export const SESSION_LIFETIME_MS = 60 * 60 * 1000;
+sessionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+sessionSchema.index({ user: 1, isValid: 1, createdAt: -1 });
+
 const Session = mongoose.model<ISession>('Session', sessionSchema);
 export default Session;

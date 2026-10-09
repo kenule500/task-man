@@ -35,6 +35,8 @@ export interface ITaskAttachment {
 }
 
 export interface ITask extends Document {
+  // Sequential number inside the workspace; shown as "<project key>-<number>"
+  number?: number;
   title: string;
   description: string;
   status: TaskStatus;
@@ -82,6 +84,7 @@ const attachmentSchema = new Schema<ITaskAttachment>({
 });
 
 const taskSchema: Schema = new Schema({
+  number: { type: Number, min: 1 },
   title: { type: String, required: true, trim: true, maxlength: 140 },
   description: { type: String, default: '', trim: true, maxlength: 2000 },
   status: { type: String, enum: TASK_STATUSES, default: 'pending' },
@@ -125,6 +128,7 @@ taskSchema.index({ workspace: 1, position: 1 });
 taskSchema.index({ workspace: 1, assignees: 1 });
 taskSchema.index({ workspace: 1, labels: 1 });
 taskSchema.index({ workspace: 1, sprint: 1 });
+taskSchema.index({ workspace: 1, number: 1 }, { unique: true, partialFilterExpression: { number: { $type: 'number' } } });
 taskSchema.index({ workspace: 1, parent: 1 });
 
 // Keep completedAt in sync with the status so reports can rely on it

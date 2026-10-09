@@ -10,6 +10,8 @@ export interface IWorkspace extends Document {
     joinedAt: Date;
   }[];
   inviteCode: string;
+  // Last task number handed out (task keys like WEB-12 use it)
+  taskCounter: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +36,7 @@ const workspaceSchema: Schema = new Schema(
       },
     ],
     inviteCode: { type: String, required: true, unique: true, index: true },
+    taskCounter: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

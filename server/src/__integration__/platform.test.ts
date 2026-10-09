@@ -7,7 +7,8 @@ describe('platform: health and unknown routes', () => {
   it('reports health without authentication', async () => {
     const res = await http().get('/api/health');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: 'OK', message: 'Server is running' });
+    expect(res.body).toEqual({ status: 'OK', message: 'Server is running', database: 'up', version: expect.any(String) });
+    expect(res.headers['x-request-id']).toMatch(/^[\w-]{8,64}$/);
   });
 
   it('answers 404 for unknown routes without leaking the stack or framework', async () => {

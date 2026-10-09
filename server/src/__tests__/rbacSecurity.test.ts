@@ -9,6 +9,7 @@ import { changeMemberRole } from '../controllers/memberController.js';
 import { joinWorkspace } from '../controllers/workspaceController.js';
 import { SYSTEM_ROLES } from '../config/permissions.js';
 
+jest.mock('../utils/activity.js', () => ({ ...jest.requireActual('../utils/activity.js'), recordActivity: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../models/roleModel.js', () => ({
   __esModule: true,
   default: { findOne: jest.fn(), findById: jest.fn(), find: jest.fn() },
