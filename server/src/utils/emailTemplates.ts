@@ -93,14 +93,22 @@ export const resetPasswordTemplate = (resetLink: string): EmailTemplate => ({
 // ================================================================
 // Workspace Invitation (sent when a member is invited)
 // ================================================================
+const escapeHtml = (value: string): string =>
+  value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] as string);
+
 export const invitationTemplate = (
-  workspaceName: string,
-  roleName: string,
-  inviterName: string,
+  rawWorkspaceName: string,
+  rawRoleName: string,
+  rawInviterName: string,
   acceptLink: string
-): EmailTemplate => ({
-  subject: `You've been invited to join ${workspaceName} on TaskMan`,
-  text: `${inviterName} has invited you to join the workspace "${workspaceName}" as a ${roleName}.\n\nAccept your invitation:\n${acceptLink}\n\nThis link expires in 3 days.`,
+): EmailTemplate => {
+  // Names are user-controlled: escape them before they reach the HTML body
+  const workspaceName = escapeHtml(rawWorkspaceName);
+  const roleName = escapeHtml(rawRoleName);
+  const inviterName = escapeHtml(rawInviterName);
+  return {
+  subject: `You've been invited to join ${rawWorkspaceName} on TaskMan`,
+  text: `${rawInviterName} has invited you to join the workspace "${rawWorkspaceName}" as a ${rawRoleName}.\n\nAccept your invitation:\n${acceptLink}\n\nThis link expires in 3 days.`,
   html: wrap(`
     ${brandHeader()}
     <h2 style="color: #0f172a; margin: 0 0 16px;">You've been invited!</h2>
@@ -125,4 +133,5 @@ export const invitationTemplate = (
       </p>
     </div>
   `),
-});
+  };
+};

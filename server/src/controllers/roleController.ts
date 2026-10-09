@@ -65,8 +65,9 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
     const workspace = req.workspace!;
     const { name, description, permissions } = req.body;
 
-    if (!name || !name.trim()) {
-      res.status(400).json({ message: 'Role name is required' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 60
+      || (description !== undefined && (typeof description !== 'string' || description.length > 280))) {
+      res.status(400).json({ message: 'Role name (max 60 characters) is required; description max 280 characters' });
       return;
     }
 
@@ -120,6 +121,11 @@ export const updateCustomRole = async (req: Request, res: Response): Promise<voi
     if (!role) return;
 
     // ---- Update name (with conflict check) ----
+    if ((name !== undefined && (typeof name !== 'string' || name.trim().length > 60))
+      || (description !== undefined && (typeof description !== 'string' || description.length > 280))) {
+      res.status(400).json({ message: 'Role name max 60 characters; description max 280 characters' });
+      return;
+    }
     if (name !== undefined) {
       if (!name.trim()) {
         res.status(400).json({ message: 'Role name cannot be empty' });
@@ -175,16 +181,8 @@ export const deleteCustomRole = async (req: Request, res: Response): Promise<voi
     const role = await findCustomRoleOr404(workspace._id, roleId, res);
     if (!role) return;
 
-    // Check if any member is currently using this role
-    const workspaceDoc = await Workspace.findById(workspace._id);
-    if (!workspaceDoc) {
-      res.status(404).json({ message: 'Workspace not found' });
-      return;
-    }
-
-    const inUse = workspaceDoc.members.some(
-      (m) => m.roleId.toString() === roleId
-    );
+    // Check if any member (in any workspace) is currently using this role
+    const inUse = await Workspace.exists({ 'members.roleId': role._id });
     if (inUse) {
       res.status(409).json({
         message: 'Cannot delete this role — it is currently assigned to one or more members',

@@ -40,7 +40,7 @@ commands above point the API at a local database.
 server/src/
   models/        Mongoose schemas (User, Session, Workspace, Task)
   controllers/   Route handlers + express-validator chains
-  middleware/    protect (JWT + session), requireWorkspaceMember
+  middleware/    protect (JWT + session), requirePermission (RBAC), uploads
   routes/        /api/auth, /api/profile, /api/workspaces, /api/workspaces/:slug/tasks
   utils/         Pure helpers (taskQuery, taskGraph...) — unit tested
   scripts/seed.ts
@@ -66,8 +66,10 @@ client/src/
 
 - **Branches:** never commit to `main`. Work on `feature/<topic>` and open a PR.
 - **Commits:** Conventional Commits (`feat(client): …`, `fix(server): …`), imperative, explain the why.
-- **Tasks are workspace scoped:** every task query filters by `workspace`; routes go through
-  `protect` then `requireWorkspaceMember`.
+- **Workspace routes are permission scoped:** every route goes through `protect` then
+  `requirePermission('<area>:<action>')` (see `server/src/config/permissions.ts`), which attaches
+  `req.workspace`, `req.role` and `req.permissions`; queries always filter by `req.workspace._id`.
+- **Roles:** assign roles only through `utils/roleAccess.ts` (`findAssignableRole`, `canGrantRole`).
 - **Dates are calendar days:** send/receive `YYYY-MM-DD`; on the client use `lib/date.ts`
   (`parseDateKey`, `toDateKey`, `dateKeyOf`) — never `new Date('YYYY-MM-DD')` for display.
 - **New view?** Implement `TaskViewProps` (`views/types.ts`), read data from `useTasks`, put logic in `lib/` with tests.

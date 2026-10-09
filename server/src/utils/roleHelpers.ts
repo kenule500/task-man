@@ -17,7 +17,7 @@ import { PERMISSIONS } from '../config/permissions.js';
  */
 export const getInvalidPermissions = (permissions: unknown): string[] => {
   if (!Array.isArray(permissions)) return [];
-  return permissions.filter((p) => typeof p !== 'string' || !(p in PERMISSIONS));
+  return permissions.filter((p) => typeof p !== 'string' || !Object.hasOwn(PERMISSIONS, p));
 };
 
 /**

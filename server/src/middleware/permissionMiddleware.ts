@@ -63,11 +63,7 @@ export const requirePermission = (permission: PermissionKey) => {
       }
 
       if (!role.permissions.includes(permission)) {
-        res.status(403).json({
-          message: `Missing permission: ${permission}`,
-          required: permission,
-          yourRole: role.name,
-        });
+        res.status(403).json({ message: 'You do not have permission to do this' });
         return;
       }
 

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Invitation, { IInvitation } from '../models/invitationModel.js';
 import Workspace, { IWorkspace } from '../models/workspaceModel.js';
+import { hashToken } from './tokens.js';
 
 interface InvitationError {
   status: number;
@@ -20,7 +21,8 @@ type InvitationResult =
  * Side effect: marks the invitation as 'expired' if it's past its expiry date.
  */
 export const loadPendingInvitation = async (token: string): Promise<InvitationResult> => {
-  const invitation = await Invitation.findOne({ token });
+  // Only the SHA-256 hash of the token is stored
+  const invitation = /^[a-f0-9]{64}$/.test(token) ? await Invitation.findOne({ token: hashToken(token) }) : null;
 
   if (!invitation) {
     return {

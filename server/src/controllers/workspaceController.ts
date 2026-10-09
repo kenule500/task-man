@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
-import { SYSTEM_ROLES } from '../config/permissions.js';
+import { findDefaultRole, roleRank } from '../utils/roleAccess.js';
 import Workspace from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
@@ -190,13 +190,13 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { inviteCode, roleId } = req.body;
-    if (!inviteCode) {
-      res.status(400).json({ message: 'Invite code is required' });
+    const { inviteCode } = req.body;
+    if (typeof inviteCode !== 'string' || !/^[A-F0-9]{12}$/i.test(inviteCode.trim())) {
+      res.status(400).json({ message: 'A valid invite code is required' });
       return;
     }
 
-    const workspace = await Workspace.findOne({ inviteCode: inviteCode.toUpperCase() });
+    const workspace = await Workspace.findOne({ inviteCode: inviteCode.trim().toUpperCase() });
     if (!workspace) {
       res.status(404).json({ message: 'Invalid invite code' });
       return;
@@ -210,14 +210,9 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Resolve role (defaults to Viewer if none provided)
-    let targetRole = null;
-    if (roleId) {
-      targetRole = await Role.findById(roleId);
-    }
-    if (!targetRole) {
-      targetRole = await Role.findOne({ name: 'Viewer', isSystem: true });
-    }
+    // Invite codes always grant the default (read-only) role; admins promote afterwards.
+    // The role is never taken from the request: that allowed joining as Product Owner.
+    const targetRole = await findDefaultRole();
     if (!targetRole) {
       res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
       return;
@@ -255,13 +250,6 @@ export const validateUpdateWorkspace = [
     .isLength({ max: 60 })
     .withMessage('Workspace name must be 60 characters or fewer'),
 ];
-
-// Seniority of the system roles (Product Owner first); custom roles come after them.
-const SYSTEM_ROLE_ORDER = SYSTEM_ROLES.map(role => role.name);
-const roleRank = (role: { name: string; isSystem?: boolean }): number => {
-  const index = role.isSystem ? SYSTEM_ROLE_ORDER.indexOf(role.name) : -1;
-  return index === -1 ? SYSTEM_ROLE_ORDER.length : index;
-};
 
 // ================================================================
 // @desc    List workspace members
@@ -305,7 +293,7 @@ export const getWorkspaceMembers = async (req: Request, res: Response): Promise<
           joinedAt: m.joinedAt,
         };
       })
-      .filter((m: unknown): m is NonNullable<typeof m> => m !== null)
+      .filter(<T,>(m: T | null): m is T => m !== null)
       .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
 
     res.status(200).json(members);
