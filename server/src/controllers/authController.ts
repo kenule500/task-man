@@ -147,7 +147,8 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         });
       } catch (emailError) {
         console.error('⚠️ Verification email failed to send:', emailError);
-        console.log('📧 Verification link (for manual testing):', verifyLink);
+        // The link is a credential: only print it for local development
+        if (process.env.NODE_ENV !== 'production') console.log('📧 Verification link (for manual testing):', verifyLink);
       }
     }
 
