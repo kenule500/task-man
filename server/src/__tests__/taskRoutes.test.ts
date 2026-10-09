@@ -53,7 +53,7 @@ describe('task routes permissions', () => {
 
   it('guards every route with a permission before its handler', () => {
     const routes = stack.filter(l => l.route);
-    expect(routes.length).toBe(10);
+    expect(routes.length).toBe(11);
     for (const layer of routes) {
       expect(layer.route?.stack[0].handle.permission).toMatch(/^tasks:(read|write|delete)$/);
     }

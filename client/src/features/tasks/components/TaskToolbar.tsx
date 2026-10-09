@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
-import { ArrowUpDown, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck } from 'lucide-react';
+import { ArrowUpDown, Download, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
@@ -27,10 +28,14 @@ interface TaskToolbarProps {
   labels?: string[];
   /** Shows the "Assigned to me" toggle (needs a signed-in user to compare with). */
   canFilterMine?: boolean;
+  /** Shows the "Export CSV" button; called when it is pressed. */
+  onExport?: () => void;
+  /** Tasks the export would contain; the button is disabled at 0. */
+  exportCount?: number;
 }
 
 /** Search, status pills, priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], canFilterMine = false }: TaskToolbarProps) => {
+const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
   const labelOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All labels' },
     ...labels.map(label => ({ value: label, label })),
@@ -87,6 +92,20 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
             </span>
           )}
         </button>
+        {onExport && (
+          <Button
+            type="button"
+            variant="outline"
+            aria-label="Export CSV"
+            title={exportCount === undefined ? 'Export CSV' : `Export ${exportCount} ${exportCount === 1 ? 'task' : 'tasks'} as CSV`}
+            disabled={exportCount === 0}
+            onClick={onExport}
+            className="h-10 w-10 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:ml-auto sm:h-9 sm:w-auto sm:px-3"
+          >
+            <Download className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Export CSV</span>
+          </Button>
+        )}
         </div>
         <div id={filtersId} className={cn('grid grid-cols-2 gap-2 sm:contents', !showFilters && 'max-sm:hidden')}>
         {canFilterMine && (

@@ -1,16 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Timer } from 'lucide-react';
 import { ProgressBar, SectionHeader, Surface, Tag } from '@/components/ds';
-import { cn } from '@/lib/utils';
-import type { Project } from '@/features/projects';
+import { ProjectChip, type Project } from '@/features/projects';
 import type { Task } from '@/features/tasks';
 import { daysLeftLabel, summarizeActiveSprints } from './sprintSummary';
-
-// Dot color of each project palette entry (see features/projects PROJECT_COLORS)
-const PROJECT_DOT: Record<Project['color'], string> = {
-  blue: 'bg-blue-600', violet: 'bg-violet-600', rose: 'bg-rose-600', orange: 'bg-orange-600',
-  amber: 'bg-amber-500', emerald: 'bg-emerald-600', teal: 'bg-teal-600', slate: 'bg-slate-600',
-};
 
 interface ActiveSprintsProps {
   projects: Project[];
@@ -39,10 +32,8 @@ const ActiveSprints = ({ projects, tasks, slug }: ActiveSprintsProps) => {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                    <span aria-hidden className={cn('size-2 shrink-0 rounded-full', PROJECT_DOT[project.color] ?? PROJECT_DOT.blue)} />
-                    <span className="truncate">{project.name}</span>
-                  </p>
+                  {/* The card is one link, so the chip must not be a link itself */}
+                  <ProjectChip name={project.name} project={project} link={false} className="bg-transparent px-0 font-medium" />
                   <p className="mt-1 truncate text-sm font-semibold text-slate-900">{sprint.name}</p>
                 </div>
                 <Tag tone={daysLeft < 0 ? 'danger' : daysLeft <= 2 ? 'warning' : 'neutral'} size="sm" className="shrink-0">

@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { PROJECT_COLORS, PROJECT_ICONS, type Project, type ProjectColor, type ProjectIcon, type ProjectInput } from '../types';
 import { PROJECT_COLOR_STYLES } from '../lib/appearance';
-import { PROJECT_ICON_COMPONENTS, PROJECT_ICON_LABELS } from '../lib/icons';
+import { PROJECT_ICON_LABELS } from '../lib/icons';
+import ProjectFolderIcon from './ProjectFolderIcon';
 import { MAX_PROJECT_DESCRIPTION, MAX_PROJECT_NAME } from '../lib/limits';
 import { isValidProjectKey, normalizeProjectKey, suggestProjectKey } from '../lib/projectKey';
 
@@ -159,52 +160,62 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
         />
       </Field>
 
-      <fieldset className="space-y-1.5">
-        <legend className="text-sm font-medium text-slate-700">Color</legend>
-        <div className="flex flex-wrap gap-1">
-          {PROJECT_COLORS.map(value => (
-            <label key={value} className="relative">
-              <input
-                type="radio"
-                name="project-color"
-                value={value}
-                checked={color === value}
-                onChange={() => setColor(value)}
-                className="peer sr-only"
-              />
-              <span aria-hidden className={choiceChip}>
-                <span className={cn('size-7 rounded-full', PROJECT_COLOR_STYLES[value].swatch)} />
-              </span>
-              <span className="sr-only">{PROJECT_COLOR_STYLES[value].label}</span>
-            </label>
-          ))}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {/* Live preview of the chosen color and icon */}
+        <div
+          data-testid="project-preview"
+          aria-hidden
+          className="flex h-24 w-full shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:w-28"
+        >
+          <ProjectFolderIcon size="xl" color={color} icon={icon} />
         </div>
-      </fieldset>
 
-      <fieldset className="space-y-1.5">
-        <legend className="text-sm font-medium text-slate-700">Icon</legend>
-        <div className="flex flex-wrap gap-1">
-          {PROJECT_ICONS.map(value => {
-            const Icon = PROJECT_ICON_COMPONENTS[value];
-            return (
-              <label key={value} className="relative">
-                <input
-                  type="radio"
-                  name="project-icon"
-                  value={value}
-                  checked={icon === value}
-                  onChange={() => setIcon(value)}
-                  className="peer sr-only"
-                />
-                <span aria-hidden className={cn(choiceChip, 'bg-slate-100 text-slate-700 peer-checked:bg-white')}>
-                  <Icon className="size-5" />
-                </span>
-                <span className="sr-only">{PROJECT_ICON_LABELS[value]}</span>
-              </label>
-            );
-          })}
+        <div className="min-w-0 flex-1 space-y-4">
+          <fieldset className="space-y-1.5">
+            <legend className="text-sm font-medium text-slate-700">Color</legend>
+            <div className="flex flex-wrap gap-1">
+              {PROJECT_COLORS.map(value => (
+                <label key={value} className="relative">
+                  <input
+                    type="radio"
+                    name="project-color"
+                    value={value}
+                    checked={color === value}
+                    onChange={() => setColor(value)}
+                    className="peer sr-only"
+                  />
+                  <span aria-hidden className={choiceChip}>
+                    <span className={cn('size-7 rounded-full', PROJECT_COLOR_STYLES[value].swatch)} />
+                  </span>
+                  <span className="sr-only">{PROJECT_COLOR_STYLES[value].label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="space-y-1.5">
+            <legend className="text-sm font-medium text-slate-700">Icon</legend>
+            <div className="flex flex-wrap gap-1">
+              {PROJECT_ICONS.map(value => (
+                <label key={value} className="relative">
+                  <input
+                    type="radio"
+                    name="project-icon"
+                    value={value}
+                    checked={icon === value}
+                    onChange={() => setIcon(value)}
+                    className="peer sr-only"
+                  />
+                  <span aria-hidden className={cn(choiceChip, 'hover:bg-slate-100 peer-checked:bg-white peer-checked:ring-2 peer-checked:ring-slate-900/10')}>
+                    <ProjectFolderIcon size="md" color={color} icon={value} />
+                  </span>
+                  <span className="sr-only">{PROJECT_ICON_LABELS[value]}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
-      </fieldset>
+      </div>
     </FormDialog>
   );
 };

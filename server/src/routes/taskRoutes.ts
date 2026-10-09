@@ -15,6 +15,7 @@ import {
   uploadAttachment,
   validateComment,
 } from '../controllers/taskExtrasController.js';
+import { getTaskActivity } from '../controllers/activityController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { uploadAttachmentFile } from '../middleware/uploadMiddleware.js';
@@ -30,6 +31,9 @@ router.post('/', requirePermission('tasks:write'), validateCreateTask, createTas
 router.put('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.patch('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.delete('/:id', requirePermission('tasks:delete'), deleteTask);
+
+// History of field changes, comments and files
+router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);
 
 // Comments (delete: author or settings:manage, checked in the controller)
 router.post('/:id/comments', requirePermission('tasks:write'), validateComment, addComment);

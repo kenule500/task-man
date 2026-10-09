@@ -21,6 +21,9 @@ const localDateKey = () => {
 // jsdom applies no CSS, so both the desktop grid and the phone layout are in the DOM.
 describe('CalendarView', () => {
   const originalScrollIntoView = Element.prototype.scrollIntoView;
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
   afterEach(() => {
     Element.prototype.scrollIntoView = originalScrollIntoView;
   });
@@ -95,7 +98,7 @@ describe('CalendarView', () => {
     expect(weekStrip().getByRole('button', { name: 'Friday, March 1' })).toHaveAttribute('aria-pressed', 'true');
 
     await userEvent.click(screen.getByRole('button', { name: 'Next week' }));
-    const pill = weekStrip().getByRole('button', { name: 'Sunday, March 3, 1 task' });
+    const pill = weekStrip().getByRole('button', { name: 'Sunday, March 3, 1 in progress' });
     expect(pill).toHaveAttribute('aria-pressed', 'false');
 
     await userEvent.click(pill);
@@ -147,6 +150,91 @@ describe('CalendarView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Add task due October 20' }));
     expect(props.onCreate).toHaveBeenCalledWith({ deadline: '2026-10-20' });
+  });
+
+  describe('state dots', () => {
+    const tasks = [
+      makeTask({ title: 'Late', status: 'pending', deadline: '2020-03-10T00:00:00.000Z' }),
+      makeTask({ title: 'Doing', status: 'in-progress', deadline: '2020-03-10T00:00:00.000Z' }),
+      makeTask({ title: 'Doing too', status: 'in-progress', deadline: '2020-03-10T00:00:00.000Z' }),
+      makeTask({ title: 'Shipped', status: 'completed', deadline: '2020-03-10T00:00:00.000Z' }),
+    ];
+    const label = 'Tuesday, March 10, 3 overdue, 1 completed'; // unfinished tasks in the past are overdue
+
+    it('puts the colored dots and a text summary on each week day, hidden from assistive tech', async () => {
+      render(<CalendarView tasks={tasks} initialMonth={new Date(2020, 2, 1)} {...handlers()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Next week' }));
+
+      const pill = weekStrip().getByRole('button', { name: label });
+      const dots = pill.querySelectorAll('[aria-hidden="true"] > span.rounded-full');
+      expect(Array.from(dots).map(dot => dot.className)).toEqual([
+        expect.stringContaining('bg-red-600'),
+        expect.stringContaining('bg-red-600'),
+        expect.stringContaining('bg-red-600'),
+      ]);
+      expect(pill).toHaveTextContent('+1');
+    });
+
+    it('lists the dot colors in a legend', () => {
+      render(<CalendarView tasks={[]} initialMonth={new Date(2020, 2, 1)} {...handlers()} />);
+      const legend = within(within(screen.getByTestId('calendar-agenda')).getByRole('list', { name: 'Legend' }));
+      expect(legend.getAllByRole('listitem').map(item => item.textContent)).toEqual(['Pending', 'In progress', 'Done', 'Overdue']);
+    });
+
+    it('colors the event card bar red when the task is overdue', async () => {
+      render(<CalendarView tasks={tasks} initialMonth={new Date(2020, 2, 1)} {...handlers()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Next week' }));
+      await userEvent.click(weekStrip().getByRole('button', { name: label }));
+      const panel = within(screen.getByTestId('calendar-day-panel'));
+      expect(panel.getByRole('button', { name: /^Late/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-red-600');
+      expect(panel.getByRole('button', { name: /^Shipped/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-emerald-500');
+      expect(panel.getByRole('button', { name: /^Late/ })).toHaveTextContent('(overdue)');
+    });
+
+    it('adds the dot summary to the desktop day cell', () => {
+      render(<CalendarView tasks={tasks} initialMonth={new Date(2020, 2, 1)} {...handlers()} />);
+      const cell = screen.getByTestId('calendar-grid').querySelector('[data-day-key="2020-03-10"]') as HTMLElement;
+      expect(cell.querySelectorAll('[aria-hidden="true"] > span.rounded-full.bg-red-600')).toHaveLength(3);
+      expect(within(cell).getByRole('button', { name: 'Late' })).toBeInTheDocument();
+    });
+  });
+
+  describe('phone month mode', () => {
+    const month = () => within(screen.getByRole('list', { name: 'Month' }));
+
+    it('defaults to the week strip and switches to a compact month grid that is remembered', async () => {
+      const { unmount } = render(<CalendarView tasks={[]} initialMonth={new Date(2030, 2, 1)} {...handlers()} />);
+      expect(screen.getByRole('radio', { name: 'Week' })).toBeChecked();
+      expect(screen.queryByRole('list', { name: 'Month' })).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', { name: 'Month' }));
+      expect(screen.queryByRole('list', { name: 'Week' })).not.toBeInTheDocument();
+      expect(month().getAllByRole('button')).toHaveLength(42);
+      expect(window.localStorage.getItem('taskman.calendar.mobileMode')).toBe('month');
+
+      unmount();
+      render(<CalendarView tasks={[]} initialMonth={new Date(2030, 2, 1)} {...handlers()} />);
+      expect(screen.getByRole('radio', { name: 'Month' })).toBeChecked();
+      expect(month().getByRole('button', { name: 'Friday, March 1' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('selects a day on tap and shows its task cards', async () => {
+      const task = makeTask({ title: 'Kickoff', status: 'in-progress', deadline: '2030-03-12T00:00:00.000Z' });
+      window.localStorage.setItem('taskman.calendar.mobileMode', 'month');
+      render(<CalendarView tasks={[task]} initialMonth={new Date(2030, 2, 1)} {...handlers()} />);
+
+      const cell = month().getByRole('button', { name: 'Tuesday, March 12, 1 in progress' });
+      await userEvent.click(cell);
+      expect(cell).toHaveAttribute('aria-pressed', 'true');
+      expect(within(screen.getByTestId('calendar-day-panel')).getByRole('button', { name: /^Kickoff/ })).toBeInTheDocument();
+    });
+
+    it('keeps Today working in month mode', async () => {
+      window.localStorage.setItem('taskman.calendar.mobileMode', 'month');
+      render(<CalendarView tasks={[]} initialMonth={new Date(2030, 2, 1)} {...handlers()} />);
+      await userEvent.click(screen.getByRole('button', { name: 'Go to today' }));
+      expect(month().getByRole('button', { pressed: true })).toHaveAttribute('aria-current', 'date');
+    });
   });
 
   describe('Today', () => {

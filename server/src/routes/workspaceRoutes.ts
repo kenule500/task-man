@@ -28,6 +28,7 @@ import {
 } from '../controllers/roleController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
+import { getWorkspaceActivity } from '../controllers/activityController.js';
 import taskRoutes from './taskRoutes.js';
 import projectRoutes from './projectRoutes.js';
 
@@ -147,6 +148,9 @@ router.delete(
 // Task routes protect themselves internally
 // ============================================================
 router.use('/:slug/tasks', taskRoutes);
+
+// Audit log of the workspace (owners and admins)
+router.get('/:slug/activity', protect, requirePermission('settings:manage'), getWorkspaceActivity);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);

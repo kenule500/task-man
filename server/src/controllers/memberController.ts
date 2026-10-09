@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import { auditLookup, recordActivity } from '../utils/activity.js';
 import Workspace from '../models/workspaceModel.js';
 import Role from '../models/roleModel.js';
 import { requireUserId } from '../utils/controllerHelpers.js';
@@ -68,6 +69,11 @@ export const changeMemberRole = async (req: Request, res: Response): Promise<voi
     // (the middleware already gave us a full Mongoose document)
     member.roleId = role._id as mongoose.Types.ObjectId;
     await workspace.save();
+    const changedUser = await auditLookup(() => mongoose.model('User').findById(targetUserId).select('name').lean<{ name?: string }>());
+    await recordActivity(req, {
+      action: 'member.role_changed', summary: changedUser?.name ?? targetUserId,
+      changes: [{ field: 'role', from: currentRole?.name, to: role.name }],
+    });
 
     res.status(200).json({
       message: 'Role updated',
@@ -126,8 +132,12 @@ export const removeMember = async (req: Request, res: Response): Promise<void> =
     await workspace.save();
 
     // Remove the workspace reference from the user
-    await mongoose.model('User').findByIdAndUpdate(targetUserId, {
+    const removedUser = await mongoose.model('User').findByIdAndUpdate(targetUserId, {
       $pull: { workspaces: workspace._id },
+    }).select('name').lean<{ name?: string }>();
+    await recordActivity(req, {
+      action: 'member.removed', summary: removedUser?.name ?? targetUserId,
+      changes: [{ field: 'role', from: memberRole?.name }],
     });
 
     res.status(200).json({ message: 'Member removed' });

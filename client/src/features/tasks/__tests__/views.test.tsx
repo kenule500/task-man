@@ -130,9 +130,9 @@ describe('BoardView', () => {
     expect(trigger.className).not.toMatch(/(^|\s)opacity-0/);
 
     await userEvent.click(trigger);
-    expect(screen.queryByRole('menuitem', { name: /move to pending/i })).not.toBeInTheDocument();
-    expect(await screen.findByRole('menuitem', { name: /move to in progress/i })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitem', { name: /move to completed/i }));
+    expect(await screen.findByRole('menuitemradio', { name: 'Pending' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: 'In Progress' })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Completed' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, expect.objectContaining({ status: 'completed' }));
   });
 

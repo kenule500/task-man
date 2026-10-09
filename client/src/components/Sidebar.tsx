@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import SidebarProjects from '@/features/projects/components/SidebarProjects';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import CommandPalette from './CommandPalette';
 import MobileTabBar from './MobileTabBar';
@@ -293,6 +294,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             can={can}
             permissionsLoading={permissionsLoading}
           />
+          <SidebarProjects slug={targetSlug} canRead={!permissionsLoading && can('projects:read')} />
           <NavGroup
             label="General"
             items={navGeneral}

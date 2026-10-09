@@ -15,6 +15,7 @@ import JoinWorkspacePage from './pages/JoinWorkspacePage';
 import AcceptInvitePage from './pages/AcceptInvitePage';
 import TeamMembersPage from './pages/TeamMembersPage';
 import WorkspaceSettingsPage from './pages/WorkspaceSettingsPage';
+import AuditLogPage from './pages/AuditLogPage';
 import ProfilePage from './pages/ProfilePage';
 import NotificationsPage from './pages/NotificationsPage';
 import SecurityPage from './pages/SecurityPage';
@@ -130,6 +131,16 @@ function App() {
                 element={
                   <PermissionRoute permission="settings:manage">
                     <WorkspaceSettingsPage />
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Audit log: requires settings:manage */}
+              <Route
+                path="/:workspaceSlug/settings/audit"
+                element={
+                  <PermissionRoute permission="settings:manage">
+                    <AuditLogPage />
                   </PermissionRoute>
                 }
               />

@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/userModel.js';
-import Session from '../models/sessionModel.js';
+import Session, { SESSION_LIFETIME_MS } from '../models/sessionModel.js';
+import mongoose from 'mongoose';
 
 // ================================================================
 // Local helpers
@@ -208,5 +209,80 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
     sendServerError(res, 'changePassword', error);
+  }
+};
+// ================================================================
+// Sessions (signed-in devices)
+// ================================================================
+
+/** Sessions that can still be used: not revoked and whose 1-hour access token has not expired. */
+const activeSessionFilter = (userId: mongoose.Types.ObjectId | undefined) => ({
+  user: userId,
+  isValid: true,
+  createdAt: { $gt: new Date(Date.now() - SESSION_LIFETIME_MS) },
+});
+
+/**
+ * @desc    Devices signed in to this account, current one first
+ * @route   GET /api/profile/sessions
+ */
+export const listSessions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const currentToken = getBearerToken(req.headers.authorization);
+    const currentHash = currentToken ? hashToken(currentToken) : null;
+    const sessions = await Session.find(activeSessionFilter(req.user?._id as mongoose.Types.ObjectId | undefined))
+      .sort({ createdAt: -1 })
+      .select('token userAgent ipAddress createdAt lastLoggedIn')
+      .lean();
+
+    res.status(200).json(sessions
+      .map(session => ({
+        _id: String(session._id),
+        userAgent: session.userAgent,
+        ipAddress: session.ipAddress,
+        createdAt: session.createdAt,
+        lastLoggedIn: session.lastLoggedIn,
+        current: session.token === currentHash,
+      }))
+      .sort((a, b) => Number(b.current) - Number(a.current)));
+  } catch (error) {
+    sendServerError(res, 'listSessions', error);
+  }
+};
+
+/**
+ * @desc    Sign out one device (revoking the current one signs this browser out)
+ * @route   DELETE /api/profile/sessions/:id
+ */
+export const revokeSession = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const result = mongoose.isValidObjectId(id)
+      ? await Session.updateOne({ _id: id, user: req.user?._id, isValid: true }, { isValid: false })
+      : null;
+    if (!result?.modifiedCount) {
+      res.status(404).json({ message: 'Session not found' });
+      return;
+    }
+    res.status(200).json({ message: 'Session signed out', id });
+  } catch (error) {
+    sendServerError(res, 'revokeSession', error);
+  }
+};
+
+/**
+ * @desc    Sign out every other device
+ * @route   POST /api/profile/sessions/revoke-others
+ */
+export const revokeOtherSessions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const currentToken = getBearerToken(req.headers.authorization);
+    const result = await Session.updateMany(
+      { user: req.user?._id, isValid: true, ...(currentToken && { token: { $ne: hashToken(currentToken) } }) },
+      { isValid: false },
+    );
+    res.status(200).json({ message: 'Other sessions signed out', revoked: result.modifiedCount });
+  } catch (error) {
+    sendServerError(res, 'revokeOtherSessions', error);
   }
 };

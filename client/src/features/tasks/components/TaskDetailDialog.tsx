@@ -1,16 +1,23 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, CornerDownRight, Link2, Pencil, Trash2 } from 'lucide-react';
-import { UserAvatar } from '@/components/ds';
+import { UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
+// Deep import: the projects index imports the tasks module back
+import ProjectChip from '@/features/projects/components/ProjectChip';
+import { useProjectDirectory } from '@/features/projects/context/ProjectsContext';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UploadOptions } from '../api';
 import { dateKeyOf, formatDate, isOverdue } from '../lib/date';
+import { copyToClipboard, taskLink } from '../lib/taskKey';
 import { getSubtasks } from '../lib/subtasks';
 import type { Task, TaskPatch, TaskUser } from '../types';
 import SubtaskList from './SubtaskList';
+import TaskActivity from './TaskActivity';
+import TaskKey from './TaskKey';
 import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge } from './TaskBadges';
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
@@ -47,6 +54,8 @@ interface TaskDetailDialogProps {
   actions: TaskDetailActions;
   /** Workspace projects with their sprints, to name the task's sprint. */
   projects?: Project[];
+  /** Workspace slug, for "Copy link"; defaults to the slug of the project directory. */
+  workspaceSlug?: string;
 }
 
 const Detail = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -61,8 +70,11 @@ const Detail = ({ label, children }: { label: string; children: ReactNode }) => 
  * editing the fields stays in `TaskFormDialog` (button below).
  */
 const TaskDetailDialog = ({
-  task, onOpenChange, tasks, currentUser, canWrite, canDelete, onEdit, onDelete, actions, projects = [],
+  task, onOpenChange, tasks, currentUser, canWrite, canDelete, onEdit, onDelete, actions, projects = [], workspaceSlug,
 }: TaskDetailDialogProps) => {
+  const [tab, setTab] = useState<'details' | 'activity'>('details');
+  const directory = useProjectDirectory();
+  const slug = workspaceSlug ?? directory.slug;
   // Names for ids we only know by reference (attachment uploaders)
   const userNames = useMemo(() => {
     const names = new Map<string, string>();
@@ -82,9 +94,13 @@ const TaskDetailDialog = ({
   const taskId = task._id;
   const parent = task.parent ? tasks.find(item => item._id === task.parent) : undefined;
   const subtasks = task.parent ? [] : getSubtasks(tasks, taskId);
-  const sprintName = task.sprint
-    ? projects.flatMap(project => project.sprints).find(sprint => sprint._id === task.sprint)?.name ?? 'Sprint'
-    : null;
+  const sprintNameOf = (id: string) => projects.flatMap(project => project.sprints).find(sprint => sprint._id === id)?.name;
+  const sprintName = task.sprint ? sprintNameOf(task.sprint) ?? 'Sprint' : null;
+
+  const copyLink = async () => {
+    if (await copyToClipboard(taskLink(window.location.origin, slug, taskId))) toast.success('Link copied');
+    else toast.error('Could not copy the link.');
+  };
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -101,14 +117,24 @@ const TaskDetailDialog = ({
               <span className="truncate font-normal text-slate-500" title={parent.title}>{parent.title}</span>
             </button>
           )}
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+            <TaskKey task={task} copyable />
+            {slug && (
+              <button
+                type="button"
+                onClick={() => { void copyLink(); }}
+                className="inline-flex min-h-8 items-center gap-1 rounded px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary sm:min-h-6"
+              >
+                <Link2 className="size-3.5" aria-hidden /> Copy link
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <TaskTypeBadge type={task.type} />
             <StoryPoints points={task.storyPoints} />
             <StatusBadge status={task.status} />
             <PriorityIndicator priority={task.priority} />
-            {task.project && (
-              <span className="max-w-40 truncate rounded bg-slate-100 px-1.5 text-xs text-slate-600" title="Project">{task.project}</span>
-            )}
+            {task.project && <ProjectChip name={task.project} showKey className="max-w-56" />}
           </div>
           <DialogTitle className="text-lg leading-snug font-bold text-slate-900 [overflow-wrap:anywhere]">{task.title}</DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
@@ -116,7 +142,24 @@ const TaskDetailDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
+        <Tabs value={tab} onValueChange={value => setTab(value as 'details' | 'activity')} className="min-h-0 flex-1 gap-0">
+          <TabsList
+            variant="line"
+            aria-label="Task sections"
+            className="w-full shrink-0 justify-start gap-1 border-b border-gray-200 px-3 group-data-horizontal/tabs:h-11 sm:px-5 sm:group-data-horizontal/tabs:h-10"
+          >
+            {(['details', 'activity'] as const).map(value => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="h-full flex-none px-3 text-slate-600 data-active:text-slate-900 group-data-horizontal/tabs:after:bottom-0"
+              >
+                {value === 'details' ? 'Details' : 'Activity'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="details" keepMounted className="min-h-0 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Detail label="Due date"><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></Detail>
             <Detail label="Start date">
@@ -215,7 +258,12 @@ const TaskDetailDialog = ({
             onAdd={text => actions.addComment(taskId, text)}
             onRemove={commentId => actions.removeComment(taskId, commentId)}
           />
-        </div>
+          </TabsContent>
+
+          <TabsContent value="activity" className="min-h-0 overflow-y-auto px-4 py-5 sm:px-6">
+            <TaskActivity workspaceSlug={slug || undefined} taskId={taskId} refreshKey={task.updatedAt} sprintName={sprintNameOf} />
+          </TabsContent>
+        </Tabs>
 
         <div className="flex shrink-0 items-center justify-between gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
           <div>

@@ -1,5 +1,7 @@
 import 'dotenv/config';
-import express, { Application, Request, Response } from 'express';
+import crypto from 'crypto';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -52,6 +54,14 @@ if (config.trustProxy > 0) {
 }
 
 // Security middleware
+// Every response carries a request id so logs and bug reports can be matched; a well-formed incoming id is reused
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const incoming = req.get('x-request-id');
+  const id = incoming && /^[\w-]{8,64}$/.test(incoming) ? incoming : crypto.randomUUID();
+  res.setHeader('X-Request-Id', id);
+  next();
+});
+
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigins }));
 app.use(express.json({ limit: '100kb' }));
@@ -100,7 +110,13 @@ app.use('/api', apiLimiter);
 // 4. Health check
 // ============================================================
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
+  res.status(200).json({
+    status: 'OK',
+    message: 'Server is running',
+    database: mongoose.connection.readyState === 1 ? 'up' : 'down',
+    // Deployed commit on Vercel; "dev" locally
+    version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'dev',
+  });
 });
 
 // ============================================================

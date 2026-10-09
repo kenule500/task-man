@@ -1,14 +1,20 @@
-import { useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
-import { MessageSquare, Paperclip, Plus } from 'lucide-react';
+import {
+  useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent,
+} from 'react';
+import { ArrowRight, Check, MessageSquare, Paperclip, Plus, RotateCcw, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { DependencyCount, DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
+import MoveTaskSheet from '../components/MoveTaskSheet';
 import TaskActionsMenu from '../components/TaskActionsMenu';
 import { AssigneeStack, LabelList } from '../components/TaskChips';
+import TaskKey from '../components/TaskKey';
 import { PRIORITY_META, STATUS_META, TASK_STATUSES } from '../constants';
 import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
+import { BOARD_PAGE_SIZE, pageCount, paginate } from '../lib/pagination';
 import { closestColumnIndex, scrollBehavior } from '../lib/scroll';
 import type { Task, TaskStatus } from '../types';
+import ProjectChip from '@/features/projects/components/ProjectChip';
 import type { TaskViewProps } from './types';
 
 interface DropTarget {
@@ -17,11 +23,48 @@ interface DropTarget {
   index: number;
 }
 
+const INITIAL_PAGES: Record<TaskStatus, number> = { pending: 1, 'in-progress': 1, completed: 1 };
+
+/** One-tap phone action per status: where the card goes next. */
+const QUICK_MOVE: Record<TaskStatus, { to: TaskStatus; verb: string; icon: LucideIcon }> = {
+  pending: { to: 'in-progress', verb: 'Start', icon: ArrowRight },
+  'in-progress': { to: 'completed', verb: 'Done', icon: Check },
+  completed: { to: 'pending', verb: 'Reopen', icon: RotateCcw },
+};
+
+const LONG_PRESS_MS = 500;
+/** Finger travel (px) that turns a press into a scroll or drag. */
+const LONG_PRESS_SLOP = 8;
+
 /** Kanban board: Pending > In Progress > Completed, with drag & drop between and within columns. */
 const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true }: TaskViewProps) => {
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+
+  // Per-column pagination; resets whenever the set of tasks changes (filters, create, delete), not on moves.
+  const taskSignature = useMemo(() => tasks.map(task => task._id).sort().join('|'), [tasks]);
+  const [pageState, setPageState] = useState({ signature: taskSignature, pages: INITIAL_PAGES });
+  const pages = pageState.signature === taskSignature ? pageState.pages : INITIAL_PAGES;
+  const pendingFocus = useRef<string | null>(null);
+
+  // Mobile move sheet + screen reader announcement
+  const [sheetTaskId, setSheetTaskId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
+  const announceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const announceMove = (status: TaskStatus) => {
+    clearTimeout(announceTimer.current);
+    setAnnouncement(`Moved to ${STATUS_META[status].label}`);
+    announceTimer.current = setTimeout(() => setAnnouncement(''), 4000);
+  };
+
+  const showMore = (status: TaskStatus, all = false) => {
+    const column = columns[status];
+    pendingFocus.current = column[paginate(column, pages[status]).shown]?._id ?? null;
+    const next = all ? pageCount(column.length) : pages[status] + 1;
+    setPageState({ signature: taskSignature, pages: { ...pages, [status]: next } });
+  };
 
   const resetDrag = () => {
     setDraggingId(null);
@@ -40,11 +83,19 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
     const position = getDropPosition(columns[status], task._id, index);
     if (task.status === status && position === null) return;
     void onUpdate(task._id, { status, ...(position !== null && { position }) });
+    if (task.status !== status) announceMove(status);
   };
 
   const handleMove = (task: Task, status: TaskStatus) => {
+    if (!canWrite) return;
     const column = columns[status];
     void onUpdate(task._id, { status, position: positionBetween(column[column.length - 1]?.position) });
+    announceMove(status);
+  };
+
+  const openMoveSheet = (task: Task) => {
+    setSheetTaskId(task._id);
+    setSheetOpen(true);
   };
 
   // Phone status tabs: tapping scrolls the column in, scrolling updates the active tab.
@@ -56,6 +107,15 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
   const unlockTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [activeStatus, setActiveStatus] = useState<TaskStatus>(TASK_STATUSES[0]);
   const columnId = (status: TaskStatus) => `${idPrefix}-column-${status}`;
+  const sheetTask = tasks.find(task => task._id === sheetTaskId) ?? null;
+
+  // After "Show more", focus the first newly shown card.
+  useEffect(() => {
+    const id = pendingFocus.current;
+    if (!id) return;
+    pendingFocus.current = null;
+    scrollerRef.current?.querySelector<HTMLElement>(`[data-task-id="${id}"] [data-card-title]`)?.focus();
+  }, [pageState]);
 
   const selectTab = (status: TaskStatus) => {
     setActiveStatus(status);
@@ -148,6 +208,7 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
     >
       {TASK_STATUSES.map(status => {
         const column = columns[status];
+        const { visible, shown, total, hasMore, remaining } = paginate(column, pages[status]);
         const isTarget = dropTarget?.status === status;
 
         return (
@@ -191,9 +252,10 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
             </header>
 
             <ol className="flex min-h-32 flex-col gap-2 px-2.5 pb-3 md:gap-2.5 md:px-3">
-              {column.map((task, index) => (
+              {visible.map((task, index) => (
                 <li
                   key={task._id}
+                  data-task-id={task._id}
                   onDragOver={event => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -218,20 +280,60 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
                     onDelete={onDelete}
                     onOpen={onOpen}
                     onMove={handleMove}
+                    onOpenMoveSheet={openMoveSheet}
                   />
                 </li>
               ))}
-              {isTarget && dropTarget.index === column.length && <DropIndicator />}
+              {isTarget && dropTarget.index >= visible.length && <DropIndicator />}
               {column.length === 0 && !isTarget && (
                 <li className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
                   {canWrite ? 'Drop tasks here' : 'No tasks'}
                 </li>
               )}
             </ol>
+
+            {total > BOARD_PAGE_SIZE && (
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-3 md:px-4">
+                <p className="text-xs tabular-nums text-slate-500">Showing {shown} of {total}</p>
+                {hasMore && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => showMore(status)}
+                      aria-label={`Show ${Math.min(BOARD_PAGE_SIZE, remaining)} more ${STATUS_META[status].label} tasks`}
+                      className="min-h-11 px-3 text-xs font-semibold text-primary md:min-h-8"
+                    >
+                      Show {Math.min(BOARD_PAGE_SIZE, remaining)} more
+                    </Button>
+                    {remaining > BOARD_PAGE_SIZE && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => showMore(status, true)}
+                        aria-label={`Show all ${total} ${STATUS_META[status].label} tasks`}
+                        className="min-h-11 px-2 text-xs md:min-h-8"
+                      >
+                        Show all
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         );
       })}
     </div>
+
+    <MoveTaskSheet
+      open={sheetOpen && canWrite}
+      onOpenChange={setSheetOpen}
+      task={sheetTask}
+      counts={{ pending: columns.pending.length, 'in-progress': columns['in-progress'].length, completed: columns.completed.length }}
+      onMove={handleMove}
+    />
+    <div role="status" aria-live="polite" className="sr-only">{announcement}</div>
     </>
   );
 };
@@ -247,41 +349,106 @@ interface BoardCardProps {
   onDelete: (task: Task) => void;
   onOpen?: (task: Task) => void;
   onMove: (task: Task, status: TaskStatus) => void;
+  onOpenMoveSheet: (task: Task) => void;
   canWrite: boolean;
   canDelete: boolean;
 }
 
-const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, canWrite, canDelete }: BoardCardProps) => {
+const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
+  const quick = QUICK_MOVE[task.status];
+  const QuickIcon = quick.icon;
+
+  // Long-press (touch) opens the move sheet; moving the finger or dragging cancels it.
+  const pressTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+  const longPressed = useRef(false);
+  const cancelPress = () => {
+    clearTimeout(pressTimer.current);
+    pressOrigin.current = null;
+  };
+  useEffect(() => () => clearTimeout(pressTimer.current), []);
+
+  const handlePointerDown = (event: PointerEvent<HTMLElement>) => {
+    longPressed.current = false;
+    if (!canWrite || event.pointerType === 'mouse' || (event.target as HTMLElement).closest('[data-no-longpress]')) return;
+    cancelPress();
+    pressOrigin.current = { x: event.clientX, y: event.clientY };
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      pressOrigin.current = null;
+      onOpenMoveSheet(task);
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
+    const origin = pressOrigin.current;
+    if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > LONG_PRESS_SLOP) cancelPress();
+  };
 
   return (
     <article
       draggable={canWrite}
-      onDragStart={onDragStart}
+      onDragStart={event => {
+        cancelPress();
+        onDragStart(event);
+      }}
       onDragEnd={onDragEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={cancelPress}
+      onPointerCancel={cancelPress}
+      onClickCapture={event => {
+        // swallow the tap that ends a long-press
+        if (!longPressed.current) return;
+        longPressed.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       className={cn(
         'group rounded-xl border border-t-[3px] border-slate-100 bg-white p-3 shadow-sm transition-shadow md:p-3.5 hover:shadow-md',
-        canWrite && 'cursor-grab active:cursor-grabbing',
+        canWrite && 'cursor-grab active:cursor-grabbing max-md:select-none max-md:[-webkit-touch-callout:none]',
         PRIORITY_META[task.priority].accent,
         dragging && 'opacity-40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <PriorityIndicator priority={task.priority} />
-        <TaskActionsMenu
-          task={task}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onOpen={onOpen}
-          onMove={onMove}
-          canEdit={canWrite}
-          canDelete={canDelete}
-          className="-mt-3 -mr-3.5 size-11 md:-mt-1 md:-mr-1.5 md:size-7 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
-        />
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <TaskKey task={task} />
+          <PriorityIndicator priority={task.priority} />
+        </div>
+        <div data-no-longpress className="-mt-3 -mr-3.5 flex items-center gap-0.5 md:-mt-1 md:-mr-1.5">
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => onMove(task, quick.to)}
+              aria-label={`${quick.verb} ${task.title}: move to ${STATUS_META[quick.to].label}`}
+              className={cn(
+                'inline-flex h-9 items-center gap-1 rounded-lg bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 md:hidden',
+                'hover:bg-slate-200 active:bg-slate-200 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+              )}
+            >
+              {quick.verb}
+              <QuickIcon aria-hidden className="size-3.5" />
+            </button>
+          )}
+          <TaskActionsMenu
+            task={task}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onOpen={onOpen}
+            onMove={onMove}
+            onOpenMoveSheet={onOpenMoveSheet}
+            canEdit={canWrite}
+            canDelete={canDelete}
+            className="size-11 md:size-7 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+          />
+        </div>
       </div>
 
       <button
         type="button"
+        data-card-title
         onClick={() => (onOpen ?? onEdit)(task)}
         className={cn(
           'mt-1 block w-full text-left text-sm font-medium text-slate-900 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary rounded',
@@ -290,11 +457,8 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
       >
         {task.title}
       </button>
-      {task.project && (
-        <span className="mt-1.5 inline-block max-w-full truncate text-xs text-slate-500 bg-slate-100 rounded px-1.5" title="Project">
-          {task.project}
-        </span>
-      )}
+      {/* Plain chip (no link): the card itself is draggable and opens the task */}
+      {task.project && <ProjectChip name={task.project} link={false} className="mt-1.5 max-w-full" />}
       <LabelList labels={task.labels} max={4} className="mt-2" />
       {task.description && <p className="mt-1 text-xs text-slate-400 line-clamp-2">{task.description}</p>}
 

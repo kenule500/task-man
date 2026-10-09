@@ -10,6 +10,7 @@ import Project, {
 } from '../models/projectModel.js';
 import Sprint, { MAX_SPRINT_GOAL, MAX_SPRINT_NAME } from '../models/sprintModel.js';
 import Task from '../models/taskModel.js';
+import { diffFields, recordActivity } from '../utils/activity.js';
 import { TaskRuleError, handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
 // Tasks store their project by name; matching ignores case like the unique index does
@@ -179,6 +180,7 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
       icon,
       createdBy: req.user?._id,
     });
+    await recordActivity(req, { action: 'project.created', summary: project.name, project: project._id as mongoose.Types.ObjectId });
     res.status(201).json({ ...project.toObject(), nameKey: undefined, sprints: [] });
   } catch (error) {
     respondError(res, error, 'createProject');
@@ -196,6 +198,7 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
     if (!project) return notFound(res, 'Project');
 
     const previousName = project.name;
+    const before = project.toObject() as unknown as Record<string, unknown>;
     if ('name' in req.body) project.set('name', String(req.body.name).trim());
     if ('key' in req.body) project.set('key', String(req.body.key).trim().toUpperCase());
     for (const field of ['description', 'color', 'icon', 'archived'] as const) {
@@ -211,6 +214,11 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
       );
     }
 
+    const changes = diffFields(before, project.toObject() as unknown as Record<string, unknown>, ['name', 'key', 'color', 'icon', 'archived']);
+    if (before.description !== project.description) changes.push({ field: 'description' });
+    if (changes.length > 0) {
+      await recordActivity(req, { action: 'project.updated', summary: project.name, project: project._id as mongoose.Types.ObjectId, changes });
+    }
     res.status(200).json(await withSprints(project.toObject()));
   } catch (error) {
     respondError(res, error, 'updateProject');
@@ -234,6 +242,7 @@ export const deleteProject = async (req: Request, res: Response): Promise<void> 
     await Sprint.deleteMany({ project: project._id });
     await project.deleteOne();
 
+    await recordActivity(req, { action: 'project.deleted', summary: project.name, project: project._id as mongoose.Types.ObjectId });
     res.status(200).json({ message: 'Project deleted', id: String(project._id) });
   } catch (error) {
     respondError(res, error, 'deleteProject');
@@ -266,6 +275,10 @@ export const createSprint = async (req: Request, res: Response): Promise<void> =
       startDate,
       endDate,
     });
+    await recordActivity(req, {
+      action: 'sprint.created', summary: `${sprint.name} · ${project.name}`,
+      project: project._id as mongoose.Types.ObjectId, sprint: sprint._id as mongoose.Types.ObjectId,
+    });
     res.status(201).json(sprint);
   } catch (error) {
     respondError(res, error, 'createSprint');
@@ -282,12 +295,17 @@ export const updateSprint = async (req: Request, res: Response): Promise<void> =
     const sprint = await findSprint(req);
     if (!sprint) return notFound(res, 'Sprint');
 
+    const before = sprint.toObject() as unknown as Record<string, unknown>;
     if ('name' in req.body) sprint.set('name', String(req.body.name).trim());
     if ('goal' in req.body) sprint.set('goal', req.body.goal);
     if ('startDate' in req.body) sprint.set('startDate', new Date(req.body.startDate));
     if ('endDate' in req.body) sprint.set('endDate', new Date(req.body.endDate));
     assertSprintDates(sprint.startDate, sprint.endDate);
+    const changes = diffFields(before, sprint.toObject() as unknown as Record<string, unknown>, ['name', 'goal', 'startDate', 'endDate']);
     await sprint.save();
+    if (changes.length > 0) {
+      await recordActivity(req, { action: 'sprint.updated', summary: sprint.name, project: sprint.project, sprint: sprint._id as mongoose.Types.ObjectId, changes });
+    }
 
     res.status(200).json(sprint);
   } catch (error) {
@@ -316,6 +334,7 @@ export const startSprint = async (req: Request, res: Response): Promise<void> =>
     );
     if (!started) throw new ConflictError('This sprint was changed by someone else');
 
+    await recordActivity(req, { action: 'sprint.started', summary: started.name, project: started.project, sprint: started._id as mongoose.Types.ObjectId });
     res.status(200).json(started);
   } catch (error) {
     respondError(res, error, 'startSprint');
@@ -356,6 +375,13 @@ export const completeSprint = async (req: Request, res: Response): Promise<void>
       { sprint: sprint._id, status: { $ne: 'completed' } },
       { $set: { sprint: target } },
     );
+    await recordActivity(req, {
+      action: 'sprint.completed', summary: completed.name, project: completed.project, sprint: completed._id as mongoose.Types.ObjectId,
+      changes: [
+        { field: 'completedPoints', to: String(completedPoints) },
+        { field: 'movedTasks', to: `${moved.modifiedCount} → ${moveOpenTo === 'backlog' ? 'backlog' : 'next sprint'}` },
+      ],
+    });
     res.status(200).json({ sprint: completed, movedTasks: moved.modifiedCount });
   } catch (error) {
     respondError(res, error, 'completeSprint');
@@ -374,6 +400,7 @@ export const deleteSprint = async (req: Request, res: Response): Promise<void> =
     await Task.updateMany({ sprint: sprint._id }, { $set: { sprint: null } });
     await sprint.deleteOne();
 
+    await recordActivity(req, { action: 'sprint.deleted', summary: sprint.name, project: sprint.project, sprint: sprint._id as mongoose.Types.ObjectId });
     res.status(200).json({ message: 'Sprint deleted', id: String(sprint._id) });
   } catch (error) {
     respondError(res, error, 'deleteSprint');

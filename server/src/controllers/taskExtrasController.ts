@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import { auditLookup, recordActivity } from '../utils/activity.js';
 import { body } from 'express-validator';
 import Task, { MAX_ATTACHMENTS, MAX_COMMENT_LENGTH } from '../models/taskModel.js';
 import { ALLOWED_ATTACHMENT_TYPES, sanitizeFilename } from '../middleware/uploadMiddleware.js';
@@ -80,6 +81,8 @@ export const addComment = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({ message: 'Task not found' });
       return;
     }
+    const commented = await auditLookup(() => Task.findById(id).select('title').lean());
+    await recordActivity(req, { action: 'task.commented', summary: commented?.title ?? '', task: id });
 
     res.status(201).json({
       ...comment,
@@ -139,7 +142,7 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const task = await loadTask<Lean & { attachments: unknown[] }>(req, 'attachments');
+    const task = await loadTask<Lean & { attachments: unknown[]; title?: string }>(req, 'attachments title');
     if (!task) {
       res.status(404).json({ message: 'Task not found' });
       return;
@@ -175,6 +178,10 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       res.status(400).json({ message: 'Attachment limit reached or task no longer exists' });
       return;
     }
+    await recordActivity(req, {
+      action: 'task.attachment_added', summary: String((task as { title?: string }).title ?? ''), task: String(task._id),
+      changes: [{ field: 'file', to: originalName }],
+    });
 
     res.status(201).json(attachment);
   } catch (error) {
@@ -231,7 +238,7 @@ export const downloadAttachment = async (req: Request, res: Response): Promise<v
 // ================================================================
 export const deleteAttachment = async (req: Request, res: Response): Promise<void> => {
   try {
-    const task = await loadTask<Lean & { attachments: StoredAttachment[] }>(req, 'attachments');
+    const task = await loadTask<Lean & { attachments: StoredAttachment[]; title?: string }>(req, 'attachments title');
     if (!task) {
       res.status(404).json({ message: 'Task not found' });
       return;
@@ -251,6 +258,10 @@ export const deleteAttachment = async (req: Request, res: Response): Promise<voi
 
     await Task.updateOne({ _id: task._id }, { $pull: { attachments: { _id: attachment._id } } });
     await deleteFiles([attachment.fileId]);
+    await recordActivity(req, {
+      action: 'task.attachment_removed', summary: String((task as { title?: string }).title ?? ''), task: String(task._id),
+      changes: [{ field: 'file', from: attachment.originalName }],
+    });
     res.status(200).json({ message: 'Attachment deleted', id: String(attachment._id) });
   } catch (error) {
     handleError(res, error, 'deleteAttachment');

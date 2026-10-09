@@ -38,7 +38,11 @@ type PendingConfirm =
   | { kind: 'member'; id: string; name: string }
   | { kind: 'invitation'; id: string; email: string };
 
-const formatDate = (iso: string) =>
+/** Long lists scroll inside their card instead of growing the page. */
+const LIST_SCROLL =
+  'max-h-[60dvh] overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-gutter:stable] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary';
+
+const formatDate =(iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 interface RoleControlProps {
@@ -256,6 +260,7 @@ const TeamMembersPage = () => {
             }
           />
         ) : (
+          <div role="region" aria-label="Members list" tabIndex={0} className={LIST_SCROLL}>
           <ul className="divide-y divide-slate-100">
             {members.map((member) => {
               const isSelf = member.user._id === user._id;
@@ -303,6 +308,7 @@ const TeamMembersPage = () => {
               );
             })}
           </ul>
+          </div>
         )}
       </Surface>
 
@@ -315,6 +321,7 @@ const TeamMembersPage = () => {
               Pending invitations <span className="font-normal tabular-nums text-slate-600">({invitations.length})</span>
             </h2>
           </div>
+          <div role="region" aria-label="Pending invitations list" tabIndex={0} className={LIST_SCROLL}>
           <ul className="divide-y divide-slate-100">
             {invitations.map((inv) => (
               <li key={inv._id} className="flex items-center justify-between gap-3 px-4 py-4 hover:bg-slate-50/60 sm:px-6">
@@ -342,6 +349,7 @@ const TeamMembersPage = () => {
               </li>
             ))}
           </ul>
+          </div>
         </Surface>
       )}
 

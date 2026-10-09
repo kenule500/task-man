@@ -141,3 +141,33 @@ describe('getTaskStats', () => {
     expect(stats).toEqual({ total: 3, pending: 2, inProgress: 0, completed: 1, overdue: 1 });
   });
 });
+
+describe('search by task key', () => {
+  const base = { status: 'all' as const };
+  const task = makeTask({ number: 12, title: 'Unrelated title', project: 'Website' });
+  const other = makeTask({ number: 7, title: 'Another one' });
+  const webKey = () => 'WEB';
+
+  it('finds a task by "12", "#12" and its full key', () => {
+    expect(matchesFilters(task, { ...base, search: '12' })).toBe(true);
+    expect(matchesFilters(task, { ...base, search: '#12' })).toBe(true);
+    expect(matchesFilters(task, { ...base, search: 'web-12' }, undefined, webKey)).toBe(true);
+    expect(matchesFilters(other, { ...base, search: '#12' })).toBe(false);
+  });
+
+  it('requires the project part to agree and ignores tasks without a number', () => {
+    expect(matchesFilters(task, { ...base, search: 'api-12' }, undefined, webKey)).toBe(false);
+    expect(matchesFilters(makeTask({ title: 'No number' }), { ...base, search: '12' })).toBe(false);
+  });
+
+  it('narrows by key prefix once a dash is typed', () => {
+    expect(matchesFilters(task, { ...base, search: 'web-1' }, undefined, webKey)).toBe(true);
+    expect(matchesFilters(task, { ...base, search: 'web-2' }, undefined, webKey)).toBe(false);
+  });
+
+  it('keeps title search working and applies through applyFilters', () => {
+    const filters = { ...base, search: '#7', priority: 'all' as const, sort: 'createdAt' as const };
+    expect(applyFilters([task, other], filters).map(item => item._id)).toEqual([other._id]);
+    expect(matchesFilters(task, { ...base, search: 'unrelated' })).toBe(true);
+  });
+});

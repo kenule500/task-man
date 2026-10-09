@@ -24,6 +24,12 @@ const parseDate = (value: unknown): Date | undefined => {
   return Number.isNaN(date.getTime()) ? undefined : date;
 };
 
+/** Task number in a search like "WEB-12", "#12" or "12"; null when the search is not a key. */
+export const taskNumberFromSearch = (search: string): number | null => {
+  const match = /^(?:[a-z0-9]{2,6}-|#)?(\d{1,9})$/i.exec(search.trim());
+  return match ? Number(match[1]) : null;
+};
+
 /** Trims labels, drops blanks and case-insensitive duplicates while preserving order. */
 export const normalizeLabels = (labels: unknown): string[] => {
   if (!Array.isArray(labels)) return [];
@@ -89,7 +95,11 @@ export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery, curr
 
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');
-    filter.$or = [{ title: pattern }, { description: pattern }];
+    const matches: Record<string, unknown>[] = [{ title: pattern }, { description: pattern }];
+    // "WEB-12", "#12" or "12" also find the task with that number
+    const number = taskNumberFromSearch(query.search);
+    if (number !== null) matches.push({ number });
+    filter.$or = matches;
   }
 
   if (query.from || query.to) {

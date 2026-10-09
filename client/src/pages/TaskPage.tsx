@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { AlarmClock, CheckSquare, Clock, ListTodo, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, PageHeader, SkeletonCards, StatCard, Surface, toast } from '@/components/ds';
 import { markBoardTried } from '@/components/dashboard/getStarted';
 import { Button } from '@/components/ui/button';
-import { useProjects } from '@/features/projects';
+import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   BoardView, ConfirmTaskDelete, CalendarView, DEFAULT_FILTERS, DELETE_UNDO_MS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
-  TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, getTaskStats, useTasks, useWorkspaceMembers,
+  TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
+  useTasks, useWorkspaceMembers,
   type Task, type TaskDetailActions, type TaskFilters, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
@@ -42,6 +43,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
     addComment, removeComment, uploadAttachment, removeAttachment, downloadAttachment,
   } = useTasks(workspaceSlug);
   const { projects } = useProjects(workspaceSlug);
+  const { byName } = useProjectDirectory();
   const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, form.mode !== 'closed' && canReadUsers);
 
   const requestedView = searchParams.get('view') as TaskView | null;
@@ -88,7 +90,12 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
       : filters),
     [filters, labels],
   );
-  const visibleTasks = useMemo(() => applyFilters(tasks, activeFilters, currentUser?._id), [tasks, activeFilters, currentUser?._id]);
+  // Lets the search find "WEB-12" and labels the CSV key column
+  const projectKeyOf = useCallback((task: Task) => (task.project ? byName(task.project)?.key : undefined), [byName]);
+  const visibleTasks = useMemo(
+    () => applyFilters(tasks, activeFilters, currentUser?._id, projectKeyOf),
+    [tasks, activeFilters, currentUser?._id, projectKeyOf],
+  );
   const stats = useMemo(() => getTaskStats(tasks), [tasks]);
   const detailTask = detailId ? tasks.find(task => task._id === detailId) ?? null : null;
 
@@ -113,6 +120,18 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
       pauseOnHover: false,
       action: { label: 'Undo', onClick: () => undoDelete(task._id) },
     });
+  };
+
+  /** Downloads the tasks currently shown (filters applied) as a spreadsheet-friendly CSV. */
+  const exportCsv = () => {
+    if (visibleTasks.length === 0) return;
+    const sprints = projects.flatMap(project => project.sprints);
+    const csv = tasksToCsv(visibleTasks, tasks, {
+      projectKeyOf,
+      sprintName: id => sprints.find(sprint => sprint._id === id)?.name,
+    });
+    downloadCsv(tasksCsvFilename(workspaceSlug ?? ''), csv);
+    toast.success(`Exported ${visibleTasks.length} ${visibleTasks.length === 1 ? 'task' : 'tasks'}`);
   };
 
   const handleEdit = (task: Task) => {
@@ -191,6 +210,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
               showSort={view === 'list'}
               labels={labels}
               canFilterMine={Boolean(currentUser)}
+              onExport={exportCsv}
+              exportCount={visibleTasks.length}
               counts={{ all: stats.total, pending: stats.pending, 'in-progress': stats.inProgress, completed: stats.completed }}
             />
           </Surface>
@@ -215,6 +236,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
           onDelete={handleDelete}
           actions={detailActions}
           projects={projects}
+          workspaceSlug={workspaceSlug}
         />
       )}
 

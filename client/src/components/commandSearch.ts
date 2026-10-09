@@ -1,10 +1,11 @@
 import {
   BarChart3, Calendar, CheckSquare, FolderKanban, GanttChart, HelpCircle,
-  LayoutDashboard, Columns3, Settings, Timer, Users, type LucideIcon,
+  LayoutDashboard, Columns3, ScrollText, Settings, Timer, Users, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import type { Project } from '@/features/projects';
 import type { Task } from '@/features/tasks';
+import { taskKey } from '@/features/tasks/lib/taskKey';
 
 export type CommandGroup = 'Pages' | 'Tasks' | 'Projects' | 'Sprints' | 'Help';
 
@@ -15,13 +16,15 @@ export interface CommandItem {
   id: string;
   group: CommandGroup;
   label: string;
-  /** Secondary text (project name for tasks, task count for projects). */
+  /** Secondary text (key and project name for tasks, task count for projects). */
   hint?: string;
   href: string;
   /** Extra searchable text that is not displayed. */
   keywords?: string;
   icon?: LucideIcon;
   task?: Task;
+  /** Set on project results so the palette can draw the project's folder instead of `icon`. */
+  project?: Project;
 }
 
 const MAX_TASKS = 8;
@@ -50,6 +53,7 @@ const PAGES: PageDef[] = [
   { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports:read', path: 'reports', keywords: 'analytics stats' },
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },
+  { key: 'audit', label: 'Audit log', icon: ScrollText, permission: 'settings:manage', path: 'settings/audit', keywords: 'activity history changes export security log' },
   { key: 'help', label: 'Help', icon: HelpCircle, permission: null, path: 'help', keywords: 'support center' },
 ];
 
@@ -70,18 +74,29 @@ export const buildCommandItems = (
       id: `page-${page.key}`, group: 'Pages', label: page.label, href: `${base}/${page.path}`, icon: page.icon, keywords: page.keywords,
     }));
 
+  const projectKeys = new Map((projects ?? []).map(project => [project.name.trim().toLowerCase(), project.key]));
+  // While projects load, a task of a project has no known key yet: show none rather than a wrong "TM-" one
+  const keyOf = (task: Task) => (task.project && !projects
+    ? ''
+    : taskKey(task, task.project ? projectKeys.get(task.project.trim().toLowerCase()) : undefined));
+
   const canReadTasks = can('tasks:read');
   const recentFirst = [...tasks].sort((a, b) => (b.updatedAt ?? b.createdAt ?? '').localeCompare(a.updatedAt ?? a.createdAt ?? ''));
   const taskItems: CommandItem[] = canReadTasks
-    ? recentFirst.map(task => ({
-      id: `task-${task._id}`,
-      group: 'Tasks',
-      label: task.title,
-      hint: task.project || undefined,
-      href: `${base}/tasks?task=${encodeURIComponent(task._id)}`,
-      keywords: [task.description, task.project, ...(task.labels ?? [])].filter(Boolean).join(' '),
-      task,
-    }))
+    ? recentFirst.map(task => {
+      const key = keyOf(task);
+      return {
+        id: `task-${task._id}`,
+        group: 'Tasks' as const,
+        label: task.title,
+        hint: [key, task.project].filter(Boolean).join(' · ') || undefined,
+        href: `${base}/tasks?task=${encodeURIComponent(task._id)}`,
+        // "WEB-12", "#12" and "12" all find the task
+        keywords: [key, typeof task.number === 'number' ? `#${task.number}` : '', task.description, task.project, ...(task.labels ?? [])]
+          .filter(Boolean).join(' '),
+        task,
+      };
+    })
     : [];
 
   const helpItems: CommandItem[] = FAQ_CATEGORIES.flatMap(category => category.items.map(item => ({
@@ -104,6 +119,7 @@ export const buildCommandItems = (
       href: `${base}/projects/${encodeURIComponent(project._id)}`,
       keywords: project.description,
       icon: FolderKanban,
+      project,
     }));
     const sprintItems: CommandItem[] = projects.flatMap(project => project.sprints
       .filter(sprint => sprint.status !== 'completed')

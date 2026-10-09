@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { Link, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { InsideWorkspaceShellContext } from './shellContext';
 import { EmptyState, SkeletonCards } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
+import { ProjectsProvider } from '@/features/projects';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
 import { clearSession, getToken } from '../utils/session';
@@ -20,6 +21,7 @@ import { clearSession, getToken } from '../utils/session';
  */
 const WorkspaceLayout = () => {
   const navigate = useNavigate();
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { user, error } = usePermissions();
 
   const handleLogout = useCallback(async () => {
@@ -61,13 +63,16 @@ const WorkspaceLayout = () => {
   }
 
   return (
-    <Sidebar user={user} onLogout={handleLogout}>
-      <InsideWorkspaceShellContext.Provider value>
-        <div className="mx-auto w-full max-w-7xl space-y-6">
-          <Outlet />
-        </div>
-      </InsideWorkspaceShellContext.Provider>
-    </Sidebar>
+    // The project directory wraps the sidebar too, so its Projects list and the pages share one fetch
+    <ProjectsProvider slug={workspaceSlug}>
+      <Sidebar user={user} onLogout={handleLogout}>
+        <InsideWorkspaceShellContext.Provider value>
+          <div className="mx-auto w-full max-w-7xl space-y-6">
+            <Outlet />
+          </div>
+        </InsideWorkspaceShellContext.Provider>
+      </Sidebar>
+    </ProjectsProvider>
   );
 };
 

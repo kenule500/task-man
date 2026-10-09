@@ -299,7 +299,49 @@ Server: 18 integration tests (`__integration__/projects.test.ts`) and unit tests
 lib and pages, week strip, board tabs, Scrum fields, subtasks, palette, FAQ search, FormDialog, design-system components
 (client total 413 tests).
 
-## 12. Owner actions and known limitations
+## 12. Release 3: meeting action items and enterprise readiness
+
+### Meeting action items (Oct 9 review)
+
+| Item | What was built | Files |
+|---|---|---|
+| Project icon (folder image) | `ProjectFolderIcon` (SVG folder in the project color with its glyph) and `ProjectChip`, shown in the sidebar Projects list, list rows, board cards, calendar cards, task details, dashboard and Ctrl+K; live preview in the project form | `features/projects/components/*`, `features/projects/context/*` |
+| Mobile Kanban moves | "…" menu with a "Move to" radio group on every card; one-tap "Start → / Done ✓ / Reopen" on phones; long-press "Move to…" bottom sheet; moves announced to screen readers | `views/BoardView.tsx`, `components/TaskActionsMenu.tsx`, `components/MoveTaskSheet.tsx` |
+| Mobile calendar status dots | Color-coded dots (pending, in progress, done, overdue; max 3 + "+N"), legend, Week/Month toggle on phones, same colors on desktop cells and event cards | `views/CalendarView.tsx`, `lib/calendarDots.ts`, `lib/week.ts` |
+| Kanban pagination | 10 cards per column, "Show 10 more / Show all", "Showing 10 of 23", focus moves to the first new card | `lib/pagination.ts`, `views/BoardView.tsx` |
+| RBAC page scrollbar | Roles × permissions matrix with sticky header and first column inside a scrollable region, Cards/Matrix toggle, role search | `components/RolePermissionMatrix.tsx`, `pages/WorkspaceSettingsPage.tsx` |
+
+### Enterprise features
+
+- **Task keys** (`WEB-12`): workspace counter (`$inc`, atomic) and backfill for older tasks; search by key on the server
+  and client; copy key / copy link. `utils/taskNumbers.ts`, `utils/taskQuery.ts`, `features/tasks/lib/taskKey.ts`.
+- **Audit log**: append-only `Activity` collection (actor, action, subject, before → after, IP, device), TTL 365 days,
+  written by tasks, comments, files, projects, sprints, members, invitations and settings; never fails a request.
+  `GET /tasks/:id/activity` (Activity tab) and `GET /:slug/activity` (owners/admins, filters, cursor pagination,
+  CSV export with formula neutralisation; the export itself is audited). `models/activityModel.ts`,
+  `utils/activity.ts`, `controllers/activityController.ts`, `pages/AuditLogPage.tsx`, `features/audit/*`.
+- **Signed-in devices**: list active sessions, sign out one or all others (`/api/profile/sessions`); session records
+  expire after a day (TTL). `pages/SecurityPage.tsx`, `features/account/*`.
+- **CSV export** of the filtered task list (RFC 4180, BOM, formula-safe). `features/tasks/lib/csv.ts`.
+- **Operations**: `X-Request-Id` on every response; `/api/health` reports the database and deployed commit.
+- **Supply chain**: CodeQL workflow, Dependabot, `pnpm audit --prod --audit-level high` CI job,
+  `sonar-project.properties` for SonarQube (Kenule's action item), `SECURITY.md`.
+
+### Research and reuse
+
+Atlassian Jira patterns (issue keys, card menu with Move to, activity/history tab) and the Masen design-system rules
+(drag alternatives, load-more per column, audit log who/what/when/where, cursor pagination) were applied. Open-source
+boards (Plane, Taiga, Vikunja, Leantime, OpenProject) are AGPL/GPL, so only their behaviour was used as reference, no
+code; Kanboard and Wekan are MIT but PHP/Meteor.
+
+### Bugs found by browser testing in this round
+
+1. Screen-reader-only labels inside horizontal scroll boxes escaped them and widened the page by up to 611 px (board,
+   list, permission matrix). Fixed globally: scroll containers are positioning contexts (`index.css`).
+2. The page canvas was transparent, showing black under short pages; it is now slate-50.
+3. A kept-mounted tab panel could stay visible while leaving (Base UI exit state); panels now hide immediately.
+
+## 13. Owner actions and known limitations
 
 1. **Rotate the MongoDB Atlas password now.** The old credentials were committed in the repository history before
    `server/.env` was untracked, and they still work. After rotating, update `MONGO_URI` in Vercel.

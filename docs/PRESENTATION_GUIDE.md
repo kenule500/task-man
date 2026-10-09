@@ -57,12 +57,15 @@ Seeded accounts in `demo-workspace` — one per role. The shared test password i
 8. **Projects → Website v1.** Folder cards; open the project: active sprint with burndown, planned and completed
    sprints, the backlog (move a story into a sprint), subtasks checklist in a story's details. Complete a sprint to see
    unfinished work move to the backlog. **Ctrl/Cmd + K** finds any page, task, project, sprint or help answer.
-9. **Team Members / Settings.** Roles, invitations, custom roles with a permission matrix, regenerate the invite code.
-10. **Sign out → sign in as Viewer.** Same board, **read-only**: no "Add Task", no drag, Team and Settings hidden;
+9. **Enterprise.** Open a task → **Activity** tab (who changed what); Settings → **Audit log** (filters, CSV export);
+   Settings → **Permission matrix**; profile → Security → **Signed-in devices**; Tasks → **Export CSV**; search a key
+   like `WEB-7` in Ctrl+K.
+10. **Team Members / Settings.** Roles, invitations, custom roles with a permission matrix, regenerate the invite code.
+11. **Sign out → sign in as Viewer.** Same board, **read-only**: no "Add Task", no drag, Team and Settings hidden;
    direct API writes return **403**.
-11. **Phone.** Resize to 375 px (or open on a phone): bottom navigation with a New task button, week-strip calendar,
-    status tabs on the board, installable as an app (PWA).
-12. **Design system.** `/design-system`: foundations, 34 documented components, patterns, content and accessibility rules.
+12. **Phone.** Resize to 375 px (or open on a phone): bottom navigation with a New task button; on the board tap
+    "Start →" or long-press a card to move it; calendar dots show each day's task states; installable as an app (PWA).
+13. **Design system.** `/design-system`: foundations, 34 documented components, patterns, content and accessibility rules.
 
 ## 4. Architecture
 
