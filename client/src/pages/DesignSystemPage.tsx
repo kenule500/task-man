@@ -1,211 +1,160 @@
-import { useState, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckSquare, Clock, FolderKanban, ListTodo, Plus } from 'lucide-react';
-import {
-  Alert, EmptyState, Field, IconTile, PageHeader, ProgressBar, SectionHeader, SkeletonCards,
-  StatCard, Surface, Tag, UserAvatar, fieldMessageId, toast,
-} from '@/components/ds';
+import { ArrowLeft, Search } from 'lucide-react';
+import { EmptyState, PageHeader, SearchInput, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  DueDate, FilterPills, PriorityIndicator, PrioritySelect, StatusBadge, StatusSelect, STATUS_OPTIONS,
-  TASK_PRIORITIES, TASK_STATUSES, type TaskPriority, type TaskStatus,
-} from '@/features/tasks';
+import { cn } from '@/lib/utils';
+import { DOC_ENTRIES } from './design-system/registry';
+import { filterEntries, groupEntries } from './design-system/search';
+import { ALL_COLOR_TOKENS } from './design-system/tokens';
+import { useScrollSpy } from './design-system/useScrollSpy';
 
-// Living style guide: every reusable building block with its variants and states.
+// Living style guide: tokens, components and patterns in one documentation site.
 // Public route (/design-system) so designers and reviewers can open it without an account.
+// Content lives in ./design-system (sections/*, registry.ts, tokens.ts); add a section there.
 
-const COLOR_TOKENS = [
-  { name: 'primary', className: 'bg-primary', value: '#2563EB' },
-  { name: 'primary-hover', className: 'bg-primary-hover', value: '#1D4ED8' },
-  { name: 'background', className: 'bg-slate-50 border border-slate-200', value: 'slate-50' },
-  { name: 'surface', className: 'bg-white border border-slate-200', value: '#FFFFFF' },
-  { name: 'foreground', className: 'bg-slate-900', value: 'slate-900' },
-  { name: 'muted-foreground', className: 'bg-slate-500', value: 'slate-500' },
-  { name: 'border', className: 'bg-slate-200', value: 'slate-200' },
-  { name: 'destructive', className: 'bg-red-600', value: 'red-600' },
-];
+const COMPONENT_COUNT = DOC_ENTRIES.filter(entry => entry.group === 'Components').length;
 
-const SECTIONS = ['Foundations', 'Layout', 'Feedback', 'Data display', 'Forms', 'Task components'] as const;
-
-const Section = ({ id, title, description, children }: { id: string; title: string; description: string; children: ReactNode }) => (
-  <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 space-y-4">
-    <div>
-      <h2 id={`${id}-title`} className="text-lg font-bold text-slate-900">{title}</h2>
-      <p className="text-sm text-slate-500">{description}</p>
-    </div>
-    {children}
-  </section>
-);
-
-const Specimen = ({ label, children }: { label: string; children: ReactNode }) => (
-  <Surface className="space-y-3">
-    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-    <div className="flex flex-wrap items-center gap-3">{children}</div>
-  </Surface>
-);
-
-const toSlug = (title: string) => title.toLowerCase().replace(/\s+/g, '-');
+const scrollToSection = (id: string) => {
+  document.getElementById(id)?.scrollIntoView?.({ block: 'start' });
+  if (typeof history !== 'undefined') history.replaceState(null, '', `#${id}`);
+};
 
 const DesignSystemPage = () => {
-  const [status, setStatus] = useState<TaskStatus>('in-progress');
-  const [priority, setPriority] = useState<TaskPriority>('high');
-  const [filter, setFilter] = useState<TaskStatus | 'all'>('all');
-  const [title, setTitle] = useState('');
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
+  const visible = useMemo(() => filterEntries(DOC_ENTRIES, deferredQuery), [deferredQuery]);
+  const groups = useMemo(() => groupEntries(visible), [visible]);
+  const ids = useMemo(() => visible.map(entry => entry.id), [visible]);
+  const [active, setActive] = useScrollSpy(ids);
+
+  // Open the section named in the URL hash (shared links)
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView?.({ block: 'start' });
+  }, []);
+
+  const jump = (id: string) => {
+    setActive(id);
+    scrollToSection(id);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl space-y-10 px-4 py-8 sm:px-6 lg:py-12">
-        <PageHeader
-          title="TaskMan design system"
-          description="Tokens, components and patterns shared by every screen. Rules live in DESIGN.md."
-          actions={<Link to="/" className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Back to app</Link>}
-        />
+    <div className="min-h-screen bg-canvas text-text-body">
+      <a
+        href="#main"
+        className="sr-only z-(--z-tooltip) rounded-lg bg-white px-4 py-2 text-sm font-medium text-text-strong shadow-floating focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus-visible:outline-2 focus-visible:outline-focus"
+      >
+        Skip to content
+      </a>
 
-        <nav aria-label="Sections" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-          {SECTIONS.map(section => (
-            <a key={section} href={`#${toSlug(section)}`} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900">
-              {section}
-            </a>
-          ))}
-        </nav>
-
-        <Section id="foundations" title="Foundations" description="Color tokens from index.css (@theme), type scale and radius.">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {COLOR_TOKENS.map(token => (
-              <Surface key={token.name} padding="sm" className="space-y-2">
-                <div className={`h-12 rounded-lg ${token.className}`} />
-                <p className="text-sm font-medium text-slate-900">{token.name}</p>
-                <p className="font-mono text-xs text-slate-500">{token.value}</p>
-              </Surface>
-            ))}
+      <header className="z-(--z-sticky) border-b border-border bg-white/95 backdrop-blur lg:sticky lg:top-0">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+          <p className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-text-strong lg:flex-none lg:basis-60">
+            <span aria-hidden className="flex size-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white">T</span>
+            <span className="truncate">TaskMan design system</span>
+          </p>
+          <Link
+            to="/"
+            className="order-2 inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-sm font-medium text-text-body outline-none hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-focus lg:order-3 lg:h-9"
+          >
+            <ArrowLeft aria-hidden className="size-4" />
+            Back to app
+          </Link>
+          <div className="order-3 w-full lg:order-2 lg:max-w-md lg:flex-1" role="search">
+            <SearchInput label="Search sections and components" placeholder="Search sections and components" value={query} onValueChange={setQuery} />
           </div>
-          <Specimen label="Type scale (Inter)">
-            <div className="space-y-1">
-              <p className="text-2xl font-bold tracking-tight text-slate-900">Page title · 24/700</p>
-              <p className="text-lg font-bold text-slate-900">Section title · 18/700</p>
-              <p className="text-sm font-semibold text-slate-900">Card heading · 14/600</p>
-              <p className="text-sm text-slate-700">Body · 14/400</p>
-              <p className="text-xs text-slate-500">Meta · 12/400 · <span className="tabular-nums">Oct 12, 2026</span></p>
-            </div>
-          </Specimen>
-        </Section>
+        </div>
+      </header>
 
-        <Section id="layout" title="Layout" description="AppShell frames authenticated pages; PageHeader, Surface and SectionHeader structure content.">
-          <Surface padding="none" className="overflow-hidden">
-            <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-500">PageHeader</div>
-            <div className="p-5">
-              <PageHeader
-                title="My Tasks"
-                description="Manage and track all your tasks"
-                actions={<Button className="h-9 gap-2 bg-primary text-white hover:bg-primary-hover"><Plus className="size-4" />Add Task</Button>}
+      {/* Phones and tablets: sections in a select instead of the side navigation */}
+      <div className="sticky top-0 z-(--z-sticky) border-b border-border bg-white/95 px-4 py-2 backdrop-blur sm:px-6 lg:hidden">
+        <label htmlFor="ds-jump" className="sr-only">Jump to section</label>
+        <select
+          id="ds-jump"
+          value={active}
+          onChange={event => jump(event.target.value)}
+          disabled={visible.length === 0}
+          className="h-11 w-full rounded-lg border border-border-strong bg-white px-3 text-base text-text-strong outline-none focus-visible:outline-2 focus-visible:outline-focus sm:text-sm"
+        >
+          {groups.map(({ group, entries }) => (
+            <optgroup key={group} label={group}>
+              {entries.map(entry => <option key={entry.id} value={entry.id}>{entry.title}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      <div className="mx-auto max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:py-10">
+        <aside className="hidden lg:block">
+          <nav aria-label="Sections" className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 pb-4">
+            {groups.length === 0 ? (
+              <p className="px-2 text-sm text-text-subtle">No matching sections.</p>
+            ) : (
+              groups.map(({ group, entries }) => (
+                <Fragment key={group}>
+                  <p id={`nav-${group}`} className="mt-4 mb-1.5 px-2 text-xs font-semibold uppercase tracking-wider text-text-subtle first:mt-0">{group}</p>
+                  <ul aria-labelledby={`nav-${group}`} className="space-y-0.5">
+                    {entries.map(entry => (
+                      <li key={entry.id}>
+                        <a
+                          href={`#${entry.id}`}
+                          aria-current={entry.id === active ? 'location' : undefined}
+                          onClick={() => setActive(entry.id)}
+                          className={cn(
+                            'block rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-(--duration-fast) focus-visible:outline-2 focus-visible:outline-focus',
+                            entry.id === active
+                              ? 'bg-primary/10 font-medium text-primary'
+                              : 'text-text-body hover:bg-surface-sunken hover:text-text-strong',
+                          )}
+                        >
+                          {entry.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </Fragment>
+              ))
+            )}
+          </nav>
+        </aside>
+
+        <main id="main" tabIndex={-1} className="min-w-0 space-y-12 outline-none">
+          <div className="space-y-4">
+            <PageHeader
+              title="TaskMan design system"
+              description="Tokens, components and patterns shared by every screen. Rules live in DESIGN.md."
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Tag tone="primary">v2.0</Tag>
+              <Tag tone="neutral">{COMPONENT_COUNT} components</Tag>
+              <Tag tone="neutral">{ALL_COLOR_TOKENS.length} color tokens</Tag>
+            </div>
+          </div>
+
+          {visible.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-white">
+              <EmptyState
+                icon={<Search />}
+                title={`No sections match “${deferredQuery}”`}
+                description="Try a component name (Button), a topic (contrast) or a pattern (empty state)."
+                action={<Button variant="outline" onClick={() => setQuery('')}>Show all sections</Button>}
               />
             </div>
-          </Surface>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Surface>
-              <SectionHeader title="Due this week" count={3} icon={<IconTile size="sm"><Clock /></IconTile>} action={<Button variant="ghost" size="sm">View all</Button>} />
-              <p className="text-sm text-slate-500">Surface (padding md) with a SectionHeader.</p>
-            </Surface>
-            <Surface interactive>
-              <p className="text-sm font-semibold text-slate-900">Interactive surface</p>
-              <p className="text-sm text-slate-500">Lifts on hover; use for clickable cards.</p>
-            </Surface>
-          </div>
-        </Section>
+          ) : (
+            groups.map(({ group, entries }) => (
+              <Fragment key={group}>
+                <p aria-hidden className="-mb-6 border-b border-border pb-2 text-xs font-semibold uppercase tracking-wider text-text-subtle">{group}</p>
+                {entries.map(({ id, Component }) => <Component key={id} />)}
+              </Fragment>
+            ))
+          )}
 
-        <Section id="feedback" title="Feedback" description="Alerts for inline messages, skeletons while loading, empty states that point to the next step.">
-          <div className="grid gap-3">
-            <Alert tone="info">Your session expired. Please sign in again.</Alert>
-            <Alert tone="success" title="Saved">Workspace renamed to Acme.</Alert>
-            <Alert tone="warning">You're offline. Changes can't be saved until you reconnect.</Alert>
-            <Alert tone="error" onDismiss={() => undefined}>This dependency would create a cycle.</Alert>
-          </div>
-          <Specimen label="Toasts (transient feedback, bottom of the screen)">
-            <Button variant="outline" onClick={() => toast.success('Task created')}>Success toast</Button>
-            <Button variant="outline" onClick={() => toast.error('Could not save your change.')}>Error toast</Button>
-            <Button
-              variant="outline"
-              onClick={() => toast({ title: 'Task deleted', description: 'Launch v1', action: { label: 'Undo', onClick: () => toast.success('Task restored') } })}
-            >
-              Toast with action (Undo)
-            </Button>
-          </Specimen>
-          <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" />
-          <Surface padding="none">
-            <EmptyState icon={<FolderKanban />} title="No projects yet" description="Set a Project on a task and it will appear here with its progress." action={<Button className="bg-primary text-white hover:bg-primary-hover">Add task</Button>} />
-          </Surface>
-        </Section>
-
-        <Section id="data-display" title="Data display" description="Stat cards, tags, progress, avatars and icon tiles.">
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard title="Total Tasks" value={24} subtitle="5 pending" icon={<ListTodo />} colorClass="text-slate-600" />
-            <StatCard title="In Progress" value={7} subtitle="Being worked on" icon={<Clock />} colorClass="text-blue-600" />
-            <StatCard title="Completed" value={12} subtitle="50% of all tasks" icon={<CheckSquare />} colorClass="text-emerald-600" />
-            <StatCard title="Overdue" value={2} subtitle="Missed deadlines" icon={<Clock />} colorClass="text-red-600" />
-          </div>
-          <Specimen label="Tag tones">
-            <Tag tone="neutral">Member</Tag>
-            <Tag tone="primary">Owner</Tag>
-            <Tag tone="dark">Admin</Tag>
-            <Tag tone="success">Done</Tag>
-            <Tag tone="warning">At risk</Tag>
-            <Tag tone="danger">Blocked</Tag>
-            <Tag tone="neutral" size="sm">Website v1</Tag>
-          </Specimen>
-          <Specimen label="Progress">
-            <ProgressBar value={35} label="Website v1 progress" showValue className="w-64" />
-            <ProgressBar value={100} label="Docs progress" showValue className="w-64" />
-          </Specimen>
-          <Specimen label="Avatars and icon tiles">
-            <UserAvatar name="Ada Lovelace" size="sm" />
-            <UserAvatar name="Grace Hopper" />
-            <UserAvatar name="Mohamed Reda" size="lg" />
-            <IconTile tone="primary"><FolderKanban /></IconTile>
-            <IconTile tone="success"><CheckSquare /></IconTile>
-            <IconTile tone="warning"><Clock /></IconTile>
-            <IconTile tone="danger" size="lg"><Clock /></IconTile>
-          </Specimen>
-        </Section>
-
-        <Section id="forms" title="Forms" description="Field pairs a visible label with hint or error text wired for screen readers.">
-          <Surface className="grid gap-4 md:grid-cols-2">
-            <Field label="Title" htmlFor="ds-title" required hint="Short and specific works best.">
-              <Input id="ds-title" value={title} onChange={event => setTitle(event.target.value)} placeholder="e.g. Prepare sprint review" aria-describedby={fieldMessageId('ds-title')} className="h-10 bg-white text-base sm:text-sm" />
-            </Field>
-            <Field label="Workspace name" htmlFor="ds-error" required error="Workspace name is required">
-              <Input id="ds-error" aria-invalid aria-describedby={fieldMessageId('ds-error')} className="h-10 bg-white text-base sm:text-sm" />
-            </Field>
-            <div className="flex flex-wrap gap-2 md:col-span-2">
-              <Button className="bg-primary text-white hover:bg-primary-hover">Primary</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
-              <Button variant="destructive">Destructive</Button>
-              <Button disabled className="bg-primary text-white">Disabled</Button>
-            </div>
-          </Surface>
-        </Section>
-
-        <Section id="task-components" title="Task components" description="Feature building blocks from @/features/tasks, shared by the four task views.">
-          <Specimen label="Status and priority">
-            {TASK_STATUSES.map(item => <StatusBadge key={item} status={item} />)}
-            {TASK_PRIORITIES.map(item => <PriorityIndicator key={item} priority={item} />)}
-            <DueDate deadline="2026-10-12" />
-            <DueDate deadline="2000-01-01" />
-          </Specimen>
-          <Specimen label="Inline selects">
-            <StatusSelect variant="inline" value={status} onChange={setStatus} />
-            <PrioritySelect variant="inline" value={priority} onChange={setPriority} />
-          </Specimen>
-          <Specimen label="Filter pills">
-            <FilterPills
-              aria-label="Filter by status"
-              value={filter}
-              onChange={setFilter}
-              options={[{ value: 'all' as const, label: 'All', count: 12 }, ...STATUS_OPTIONS.map((option, index) => ({ ...option, count: [5, 4, 3][index] }))]}
-            />
-          </Specimen>
-        </Section>
+          <footer className="border-t border-border pt-6 text-sm text-text-subtle">
+            Source: <code className="font-mono text-xs">client/src/pages/design-system/</code> · Rules:{' '}
+            <code className="font-mono text-xs">DESIGN.md</code> · Docs: <code className="font-mono text-xs">docs/DESIGN_SYSTEM.md</code>
+          </footer>
+        </main>
       </div>
     </div>
   );

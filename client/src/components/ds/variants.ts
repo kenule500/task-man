@@ -60,6 +60,81 @@ export const iconTileVariants = cva('flex shrink-0 items-center justify-center r
   defaultVariants: { tone: 'primary', size: 'md' },
 });
 
+/** Work-flow status pill built on the status tokens (index.css). */
+export const statusPillVariants = cva(
+  'inline-flex items-center gap-1.5 rounded-full border border-transparent font-medium whitespace-nowrap',
+  {
+    variants: {
+      status: {
+        pending: 'bg-status-pending-bg text-status-pending-fg',
+        'in-progress': 'bg-status-in-progress-bg text-status-in-progress-fg',
+        completed: 'bg-status-completed-bg text-status-completed-fg',
+      },
+      size: { sm: 'px-2 py-0.5 text-[11px]', md: 'px-2.5 py-1 text-xs' },
+    },
+    defaultVariants: { status: 'pending', size: 'md' },
+  },
+);
+
+/** Dot color of a status pill. */
+export const statusDotVariants = cva('size-1.5 shrink-0 rounded-full', {
+  variants: {
+    status: {
+      pending: 'bg-status-pending',
+      'in-progress': 'bg-status-in-progress',
+      completed: 'bg-status-completed',
+    },
+  },
+  defaultVariants: { status: 'pending' },
+});
+
+/** Scrum work item type chip built on the type tokens. */
+export const typeBadgeVariants = cva(
+  'inline-flex items-center gap-1 rounded-md font-medium whitespace-nowrap',
+  {
+    variants: {
+      type: {
+        story: 'bg-type-story-bg text-type-story',
+        task: 'bg-type-task-bg text-type-task',
+        bug: 'bg-type-bug-bg text-type-bug',
+        spike: 'bg-type-spike-bg text-type-spike',
+      },
+      size: { sm: 'px-1.5 py-0.5 text-[11px] [&_svg]:size-3', md: 'px-2 py-1 text-xs [&_svg]:size-3.5' },
+    },
+    defaultVariants: { type: 'task', size: 'md' },
+  },
+);
+
+/** Keyboard key cap. */
+export const kbdVariants = cva(
+  'inline-flex items-center justify-center rounded-md border border-border-strong bg-surface-sunken font-mono font-medium text-text-body shadow-[0_1px_0_0_var(--color-border-strong)]',
+  {
+    variants: {
+      size: { sm: 'h-5 min-w-5 px-1 text-[10px]', md: 'h-6 min-w-6 px-1.5 text-xs' },
+    },
+    defaultVariants: { size: 'md' },
+  },
+);
+
+/** Item of a segmented control (the sliding highlight is the selected state). */
+export const segmentedItemVariants = cva(
+  'inline-flex items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap outline-none transition-colors duration-(--duration-fast) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      selected: {
+        true: 'bg-white text-text-strong shadow-raised',
+        false: 'text-text-subtle hover:text-text-strong',
+      },
+      size: { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-sm' },
+    },
+    defaultVariants: { selected: false, size: 'md' },
+  },
+);
+
+export type StatusPillVariants = VariantProps<typeof statusPillVariants>;
+export type TypeBadgeVariants = VariantProps<typeof typeBadgeVariants>;
+export type KbdVariants = VariantProps<typeof kbdVariants>;
+export type SegmentedItemVariants = VariantProps<typeof segmentedItemVariants>;
 export type SurfaceVariants = VariantProps<typeof surfaceVariants>;
 export type TagVariants = VariantProps<typeof tagVariants>;
 export type AlertVariants = VariantProps<typeof alertVariants>;

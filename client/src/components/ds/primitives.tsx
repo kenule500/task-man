@@ -17,19 +17,24 @@ interface PageHeaderProps {
   description?: ReactNode;
   /** Primary actions, right-aligned on desktop and full width below on mobile */
   actions?: ReactNode;
+  /** Heading element of the title. Keep the default (1) on real pages; documentation demos use 3. */
+  headingLevel?: 1 | 2 | 3;
   className?: string;
 }
 
 /** Page title block: one per screen, the `h1` of the page. */
-export const PageHeader = ({ title, description, actions, className }: PageHeaderProps) => (
+export const PageHeader = ({ title, description, actions, headingLevel = 1, className }: PageHeaderProps) => {
+  const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3';
+  return (
   <header className={cn('flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between', className)}>
     <div className="min-w-0">
-      <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
+      <Heading className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{title}</Heading>
       {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
     </div>
     {actions && <div className="flex shrink-0 flex-wrap items-center gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">{actions}</div>}
   </header>
-);
+  );
+};
 
 type SurfaceProps = ComponentProps<'div'> & SurfaceVariants & { as?: 'div' | 'section' | 'article' };
 
