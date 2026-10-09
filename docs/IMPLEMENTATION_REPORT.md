@@ -251,7 +251,55 @@ removed `About`, `Pricing`, `TrustedBy` (fake content).
 - **More Jest tests:** email providers and template escaping (server), signup screens and a style-guide smoke test
   (client); `test:coverage` scripts in both packages.
 
-## 11. Owner actions and known limitations
+## 11. Release 2: Scrum, mobile and design system (PR #9)
+
+**Goal:** make TaskMan usable for software teams running Scrum, improve the phone (PWA) experience, and close the
+remaining gaps against the step 1 backend specification.
+
+### Scrum data model (server)
+
+| Piece | How it works | Files |
+|---|---|---|
+| Project | `name` (tasks still reference it by name, so nothing breaks), `key`, `color`, `icon`, `archived`; unique per workspace ignoring case. Projects are created on the fly from existing task project names; renaming or deleting one updates its tasks. | `models/projectModel.ts`, `controllers/projectController.ts`, `routes/projectRoutes.ts` |
+| Sprint | `planned → active → completed`, one active sprint per project (conditional updates, so a double click cannot start it twice). Completing stores `completedPoints` (velocity) and moves unfinished work to the backlog or a planned sprint. | `models/sprintModel.ts`, same controller |
+| Task fields | `type` (story, task, bug, spike), `storyPoints` (0–100), `sprint`, `parent`. Choosing a sprint moves the task into the sprint's project; subtasks are one level deep, inherit and follow their parent; deleting a parent deletes its subtasks and their files. | `models/taskModel.ts`, `controllers/taskController.ts` |
+| Permissions | `projects:read` to view, `projects:write` to plan and run sprints (Scrum Master), `projects:delete` to delete projects (Product Owner). | `routes/projectRoutes.ts` |
+| `/api/tasks` | Spec alias: resolves the user's active workspace and reuses the workspace task routes (same permissions and validation). | `routes/activeTaskRoutes.ts`, `app.ts` |
+| Demo data | 3 projects, 4 sprints (completed, active, planned), story points, subtasks, backlog; dates relative to today so the burndown is always current. | `scripts/scrumDemo.ts`, `seed.ts`, `seedWorkspace.ts` |
+
+### Client
+
+- **Projects** (`pages/ProjectsPage.tsx`, `features/projects/*`): folder cards in the project color with progress and
+  active sprint; project page (`pages/ProjectDetailPage.tsx`) with Sprints (active sprint, burndown, planned and completed
+  sprints, task rows with subtasks), Backlog (quick add, move to sprint) and Overview (velocity, distributions).
+- **Task details** (`features/tasks/components/TaskScrumFields.tsx`, `SubtaskList.tsx`): type, points and sprint
+  fields, a subtask checklist, and a confirmation before deleting (`ConfirmTaskDelete.tsx`); Undo still works.
+- **Phones**: `components/MobileTabBar.tsx` (bottom navigation with a New task button), week-strip calendar and Today
+  button (`views/CalendarView.tsx`, `lib/week.ts`), board status tabs (`views/BoardView.tsx`), collapsible filters.
+- **Search**: `components/CommandPalette.tsx` + `commandSearch.ts` (Ctrl/Cmd + K across pages, tasks, projects,
+  sprints and FAQ). **Help**: `pages/HelpPage.tsx` + `content/faq.ts` (searchable FAQ).
+- **Dashboard / Reports**: active sprints, work by type, velocity (`components/dashboard/ActiveSprints.tsx`).
+- **Design system**: `/design-system` rebuilt as a documentation site (`pages/design-system/*`), semantic tokens in
+  `index.css`, 15 new components in `components/ds/*`; see [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md).
+
+### Bugs found and fixed while testing in the browser
+
+1. Tabs rendered side by side everywhere: shadcn's `data-horizontal` classes had no Tailwind variant for Base UI's
+   `data-orientation` attribute (fixed in `index.css`).
+2. Role editor could not scroll on desktop: the `FormDialog` body had `flex-none` inside a height-capped dialog.
+3. Calendar "Today" did nothing when already on the current month; now it selects, scrolls to and highlights today.
+4. Mobile week strip overflowed and hid today; now seven columns always fit.
+5. Project page header squeezed the title at tablet width; actions now wrap below.
+6. Priority label colors failed AA contrast (amber/emerald 600 → 700).
+7. The task page on phones put the board below four rows of stats and filters.
+
+### Tests added
+
+Server: 18 integration tests (`__integration__/projects.test.ts`) and unit tests for subtask deletes. Client: projects
+lib and pages, week strip, board tabs, Scrum fields, subtasks, palette, FAQ search, FormDialog, design-system components
+(client total 413 tests).
+
+## 12. Owner actions and known limitations
 
 1. **Rotate the MongoDB Atlas password now.** The old credentials were committed in the repository history before
    `server/.env` was untracked, and they still work. After rotating, update `MONGO_URI` in Vercel.
