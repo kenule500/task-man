@@ -44,7 +44,8 @@ describe('TaskFormDialog epic field', () => {
     const select = screen.getByRole('combobox', { name: 'Epic' });
     expect(select).toHaveTextContent('No epic');
     await userEvent.click(select);
-    expect(screen.getByRole('option', { name: 'Checkout revamp' })).toBeInTheDocument();
+    // The listbox opens asynchronously (slower on CI): wait for it
+    expect(await screen.findByRole('option', { name: 'Checkout revamp' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Mobile launch' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', { name: 'Checkout revamp' }));
 
