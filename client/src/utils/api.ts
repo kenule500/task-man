@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { API_URL } from '@/config';
 import { clearSession, getToken } from '@/utils/session';
 
@@ -11,23 +11,23 @@ const api = axios.create({
 
 // Attach the JWT to every request
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = getToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: AxiosError) => Promise.reject(error)
 );
 
 // Global 401 handling — clear session and redirect to login.
 // Auth endpoints (login, signup…) handle their own 401s, so we skip them.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error?.response?.status;
-    const url: string = error?.config?.url ?? '';
+  (error: AxiosError) => {
+    const status = error.response?.status;
+    const url: string = error.config?.url ?? '';
 
     if (status === 401 && getToken() && !url.startsWith('/auth/')) {
       clearSession();

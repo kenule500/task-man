@@ -195,12 +195,14 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, workspaceSlug]);
 
-  // Sync active workspace in DB when URL slug changes
+   // Sync active workspace in DB when URL slug changes
   useEffect(() => {
     if (!workspaceSlug) return;
-    api.put(`/workspaces/${workspaceSlug}/activate`).catch((err) => {
-      console.error('Failed to sync active workspace:', err);
-    });
+    api
+      .put(`/workspaces/${workspaceSlug}/activate`)
+      .catch((err: unknown) => {
+        console.error('Failed to sync active workspace:', err);
+      });
   }, [workspaceSlug]);
 
   const handleSwitchWorkspace = (ws: Workspace) => {
