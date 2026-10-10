@@ -10,6 +10,8 @@ export const ACTIVITY_ACTIONS = [
   'workspace.updated', 'workspace.invite_code_regenerated', 'audit.exported', 'integration.updated',
   'task.duplicated', 'automation.created', 'automation.updated', 'automation.deleted', 'automation.ran',
   'workflow.updated', 'webhook.created', 'webhook.updated', 'webhook.deleted', 'token.created', 'token.revoked',
+  'time.logged', 'time.deleted', 'release.created', 'release.updated', 'release.deleted', 'release.released',
+  'field.created', 'field.updated', 'field.deleted', 'import.completed',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

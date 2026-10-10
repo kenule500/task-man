@@ -36,6 +36,10 @@ import automationRoutes from './automationRoutes.js';
 import workflowRoutes from './workflowRoutes.js';
 import webhookRoutes from './webhookRoutes.js';
 import tokenRoutes from './tokenRoutes.js';
+import timeRoutes from './timeRoutes.js';
+import releaseRoutes from './releaseRoutes.js';
+import fieldRoutes from './fieldRoutes.js';
+import importRoutes from './importRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -234,6 +238,12 @@ router.use('/:slug/automations', automationRoutes);
 router.use('/:slug/workflow', workflowRoutes);
 router.use('/:slug/webhooks', webhookRoutes);
 router.use('/:slug/tokens', tokenRoutes);
+
+// Time tracking (timesheets), releases, custom fields and imports
+router.use('/:slug/time', timeRoutes);
+router.use('/:slug/releases', releaseRoutes);
+router.use('/:slug/fields', fieldRoutes);
+router.use('/:slug/import', importRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);
