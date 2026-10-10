@@ -18,6 +18,16 @@ export interface IWorkspace extends Document {
   // Last task number handed out (task keys like WEB-12 use it)
   taskCounter: number;
   boardSettings?: { wipLimits?: Partial<WipLimits> };
+  integrations?: {
+    github?: {
+      enabled?: boolean;
+      // Shared webhook secret (HMAC key). Never selected by default: add '+integrations.github.secret' to read it
+      secret?: string;
+      // Move tasks along when their pull requests open or merge
+      autoTransition?: boolean;
+      connectedAt?: Date;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +58,14 @@ const workspaceSchema: Schema = new Schema(
         pending: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
         'in-progress': { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
         completed: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
+      },
+    },
+    integrations: {
+      github: {
+        enabled: { type: Boolean, default: false },
+        secret: { type: String, select: false },
+        autoTransition: { type: Boolean, default: true },
+        connectedAt: { type: Date },
       },
     },
   },

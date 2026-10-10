@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Notification from '../models/notificationModel.js';
 import Project from '../models/projectModel.js';
+import PushSubscription, { MAX_PUSH_ENDPOINT, MAX_PUSH_KEY } from '../models/pushSubscriptionModel.js';
 import Workspace from '../models/workspaceModel.js';
+import { getPublicKey, isPushConfigured } from '../utils/webPush.js';
 
 // A signed-in user's own notifications. Every query filters by req.user, so one user can
 // never read or change another's; routes sit behind `protect` only (no workspace permission).
@@ -159,5 +161,77 @@ export const markAllNotificationsRead = async (req: Request, res: Response): Pro
   } catch (error) {
     console.error('markAllNotificationsRead error:', (error as Error).message);
     res.status(500).json({ message: 'Could not update notifications' });
+  }
+};
+
+// ================================================================
+// Web Push (device notifications)
+// ================================================================
+const base64url = (value: unknown, max: number): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= max && /^[A-Za-z0-9_-]+={0,2}$/.test(value);
+
+const httpsUrl = (value: unknown): value is string => {
+  if (typeof value !== 'string' || value.length === 0 || value.length > MAX_PUSH_ENDPOINT) return false;
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+// @desc    Whether push is available and the key the browser subscribes with
+// @route   GET /api/notifications/push/public-key
+export const getPushPublicKey = (_req: Request, res: Response): void => {
+  const publicKey = getPublicKey();
+  res.status(200).json({ publicKey, enabled: publicKey !== null && isPushConfigured() });
+};
+
+// @desc    Register this browser for push (upsert by endpoint; the endpoint moves to the caller)
+// @route   POST /api/notifications/push/subscribe
+export const subscribePush = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!isPushConfigured()) {
+      res.status(503).json({ message: 'Push notifications are not enabled on this server' });
+      return;
+    }
+    const { endpoint, keys } = (req.body ?? {}) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
+    if (!httpsUrl(endpoint)) {
+      res.status(400).json({ message: 'endpoint must be an https URL of at most 2048 characters' });
+      return;
+    }
+    if (!base64url(keys?.p256dh, MAX_PUSH_KEY) || !base64url(keys?.auth, MAX_PUSH_KEY)) {
+      res.status(400).json({ message: 'keys.p256dh and keys.auth must be base64url strings' });
+      return;
+    }
+    const userAgent = String(req.get('user-agent') ?? '').slice(0, 300);
+    await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      {
+        $set: { user: userId(req), keys: { p256dh: keys.p256dh, auth: keys.auth }, userAgent, lastUsedAt: new Date() },
+      },
+      { upsert: true, runValidators: true },
+    );
+    res.status(201).json({ subscribed: true });
+  } catch (error) {
+    console.error('subscribePush error:', (error as Error).message);
+    res.status(500).json({ message: 'Could not turn on push notifications' });
+  }
+};
+
+// @desc    Remove one of the caller's push subscriptions (idempotent)
+// @route   POST /api/notifications/push/unsubscribe
+export const unsubscribePush = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const endpoint = (req.body ?? {}).endpoint;
+    if (!httpsUrl(endpoint)) {
+      res.status(400).json({ message: 'endpoint must be an https URL' });
+      return;
+    }
+    // Only the caller's own: someone else's endpoint is left alone and reported the same way
+    await PushSubscription.deleteOne({ endpoint, user: userId(req) });
+    res.status(200).json({ subscribed: false });
+  } catch (error) {
+    console.error('unsubscribePush error:', (error as Error).message);
+    res.status(500).json({ message: 'Could not turn off push notifications' });
   }
 };

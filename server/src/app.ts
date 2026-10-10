@@ -14,6 +14,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import integrationRoutes from './routes/integrationRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 
 // ============================================================
@@ -65,6 +66,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigins }));
+// GitHub signs the exact bytes it sends, so its webhook gets the raw body (must come before express.json)
+app.use('/api/integrations/github', express.raw({ type: 'application/json', limit: '1mb' }));
 app.use(express.json({ limit: '100kb' }));
 
 // ============================================================
@@ -145,5 +148,6 @@ app.use('/api/tasks', activeTaskRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/integrations', integrationRoutes);
 
 export default app;

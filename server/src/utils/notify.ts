@@ -5,6 +5,7 @@ import User from '../models/userModel.js';
 import { notificationTemplate } from './emailTemplates.js';
 import { getClientUrl } from './requestHelpers.js';
 import { sendEmail } from './sendEmail.js';
+import { isPushConfigured, pushSentence, sendPushToUser } from './webPush.js';
 
 type Id = mongoose.Types.ObjectId | string;
 
@@ -135,6 +136,9 @@ export const wantsEmail = (
   return type === 'task.completed' ? Boolean(prefs.taskCompleted) : Boolean(prefs.taskAssigned);
 };
 
+/** Whether the recipient wants device (Web Push) notifications; on unless they switched it off. */
+export const wantsPush = (prefs: { push?: boolean } | null | undefined): boolean => prefs?.push !== false;
+
 // ----------------------------------------------------------------
 // Delivery (never throws)
 // ----------------------------------------------------------------
@@ -154,8 +158,10 @@ const deliver = async (delivery: Delivery, plans: PlannedNotification[]): Promis
     .map(user => ({ user, type: plan.type })));
   if (rows.length === 0) return;
 
+  let created: { _id?: Id }[] = [];
+  let stored = false;
   try {
-    await Notification.insertMany(rows.map(row => ({
+    created = await Notification.insertMany(rows.map(row => ({
       user: row.user,
       workspace: workspace._id,
       actor: actor._id,
@@ -163,6 +169,7 @@ const deliver = async (delivery: Delivery, plans: PlannedNotification[]): Promis
       task: task._id,
       summary: task.title.slice(0, MAX_NOTIFICATION_SUMMARY),
     })));
+    stored = true;
   } catch (error) {
     console.error('notify insert error:', (error as Error).message);
   }
@@ -172,8 +179,18 @@ const deliver = async (delivery: Delivery, plans: PlannedNotification[]): Promis
     const byId = new Map(recipients.map(user => [idOf(user._id as Id), user]));
     const link = `${getClientUrl()}/${workspace.slug}/tasks?task=${idOf(task._id)}`;
 
-    await Promise.allSettled(rows.map(async row => {
+    await Promise.allSettled(rows.map(async (row, index) => {
       const recipient = byId.get(row.user);
+      if (stored && recipient && isPushConfigured() && wantsPush(recipient.notifications)) {
+        const notificationId = created[index]?._id;
+        // Awaited (serverless hosts freeze after the response); sendPushToUser never throws
+        await sendPushToUser(row.user, {
+          title: 'TaskMan',
+          body: pushSentence(row.type, actor.name, task.title),
+          url: `/${workspace.slug}/tasks?task=${idOf(task._id)}`,
+          tag: notificationId ? idOf(notificationId) : `${row.type}:${idOf(task._id)}`,
+        });
+      }
       if (!recipient?.email || !wantsEmail(recipient.notifications, row.type)) return;
       const withExcerpt = row.type === 'comment.mention' || row.type === 'comment.reply_on_my_task';
       try {

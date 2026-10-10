@@ -15,6 +15,28 @@ export const MAX_LABELS = 10;
 export const MAX_LABEL_LENGTH = 40;
 export const MAX_COMMENT_LENGTH = 2000;
 export const MAX_ATTACHMENTS = 20;
+export const MAX_TASK_LINKS = 50;
+
+export const TASK_LINK_KINDS = ['pull_request', 'commit', 'branch'] as const;
+export const TASK_LINK_STATES = ['open', 'merged', 'closed'] as const;
+export type TaskLinkKind = (typeof TASK_LINK_KINDS)[number];
+export type TaskLinkState = (typeof TASK_LINK_STATES)[number];
+
+/** A pull request, commit or branch of a connected code host that mentions the task key. */
+export interface ITaskLink {
+  provider: 'github';
+  kind: TaskLinkKind;
+  // https://github.com/... (unique per task)
+  url: string;
+  title: string;
+  number?: number;
+  state?: TaskLinkState;
+  // owner/name
+  repo: string;
+  sha?: string;
+  author?: string;
+  updatedAt: Date;
+}
 
 export interface ITaskComment {
   _id: mongoose.Types.ObjectId;
@@ -65,6 +87,8 @@ export interface ITask extends Document {
   assignees: mongoose.Types.ObjectId[];
   comments: ITaskComment[];
   attachments: ITaskAttachment[];
+  // Development links (GitHub pull requests, commits, branches) maintained by the webhook
+  links?: ITaskLink[];
   owner: mongoose.Types.ObjectId;
   workspace: mongoose.Types.ObjectId;
   completedAt?: Date;
@@ -87,6 +111,19 @@ const attachmentSchema = new Schema<ITaskAttachment>({
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   uploadedAt: { type: Date, default: Date.now },
 });
+
+const linkSchema = new Schema<ITaskLink>({
+  provider: { type: String, enum: ['github'], required: true },
+  kind: { type: String, enum: TASK_LINK_KINDS, required: true },
+  url: { type: String, required: true, maxlength: 500 },
+  title: { type: String, default: '', maxlength: 200 },
+  number: { type: Number },
+  state: { type: String, enum: TASK_LINK_STATES },
+  repo: { type: String, required: true, maxlength: 140 },
+  sha: { type: String, maxlength: 64 },
+  author: { type: String, maxlength: 100 },
+  updatedAt: { type: Date, default: Date.now },
+}, { _id: false });
 
 const taskSchema: Schema = new Schema({
   number: { type: Number, min: 1 },
@@ -119,6 +156,13 @@ const taskSchema: Schema = new Schema({
     validate: {
       validator: (items: unknown[]) => items.length <= MAX_ATTACHMENTS,
       message: `A task can have at most ${MAX_ATTACHMENTS} attachments`,
+    },
+  },
+  links: {
+    type: [linkSchema],
+    validate: {
+      validator: (items: unknown[]) => items.length <= MAX_TASK_LINKS && new Set(items.map(item => (item as ITaskLink).url)).size === items.length,
+      message: `A task can have at most ${MAX_TASK_LINKS} unique links`,
     },
   },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

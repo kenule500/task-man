@@ -11,8 +11,10 @@ import {
   planTaskNotifications,
   resolveMentions,
   wantsEmail,
+  wantsPush,
 } from '../utils/notify.js';
 import { sendEmail } from '../utils/sendEmail.js';
+import { isPushConfigured, sendPushToUser } from '../utils/webPush.js';
 
 jest.mock('../models/notificationModel.js', () => ({
   __esModule: true,
@@ -21,6 +23,12 @@ jest.mock('../models/notificationModel.js', () => ({
 }));
 jest.mock('../models/userModel.js', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('../utils/sendEmail.js', () => ({ sendEmail: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../utils/webPush.js', () => ({
+  __esModule: true,
+  isPushConfigured: jest.fn(() => false),
+  pushSentence: jest.requireActual('../utils/webPush.js').pushSentence,
+  sendPushToUser: jest.fn().mockResolvedValue(undefined),
+}));
 
 const id = () => new Types.ObjectId().toString();
 const [actor, ada, bob, cy, owner] = [id(), id(), id(), id(), id()];
@@ -203,5 +211,49 @@ describe('delivery', () => {
     ]);
     expect(sendEmail).toHaveBeenCalledTimes(2);
     expect((sendEmail as jest.Mock).mock.calls[0][0].text).toContain('see @Bob Stone');
+  });
+
+  describe('web push', () => {
+    const pushRecipients = (map: Record<string, Record<string, boolean>>) =>
+      (User.find as jest.Mock).mockReturnValue({
+        select: async () => Object.entries(map).map(([key, value]) => ({
+          _id: key, email: `${key}@example.com`, notifications: { email: false, ...value },
+        })),
+      });
+
+    it('pushes the bell sentence and task link to recipients who have not switched push off', async () => {
+      (isPushConfigured as jest.Mock).mockReturnValue(true);
+      const created = [{ _id: new Types.ObjectId() }, { _id: new Types.ObjectId() }];
+      (Notification.insertMany as jest.Mock).mockResolvedValueOnce(created);
+      pushRecipients({ [ada]: {}, [bob]: { push: false } });
+      await notifyTaskEvents(req(), { _id: taskId, title: 'Fix login', owner: actor, assignees: [ada, bob] });
+
+      expect(sendPushToUser).toHaveBeenCalledTimes(1);
+      expect(sendPushToUser).toHaveBeenCalledWith(ada, {
+        title: 'TaskMan',
+        body: 'Eve Actor assigned you "Fix login"',
+        url: `/team-x/tasks?task=${taskId}`,
+        tag: String(created[0]._id),
+      });
+    });
+
+    it('sends no push when it is not configured or the notification was not stored', async () => {
+      (isPushConfigured as jest.Mock).mockReturnValue(false);
+      pushRecipients({ [ada]: {} });
+      await notifyTaskEvents(req(), { _id: taskId, title: 'Fix login', owner: actor, assignees: [ada] });
+      expect(sendPushToUser).not.toHaveBeenCalled();
+
+      (isPushConfigured as jest.Mock).mockReturnValue(true);
+      (Notification.insertMany as jest.Mock).mockRejectedValueOnce(new Error('down'));
+      await notifyTaskEvents(req(), { _id: taskId, title: 'Fix login', owner: actor, assignees: [ada] });
+      expect(sendPushToUser).not.toHaveBeenCalled();
+    });
+
+    it('treats a missing push preference as on', () => {
+      expect(wantsPush(undefined)).toBe(true);
+      expect(wantsPush({})).toBe(true);
+      expect(wantsPush({ push: true })).toBe(true);
+      expect(wantsPush({ push: false })).toBe(false);
+    });
   });
 });

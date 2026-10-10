@@ -26,6 +26,7 @@ export interface IUser extends Document {
     taskAssigned: boolean;
     taskCompleted: boolean;
     weeklyDigest: boolean;
+    push: boolean;
   };
 
   // System
@@ -67,6 +68,7 @@ const userSchema: Schema = new Schema({
     taskAssigned: { type: Boolean, default: true },
     taskCompleted: { type: Boolean, default: false },
     weeklyDigest: { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
   },
 
   // System
