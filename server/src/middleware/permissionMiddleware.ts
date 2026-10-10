@@ -67,9 +67,25 @@ export const requirePermission = (permission: PermissionKey) => {
         return;
       }
 
+      // A personal API token is bound to one workspace and to the scopes chosen at creation;
+      // the role check above still applies, so the token can never exceed its owner's current access.
+      if (req.apiToken) {
+        if (String(workspace._id) !== req.apiToken.workspace) {
+          res.status(403).json({ message: 'This API token belongs to another workspace' });
+          return;
+        }
+        if (!req.apiToken.scopes.includes(permission)) {
+          res.status(403).json({ message: 'This API token does not have the required scope' });
+          return;
+        }
+      }
+
       (req as { workspace?: unknown }).workspace = workspace;
       (req as { role?: unknown }).role = role;
-      (req as { permissions?: unknown }).permissions = role.permissions;
+      // Tokens act with the scopes they were given, not the whole role
+      (req as { permissions?: unknown }).permissions = req.apiToken
+        ? role.permissions.filter((key: string) => req.apiToken!.scopes.includes(key))
+        : role.permissions;
 
       next();
     } catch (error) {

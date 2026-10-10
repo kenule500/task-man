@@ -27,7 +27,7 @@ import {
   updateCustomRole,
   deleteCustomRole,
 } from '../controllers/roleController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, rejectApiToken } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { getWorkspaceActivity } from '../controllers/activityController.js';
 import { getSprintReport } from '../controllers/reportController.js';
@@ -72,8 +72,8 @@ router.get('/', protect, getMyWorkspaces);
 router.post('/join', protect, joinWorkspace);
 
 // These need a workspace in the URL
-router.get('/:slug', protect, getWorkspaceBySlug);
-router.put('/:slug/activate', protect, switchWorkspace);
+router.get('/:slug', protect, rejectApiToken, getWorkspaceBySlug);
+router.put('/:slug/activate', protect, rejectApiToken, switchWorkspace);
 
 // ============================================================
 // Workspace members (read requires users:read)
@@ -164,7 +164,7 @@ router.put(
   changeMemberRole
 );
 // Leaving needs no permission beyond membership (checked in the controller); must come before :userId
-router.delete('/:slug/members/me', protect, leaveWorkspace);
+router.delete('/:slug/members/me', protect, rejectApiToken, leaveWorkspace);
 router.delete(
   '/:slug/members/:userId',
   protect,

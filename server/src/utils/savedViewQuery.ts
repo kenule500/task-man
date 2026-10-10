@@ -1,7 +1,7 @@
 // A saved view stores the task page's URL query string. Only the filter and board keys are allowed, so a
 // saved view can never carry navigation state (`task`, `new`, `col`) or anything else the page might read.
 
-export const SAVED_VIEW_QUERY_KEYS = ['q', 'status', 'priority', 'type', 'label', 'epic', 'assignedToMe', 'sort', 'qf', 'group'] as const;
+export const SAVED_VIEW_QUERY_KEYS = ['q', 'status', 'priority', 'type', 'label', 'epic', 'project', 'sprint', 'assignedToMe', 'sort', 'qf', 'group'] as const;
 
 export const MAX_SAVED_VIEW_QUERY = 1000;
 const MAX_VALUE_LENGTH = 200;

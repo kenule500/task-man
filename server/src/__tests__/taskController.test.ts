@@ -156,8 +156,10 @@ describe('updateTask', () => {
     await updateTask(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(doc.set).toHaveBeenCalledTimes(1);
+    // The status plus the stage that goes with it
+    expect(doc.set).toHaveBeenCalledTimes(2);
     expect(doc.status).toBe('in-progress');
+    expect(doc.stage).toBe('in-progress');
     expect(doc.title).toBe('Old');
   });
 
