@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
+import ScopeBar from '@/features/tasks/components/ScopeBar';
 import { ViewsMenu, useUrlFilters } from '@/features/views';
 import {
   BoardView, ConfirmTaskDelete, CalendarView, DELETE_UNDO_MS, FILTER_PARAMS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
   TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
-  tasksApi, useTasks, useWorkspaceMembers, epicsOf,
+  tasksApi, useTasks, useWorkspaceMembers, epicsOf, hasScope, matchesFilters, resolveScopeFilters, scopeProjectOf, scopeSprintOf,
   type Task, type TaskDetailActions, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
@@ -37,7 +38,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const boardControls = useBoardUrlState();
   const currentUser = useMemo(() => (user ? { _id: user._id, name: user.name } : null), [user]);
 
-  // Filters live in the URL (?q=&status=&priority=&type=&label=&epic=&assignedToMe=&sort=) so any view is shareable by link
+  // Filters live in the URL (?q=&status=&priority=&type=&label=&epic=&project=&sprint=&assignedToMe=&sort=) so any view is shareable by link
   const [filters, setFilters] = useUrlFilters();
   const [form, setForm] = useState<FormState>({ mode: 'closed' });
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -109,12 +110,30 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   }, [filters, labels, epics]);
   // Lets the search find "WEB-12" and labels the CSV key column
   const projectKeyOf = useCallback((task: Task) => (task.project ? byName(task.project)?.key : undefined), [byName]);
+  // `sprint=active` becomes the running sprint's id; the same filters drive every view
+  const resolvedFilters = useMemo(() => resolveScopeFilters(activeFilters, projects), [activeFilters, projects]);
   // The board's columns are the statuses, so a status filter set in another view must not hide columns
   const visibleTasks = useMemo(
-    () => applyFilters(tasks, view === 'board' ? { ...activeFilters, status: 'all' } : activeFilters, currentUser?._id, projectKeyOf),
-    [tasks, view, activeFilters, currentUser?._id, projectKeyOf],
+    () => applyFilters(tasks, view === 'board' ? { ...resolvedFilters, status: 'all' } : resolvedFilters, currentUser?._id, projectKeyOf),
+    [tasks, view, resolvedFilters, currentUser?._id, projectKeyOf],
   );
-  const stats = useMemo(() => getTaskStats(tasks), [tasks]);
+  // Inside a project or sprint the stats and status counts describe that scope, not the whole workspace
+  const scoped = hasScope(activeFilters);
+  const scopedTasks = useMemo(
+    () => (scoped ? tasks.filter(task => matchesFilters(task, { search: '', status: 'all', project: resolvedFilters.project, sprint: resolvedFilters.sprint })) : tasks),
+    [tasks, scoped, resolvedFilters.project, resolvedFilters.sprint],
+  );
+  const stats = useMemo(() => getTaskStats(scopedTasks), [scopedTasks]);
+  // New tasks start inside the scope: its project and (unless it is over) its sprint
+  const scopeDefaults = useMemo((): Partial<TaskFormValues> => {
+    const project = scopeProjectOf(activeFilters, projects);
+    const sprint = scopeSprintOf(activeFilters, projects);
+    return {
+      ...(project ? { project: project.name } : {}),
+      ...(sprint && sprint.status !== 'completed' ? { sprint: sprint._id } : {}),
+    };
+  }, [activeFilters, projects]);
+  const clearScope = () => setFilters({ ...filters, project: 'all', sprint: 'all' });
   const detailTask = detailId ? tasks.find(task => task._id === detailId) ?? null : null;
 
   /** Asks first; see commitDelete. */
@@ -185,7 +204,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
     onOpen: (task: Task) => setDetailId(task._id),
     onDelete: handleDelete,
     onCreate: (defaults?: Partial<TaskFormValues>) => {
-      if (canWrite) setForm({ mode: 'create', defaults });
+      if (canWrite) setForm({ mode: 'create', defaults: { ...scopeDefaults, ...defaults } });
     },
   };
 
@@ -196,7 +215,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
         description={canWrite ? 'All work in this workspace, as a list, board, calendar or timeline' : 'All work in this workspace (read-only access)'}
         actions={canWrite ? (
           <Button
-            onClick={() => setForm({ mode: 'create' })}
+            onClick={() => setForm({ mode: 'create', defaults: scopeDefaults })}
             disabled={loading || !workspaceSlug}
             // Phones use the "+" button of the bottom navigation instead
             className="h-10 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover max-md:hidden sm:h-9"
@@ -220,6 +239,10 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
             <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
           </div>
 
+          {workspaceSlug && scoped && (
+            <ScopeBar slug={workspaceSlug} filters={activeFilters} projects={projects} onClear={clearScope} />
+          )}
+
           <Surface padding="sm" className="space-y-4">
             <ViewSwitcher value={view} onChange={setView} />
             <TaskToolbar
@@ -229,6 +252,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
               showSort={view === 'list'}
               labels={labels}
               epics={epics}
+              projects={projects}
               canFilterMine={Boolean(currentUser)}
               onExport={exportCsv}
               exportCount={visibleTasks.length}
@@ -242,7 +266,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
           {view === 'list' && (
             <ListView
               {...viewProps}
-              totalCount={tasks.length}
+              totalCount={scopedTasks.length}
               allTasks={tasks}
               projects={projects}
               members={members}

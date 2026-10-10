@@ -1,10 +1,10 @@
 import { useId, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, ChevronDown, FileBarChart, ListTodo, Pencil, Play, Flag, Trash2 } from 'lucide-react';
+import { CalendarDays, ChevronDown, FileBarChart, LayoutGrid, ListTodo, Pencil, Play, Flag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmptyState, ProgressBar, Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { dateKeyOf, formatDate, type Task } from '@/features/tasks';
+import { dateKeyOf, formatDate, scopeHref, type Task } from '@/features/tasks';
 import type { Sprint } from '../types';
 import { buildBurndown } from '../lib/burndown';
 import {
@@ -16,6 +16,8 @@ import TaskList from './TaskList';
 
 interface SprintCardProps {
   sprint: Sprint;
+  /** Name of the project, so "Open board" scopes the board to it (the sprint id alone also works). */
+  projectName?: string;
   /** Top-level tasks of the sprint. */
   tasks: Task[];
   subtasks: Map<string, Task[]>;
@@ -54,7 +56,7 @@ const iconButton = 'size-11 text-slate-600 hover:bg-slate-100 md:size-8';
 
 /** One sprint: dates, goal, progress, actions and (when expanded) its tasks. The active sprint also shows a burndown. */
 const SprintCard = ({
-  sprint, tasks, subtasks, expanded, onToggle, canManage, canWriteTasks, blockedByActive, starting = false,
+  sprint, projectName, tasks, subtasks, expanded, onToggle, canManage, canWriteTasks, blockedByActive, starting = false,
   onStart, onComplete, onEdit, onDelete, onOpenTask, onToggleSubtask, onQuickAdd,
 }: SprintCardProps) => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -106,6 +108,15 @@ const SprintCard = ({
                 </Meta>
               )}
               <Meta icon={<ListTodo />}>{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</Meta>
+              {sprint.status !== 'completed' && workspaceSlug && (
+                <Link
+                  to={scopeHref(workspaceSlug, { view: 'board', project: projectName, sprint: sprint._id })}
+                  className="-my-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:-my-1 md:min-h-8"
+                >
+                  <LayoutGrid aria-hidden className="size-3.5" />
+                  Open board<span className="sr-only"> for {sprint.name}</span>
+                </Link>
+              )}
               {sprint.status !== 'planned' && workspaceSlug && (
                 <Link
                   to={`/${workspaceSlug}/projects/${sprint.project}/sprints/${sprint._id}/report`}

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { fetchCached, getCached, invalidate, setCached, subscribe, tasksKey } from '@/lib/queryCache';
+import { cachedWorkflow } from '@/features/workflow/hooks/useWorkflow';
+import type { WorkflowStage } from '@/features/workflow/types';
 import { getApiErrorMessage, getApiErrorStatus, isTaskPayload, tasksApi, type UploadOptions } from '../api';
 import type { Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskUser } from '../types';
 
@@ -9,9 +11,12 @@ export const DELETE_UNDO_MS = 6000;
 const UNKNOWN_USER = 'Member';
 
 /** Applies a patch locally the way the server will store it (assignee ids become users). */
-const applyPatch = (task: Task, patch: TaskPatch, directory: Map<string, TaskUser>): Task => {
+const applyPatch = (task: Task, patch: TaskPatch, directory: Map<string, TaskUser>, stages?: WorkflowStage[]): Task => {
   const { assignees, ...rest } = patch;
   const next = { ...task, ...rest } as Task;
+  // A stage carries its status group with it
+  const stage = patch.stage ? stages?.find(item => item.key === patch.stage) : undefined;
+  if (stage) next.status = stage.group;
   if (assignees) next.assignees = assignees.map(id => directory.get(id) ?? { _id: id, name: UNKNOWN_USER });
   return next;
 };
@@ -235,7 +240,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     if (!workspaceSlug || !previous) return null;
 
     const directory = buildDirectory(tasksRef.current);
-    setTasks(current => current.map(task => (task._id === id ? applyPatch(task, patch, directory) : task)));
+    setTasks(current => current.map(task => (task._id === id ? applyPatch(task, patch, directory, cachedWorkflow(workspaceSlug)) : task)));
     busyRef.current += 1;
     try {
       const saved = await tasksApi.update(workspaceSlug, id, patch);

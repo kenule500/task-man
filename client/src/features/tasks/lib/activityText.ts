@@ -78,8 +78,15 @@ export const describeChange = ({ field, from, to }: TaskActivityChange, { sprint
     case 'recurrence':
       if (a && b) return `changed the repeat from ${a} to ${b}`;
       return b ? `set the task to repeat ${b}` : 'stopped the task from repeating';
+    case 'stage':
+      // Values are stage keys ("in-review")
+      return a && b ? `moved this from ${a.replace(/-/g, ' ')} to ${b.replace(/-/g, ' ')}` : 'changed the stage';
     case 'description':
       return 'edited the description';
+    case 'relations':
+      // Values look like "duplicated_by WEB-4"
+      if (b) return `linked this: ${b.replace(/_/g, ' ')}`;
+      return a ? `removed the link: ${a.replace(/_/g, ' ')}` : 'changed the links';
     case 'parent':
       return to ? 'made this a subtask' : 'made this a standalone task';
     default:

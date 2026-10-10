@@ -73,6 +73,33 @@ describe('matchesFilters', () => {
   });
 });
 
+describe('project and sprint filters', () => {
+  const base = { search: '', status: 'all' as const };
+  const inSprint = makeTask({ project: 'Web', sprint: 's1' });
+  const otherSprint = makeTask({ project: 'web ', sprint: 's2' });
+  const backlog = makeTask({ project: 'Web' });
+  const elsewhere = makeTask({ project: 'Mobile', sprint: 's1' });
+  const all = [inSprint, otherSprint, backlog, elsewhere];
+
+  it('matches the project name ignoring case and spaces', () => {
+    expect(all.filter(task => matchesFilters(task, { ...base, project: 'WEB' }))).toEqual([inSprint, otherSprint, backlog]);
+  });
+
+  it('matches a sprint id, a list of ids and the backlog', () => {
+    expect(all.filter(task => matchesFilters(task, { ...base, project: 'Web', sprint: 's1' }))).toEqual([inSprint]);
+    expect(all.filter(task => matchesFilters(task, { ...base, sprint: 's1,s2' }))).toEqual([inSprint, otherSprint, elsewhere]);
+    expect(all.filter(task => matchesFilters(task, { ...base, project: 'Web', sprint: 'backlog' }))).toEqual([backlog]);
+  });
+
+  it('matches nothing for an unresolved "active" sprint', () => {
+    expect(matchesFilters(inSprint, { ...base, sprint: 'active' })).toBe(false);
+  });
+
+  it('applies to every view through applyFilters', () => {
+    expect(applyFilters([inSprint, backlog, elsewhere], { ...DEFAULT_FILTERS, project: 'Web', sprint: 's1' })).toEqual([inSprint]);
+  });
+});
+
 describe('sortTasks', () => {
   const late = makeTask({ title: 'late', deadline: '2026-12-01', priority: 'high' });
   const early = makeTask({ title: 'early', deadline: '2026-10-01', priority: 'low' });
@@ -178,8 +205,31 @@ describe('filters in the URL', () => {
 
   it('parses every filter', () => {
     expect(parseFilterParams(params('q=release&status=in-progress&priority=high&type=bug&label=ops&epic=abc123&assignedToMe=1&sort=deadline'))).toEqual({
-      search: 'release', status: 'in-progress', priority: 'high', type: 'bug', label: 'ops', epic: 'abc123', assignedToMe: true, sort: 'deadline',
+      search: 'release', status: 'in-progress', priority: 'high', type: 'bug', label: 'ops', epic: 'abc123', project: 'all', sprint: 'all', assignedToMe: true, sort: 'deadline',
     });
+  });
+
+  it('parses the project and sprint scope', () => {
+    expect(parseFilterParams(params('project=Website%20redesign&sprint=64f0c1'))).toMatchObject({ project: 'Website redesign', sprint: '64f0c1' });
+    expect(parseFilterParams(params('sprint=active')).sprint).toBe('active');
+    expect(parseFilterParams(params('sprint=backlog')).sprint).toBe('backlog');
+  });
+
+  it('ignores a malformed sprint or an oversized project', () => {
+    expect(parseFilterParams(params(`sprint=a b&project=${'p'.repeat(81)}`))).toMatchObject({ project: 'all', sprint: 'all' });
+    expect(parseFilterParams(params('sprint=../x')).sprint).toBe('all');
+  });
+
+  it('writes the scope to the query string and leaves "all" out', () => {
+    expect(serializeFilters({ ...DEFAULT_FILTERS, project: 'Web & Mobile', sprint: 'active' }).toString()).toBe('project=Web+%26+Mobile&sprint=active');
+    expect(serializeFilters({ ...DEFAULT_FILTERS, project: 'all', sprint: 'all' }).toString()).toBe('');
+  });
+
+  it('replaces the scope with the one of the filters and keeps the view', () => {
+    const next = withFilterParams(params('view=board&project=Old&sprint=backlog'), { ...DEFAULT_FILTERS, project: 'New' });
+    expect(next.get('project')).toBe('New');
+    expect(next.has('sprint')).toBe(false);
+    expect(next.get('view')).toBe('board');
   });
 
   it('falls back to the defaults for a missing query', () => {

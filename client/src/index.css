@@ -363,7 +363,9 @@
  * the whole page. Explicit position utilities (sticky, absolute…) still win because utilities come later.
  */
 @layer base {
-  .overflow-auto, .overflow-x-auto, .overflow-y-auto, .overflow-scroll, .overflow-x-scroll, .overflow-y-scroll {
+  /* Attribute match so responsive variants (md:overflow-x-auto…) are covered too */
+  [class*='overflow-auto'], [class*='overflow-x-auto'], [class*='overflow-y-auto'],
+  [class*='overflow-scroll'], [class*='overflow-x-scroll'], [class*='overflow-y-scroll'] {
     position: relative;
   }
 }

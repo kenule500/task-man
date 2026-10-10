@@ -1,13 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { ListChecks, Plus, Trash2 } from 'lucide-react';
-import { SectionHeader, toast } from '@/components/ds';
+import { ProgressBar, SectionHeader, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { STATUS_META } from '../constants';
 import { getApiErrorMessage } from '../api';
-import { countSubtasks } from '../lib/subtasks';
+import { countSubtasks, sumSubtaskPoints } from '../lib/subtasks';
 import type { Task } from '../types';
 import { StatusDot, SubtaskProgress } from './TaskBadges';
 
@@ -30,7 +30,10 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
   const { done, total } = countSubtasks(subtasks);
+  const points = sumSubtaskPoints(subtasks);
   const trimmed = title.trim();
+  // Stays focused after each add so several subtasks can be typed in a row
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const add = async (event: FormEvent) => {
     event.preventDefault();
@@ -39,10 +42,12 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
     try {
       await onAdd(trimmed);
       setTitle('');
+      inputRef.current?.focus();
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not add the subtask.'));
     } finally {
       setAdding(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -54,6 +59,16 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
         action={<SubtaskProgress done={done} total={total} />}
         className="mb-2"
       />
+
+      {total > 0 && (
+        <div className="mb-3">
+          <ProgressBar value={(done / total) * 100} label={`${done} of ${total} subtasks done`} showValue />
+          <p className="mt-1 text-xs text-slate-500 tabular-nums">
+            {done}/{total} done
+            {points.total > 0 && <> · {points.done}/{points.total} story {points.total === 1 ? 'point' : 'points'}</>}
+          </p>
+        </div>
+      )}
 
       {total === 0 ? (
         <p className="text-sm text-slate-500">No subtasks yet.</p>
@@ -108,12 +123,13 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
       {canWrite && onAdd && (
         <form onSubmit={add} className="mt-3 flex items-center gap-2">
           <Input
+            ref={inputRef}
             aria-label="Add subtask"
             value={title}
             onChange={event => setTitle(event.target.value)}
             placeholder="Add a subtask and press Enter"
             maxLength={140}
-            disabled={adding}
+            readOnly={adding}
             className="h-11 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:h-9 sm:text-sm"
           />
           <Button

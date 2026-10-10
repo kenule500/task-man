@@ -7,6 +7,7 @@ export { useTasks, DELETE_UNDO_MS } from './hooks/useTasks';
 export { useWorkspaceMembers } from './hooks/useWorkspaceMembers';
 export * from './lib/date';
 export * from './lib/filters';
+export * from './lib/scope';
 export * from './lib/schedule';
 export * from './lib/dependencies';
 export * from './lib/taskForm';

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api, { getApiErrorMessage } from '@/utils/api';
-import { TASK_STATUSES } from '../constants';
+import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import { parseQuickFilters, serializeQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
 import { parseSwimlaneGroup, type SwimlaneGroup } from '../lib/swimlanes';
 import { NO_WIP_LIMITS, normalizeWipLimits, type WipLimits } from '../lib/wip';
-import type { TaskStatus } from '../types';
 
 const boardSettingsUrl = (slug: string) => `/workspaces/${encodeURIComponent(slug)}/board-settings`;
 
@@ -43,9 +42,9 @@ export const useBoardSettings = (slug: string | undefined) => {
 };
 
 export interface BoardUrlState {
-  /** Column shown on phones; `?col=in-progress` (Pending when absent). */
-  column: TaskStatus;
-  setColumn: (status: TaskStatus) => void;
+  /** Stage key of the column shown on phones; `?col=review` (the first stage when absent or unknown). */
+  column: string;
+  setColumn: (stageKey: string) => void;
   /** `?qf=mine,bugs` */
   quickFilters: QuickFilterKey[];
   setQuickFilters: (keys: QuickFilterKey[]) => void;
@@ -64,7 +63,8 @@ export const useBoardUrlState = (): BoardUrlState => {
   const qfParam = params.get('qf');
   const groupParam = params.get('group');
 
-  const column = TASK_STATUSES.find(status => status === colParam) ?? TASK_STATUSES[0];
+  const { stages } = useWorkflow();
+  const column = stages.find(stage => stage.key === colParam)?.key ?? stages[0].key;
   const quickFilters = useMemo(() => parseQuickFilters(qfParam), [qfParam]);
   const groupBy = parseSwimlaneGroup(groupParam);
 
@@ -79,7 +79,7 @@ export const useBoardUrlState = (): BoardUrlState => {
 
   return {
     column,
-    setColumn: status => write('col', status === TASK_STATUSES[0] ? null : status, false),
+    setColumn: key => write('col', key === stages[0].key ? null : key, false),
     quickFilters,
     setQuickFilters: keys => write('qf', serializeQuickFilters(keys) || null, true),
     groupBy,

@@ -14,6 +14,8 @@ export interface TaskFormValues {
   description: string;
   project: string;
   status: TaskStatus;
+  /** Workflow stage key chosen in the form; '' = unchanged (the task keeps its stage or gets the first of its status). */
+  stage: string;
   priority: TaskPriority;
   type: TaskType;
   /** null = not estimated */
@@ -40,6 +42,7 @@ export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValue
   description: task?.description ?? '',
   project: task?.project ?? '',
   status: task?.status ?? 'pending',
+  stage: '',
   priority: task?.priority ?? 'medium',
   type: task?.type ?? 'task',
   storyPoints: task?.storyPoints ?? null,
@@ -85,6 +88,7 @@ export const toTaskInput = (values: TaskFormValues, task?: Task | null): TaskInp
     labels: values.labels,
     assignees: values.assignees,
   };
+  if (values.stage) input.stage = values.stage;
   if (task && (task.parent || (task.sprint ?? '') === values.sprint)) delete input.sprint;
   // Subtasks inherit their parent's epic; epics are containers outside sprints and epics
   if (task?.parent) delete input.epic;

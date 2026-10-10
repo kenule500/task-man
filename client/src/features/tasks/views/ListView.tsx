@@ -11,7 +11,7 @@ import { EmptyState, toast } from '@/components/ds';
 import { getApiErrorMessage, type BulkTaskPatch } from '../api';
 import BulkActionBar from '../components/BulkActionBar';
 import {
-  ChecklistBadge, DependencyCount, PriorityIndicator, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon,
+  ChecklistBadge, DependencyCount, PriorityIndicator, RelationCount, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon,
 } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
 import TaskActionsMenu from '../components/TaskActionsMenu';
@@ -393,9 +393,16 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
 
       <div role="cell">
         {canWrite ? (
-          <StatusSelect variant="inline" aria-label={`Status of ${task.title}`} value={task.status} onChange={status => onUpdate(task._id, { status })} />
+          <StatusSelect
+            variant="inline"
+            aria-label={`Status of ${task.title}`}
+            value={task.status}
+            stage={task.stage}
+            onChange={status => onUpdate(task._id, { status })}
+            onStageChange={stage => onUpdate(task._id, { stage })}
+          />
         ) : (
-          <StatusBadge status={task.status} />
+          <StatusBadge status={task.status} stage={task.stage ?? ''} />
         )}
       </div>
 
@@ -470,6 +477,7 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }:
     <LabelList labels={task.labels} />
     {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
+    <RelationCount count={task.relations?.length ?? 0} />
     <ChecklistBadge items={task.checklist} />
     <RepeatBadge recurrence={task.recurrence} />
     <ActivityCounts task={task} />
@@ -535,7 +543,9 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
                 variant="inline"
                 aria-label={`Status of ${task.title}`}
                 value={task.status}
+                stage={task.stage}
                 onChange={status => onUpdate(task._id, { status })}
+                onStageChange={stage => onUpdate(task._id, { stage })}
                 className="h-10 border-slate-200"
               />
               <PrioritySelect
@@ -548,7 +558,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             </>
           ) : (
             <>
-              <StatusBadge status={task.status} />
+              <StatusBadge status={task.status} stage={task.stage ?? ''} />
               <PriorityIndicator priority={task.priority} />
             </>
           )}

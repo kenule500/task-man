@@ -1,9 +1,11 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ArrowUpDown, Download, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck, Zap } from 'lucide-react';
+import { ArrowUpDown, Download, Flag, FolderKanban, Layers, Search, SlidersHorizontal, Tag, Timer, UserCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import type { Project } from '@/features/projects/types';
 import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
+import { findScopeProject, orderSprints, scopeProjectOf } from '../lib/scope';
 import type { Task, TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } from '../types';
 import FilterPills from './FilterPills';
 import { OptionSelect } from './TaskSelects';
@@ -36,12 +38,14 @@ interface TaskToolbarProps {
   onExport?: () => void;
   /** Tasks the export would contain; the button is disabled at 0. */
   exportCount?: number;
+  /** Workspace projects with their sprints; the project and sprint pickers are hidden when there are none. */
+  projects?: Project[];
   /** Slot for the saved-views menu, placed beside the export button. */
   viewsMenu?: ReactNode;
 }
 
 /** Search, status pills (not on the board), priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, onExport, exportCount, viewsMenu }: TaskToolbarProps) => {
+const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, projects = [], onExport, exportCount, viewsMenu }: TaskToolbarProps) => {
   const epicOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All epics' },
     { value: 'none', label: 'No epic' },
@@ -51,12 +55,36 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
     { value: 'all', label: 'All labels' },
     ...labels.map(label => ({ value: label, label })),
   ];
+  // Project picker: active projects (plus the chosen one, even when archived or unknown)
+  const chosenProject = filters.project ?? 'all';
+  const scopeProject = scopeProjectOf(filters, projects);
+  const projectOptions: SelectOption<string>[] = [
+    { value: 'all', label: 'All projects' },
+    ...projects.filter(project => !project.archived || project === findScopeProject(chosenProject, projects))
+      .map(project => ({ value: project.name, label: project.name })),
+    ...(chosenProject !== 'all' && !findScopeProject(chosenProject, projects) ? [{ value: chosenProject, label: chosenProject }] : []),
+  ];
+  // Sprint picker: the scope project's sprints, running first, completed last
+  const chosenSprint = filters.sprint ?? 'all';
+  const sprintOptions: SelectOption<string>[] = scopeProject ? [
+    { value: 'all', label: 'All sprints' },
+    ...(scopeProject.sprints.some(sprint => sprint.status === 'active') ? [{ value: 'active', label: 'Active sprint' }] : []),
+    { value: 'backlog', label: 'Backlog' },
+    ...orderSprints(scopeProject.sprints).map(sprint => ({
+      value: sprint._id,
+      label: sprint.status === 'completed' ? `${sprint.name} (completed)` : sprint.status === 'planned' ? `${sprint.name} (planned)` : sprint.name,
+    })),
+    ...(chosenSprint !== 'all' && chosenSprint !== 'active' && chosenSprint !== 'backlog' && !scopeProject.sprints.some(sprint => sprint._id === chosenSprint)
+      ? [{ value: chosenSprint, label: 'Unknown sprint' }] : []),
+  ] : [];
   const assignedToMe = Boolean(filters.assignedToMe);
   // Phones show search + a "Filters" toggle; the other controls fold away until asked for
   const [showFilters, setShowFilters] = useState(false);
   const filtersId = useId();
   const activeFilterCount = [
     assignedToMe,
+    chosenProject !== 'all',
+    chosenSprint !== 'all',
     (filters.label ?? 'all') !== 'all',
     (filters.type ?? 'all') !== 'all',
     (filters.epic ?? 'all') !== 'all',
@@ -123,6 +151,28 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         )}
         </div>
         <div id={filtersId} className={cn('grid grid-cols-2 gap-2 sm:contents', !showFilters && 'max-sm:hidden')}>
+        {projects.length > 0 && (
+          <OptionSelect
+            aria-label="Filter by project"
+            icon={<FolderKanban className="size-3.5 text-slate-500" aria-hidden />}
+            value={chosenProject}
+            options={projectOptions}
+            // A sprint belongs to one project: changing the project clears it
+            onChange={project => onChange({ ...filters, project, sprint: 'all' })}
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
+          />
+        )}
+        {scopeProject && (
+          <OptionSelect
+            aria-label="Filter by sprint"
+            icon={<Timer className="size-3.5 text-slate-500" aria-hidden />}
+            value={chosenSprint}
+            options={sprintOptions}
+            // Picking a sprint of a project found only by its sprint id also pins the project
+            onChange={sprint => onChange({ ...filters, sprint, project: chosenProject === 'all' ? scopeProject.name : chosenProject })}
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
+          />
+        )}
         {canFilterMine && (
           <button
             type="button"

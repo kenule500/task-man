@@ -87,7 +87,8 @@ describe('TaskDetailDialog', () => {
     expect(dialog.getByText('release')).toBeInTheDocument();
     expect(dialog.getByText('backend')).toBeInTheDocument();
     expect(dialog.getAllByText('Ada Lovelace').length).toBeGreaterThan(0);
-    expect(dialog.getByText('Write the changelog')).toBeInTheDocument();
+    // Named under "Depends on" and again in "Linked work > Is blocked by"
+    expect(dialog.getAllByText('Write the changelog')).toHaveLength(2);
   });
 
   describe('attachments', () => {

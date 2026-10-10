@@ -55,6 +55,17 @@ export interface TaskRecurrence {
   basis: RecurrenceBasis;
 }
 
+/** Stored link types; the other task of a link stores the inverse. */
+export type TaskRelationType = 'relates' | 'duplicates' | 'duplicated_by' | 'clones' | 'cloned_by';
+/** Every type the link API accepts: the stored ones plus the two that map onto dependencies. */
+export type TaskLinkType = TaskRelationType | 'blocks' | 'blocked_by';
+
+export interface TaskRelation {
+  type: TaskRelationType;
+  /** Id of the other task. */
+  task: string;
+}
+
 export interface Task {
   _id: string;
   /** Sequential number in the workspace; shown as a key like "WEB-12" (see lib/taskKey.ts). */
@@ -64,6 +75,8 @@ export interface Task {
   /** Project name ('' = none); projects are listed by the projects API. */
   project?: string;
   status: TaskStatus;
+  /** Key of the workflow stage (a column of the board); its group is `status`. Unset or stale: the first stage of the status group. */
+  stage?: string;
   priority: TaskPriority;
   /** Defaults to 'task' on the server. */
   type?: TaskType;
@@ -81,6 +94,8 @@ export interface Task {
   deadline: string;
   position: number;
   dependencies: string[];
+  /** Typed links to other tasks (relates, duplicates, clones); "blocks" / "blocked by" are `dependencies`. */
+  relations?: TaskRelation[];
   /** Short tags; deterministic color per label (see lib/labels.ts). */
   labels?: string[];
   /** Populated in responses; send ids (`TaskInput.assignees`) when writing. */
@@ -108,6 +123,8 @@ export interface TaskInput {
   description?: string;
   project?: string;
   status?: TaskStatus;
+  /** Workflow stage key; wins over `status` (the API sets the status to the stage's group). */
+  stage?: string;
   priority?: TaskPriority;
   type?: TaskType;
   storyPoints?: number | null;
@@ -141,6 +158,10 @@ export interface TaskFilters {
   type?: TaskType | 'all';
   /** Only items of this epic id (`'all'` or unset = any, `'none'` = items outside any epic). */
   epic?: string;
+  /** Only tasks of this project, by the name tasks store (`'all'` or unset = any). */
+  project?: string;
+  /** Only this sprint: an id, `'active'` (the project's running sprint) or `'backlog'` (no sprint); `'all'` or unset = any. */
+  sprint?: string;
 }
 
 /** Max labels per task (mirrors the server). */

@@ -9,6 +9,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import type { Project } from '@/features/projects';
+import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
+import { stageByKey } from '@/features/workflow/lib/stages';
 import type { WorkspaceMember } from '@/features/workspace';
 import { getApiErrorMessage } from '../api';
 import { getDependencyCandidates } from '../lib/dependencies';
@@ -56,6 +58,7 @@ const TaskFormDialog = ({
   open, onOpenChange, task, defaults, tasks, onSubmit,
   members = [], membersLoading = false, canListMembers = false, currentUser, projects = NO_PROJECTS,
 }: TaskFormDialogProps) => {
+  const { stages } = useWorkflow();
   const [values, setValues] = useState<TaskFormValues>(() => toFormValues(task, defaults));
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [submitError, setSubmitError] = useState('');
@@ -209,7 +212,17 @@ const TaskFormDialog = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="task-status" className="text-sm font-medium text-slate-700">Status</Label>
-                <StatusSelect id="task-status" value={values.status} onChange={value => set('status', value)} className="h-11 border-slate-300 sm:h-10" />
+                <StatusSelect
+                  id="task-status"
+                  value={values.status}
+                  stage={values.stage || task?.stage}
+                  onChange={value => set('status', value)}
+                  onStageChange={stageKey => {
+                    const chosen = stageByKey(stages, stageKey);
+                    if (chosen) setValues(current => ({ ...current, stage: chosen.key, status: chosen.group }));
+                  }}
+                  className="h-11 border-slate-300 sm:h-10"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-priority" className="text-sm font-medium text-slate-700">Priority</Label>

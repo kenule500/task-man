@@ -43,7 +43,7 @@ export const groupViews = (views: readonly SavedView[]): { mine: SavedView[]; sh
 export const editableViews = (views: readonly SavedView[], canManageShared: boolean): SavedView[] =>
   views.filter(view => view.mine || (canManageShared && view.shared)).sort(byName);
 
-/** Short description of what a view holds, e.g. "Board · status Pending · Assigned to me". */
+/** Short description of what a view holds, e.g. "Board · project Web · active sprint · Assigned to me". */
 export const describeView = (view: Pick<SavedView, 'view' | 'query'>): string => {
   const params = new URLSearchParams(normalizeSavedQuery(view.query));
   const parts: string[] = [view.view[0].toUpperCase() + view.view.slice(1)];
@@ -54,6 +54,10 @@ export const describeView = (view: Pick<SavedView, 'view' | 'query'>): string =>
     if (value) parts.push(`${name} ${value}`);
   }
   if (params.get('epic')) parts.push('epic');
+  const project = params.get('project');
+  if (project) parts.push(`project ${project}`);
+  const sprint = params.get('sprint');
+  if (sprint) parts.push(sprint === 'active' ? 'active sprint' : sprint === 'backlog' ? 'backlog' : 'sprint');
   if (params.get('assignedToMe')) parts.push('assigned to me');
   if (params.get('qf')) parts.push('quick filters');
   return parts.join(' · ');

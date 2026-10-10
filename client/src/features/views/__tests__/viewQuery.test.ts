@@ -21,6 +21,11 @@ describe('savedQueryFromParams', () => {
     expect(savedQueryFromParams(new URLSearchParams('status=done&priority=high&qf=nope&group=sprint'))).toBe('priority=high');
   });
 
+  it('keeps the project and sprint scope', () => {
+    expect(savedQueryFromParams(new URLSearchParams('view=board&project=Web+app&sprint=active&task=t1'))).toBe('project=Web+app&sprint=active');
+    expect(viewHref('acme', make({ view: 'board', query: 'project=Web&sprint=backlog' }))).toBe('/acme/tasks?view=board&project=Web&sprint=backlog');
+  });
+
   it('normalises a stored query', () => {
     expect(normalizeSavedQuery('type=bug&evil=1&q=a b')).toBe('q=a+b&type=bug');
   });
@@ -74,5 +79,6 @@ describe('describeView', () => {
     expect(describeView(make({ view: 'board', query: 'status=pending&assignedToMe=1&q=login' })))
       .toBe('Board · “login” · status pending · assigned to me');
     expect(describeView(make())).toBe('List');
+    expect(describeView(make({ view: 'board', query: 'project=Web&sprint=active' }))).toBe('Board · project Web · active sprint');
   });
 });

@@ -47,6 +47,8 @@ const AcceptInvitePage = lazy(() => import('./pages/AcceptInvitePage'));
 const WorkspaceSettingsPage = lazy(() => import('./pages/WorkspaceSettingsPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const AutomationsPage = lazy(() => import('./pages/AutomationsPage'));
+const WorkflowSettingsPage = lazy(() => import('./pages/WorkflowSettingsPage'));
+const DevelopersPage = lazy(() => import('./pages/DevelopersPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
@@ -256,6 +258,26 @@ function App() {
                 element={
                   <PermissionRoute permission="settings:manage">
                     <Lazy><AutomationsPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Workflow stages (board columns): requires settings:manage */}
+              <Route
+                path="/:workspaceSlug/settings/workflow"
+                element={
+                  <PermissionRoute permission="settings:manage">
+                    <Lazy><WorkflowSettingsPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Developers: personal API tokens (every member) and webhooks (settings:manage, checked on the page) */}
+              <Route
+                path="/:workspaceSlug/settings/developers"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><DevelopersPage /></Lazy>
                   </PermissionRoute>
                 }
               />

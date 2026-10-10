@@ -1,6 +1,6 @@
 import api, { getApiErrorMessage } from '@/utils/api';
 import type {
-  Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskPriority, TaskStatus, TaskType,
+  Task, TaskAttachment, TaskComment, TaskInput, TaskLinkType, TaskPatch, TaskPriority, TaskStatus, TaskType,
 } from './types';
 
 export { getApiErrorMessage };
@@ -72,6 +72,12 @@ export interface DuplicateResult {
   subtasks: Task[];
 }
 
+/** Both tasks of a link after it was added or removed. */
+export interface RelationResult {
+  task: Task;
+  related: Task;
+}
+
 export const tasksApi = {
   list: async (workspaceSlug: string): Promise<Task[]> => {
     const { data } = await api.get(tasksUrl(workspaceSlug));
@@ -112,6 +118,21 @@ export const tasksApi = {
       deleted: Array.isArray(data?.deleted) ? data.deleted : [],
       subtasks: Array.isArray(data?.subtasks) ? data.subtasks : [],
     };
+  },
+
+  /** Links the task to another one (`blocks` / `blocked_by` use dependencies); answers with both tasks. */
+  addRelation: async (workspaceSlug: string, id: string, type: TaskLinkType, otherId: string): Promise<RelationResult> => {
+    const { data } = await api.post(`${taskUrl(workspaceSlug, id)}/relations`, { type, task: otherId });
+    return { task: data.task, related: data.related };
+  },
+  removeRelation: async (workspaceSlug: string, id: string, otherId: string, type: TaskLinkType): Promise<RelationResult> => {
+    const { data } = await api.delete(`${taskUrl(workspaceSlug, id)}/relations/${encodeURIComponent(otherId)}`, { params: { type } });
+    return { task: data.task, related: data.related };
+  },
+  /** Makes the task a subtask of `parent`, or promotes it to a top-level task with `null`. */
+  moveTask: async (workspaceSlug: string, id: string, parent: string | null): Promise<Task> => {
+    const { data } = await api.post(`${taskUrl(workspaceSlug, id)}/move`, { parent });
+    return data;
   },
 
   /** History of one task, newest first. */

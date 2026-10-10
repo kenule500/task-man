@@ -1,16 +1,17 @@
 import {
-  BarChart3, Calendar, CheckSquare, FolderKanban, GanttChart, HelpCircle,
-  Gauge, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, Zap, type LucideIcon,
+  BarChart3, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
+  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import type { Project } from '@/features/projects';
 import type { Task } from '@/features/tasks';
 import { taskKey } from '@/features/tasks/lib/taskKey';
+import { scopeHref } from '@/features/tasks/lib/scope';
 
-export type CommandGroup = 'Pages' | 'Tasks' | 'Projects' | 'Sprints' | 'Help';
+export type CommandGroup = 'Pages' | 'Go to' | 'Tasks' | 'Projects' | 'Sprints' | 'Help';
 
 /** Display order of the result groups. */
-export const COMMAND_GROUPS: CommandGroup[] = ['Pages', 'Tasks', 'Projects', 'Sprints', 'Help'];
+export const COMMAND_GROUPS: CommandGroup[] = ['Pages', 'Go to', 'Tasks', 'Projects', 'Sprints', 'Help'];
 
 export interface CommandItem {
   id: string;
@@ -29,6 +30,7 @@ export interface CommandItem {
 
 const MAX_TASKS = 8;
 const MAX_PROJECTS = 5;
+const MAX_GO_TO = 6;
 const MAX_SPRINTS = 4;
 const MAX_HELP = 4;
 const MAX_RECENT_TASKS = 5;
@@ -57,6 +59,7 @@ const PAGES: PageDef[] = [
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },
   { key: 'audit', label: 'Audit log', icon: ScrollText, permission: 'settings:manage', path: 'settings/audit', keywords: 'activity history changes export security log' },
   { key: 'automations', label: 'Automations', icon: Zap, permission: 'settings:manage', path: 'settings/automations', keywords: 'rules triggers workflow when then' },
+  { key: 'developers', label: 'Developers', icon: Code2, permission: 'tasks:read', path: 'settings/developers', keywords: 'api tokens webhooks integrations curl signature' },
   { key: 'help', label: 'Help', icon: HelpCircle, permission: null, path: 'help', keywords: 'support center' },
 ];
 
@@ -135,7 +138,33 @@ export const buildCommandItems = (
         keywords: `${sprint.goal ?? ''} sprint`,
         icon: Timer,
       })));
-    return [...pages, ...taskItems, ...projectItems, ...sprintItems, ...helpItems];
+    // Quick jumps: a project's board (its running sprint when there is one) and its backlog
+    const goToItems: CommandItem[] = projects.filter(project => !project.archived).flatMap(project => {
+      const running = project.sprints.find(sprint => sprint.status === 'active');
+      return [
+        ...(canReadTasks ? [{
+          id: `goto-board-${project._id}`,
+          group: 'Go to' as const,
+          label: `${project.name} board`,
+          hint: running ? `Active sprint · ${running.name}` : 'All sprints',
+          href: scopeHref(slug, { view: 'board', project: project.name, ...(running ? { sprint: 'active' } : {}) }),
+          keywords: `${project.key} kanban scrum sprint`,
+          icon: Columns3,
+          project,
+        }] : []),
+        {
+          id: `goto-backlog-${project._id}`,
+          group: 'Go to' as const,
+          label: `${project.name} backlog`,
+          hint: 'Plan and groom',
+          href: `${base}/projects/${encodeURIComponent(project._id)}?tab=backlog`,
+          keywords: `${project.key} groom plan`,
+          icon: Inbox,
+          project,
+        },
+      ];
+    });
+    return [...pages, ...goToItems, ...taskItems, ...projectItems, ...sprintItems, ...helpItems];
   }
 
   const counts = new Map<string, number>();
@@ -188,7 +217,7 @@ export const searchCommands = (query: string, items: CommandItem[]): CommandItem
       .map(entry => entry.item);
 
   return [
-    ...match('Pages', PAGES.length), ...match('Tasks', MAX_TASKS), ...match('Projects', MAX_PROJECTS),
+    ...match('Pages', PAGES.length), ...match('Go to', MAX_GO_TO), ...match('Tasks', MAX_TASKS), ...match('Projects', MAX_PROJECTS),
     ...match('Sprints', MAX_SPRINTS), ...match('Help', MAX_HELP),
   ];
 };

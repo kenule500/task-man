@@ -58,7 +58,19 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - Task **checklists**, **watchers** (follow a task to get its notifications), **duplicate** (optionally with subtasks)
   and **recurring tasks** (every N days, weeks or months, from the due date or from completion)
 
+- **Custom workflow** (Settings → Workflow): board columns such as In review, QA or Blocked, each mapped to
+  Pending / In progress / Completed so burndown, velocity and flow reports keep working; WIP limit per column;
+  Scrum, Kanban and Simple templates
+- **Sprint and project boards**: filter any view by project and sprint (`?project=…&sprint=active|backlog|<id>`),
+  a scope bar with the sprint goal, dates and days left, "Open board" on every sprint, project shortcuts in the sidebar
+- **Linked work**: relates to, duplicates, clones, blocks / is blocked by, shown on both tasks; convert a task into a
+  subtask or promote a subtask; breadcrumb (project › epic › parent) in the task dialog
+
 ### Developer workflow
+- **API tokens** (Settings → Developers): personal `tm_…` tokens limited to one workspace and to chosen scopes,
+  never beyond the owner's role; only a hash is stored
+- **Outbound webhooks**: HMAC-SHA256 signed events with a delivery log, test ping, redelivery and SSRF protection
+  (see [SECURITY.md](SECURITY.md))
 - **GitHub integration**: branches, pushes and pull requests that mention a task key (`WEB-12`) show up on the task;
   opening a PR starts the task, merging it completes it. Signed webhook, per workspace
 - **Keyboard shortcuts** (`?` lists them): `c` new task, `/` search, `g` then a letter to jump between pages, and more

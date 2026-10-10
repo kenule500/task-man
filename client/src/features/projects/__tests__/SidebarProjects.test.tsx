@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SidebarProjects from '../components/SidebarProjects';
 import { ProjectsContext, type ProjectDirectory } from '../context/ProjectsContext';
-import { makeProject } from './fixtures';
+import { makeProject, makeSprint } from './fixtures';
 
 const sidebarState = { isMobile: false, state: 'expanded', setOpenMobile: jest.fn() };
 
@@ -17,6 +17,11 @@ jest.mock('@/components/ui/sidebar', () => {
     SidebarGroupLabel: ({ render: element, children }: { render: ReactElement; children: ReactNode }) => clone(element, {}, children),
     SidebarMenu: ({ children, ...rest }: { children: ReactNode }) => <ul {...rest}>{children}</ul>,
     SidebarMenuItem: ({ children }: { children: ReactNode }) => <li>{children}</li>,
+    SidebarMenuAction: ({ children, ...rest }: { children: ReactNode }) => <button type="button" {...rest}>{children}</button>,
+    SidebarMenuSub: ({ children, ...rest }: { children: ReactNode }) => <ul {...rest}>{children}</ul>,
+    SidebarMenuSubItem: ({ children }: { children: ReactNode }) => <li>{children}</li>,
+    SidebarMenuSubButton: ({ render: element, isActive }: { render: ReactElement; isActive?: boolean }) =>
+      clone(element, { "data-active": isActive ? "true" : undefined }),
     SidebarMenuButton: ({ render: element, isActive, tooltip }: { render: ReactElement; isActive?: boolean; tooltip?: string }) =>
       clone(element, { 'data-active': isActive ? 'true' : undefined, 'data-tooltip': tooltip }),
   };
@@ -94,6 +99,38 @@ describe('SidebarProjects', () => {
     renderGroup(many(2));
     await userEvent.click(screen.getByRole('button', { name: 'Projects' }));
     expect(screen.getByRole('link', { name: 'Project 0' })).toHaveAttribute('data-tooltip', 'Project 0');
+  });
+
+  describe('project links', () => {
+    const sprinting = () => makeProject({
+      _id: 'p1', name: 'Web app',
+      sprints: [makeSprint({ _id: 's1', project: 'p1', status: 'active' })],
+    });
+
+    it('hides the links until the chevron is pressed, then lists them', async () => {
+      renderGroup([sprinting()]);
+      const chevron = screen.getByRole('button', { name: 'Show Web app links' });
+      expect(chevron).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('link', { name: 'Backlog' })).not.toBeInTheDocument();
+      await userEvent.click(chevron);
+      expect(screen.getByRole('button', { name: 'Hide Web app links' })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('link', { name: 'Active sprint board' })).toHaveAttribute('href', '/acme/tasks?view=board&project=Web+app&sprint=active');
+      expect(screen.getByRole('link', { name: 'Backlog' })).toHaveAttribute('href', '/acme/projects/p1?tab=backlog');
+      expect(screen.getByRole('link', { name: 'Epics' })).toHaveAttribute('href', '/acme/projects/p1?tab=epics');
+    });
+
+    it('leaves out the board link when no sprint is running', async () => {
+      renderGroup([makeProject({ _id: 'p1', name: 'Web app' })]);
+      await userEvent.click(screen.getByRole('button', { name: 'Show Web app links' }));
+      expect(screen.queryByRole('link', { name: 'Active sprint board' })).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Epics' })).toBeInTheDocument();
+    });
+
+    it('starts open on the project being viewed and marks the current link', () => {
+      renderGroup([sprinting()], { path: '/acme/projects/p1?tab=epics' });
+      expect(screen.getByRole('link', { name: 'Epics' })).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByRole('link', { name: 'Backlog' })).not.toHaveAttribute('aria-current');
+    });
   });
 
   it('closes the mobile sheet after navigating', async () => {
