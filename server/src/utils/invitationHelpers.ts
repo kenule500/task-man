@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import Invitation, { IInvitation } from '../models/invitationModel.js';
-import Workspace, { IWorkspace } from '../models/workspaceModel.js';
+import Workspace from '../models/workspaceModel.js';
 import { hashToken } from './tokens.js';
 
 interface InvitationError {

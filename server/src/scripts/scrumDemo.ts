@@ -41,7 +41,7 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
   const [lead = owner, scrum = lead, dev = lead, designer = lead] = people.length > 0 ? people : [owner];
   const [webName, marketingName, docsName] = scrumDemoProjectNames(suffix);
 
-  const [web, marketing, docs] = await Promise.all([
+  const [web, marketing] = await Promise.all([
     Project.create({
       workspace, name: webName, key: 'WEB', color: 'blue', icon: 'code', createdBy: owner,
       description: 'Public web app: task views, API and launch.',

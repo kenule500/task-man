@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { IWorkspace } from '../models/workspaceModel.js';
 
 /**

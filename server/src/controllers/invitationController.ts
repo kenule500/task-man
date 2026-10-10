@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 import { recordActivity } from '../utils/activity.js';
 import Invitation from '../models/invitationModel.js';
 import Workspace from '../models/workspaceModel.js';
-import Role from '../models/roleModel.js';
 import User from '../models/userModel.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { invitationTemplate } from '../utils/emailTemplates.js';
@@ -63,7 +62,7 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
     }
 
     // Prevent inviting users who are already members
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await User.findOne({ email: { $eq: normalizedEmail } });
     if (existingUser) {
       const alreadyMember = await isMemberOfWorkspace(
         workspace._id,
@@ -77,7 +76,7 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
 
     // Cancel any existing pending invitation for this email
     await Invitation.updateMany(
-      { workspaceId: workspace._id, email: normalizedEmail, status: 'pending' },
+      { workspaceId: workspace._id, email: { $eq: normalizedEmail }, status: 'pending' },
       { status: 'expired' }
     );
 

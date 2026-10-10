@@ -76,7 +76,8 @@ describe('sendEmail', () => {
   it('prints the email in development when no provider is configured', async () => {
     const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
     await sendEmail(email);
-    expect(log.mock.calls[0][0]).toContain('https://app.test/verify/abc');
+    // One JSON log line: user-supplied text cannot forge extra log entries
+    expect(log.mock.calls[0].join(' ')).toContain('https://app.test/verify/abc');
   });
 
   it('refuses to silently drop emails in production without a provider', async () => {

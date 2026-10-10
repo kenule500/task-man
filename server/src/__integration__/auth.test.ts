@@ -179,10 +179,10 @@ describe('auth: logout', () => {
     const frozen = realNow();
     const spy = jest.spyOn(Date, 'now').mockImplementation(() => frozen);
     let first;
-    let second;
     try {
       first = await login(user.email);
-      second = await login(user.email);
+      // A second login in the same second gives the same token
+      await login(user.email);
     } finally {
       spy.mockRestore();
     }

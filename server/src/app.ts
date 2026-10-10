@@ -73,7 +73,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(helmet());
-app.use(cors({ origin: config.corsOrigins }));
+// Exact origins only: the list comes from CORS_ORIGIN (or CLIENT_URL); a wildcard entry is never honoured
+const allowedOrigins = new Set(config.corsOrigins.filter(origin => origin !== '*'));
+app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
 // GitHub signs the exact bytes it sends, so its webhook gets the raw body (must come before express.json)
 app.use('/api/integrations/github', express.raw({ type: 'application/json', limit: '1mb' }));
 app.use(express.json({ limit: '100kb' }));
