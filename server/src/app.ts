@@ -15,6 +15,7 @@ import invitationRoutes from './routes/invitationRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import integrationRoutes from './routes/integrationRoutes.js';
+import ssoRoutes from './routes/ssoRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 import { registerFlowTracking } from './utils/flow/register.js';
 import { registerAutomations } from './utils/automation/register.js';
@@ -152,6 +153,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // ============================================================
 // 6. Mount routers
 // ============================================================
+app.use('/api/auth/sso', ssoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/workspaces', workspaceRoutes);
