@@ -253,7 +253,7 @@ export const MobilePatternSection = () => (
             <p className="mt-1 text-xs text-text-subtle">44px hit area, 24px icon</p>
           </div>
           <div className="text-center">
-            <div className="flex size-8 items-center justify-center rounded-lg border-2 border-dashed border-red-300 bg-red-50"><span className="size-4 rounded bg-red-400" /></div>
+            <div className="flex size-8 items-center justify-center rounded-lg border-2 border-dashed border-danger-border bg-danger-bg"><span className="size-4 rounded bg-danger-dot" /></div>
             <p className="mt-1 text-xs text-text-subtle">32px: too small on touch</p>
           </div>
         </div>

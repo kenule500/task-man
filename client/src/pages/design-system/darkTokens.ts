@@ -2,6 +2,7 @@
 // __tests__/darkTheme.test.ts fails when they drift apart and when a documented text pair drops under WCAG AA.
 
 import { contrastRatio } from './contrast';
+import { TONES, TONE_PARTS, type Tone, type TonePart } from './tokens';
 
 /** Custom property (without `--color-`) → hex under `.dark`, plus the fixed colors the dark exceptions use. */
 export const DARK_COLORS = {
@@ -19,12 +20,12 @@ export const DARK_COLORS = {
   'slate-800': '#E2E8F0',
   'slate-900': '#F1F5F9',
   // Tints
-  'red-50': '#2A151B', 'red-100': '#3A1A22', 'red-200': '#5A2430', 'red-600': '#F87171', 'red-700': '#FCA5A5', 'red-800': '#FECACA', 'red-900': '#FEE2E2',
-  'emerald-50': '#0E2B26', 'emerald-100': '#123B33', 'emerald-200': '#1C5445', 'emerald-600': '#34D399', 'emerald-700': '#6EE7B7', 'emerald-800': '#A7F3D0', 'emerald-900': '#D1FAE5',
-  'amber-50': '#2B2108', 'amber-100': '#3D2D0A', 'amber-200': '#5C4410', 'amber-600': '#FBBF24', 'amber-700': '#FCD34D', 'amber-800': '#FDE68A', 'amber-900': '#FEF3C7',
+  'red-50': '#2B1816', 'red-100': '#3A201D', 'red-200': '#5A2C27', 'red-600': '#E8948A', 'red-700': '#F0A79E', 'red-800': '#F6C3BC', 'red-900': '#FAD9D4',
+  'emerald-50': '#0F2620', 'emerald-100': '#15342B', 'emerald-200': '#25503F', 'emerald-600': '#74C4A2', 'emerald-700': '#8FD3B4', 'emerald-800': '#B3E4CC', 'emerald-900': '#D2F0E1',
+  'amber-50': '#2A2008', 'amber-100': '#3A2D0C', 'amber-200': '#554015', 'amber-600': '#DBA94D', 'amber-700': '#E6BE6A', 'amber-800': '#EFD293', 'amber-900': '#F6E4B8',
   'blue-50': '#0F1E3A', 'blue-100': '#172C52', 'blue-200': '#1F3B6E', 'blue-600': '#60A5FA', 'blue-700': '#93C5FD', 'blue-800': '#BFDBFE',
   'violet-50': '#1D1740', 'violet-100': '#2A2060', 'violet-200': '#3B2E85', 'violet-600': '#A78BFA', 'violet-700': '#C4B5FD', 'violet-800': '#DDD6FE',
-  'rose-100': '#3A1A2A', 'rose-800': '#FECDD3',
+  'rose-100': '#3A201D', 'rose-800': '#F6C3BC',
   'pink-100': '#3A1A33', 'pink-800': '#FBCFE8',
   'cyan-100': '#0F2F3A', 'cyan-900': '#CFFAFE',
   // shadcn and role tokens
@@ -34,7 +35,7 @@ export const DARK_COLORS = {
   muted: '#172033',
   'muted-foreground': '#94A3B8',
   accent: '#1C2740',
-  destructive: '#F87171',
+  destructive: '#E38476',
   border: '#263449',
   input: '#3A4A63',
   ring: '#60A5FA',
@@ -50,14 +51,24 @@ export const DARK_COLORS = {
   // Status, priority and type
   'status-pending-fg': '#CBD5E1', 'status-pending-bg': '#1B2740',
   'status-in-progress-fg': '#93C5FD', 'status-in-progress-bg': '#13244A',
-  'status-completed-fg': '#6EE7B7', 'status-completed-bg': '#0E2B26',
-  'priority-high-text': '#F87171', 'priority-medium-text': '#FBBF24', 'priority-low-text': '#34D399',
-  'type-story': '#6EE7B7', 'type-story-bg': '#0E2B26',
+  'status-completed-fg': '#8FD3B4', 'status-completed-bg': '#0F2620',
+  'priority-high-text': '#F0A79E', 'priority-medium-text': '#E6BE6A', 'priority-low-text': '#8FD3B4',
+  'type-story': '#8FD3B4', 'type-story-bg': '#0F2620',
   'type-task': '#93C5FD', 'type-task-bg': '#13244A',
-  'type-bug': '#FCA5A5', 'type-bug-bg': '#2A151B',
+  'type-bug': '#F0A79E', 'type-bug-bg': '#2B1816',
   'type-spike': '#C4B5FD', 'type-spike-bg': '#1D1740',
   'project-slate': '#56637C', 'project-slate-deep': '#444F64',
+  // Semantic tones (danger, success, warning, info): solid, solid-hover, dot, fg, bg, border
+  'danger-solid': '#B4493E', 'danger-solid-hover': '#9A3B31', 'danger-dot': '#D4685B', 'danger-fg': '#F0A79E', 'danger-bg': '#2B1816', 'danger-border': '#5A2C27',
+  'success-solid': '#2E7D5B', 'success-solid-hover': '#256A4B', 'success-dot': '#4BAA84', 'success-fg': '#8FD3B4', 'success-bg': '#0F2620', 'success-border': '#25503F',
+  'warning-solid': '#946212', 'warning-solid-hover': '#7D520E', 'warning-dot': '#D19A33', 'warning-fg': '#E6BE6A', 'warning-bg': '#2A2008', 'warning-border': '#554015',
+  'info-solid': '#2563EB', 'info-solid-hover': '#1D4ED8', 'info-dot': '#5B93F0', 'info-fg': '#93C5FD', 'info-bg': '#13244A', 'info-border': '#1F3B6E',
 } as const;
+
+/** Dark values of every semantic tone part, for the docs table. */
+export const TONE_DARK: Record<Tone, Record<TonePart, string>> = Object.fromEntries(
+  TONES.map(tone => [tone, Object.fromEntries(TONE_PARTS.map(part => [part, DARK_COLORS[`${tone}-${part}` as DarkColorName]]))]),
+) as Record<Tone, Record<TonePart, string>>;
 
 export type DarkColorName = keyof typeof DARK_COLORS;
 
@@ -66,8 +77,6 @@ export const FIXED_COLORS = {
   'on-fill': '#FFFFFF',
   primary: '#2563EB',
   'primary-hover': '#1D4ED8',
-  'red-solid': '#DC2626',
-  'red-solid-hover': '#B91C1C',
   'project-blue': '#3B5B9A', 'project-violet': '#5E4B9C', 'project-rose': '#9E4560', 'project-orange': '#A9573A',
   'project-amber': '#8A6A1F', 'project-emerald': '#2F6F57', 'project-teal': '#2A6B78',
   'blue-300': '#93C5FD',
@@ -116,7 +125,12 @@ export const DARK_PAIRS: DarkPair[] = [
   ...text('Primary', ['on-fill'], ['primary', 'primary-hover']),
   ...text('Primary text and links', ['blue-600'], ['white', 'slate-50', 'slate-100', 'blue-50']),
   ...text('Primary text on tint', ['blue-700'], ['blue-50', 'blue-100']),
-  ...text('Destructive', ['on-fill'], ['red-solid', 'red-solid-hover']),
+  ...TONES.flatMap(tone => [
+    ...text(`Tone ${tone}: white on solid`, ['on-fill'], [`${tone}-solid`, `${tone}-solid-hover`] as ColorName[]),
+    ...text(`Tone ${tone}: text on soft background`, [`${tone}-fg`] as ColorName[], [`${tone}-bg`, 'white', 'slate-50', 'slate-100'] as ColorName[]),
+    ...text(`Tone ${tone}: text on soft border`, [`${tone}-fg`] as ColorName[], [`${tone}-border`] as ColorName[], 4.5),
+    ...text(`Tone ${tone}: marker on surface (non-text 3:1)`, [`${tone}-dot`] as ColorName[], ['white', 'slate-50', 'slate-100', `${tone}-bg`] as ColorName[], 3),
+  ]),
   ...text('Destructive text', ['destructive'], ['white', 'slate-50']),
   ...text('Inverse surface', ['inverse-text', 'inverse-muted', 'blue-300'], ['inverse']),
   ...text('Project folders', ['on-fill'], [

@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { Archive, ArchiveRestore, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TiltCard } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -61,7 +62,7 @@ const ProjectFolderCard = ({
   const taskLabel = `${summary.total} ${summary.total === 1 ? 'task' : 'tasks'}`;
 
   return (
-    <li className="group relative flex flex-col motion-safe:transition-transform motion-safe:duration-150 motion-safe:hover:-translate-y-0.5">
+    <TiltCard as="li" sheenClassName="rounded-2xl" className="group relative flex flex-col">
       <FolderBack backClass={style.back} index={index} />
 
       <div
@@ -143,7 +144,7 @@ const ProjectFolderCard = ({
           <p className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs tabular-nums">
             <span>{summary.progress}% done</span>
             {summary.overdue > 0 && (
-              <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-red-700">{summary.overdue} overdue</span>
+              <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-danger-fg">{summary.overdue} overdue</span>
             )}
           </p>
           <p className="truncate text-xs" title={summary.activeSprint?.name}>
@@ -153,7 +154,7 @@ const ProjectFolderCard = ({
           </p>
         </div>
       </div>
-    </li>
+    </TiltCard>
   );
 };
 

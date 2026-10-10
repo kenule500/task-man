@@ -91,7 +91,7 @@ const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCa
   <Surface as="section" padding="sm" className="sm:p-5">
     <SectionHeader
       className="mb-3"
-      title={tone === 'danger' ? <span className="text-red-700">{title}</span> : title}
+      title={tone === 'danger' ? <span className="text-danger-fg">{title}</span> : title}
       count={total}
     />
     {tasks.length === 0 ? (
@@ -259,10 +259,10 @@ const DashboardPage = () => {
             {can('tasks:read') && <MyWork tasks={tasks} userId={user._id} slug={slug} />}
 
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-              <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
-              <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
-              <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-emerald-600" />
-              <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-red-600" />
+              <StatCard index={0} className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
+              <StatCard index={1} className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
+              <StatCard index={2} className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-success-fg" />
+              <StatCard index={3} className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-danger-fg" />
             </div>
 
             <ActiveSprints projects={projects} tasks={tasks} slug={slug} />
@@ -369,7 +369,7 @@ const DashboardPage = () => {
               </div>
             </div>
             {copyFailed && (
-              <p role="alert" className="mt-3 text-xs text-red-700">
+              <p role="alert" className="mt-3 text-xs text-danger-fg">
                 Could not copy automatically. Select the code and copy it manually.
               </p>
             )}

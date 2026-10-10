@@ -10,6 +10,10 @@ import {
   SegmentedControlDoc, StatusPillDoc, TagDoc, TimelineDoc, UserAvatarDoc,
 } from './sections/ComponentsData';
 import {
+  BannerDoc, ComboboxDoc, DescriptionListDoc, HoverCardDoc, PaginationDoc, PopoverDoc, SkeletonVariantsDoc, StepperDoc,
+  SwitchDoc, TagInputDoc,
+} from './sections/ComponentsEnriched';
+import {
   AvatarDoc, ButtonDoc, CheckboxDoc, DialogDoc, DropdownMenuDoc, InputDoc, SelectDoc, SkeletonDoc, TabsDoc, TooltipDoc,
 } from './sections/ComponentsUi';
 import {
@@ -21,6 +25,7 @@ import {
   StatesPatternSection,
 } from './sections/Patterns';
 import { DarkModeSection } from './sections/DarkMode';
+import { LoadersDoc, MotionComponentsSection } from './sections/MotionDocs';
 import { ScrumPatternSection } from './sections/ScrumPattern';
 import { ChangelogSection, OverviewSection, PrinciplesSection } from './sections/Start';
 
@@ -38,6 +43,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'radius', group: 'Foundations', title: 'Radius', keywords: 'corners rounded border-radius', Component: RadiusSection },
   { id: 'elevation', group: 'Foundations', title: 'Elevation', keywords: 'shadow scrim depth', Component: ElevationSection },
   { id: 'motion', group: 'Foundations', title: 'Motion', keywords: 'animation duration easing transition reduced', Component: MotionSection },
+  { id: 'motion-components', group: 'Foundations', title: 'Motion components', keywords: 'animation fade stagger tilt 3d press animated number count up burst reduced motion spring', Component: MotionComponentsSection },
   { id: 'z-index', group: 'Foundations', title: 'Z-index', keywords: 'layers stacking order', Component: ZIndexSection },
   { id: 'breakpoints', group: 'Foundations', title: 'Breakpoints', keywords: 'responsive screen width mobile', Component: BreakpointsSection },
   { id: 'iconography', group: 'Foundations', title: 'Iconography', keywords: 'icons lucide sizes stroke', Component: IconographySection },
@@ -49,6 +55,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'c-alert', group: 'Components', title: 'Alert', keywords: 'banner message info warning error success inline', Component: AlertDoc },
   { id: 'c-empty-state', group: 'Components', title: 'EmptyState', keywords: 'no data blank', Component: EmptyStateDoc },
   { id: 'c-error-state', group: 'Components', title: 'ErrorState', keywords: 'failure retry what happened', Component: ErrorStateDoc },
+  { id: 'c-loaders', group: 'Components', title: 'Loaders', keywords: 'spinner dots progress bar page loader button loading pending busy suspense', Component: LoadersDoc },
   { id: 'c-skeleton-cards', group: 'Components', title: 'SkeletonCards', keywords: 'loading placeholder', Component: SkeletonCardsDoc },
   { id: 'c-progress-bar', group: 'Components', title: 'ProgressBar', keywords: 'completion percent linear', Component: ProgressBarDoc },
   { id: 'c-progress-ring', group: 'Components', title: 'ProgressRing', keywords: 'circular donut percent sprint', Component: ProgressRingDoc },
@@ -75,6 +82,16 @@ const ENTRIES: DocEntry[] = [
   { id: 'c-dropdown-menu', group: 'Components', title: 'DropdownMenu', keywords: 'menu actions context shadcn', Component: DropdownMenuDoc },
   { id: 'c-tooltip', group: 'Components', title: 'Tooltip', keywords: 'hint hover tooltiphint shadcn', Component: TooltipDoc },
   { id: 'c-avatar', group: 'Components', title: 'Avatar', keywords: 'picture shadcn', Component: AvatarDoc },
+  { id: 'c-switch', group: 'Components', title: 'Switch', keywords: 'toggle on off setting boolean switchfield label description base ui', Component: SwitchDoc },
+  { id: 'c-skeleton-variants', group: 'Components', title: 'Skeleton variants', keywords: 'loading placeholder list board table chart detail skeletonlist skeletonboard skeletontable skeletonchart skeletondetail', Component: SkeletonVariantsDoc },
+  { id: 'c-pagination', group: 'Components', title: 'Pagination', keywords: 'pages next previous page size rows cursor older newer', Component: PaginationDoc },
+  { id: 'c-stepper', group: 'Components', title: 'Stepper', keywords: 'steps wizard progress onboarding checklist current completed', Component: StepperDoc },
+  { id: 'c-banner', group: 'Components', title: 'Banner', keywords: 'notice page offline update warning info dismiss announcement', Component: BannerDoc },
+  { id: 'c-popover', group: 'Components', title: 'Popover', keywords: 'floating panel overlay trigger filters base ui', Component: PopoverDoc },
+  { id: 'c-hover-card', group: 'Components', title: 'HoverCard', keywords: 'preview hover focus avatar task key user card preview card', Component: HoverCardDoc },
+  { id: 'c-combobox', group: 'Components', title: 'Combobox', keywords: 'autocomplete search select multi assignee picker filter listbox chips', Component: ComboboxDoc },
+  { id: 'c-description-list', group: 'Components', title: 'DescriptionList', keywords: 'key value details dl dt dd properties definition', Component: DescriptionListDoc },
+  { id: 'c-tag-input', group: 'Components', title: 'TagInput', keywords: 'chips labels tags free text enter comma suggestions', Component: TagInputDoc },
   { id: 'c-skeleton', group: 'Components', title: 'Skeleton', keywords: 'loading placeholder shimmer shadcn', Component: SkeletonDoc },
 
   { id: 'p-forms', group: 'Patterns', title: 'Forms and validation', keywords: 'form errors required submit focus', Component: FormsPatternSection },

@@ -55,12 +55,12 @@ const VelocityChart = ({ velocities, average }: VelocityChartProps) => {
           );
         })}
         {average !== null && (
-          <line x1={PAD.left} x2={W - PAD.right} y1={y(average)} y2={y(average)} className="stroke-amber-600" strokeWidth={2} strokeDasharray="5 4" />
+          <line x1={PAD.left} x2={W - PAD.right} y1={y(average)} y2={y(average)} className="stroke-warning-solid" strokeWidth={2} strokeDasharray="5 4" />
         )}
       </svg>
       {average !== null && (
         <figcaption className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
-          <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-amber-600" strokeWidth={2} strokeDasharray="5 4" /></svg>
+          <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-warning-solid" strokeWidth={2} strokeDasharray="5 4" /></svg>
           Average of the last 3 sprints: {average} points
         </figcaption>
       )}

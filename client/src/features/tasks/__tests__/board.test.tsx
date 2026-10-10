@@ -190,9 +190,9 @@ describe('BoardView cards', () => {
   it('shows priority as an icon with a screen reader label, no thick top border', () => {
     render(<BoardView tasks={[makeTask({ title: 'Urgent', priority: 'high' })]} {...handlers()} />);
     const card = screen.getByRole('article');
-    expect(card.className).not.toMatch(/border-t-\[3px\]|border-t-red|border-t-amber|border-t-emerald/);
+    expect(card.className).not.toMatch(/border-t-\[3px\]|border-t-danger|border-t-warning|border-t-success|border-t-amber/);
     const priority = within(card).getByTitle('High priority');
-    expect(priority.className).toContain('text-red-600');
+    expect(priority.className).toContain('text-danger-fg');
     expect(priority.querySelector('svg')).toBeInTheDocument();
     expect(within(card).getByText('High')).toHaveClass('sr-only');
   });
@@ -205,9 +205,9 @@ describe('BoardView cards', () => {
     expect(screen.getByRole('article').className).not.toMatch(/opacity-/);
   });
 
-  it('marks overdue dates in red-700 for unfinished tasks only', () => {
+  it('marks overdue dates in danger-fg for unfinished tasks only', () => {
     const { rerender } = render(<BoardView tasks={[makeTask({ deadline: '2000-01-01' })]} {...handlers()} />);
-    expect(screen.getByText('(overdue)').parentElement).toHaveClass('text-red-700');
+    expect(screen.getByText('(overdue)').parentElement).toHaveClass('text-danger-fg');
 
     rerender(<BoardView tasks={[makeTask({ deadline: '2000-01-01', status: 'completed' })]} {...handlers()} />);
     expect(screen.queryByText('(overdue)')).not.toBeInTheDocument();

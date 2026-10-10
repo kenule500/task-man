@@ -65,7 +65,7 @@ export const CreateTokenDialog = ({ scopes, onCreate, onClose }: CreateTokenDial
     >
       <form onSubmit={event => { void submit(event); }} noValidate className="flex min-h-0 flex-1 flex-col">
         <DialogBody>
-          {failure && <p role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{failure}</p>}
+          {failure && <p role="alert" className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-fg">{failure}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor={`${uid}-name`} required error={nameError}>
               <Input

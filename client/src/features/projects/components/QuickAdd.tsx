@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -46,7 +47,7 @@ const QuickAdd = ({ label, onAdd }: QuickAddProps) => {
         aria-label="Add"
         className="h-11 shrink-0 gap-1.5 rounded-lg bg-primary px-3 text-sm text-white hover:bg-primary-hover sm:h-9"
       >
-        {busy ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+        {busy ? <Spinner decorative /> : <Plus className="size-4" aria-hidden />}
         <span className="hidden sm:inline">Add</span>
       </Button>
     </form>

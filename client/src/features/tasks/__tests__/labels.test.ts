@@ -15,7 +15,7 @@ describe('getLabelStyle', () => {
   it('spreads different labels over the palette and keeps text dark on a light background', () => {
     const styles = new Set(['bug', 'design', 'ops', 'docs', 'api', 'ui', 'infra', 'qa', 'perf'].map(label => getLabelStyle(label).chip));
     expect(styles.size).toBeGreaterThan(3);
-    for (const chip of styles) expect(chip).toMatch(/bg-\w+-100 text-\w+-(800|900) border-\w+-200/);
+    for (const chip of styles) expect(chip).toMatch(/bg-\w+-(100|bg) text-\w+-(800|900|fg) border-\w+-(200|border)/);
   });
 });
 

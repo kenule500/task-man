@@ -29,7 +29,7 @@ const Highlighted = ({ text, terms }: { text: string; terms: string[] }) => (
   <>
     {highlightSegments(text, terms).map((segment, index) =>
       segment.match ? (
-        <mark key={index} className="rounded-sm bg-amber-100 px-0.5 text-slate-900">{segment.text}</mark>
+        <mark key={index} className="rounded-sm bg-warning-bg px-0.5 text-slate-900">{segment.text}</mark>
       ) : (
         <span key={index}>{segment.text}</span>
       ),

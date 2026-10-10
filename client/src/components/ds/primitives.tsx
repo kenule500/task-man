@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AnimatedNumber } from './motion';
 import {
   alertVariants, fieldMessageId, getInitials, iconTileVariants, surfaceVariants, tagVariants,
   type AlertVariants, type IconTileVariants, type SurfaceVariants, type TagVariants,
@@ -114,7 +115,7 @@ interface EmptyStateProps {
 /** Explains why a list is empty and what to do next. */
 export const EmptyState = ({ title, description, icon, action, className, headingLevel: Heading = 'h3' }: EmptyStateProps) => (
   <div className={cn('px-4 py-16 text-center sm:py-20', className)}>
-    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-500 [&_svg]:size-8">
+    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-500 motion-safe:animate-tm-float [&_svg]:size-8">
       {icon ?? <Info />}
     </div>
     <Heading className="mb-1 text-lg font-semibold text-slate-700">{title}</Heading>
@@ -166,7 +167,7 @@ export const ProgressBar = ({ value, label, showValue = false, className }: Prog
         className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"
       >
         <div
-          className={cn('h-full rounded-full transition-[width] duration-300', clamped === 100 ? 'bg-emerald-500' : 'bg-primary')}
+          className={cn('h-full rounded-full transition-[width] duration-300', clamped === 100 ? 'bg-success-dot' : 'bg-primary')}
           style={{ width: `${clamped}%` }}
         />
       </div>
@@ -219,17 +220,25 @@ interface StatCardProps {
   /** Text color class of the icon, e.g. "text-blue-600" */
   colorClass?: string;
   className?: string;
+  /** Position in a row of cards: staggers the entrance (45ms per step) on first mount */
+  index?: number;
 }
 
 /** Key number with label: used in dashboard rows. */
-export const StatCard = ({ title, value, subtitle, icon, colorClass = 'text-primary', className }: StatCardProps) => (
-  <Surface interactive className={cn('flex flex-col gap-3 sm:gap-4', className)}>
+export const StatCard = ({ title, value, subtitle, icon, colorClass = 'text-primary', className, index }: StatCardProps) => (
+  <Surface
+    interactive
+    className={cn('flex flex-col gap-3 sm:gap-4', index !== undefined && 'motion-safe:animate-tm-rise', className)}
+    style={index === undefined ? undefined : { animationDelay: `${Math.min(index, 10) * 45}ms` }}
+  >
     <div className="flex items-center gap-2">
       <span aria-hidden className={cn('size-4 [&_svg]:size-4', colorClass)}>{icon}</span>
       <p className="text-sm font-semibold text-slate-700">{title}</p>
     </div>
     <div>
-      <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">{value}</p>
+      <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
+        {typeof value === 'number' ? <AnimatedNumber value={value} /> : value}
+      </p>
       {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
     </div>
   </Surface>
@@ -256,11 +265,11 @@ interface FieldProps {
 export const Field = ({ label, htmlFor, required, hint, error, children, className }: FieldProps) => (
   <div className={cn('space-y-1.5', className)}>
     <label htmlFor={htmlFor} className="text-sm font-medium text-slate-700">
-      {label} {required && <span className="text-red-500" aria-hidden>*</span>}
+      {label} {required && <span className="text-danger-fg" aria-hidden>*</span>}
     </label>
     {children}
     {(error || hint) && (
-      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-red-600' : 'text-slate-500')}>
+      <p id={fieldMessageId(htmlFor)} className={cn('text-xs', error ? 'text-danger-fg' : 'text-slate-500')}>
         {error ?? hint}
       </p>
     )}

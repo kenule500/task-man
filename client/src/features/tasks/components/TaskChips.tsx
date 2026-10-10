@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ds';
 import { getLabelStyle } from '../lib/labels';
+import { UserHoverCard } from './TaskHoverCards';
 import type { TaskUser } from '../types';
 
 interface LabelChipProps {
@@ -67,23 +68,26 @@ interface AssigneeStackProps {
   users?: TaskUser[];
   /** Avatars shown before collapsing the rest into "+N". */
   max?: number;
+  /** Hover card with the person on each avatar (pointer users; the names stay in the screen-reader text). */
+  preview?: boolean;
   className?: string;
 }
 
 /** Overlapping avatars of the people a task is assigned to. */
-export const AssigneeStack = ({ users = [], max = 3, className }: AssigneeStackProps) => {
+export const AssigneeStack = ({ users = [], max = 3, preview = false, className }: AssigneeStackProps) => {
   if (users.length === 0) return null;
   const visible = users.slice(0, max);
   const hidden = users.length - visible.length;
   const names = users.map(user => user.name).join(', ');
 
   return (
-    <span className={cn('inline-flex shrink-0 items-center', className)} title={`Assigned to ${names}`}>
+    <span className={cn('inline-flex shrink-0 items-center', className)} title={preview ? undefined : `Assigned to ${names}`}>
       <span className="sr-only">Assigned to {names}</span>
       <span aria-hidden className="flex -space-x-1.5">
-        {visible.map(user => (
-          <UserAvatar key={user._id} name={user.name} src={user.avatarUrl || undefined} className="size-6 text-[10px] ring-2 ring-white" />
-        ))}
+        {visible.map(user => {
+          const avatar = <UserAvatar key={user._id} name={user.name} src={user.avatarUrl || undefined} className="size-6 text-[10px] ring-2 ring-white" />;
+          return preview ? <UserHoverCard key={user._id} user={user}>{avatar}</UserHoverCard> : avatar;
+        })}
         {hidden > 0 && (
           <span className="z-10 flex size-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 ring-2 ring-white">
             +{hidden}

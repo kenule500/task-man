@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, GitPullRequest, KeyRound } from 'lucide-react';
-import { Alert, IconTile, SectionHeader, Surface, toast } from '@/components/ds';
+import { Alert, IconTile, SectionHeader, Spinner, Surface, SwitchField, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { copyToClipboard } from '@/features/tasks/lib/taskKey';
@@ -73,33 +73,13 @@ const SetupSteps = () => (
 
 /** Switch row: applies at once, labelled by its own text. */
 const AutoTransitionSwitch = ({ checked, busy, onChange }: { checked: boolean; busy: boolean; onChange: (value: boolean) => void }) => (
-  <div className="flex items-start justify-between gap-4">
-    <div className="min-w-0 flex-1">
-      <p id="gh-auto-label" className="text-sm font-medium text-slate-900">Move tasks automatically</p>
-      <p id="gh-auto-desc" className="mt-0.5 text-xs text-slate-600">
-        A pull request that mentions a task moves it to In progress when opened and to Completed when merged. Completed tasks are never reopened.
-      </p>
-    </div>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby="gh-auto-label"
-      aria-describedby="gh-auto-desc"
-      disabled={busy}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60 motion-safe:transition-colors ${
-        checked ? 'bg-primary' : 'bg-slate-500'
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-      />
-    </button>
-  </div>
+  <SwitchField
+    label="Move tasks automatically"
+    description="A pull request that mentions a task moves it to In progress when opened and to Completed when merged. Completed tasks are never reopened."
+    checked={checked}
+    disabled={busy}
+    onCheckedChange={onChange}
+  />
 );
 
 type Confirming = 'regenerate' | 'disable' | null;
@@ -179,7 +159,7 @@ const GitHubIntegrationCard = ({ workspaceSlug }: { workspaceSlug: string }) => 
             <Button type="button" variant="outline" onClick={retry} className={OUTLINE_BTN}>Try again</Button>
           </div>
         ) : !state ? (
-          <p role="status" className="text-sm text-slate-600">Loading integration...</p>
+          <p role="status" className="flex items-center gap-2 text-sm text-slate-600"><Spinner decorative />Loading integration...</p>
         ) : !state.enabled ? (
           <div className="space-y-3">
             <p className="text-sm text-slate-700">
@@ -225,7 +205,7 @@ const GitHubIntegrationCard = ({ workspaceSlug }: { workspaceSlug: string }) => 
                 variant="ghost"
                 disabled={busy}
                 onClick={() => setConfirming('disable')}
-                className="h-11 text-sm text-red-700 hover:bg-red-50 hover:text-red-800 sm:h-10"
+                className="h-11 text-sm text-danger-fg hover:bg-danger-bg hover:text-danger-fg sm:h-10"
               >
                 Turn off GitHub integration
               </Button>

@@ -1,6 +1,5 @@
 import type { FormEvent, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Alert, IconTile } from '@/components/ds';
+import { Alert, IconTile, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -79,7 +78,7 @@ const FormDialog = ({
           >
             {submitting ? (
               <>
-                <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> {submittingLabel}
+                <Spinner decorative /> {submittingLabel}
               </>
             ) : (
               submitLabel

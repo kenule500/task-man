@@ -1,41 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
-import { Alert, Surface } from '@/components/ds';
+import { Alert, SwitchField, Surface } from '@/components/ds';
 import { Bell, Save } from 'lucide-react';
 import { PushDeviceSettings } from '@/features/notifications';
 
-interface SwitchRowProps {
-  id: string;
-  label: string;
-  desc: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}
-
-const SwitchRow = ({ id, label, desc, checked, onChange }: SwitchRowProps) => (
-  <div className="flex items-start justify-between py-4">
-    <div className="flex-1 pr-4">
-      <p id={id} className="text-sm font-medium text-slate-900">{label}</p>
-      <p className="mt-0.5 text-xs text-slate-600">{desc}</p>
-    </div>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby={id}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full motion-safe:transition-colors before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-        checked ? 'bg-primary' : 'bg-slate-500'
-      }`}
-    >
-      <span
-        className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0'
-        }`}
-      />
-    </button>
-  </div>
+const SwitchRow = ({ id, label, desc, checked, onChange }: { id: string; label: string; desc: string; checked: boolean; onChange: (value: boolean) => void }) => (
+  <SwitchField id={id} className="py-4" label={label} description={desc} checked={checked} onCheckedChange={onChange} />
 );
 
 const NotificationsPage = () => {

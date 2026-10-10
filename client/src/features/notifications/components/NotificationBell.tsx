@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BellOff, CheckCheck, X } from 'lucide-react';
+import { SkeletonList } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger,
 } from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationFeed } from '../hooks/useNotificationFeed';
 import { useNewNotificationToasts } from '../hooks/useNewNotificationToasts';
 import { useOpenNotification } from '../hooks/useOpenNotification';
@@ -43,7 +43,7 @@ const NotificationBell = ({ slug }: NotificationBellProps) => {
         {unreadCount > 0 && (
           <span
             aria-hidden
-            className="absolute right-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-semibold leading-none text-white"
+            className="absolute right-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger-solid px-1 text-[11px] font-semibold leading-none text-white"
           >
             {formatUnreadCount(unreadCount)}
           </span>
@@ -79,9 +79,7 @@ const NotificationBell = ({ slug }: NotificationBellProps) => {
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {loading ? (
-            <div className="space-y-4 p-4" aria-busy="true" aria-label="Loading notifications" role="status">
-              {[0, 1, 2].map(row => <Skeleton key={row} className="h-10 w-full" />)}
-            </div>
+            <SkeletonList bare avatar={false} trailing={false} rows={3} label="Loading notifications" />
           ) : error && items.length === 0 ? (
             <div role="alert" className="flex flex-col items-center gap-3 px-6 py-12 text-center">
               <p className="text-sm text-slate-700">We could not load your notifications.</p>

@@ -3,11 +3,15 @@ import {
 } from 'react';
 import { ArrowRight, Check, Ellipsis, MessageSquare, Paperclip, Plus, RotateCcw, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { Link, useInRouterContext, useParams } from 'react-router-dom';
+import { m } from 'motion/react';
+import { CheckBurst } from '@/components/ds';
+import MotionProvider from '@/components/ds/MotionProvider';
 import { StageDot } from '@/features/workflow/components/StageBadges';
 import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import { STAGE_COLOR_META, groupByStage, quickMoveFor, resolveStage, stagePatch, type QuickMove } from '@/features/workflow/lib/stages';
 import type { WorkflowStage } from '@/features/workflow/types';
 import { cn } from '@/lib/utils';
+import { SPRING } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -24,6 +28,8 @@ import TaskKey from '../components/TaskKey';
 import WipLimitsDialog from '../components/WipLimitsDialog';
 import { useBoardSettings, useIsDesktop, type BoardUrlState } from '../hooks/useBoardSettings';
 import { applyQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
+import { newlyCompleted } from '../lib/completion';
+import { setLiftedDragImage } from '../lib/dragImage';
 import { stepColumn, swipeStep } from '../lib/columnSwipe';
 import { getDropPosition, positionBetween, withoutEpics } from '../lib/filters';
 import { BOARD_PAGE_SIZE, pageCount, paginate } from '../lib/pagination';
@@ -75,7 +81,7 @@ export interface BoardViewProps extends TaskViewProps {
  * Kanban board: Pending > In Progress > Completed. Phones show one column at a time (segmented switcher,
  * swipe, ?col= in the URL); from md the three columns sit side by side with drag & drop, optionally split into swimlanes.
  */
-const BoardView = ({
+const BoardViewContent = ({
   tasks: shownTasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true,
   controls, allTasks: everyTask, currentUserId, workspaceSlug, canManageBoard = false,
 }: BoardViewProps) => {
@@ -86,6 +92,21 @@ const BoardView = ({
   // Epics are containers: the board shows their items (lanes can group by epic), never the epics themselves
   const incomingTasks = useMemo(() => withoutEpics(shownTasks), [shownTasks]);
   const allTasks = useMemo(() => (everyTask ? withoutEpics(everyTask) : undefined), [everyTask]);
+
+  // Tasks that just moved into a completed stage get a one-shot check burst (adjusting state while rendering)
+  const [trackedTasks, setTrackedTasks] = useState(incomingTasks);
+  const [burstIds, setBurstIds] = useState<ReadonlySet<string>>(() => new Set());
+  if (trackedTasks !== incomingTasks) {
+    setTrackedTasks(incomingTasks);
+    const done = newlyCompleted(trackedTasks, incomingTasks);
+    if (done.length > 0) setBurstIds(new Set([...burstIds, ...done]));
+  }
+  const clearBurst = (id: string) => setBurstIds(current => {
+    if (!current.has(id)) return current;
+    const next = new Set(current);
+    next.delete(id);
+    return next;
+  });
 
   // Board UI state: the page's (URL backed) when given, local otherwise
   const [localColumn, setLocalColumn] = useState<string>('');
@@ -315,8 +336,11 @@ const BoardView = ({
 
         <ol className={cn('flex flex-col gap-2 px-2.5 pb-3 md:gap-2.5 md:px-3', laneMode ? 'min-h-16 pt-3' : 'min-h-32')}>
           {visible.map((task, index) => (
-            <li
+            <m.li
               key={task._id}
+              layout={isDesktop ? 'position' : false}
+              layoutId={isDesktop ? `board-${task._id}` : undefined}
+              transition={SPRING.gentle}
               data-task-id={task._id}
               onDragOver={event => {
                 if (!accepts) return;
@@ -336,6 +360,8 @@ const BoardView = ({
                 canDelete={canDelete}
                 canDrag={canWrite && isDesktop}
                 dragging={draggingId === task._id}
+                burst={burstIds.has(task._id)}
+                onBurstDone={() => clearBurst(task._id)}
                 onDragStart={event => {
                   event.dataTransfer.setData('text/plain', task._id);
                   event.dataTransfer.effectAllowed = 'move';
@@ -350,7 +376,7 @@ const BoardView = ({
                 onMoveToStage={handleMoveToStage}
                 onOpenMoveSheet={openMoveSheet}
               />
-            </li>
+            </m.li>
           ))}
           {isTarget && dropTarget.index >= visible.length && <DropIndicator />}
           {column.length === 0 && !isTarget && (
@@ -542,7 +568,7 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
     <header
       className={cn(
         'flex items-center justify-between gap-1 px-3 pt-1 pb-1 md:px-4 md:pt-4 md:pb-3',
-        over && 'rounded-t-2xl bg-red-50',
+        over && 'rounded-t-2xl bg-danger-bg',
         className,
       )}
     >
@@ -553,14 +579,14 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
           title={limit === null ? undefined : `WIP limit ${limit}`}
           className={cn(
             'rounded-md border bg-white px-1.5 text-xs font-medium tabular-nums',
-            over ? 'border-red-300 text-red-700' : 'border-slate-200 text-slate-600',
+            over ? 'border-danger-border text-danger-fg motion-safe:animate-tm-pulse-once [--tm-pulse:color-mix(in_oklab,var(--color-danger-dot)_40%,transparent)]' : 'border-slate-200 text-slate-600',
           )}
         >
           {limit === null ? count : wipCountLabel(wipCount, limit)}
         </span>
         {over && (
           <>
-            <TriangleAlert aria-hidden className="size-4 shrink-0 text-red-700" />
+            <TriangleAlert aria-hidden className="size-4 shrink-0 text-danger-fg" />
             <span className="sr-only">over WIP limit</span>
           </>
         )}
@@ -617,6 +643,9 @@ const DropIndicator = () => <div aria-hidden className="my-1 h-0.5 rounded-full 
 interface BoardCardProps {
   task: Task;
   dragging: boolean;
+  /** The task was just completed: plays the check burst once */
+  burst?: boolean;
+  onBurstDone?: () => void;
   /** Drag and drop is a desktop pointer feature; phones use the quick action, menu and sheet. */
   canDrag: boolean;
   onDragStart: (event: DragEvent<HTMLElement>) => void;
@@ -634,7 +663,7 @@ interface BoardCardProps {
   subtasksDone: number;
 }
 
-const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, stages, onMoveToStage, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
+const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, onBurstDone, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, stages, onMoveToStage, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
   const quick = quickMoveFor(stages, resolveStage(task, stages));
   const QuickIcon = QUICK_ICONS[quick.verb];
@@ -672,6 +701,7 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, canDrag, onDrag
       onDragStart={event => {
         cancelPress();
         onDragStart(event);
+        setLiftedDragImage(event, event.currentTarget);
       }}
       onDragEnd={onDragEnd}
       onPointerDown={handlePointerDown}
@@ -686,13 +716,18 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, canDrag, onDrag
         event.stopPropagation();
       }}
       className={cn(
-        'group rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs transition-shadow md:p-3.5 hover:shadow-sm',
+        'group relative rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs transition-[box-shadow,scale,opacity] md:p-3.5 hover:shadow-sm',
         canWrite && 'max-md:select-none max-md:[-webkit-touch-callout:none]',
         canDrag && 'cursor-grab active:cursor-grabbing',
         completed && 'bg-slate-50',
-        dragging && 'opacity-40',
+        dragging && 'scale-[0.98] opacity-40',
       )}
     >
+      {burst && (
+        <span className="pointer-events-none absolute right-3 top-3 size-8">
+          <CheckBurst onDone={onBurstDone} />
+        </span>
+      )}
       <div className="flex items-start justify-between gap-2">
         {/* Meta row: type (when not a plain task), key, priority icon */}
         <div className="flex min-h-7 min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -771,5 +806,12 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, canDrag, onDrag
     </article>
   );
 };
+
+/** Layout animation of cards between columns comes from the `motion` package, loaded with the board only. */
+const BoardView = (props: BoardViewProps) => (
+  <MotionProvider>
+    <BoardViewContent {...props} />
+  </MotionProvider>
+);
 
 export default BoardView;

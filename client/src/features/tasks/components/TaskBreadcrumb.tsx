@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 // Deep import: the projects index imports the tasks module back
 import { useProjectDirectory } from '@/features/projects/context/ProjectsContext';
 import { TASK_TYPE_META } from '../constants';
+import { TaskHoverCard } from './TaskHoverCards';
 import TaskKey from './TaskKey';
 import type { Task } from '../types';
 
@@ -47,9 +48,12 @@ const TaskBreadcrumb = ({ task, tasks, workspaceSlug, onOpenTask, className }: T
       </>
     );
     return onOpenTask ? (
-      <button type="button" aria-label={label} onClick={() => onOpenTask(target)} className={cn(crumbClass, 'max-w-40 sm:max-w-48')}>
+      <TaskHoverCard
+        task={target}
+        render={<button type="button" aria-label={label} onClick={() => onOpenTask(target)} className={cn(crumbClass, 'max-w-40 sm:max-w-48')} />}
+      >
         {text}
-      </button>
+      </TaskHoverCard>
     ) : (
       <span className={cn(crumbClass, 'max-w-40 hover:no-underline sm:max-w-48')}>{text}</span>
     );

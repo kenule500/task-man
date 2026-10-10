@@ -6,9 +6,9 @@ import type { Task, TaskLink } from '../types';
 import { useTaskKey } from '../hooks/useTaskKey';
 
 const STATE_META: Record<NonNullable<TaskLink['state']>, { label: string; icon: LucideIcon; className: string }> = {
-  open: { label: 'Open', icon: GitPullRequest, className: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  open: { label: 'Open', icon: GitPullRequest, className: 'border-success-border bg-success-bg text-success-fg' },
   merged: { label: 'Merged', icon: GitMerge, className: 'border-violet-200 bg-violet-50 text-violet-800' },
-  closed: { label: 'Closed', icon: GitPullRequestClosed, className: 'border-rose-200 bg-rose-50 text-rose-800' },
+  closed: { label: 'Closed', icon: GitPullRequestClosed, className: 'border-danger-border bg-danger-bg text-danger-fg' },
 };
 
 const ROW_LINK =

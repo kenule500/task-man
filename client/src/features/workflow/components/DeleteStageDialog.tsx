@@ -49,7 +49,7 @@ const Body = ({ stage, remaining, onCancel, onConfirm }: DeleteStageDialogProps 
       </div>
       <DialogFooter className="gap-2 sm:gap-2">
         <Button type="button" variant="outline" onClick={onCancel} className="h-11 sm:h-9">Cancel</Button>
-        <Button type="button" onClick={() => onConfirm(stage, target)} className="h-11 bg-red-600 text-white hover:bg-red-700 sm:h-9">
+        <Button type="button" onClick={() => onConfirm(stage, target)} className="h-11 bg-danger-solid text-white hover:bg-danger-solid-hover sm:h-9">
           Delete stage
         </Button>
       </DialogFooter>

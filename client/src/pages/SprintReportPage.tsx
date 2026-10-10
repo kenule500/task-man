@@ -63,10 +63,10 @@ const ReportBody = ({ report, slug: workspaceSlug, burndown, backToProject }: Re
 
       <section aria-label="Summary" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <StatCard className="p-4" title="Committed" value={pointsLabel(summary.committed.points)} subtitle={`${summary.committed.count} items at the start`} icon={<Target />} colorClass="text-slate-600" />
-        <StatCard className="p-4" title="Completed" value={pointsLabel(summary.completed.points)} subtitle={`${summary.completed.count} items · ${delivered}% delivered`} icon={<CheckCircle2 />} colorClass="text-emerald-600" />
-        <StatCard className="p-4" title="Not completed" value={pointsLabel(summary.notCompleted.points)} subtitle={`${summary.notCompleted.count} items`} icon={<CircleDashed />} colorClass="text-amber-600" />
+        <StatCard className="p-4" title="Completed" value={pointsLabel(summary.completed.points)} subtitle={`${summary.completed.count} items · ${delivered}% delivered`} icon={<CheckCircle2 />} colorClass="text-success-fg" />
+        <StatCard className="p-4" title="Not completed" value={pointsLabel(summary.notCompleted.points)} subtitle={`${summary.notCompleted.count} items`} icon={<CircleDashed />} colorClass="text-warning-fg" />
         <StatCard className="p-4" title="Added after start" value={pointsLabel(summary.added.points)} subtitle={`${summary.added.count} items`} icon={<PlusCircle />} colorClass="text-blue-600" />
-        <StatCard className="p-4" title="Removed" value={pointsLabel(summary.removed.points)} subtitle={`${summary.removed.count} items`} icon={<MinusCircle />} colorClass="text-red-600" />
+        <StatCard className="p-4" title="Removed" value={pointsLabel(summary.removed.points)} subtitle={`${summary.removed.count} items`} icon={<MinusCircle />} colorClass="text-danger-fg" />
       </section>
 
       <Surface as="section" aria-labelledby="report-burndown" padding="sm" className="sm:p-5">

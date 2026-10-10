@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contrastLevel, contrastRatio, formatRatio } from '../contrast';
 import { DataTable, DoDont, DocSection, Prose, Specimen, SubHeading } from '../kit';
+import { TONE_DARK } from '../darkTokens';
 import {
   BREAKPOINTS, COLOR_GROUPS, DURATIONS, EASINGS, ELEVATION_LEVELS, ICON_SIZES, PROJECT_BG, PROJECT_COLORS,
-  RADIUS_SCALE, SPACING_SCALE, TYPE_SCALE, Z_INDEX, type ColorToken,
+  RADIUS_SCALE, SPACING_SCALE, TONES, TONE_LIGHT, TONE_MEANING, TONE_PARTS, TONE_USAGE, TYPE_SCALE, Z_INDEX, type ColorToken,
 } from '../tokens';
 
 const WHITE = '#FFFFFF';
@@ -54,6 +55,69 @@ const Swatch = ({ color }: { color: ColorToken }) => (
   </li>
 );
 
+const HexSwatch = ({ hex }: { hex: string }) => (
+  <span className="inline-flex items-center gap-1.5">
+    <span aria-hidden className="size-4 shrink-0 rounded border border-border-strong" style={{ backgroundColor: hex }} />
+    <code className="font-mono text-xs">{hex}</code>
+  </span>
+);
+
+const THEMES = [
+  { id: 'Light', surface: WHITE, values: TONE_LIGHT },
+  { id: 'Dark', surface: '#0F172A', values: TONE_DARK },
+] as const;
+
+/** The four semantic tones in both themes: every hex and the contrast ratios that make them safe to pair. */
+const ToneTables = () => (
+  <div className="space-y-3">
+    <div>
+      <SubHeading>Semantic tones</SubHeading>
+      <p className="mt-1 max-w-3xl text-sm text-text-subtle">
+        Neutral (slate), info, success, warning and danger are the five tones. Use the tokens, for example{' '}
+        <code>bg-danger-bg text-danger-fg border-danger-border</code> or <code>bg-success-solid text-white</code>. Never use raw
+        <code> red</code>, <code>green</code>, <code>emerald</code> or <code>rose</code> utilities: ESLint rejects them.
+      </p>
+    </div>
+    <DataTable
+      caption="When to use each semantic tone"
+      columns={['Tone', 'Use it for', 'Parts']}
+      rows={TONES.map(tone => [
+        <code key="t" className="font-mono text-xs">{tone}</code>,
+        TONE_MEANING[tone],
+        <ul key="p" className="space-y-0.5 text-xs">
+          {TONE_PARTS.map(part => <li key={part}><code className="font-mono">{tone}-{part}</code> · {TONE_USAGE[part]}</li>)}
+        </ul>,
+      ])}
+    />
+    <DataTable
+      caption="Semantic tone values in light and dark"
+      columns={['Tone', 'Theme', ...TONE_PARTS]}
+      className="[&_table]:min-w-[56rem]"
+      rows={TONES.flatMap(tone => THEMES.map(theme => [
+        <code key="t" className="font-mono text-xs">{tone}</code>,
+        theme.id,
+        ...TONE_PARTS.map(part => <HexSwatch key={part} hex={theme.values[tone][part]} />),
+      ]))}
+    />
+    <DataTable
+      caption="Contrast ratios of the semantic tones"
+      columns={['Tone', 'Theme', 'White on solid', 'fg on bg', 'fg on surface', 'dot on surface (3:1)']}
+      className="[&_table]:min-w-[44rem]"
+      rows={TONES.flatMap(tone => THEMES.map(theme => {
+        const t = theme.values[tone];
+        return [
+          <code key="t" className="font-mono text-xs">{tone}</code>,
+          theme.id,
+          <ContrastCell key="a" label="" ratio={contrastRatio(WHITE, t.solid)} />,
+          <ContrastCell key="b" label="" ratio={contrastRatio(t.fg, t.bg)} />,
+          <ContrastCell key="c" label="" ratio={contrastRatio(t.fg, theme.surface)} />,
+          <ContrastCell key="d" label="" ratio={contrastRatio(t.dot, theme.surface)} />,
+        ];
+      }))}
+    />
+  </div>
+);
+
 export const ColorSection = () => (
   <DocSection
     id="color"
@@ -68,6 +132,7 @@ export const ColorSection = () => (
         purpose: use the matching <code>-text</code> token for words.
       </p>
     </Prose>
+    <ToneTables />
     {COLOR_GROUPS.map(group => (
       <div key={group.id} className="space-y-3">
         <div>
@@ -80,7 +145,7 @@ export const ColorSection = () => (
       </div>
     ))}
     <DoDont
-      doText="Pair color with a word or icon: a red dot plus “Overdue”, an amber dot plus “Medium”."
+      doText="Pair color with a word or icon: a danger dot plus “Overdue”, a warning dot plus “Medium”."
       dontText="Use color as the only signal, or use a marker color (priority-medium, text-faint) for text."
     />
   </DocSection>

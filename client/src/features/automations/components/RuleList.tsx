@@ -62,7 +62,7 @@ export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }:
                 type="button"
                 variant="outline"
                 onClick={() => onDelete(rule)}
-                className={`${ICON_BUTTON} flex-1 text-red-700 hover:bg-red-50 sm:flex-none`}
+                className={`${ICON_BUTTON} flex-1 text-danger-fg hover:bg-danger-bg sm:flex-none`}
               >
                 <Trash2 aria-hidden />
                 Delete<span className="sr-only"> {rule.name}</span>

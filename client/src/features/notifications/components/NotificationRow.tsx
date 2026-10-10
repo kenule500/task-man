@@ -6,7 +6,7 @@ import type { AppNotification, NotificationType } from '../types';
 
 const ICONS: Record<NotificationType, { icon: LucideIcon; tile: string }> = {
   'task.assigned': { icon: UserPlus, tile: 'bg-blue-50 text-blue-700' },
-  'task.completed': { icon: CheckCircle2, tile: 'bg-emerald-50 text-emerald-700' },
+  'task.completed': { icon: CheckCircle2, tile: 'bg-success-bg text-success-fg' },
   'comment.mention': { icon: AtSign, tile: 'bg-violet-50 text-violet-700' },
   'comment.reply_on_my_task': { icon: MessageSquare, tile: 'bg-slate-100 text-slate-700' },
 };

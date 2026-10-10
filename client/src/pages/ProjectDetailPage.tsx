@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronRight, FolderKanban, KanbanSquare, Pencil, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Alert, EmptyState, SkeletonCards, Surface, Tag, toast } from '@/components/ds';
+import { Alert, EmptyState, SkeletonDetail, Surface, Tag, toast } from '@/components/ds';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
@@ -47,7 +47,7 @@ const ProjectDetailPage = () => {
   return (
     <AppShell>
       {loading ? (
-        <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+        <Surface><SkeletonDetail label="Loading project" fields={4} lines={2} /></Surface>
       ) : !project ? (
         <>
           <h1 className="sr-only">Project</h1>

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ChevronDown, FolderKanban, Plus, Search } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
-import { Alert, EmptyState, PageHeader, SkeletonCards, Surface, toast } from '@/components/ds';
+import { Alert, EmptyState, PageHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -120,7 +120,7 @@ const ProjectsPage = () => {
       />
 
       {loading ? (
-        <SkeletonCards count={4} columns="grid-cols-2 md:grid-cols-3 xl:grid-cols-4" className="gap-3 sm:gap-5" />
+        <SkeletonList label="Loading projects" rows={4} />
       ) : (
         <>
           {error && (

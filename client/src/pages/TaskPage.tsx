@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { AlarmClock, CheckSquare, Clock, ListTodo, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Alert, PageHeader, SkeletonCards, StatCard, Surface, toast } from '@/components/ds';
+import { Alert, PageHeader, SkeletonBoard, SkeletonList, StatCard, Surface, toast } from '@/components/ds';
 import { markBoardTried } from '@/components/dashboard/getStarted';
 import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
@@ -226,7 +226,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
       />
 
       {loading ? (
-        <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+        view === 'board' ? <SkeletonBoard label="Loading board" /> : <SkeletonList label="Loading tasks" rows={6} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
@@ -235,8 +235,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
           <div className="hidden grid-cols-2 gap-3 sm:grid sm:gap-5 lg:grid-cols-4">
             <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
             <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
-            <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
-            <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
+            <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-success-fg" />
+            <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-danger-fg" />
           </div>
 
           {workspaceSlug && scoped && (

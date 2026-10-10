@@ -4,16 +4,19 @@ import { cn } from '@/lib/utils';
 import { useTaskKey } from '../hooks/useTaskKey';
 import { copyToClipboard } from '../lib/taskKey';
 import type { Task } from '../types';
+import { TaskHoverCard } from './TaskHoverCards';
 
 interface TaskKeyProps {
   task: Pick<Task, 'number' | 'project'>;
   /** Adds a "Copy key" button next to the key. */
   copyable?: boolean;
+  /** Shows a preview of this task in a hover card when the key is hovered or focused. */
+  preview?: Task;
   className?: string;
 }
 
 /** Small monospace task key like "WEB-12". Renders nothing for tasks without a number. */
-const TaskKey = ({ task, copyable = false, className }: TaskKeyProps) => {
+const TaskKey = ({ task, copyable = false, preview, className }: TaskKeyProps) => {
   const key = useTaskKey(task);
   if (!key) return null;
 
@@ -24,7 +27,16 @@ const TaskKey = ({ task, copyable = false, className }: TaskKeyProps) => {
 
   return (
     <span className={cn('inline-flex shrink-0 items-center gap-0.5', className)}>
-      <span data-testid="task-key" className="font-mono text-xs text-slate-500 tabular-nums">{key}</span>
+      {preview ? (
+        <TaskHoverCard
+          task={preview}
+          render={<span tabIndex={0} className="rounded outline-none focus-visible:outline-2 focus-visible:outline-primary" />}
+        >
+          <span data-testid="task-key" className="font-mono text-xs text-slate-500 tabular-nums">{key}</span>
+        </TaskHoverCard>
+      ) : (
+        <span data-testid="task-key" className="font-mono text-xs text-slate-500 tabular-nums">{key}</span>
+      )}
       {copyable && (
         <button
           type="button"

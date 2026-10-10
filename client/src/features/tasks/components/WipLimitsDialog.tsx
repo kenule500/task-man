@@ -79,7 +79,7 @@ const WipLimitsDialog = ({ limits, focusStatus, onClose, onSave }: WipLimitsDial
             );
           })}
 
-          {failure && <p role="alert" className="text-sm text-red-700">{failure}</p>}
+          {failure && <p role="alert" className="text-sm text-danger-fg">{failure}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-8">Cancel</Button>

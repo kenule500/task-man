@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import api, { getApiErrorMessage } from '../utils/api';
 import { Button } from '@/components/ui/button';
-import { Alert, Surface } from '@/components/ds';
+import { Alert, Surface, Spinner } from '@/components/ds';
 import PasswordField from '@/components/auth/PasswordField';
 import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
   validateConfirmPassword, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
 import { SignedInDevices } from '@/features/account';
-import { Loader2, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 const validators = {
   currentPassword: (value: string) => validateRequiredPassword(value),
@@ -105,7 +105,7 @@ const SecurityPage = () => {
           disabled={saving}
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
-          {saving ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> : <Lock className="size-4" aria-hidden />}
+          {saving ? <Spinner decorative /> : <Lock className="size-4" aria-hidden />}
           {saving ? 'Updating...' : 'Update password'}
         </Button>
       </div>

@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Plus, Waypoints, X } from 'lucide-react';
-import { SectionHeader, toast } from '@/components/ds';
+import { OptionCombobox, SectionHeader, toast, type ComboboxOption } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useProjectDirectory } from '@/features/projects/context/ProjectsContext';
 import { getApiErrorMessage } from '../api';
 import { useTaskExtras } from '../hooks/useTaskExtras';
 import {
-  LINK_TYPE_LABEL, LINK_TYPE_OPTIONS, MAX_TASK_RELATIONS, groupLinks, linkCandidates,
+  LINK_TYPE_LABEL, LINK_TYPE_OPTIONS, MAX_TASK_RELATIONS, groupLinks,
 } from '../lib/relations';
 import { resolveTaskKey } from '../lib/taskKey';
 import type { Task, TaskLinkType } from '../types';
@@ -33,15 +32,20 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
   const { byName } = useProjectDirectory();
   const [adding, setAdding] = useState(false);
   const [type, setType] = useState<TaskLinkType>('relates');
-  const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
 
   const groups = useMemo(() => groupLinks(task, tasks), [task, tasks]);
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
   const keyOf = (item: Task) => resolveTaskKey(item, byName);
-  const candidates = useMemo(
-    () => (adding ? linkCandidates(task, tasks, query, item => resolveTaskKey(item, byName)) : []),
-    [adding, task, tasks, query, byName],
+  // Every other task, searchable by key or title (the combobox filters on the label)
+  const options = useMemo<ComboboxOption[]>(
+    () => (adding
+      ? tasks.filter(item => item._id !== task._id).map(item => {
+        const key = resolveTaskKey(item, byName);
+        return { value: item._id, label: key ? `${key} ${item.title}` : item.title };
+      })
+      : []),
+    [adding, task, tasks, byName],
   );
   const canEdit = canWrite && extras.enabled;
   const atLimit = (task.relations?.length ?? 0) >= MAX_TASK_RELATIONS;
@@ -50,7 +54,6 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
 
   const closeForm = () => {
     setAdding(false);
-    setQuery('');
   };
 
   const link = async (other: Task) => {
@@ -120,7 +123,7 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
               <ul aria-label={LINK_TYPE_LABEL[group.type]} className="divide-y divide-slate-100 rounded-lg border border-slate-200">
                 {group.items.map(other => (
                   <li key={other._id} className="flex min-h-11 items-center gap-2 px-3 py-1">
-                    <TaskKey task={other} />
+                    <TaskKey task={other} preview={other} />
                     {onOpen ? (
                       <button
                         type="button"
@@ -141,7 +144,7 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
                         aria-label={`Remove link: ${LINK_TYPE_LABEL[group.type].toLowerCase()} ${other.title}`}
                         disabled={busy}
                         onClick={() => { void unlink(group.type, other); }}
-                        className="size-10 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                        className="size-10 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
                       >
                         <X />
                       </Button>
@@ -164,36 +167,22 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
               aria-label="Link type"
               className="h-11 sm:h-9 sm:w-44"
             />
-            <Input
-              aria-label="Search tasks to link"
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder="Search by key or title"
-              autoFocus
-              className="h-11 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-500 focus-visible:border-slate-400 focus-visible:ring-0 sm:h-9 sm:flex-1 sm:text-sm"
-            />
+            <div className="min-w-0 sm:flex-1">
+              <OptionCombobox
+                label="Search tasks to link"
+                options={options}
+                value={null}
+                onValueChange={id => {
+                  const other = tasks.find(item => item._id === id);
+                  if (other) void link(other);
+                }}
+                placeholder="Search by key or title"
+                emptyText="No matching tasks."
+                disabled={busy}
+                autoFocus
+              />
+            </div>
           </div>
-          {candidates.length === 0 ? (
-            <p className="px-1 text-sm text-slate-500">No matching tasks.</p>
-          ) : (
-            <ul aria-label="Tasks to link" className="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
-              {candidates.map(item => (
-                <li key={item._id}>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => { void link(item); }}
-                    aria-label={`${LINK_TYPE_LABEL[type]} ${keyOf(item)} ${item.title}`}
-                    className="flex min-h-11 w-full items-center gap-2 px-3 py-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
-                  >
-                    <TaskKey task={item} />
-                    <span className="min-w-0 flex-1 truncate text-sm text-slate-900">{item.title}</span>
-                    <StatusBadge status={item.status} className="shrink-0 px-2 py-0.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
           <div className="flex justify-end">
             <Button type="button" variant="ghost" onClick={closeForm} className="h-10 text-slate-600 sm:h-8">Cancel</Button>
           </div>

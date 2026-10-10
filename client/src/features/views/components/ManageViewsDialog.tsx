@@ -53,7 +53,7 @@ const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: Mana
                 size="icon"
                 aria-label={`Delete ${view.name}`}
                 onClick={() => onDelete(view)}
-                className="size-10 shrink-0 text-red-600 hover:bg-red-50 sm:size-8"
+                className="size-10 shrink-0 text-danger-fg hover:bg-danger-bg sm:size-8"
               >
                 <Trash2 aria-hidden />
               </Button>

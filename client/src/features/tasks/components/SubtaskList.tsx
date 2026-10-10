@@ -109,7 +109,7 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
                     size="icon-sm"
                     aria-label={`Delete subtask ${subtask.title}`}
                     onClick={() => onDelete(subtask)}
-                    className="size-10 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                    className="size-10 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
                   >
                     <Trash2 />
                   </Button>

@@ -5,7 +5,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { updateStoredUser, getStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, Field, IconTile, ProgressBar, fieldMessageId } from '@/components/ds';
+import { Alert, Field, IconTile, Stepper, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { cn } from '@/lib/utils';
 import {
@@ -13,7 +13,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Briefcase,
-  Loader2,
   Target,
   User,
   Sparkles,
@@ -21,6 +20,13 @@ import {
 } from 'lucide-react';
 
 const STEP_COUNT = 4;
+
+const ONBOARDING_STEPS = [
+  { id: 'role', title: 'Role' },
+  { id: 'use-case', title: 'Use case' },
+  { id: 'team-size', title: 'Team size' },
+  { id: 'workspace', title: 'Workspace' },
+];
 
 const ROLES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: 'developer', label: 'Developer', icon: User },
@@ -150,7 +156,7 @@ const OnboardingPage = () => {
         <p className="mb-2 text-center text-xs font-medium text-slate-600">
           Step {step} of {STEP_COUNT}
         </p>
-        <ProgressBar value={(step / STEP_COUNT) * 100} label={`Onboarding progress, step ${step} of ${STEP_COUNT}`} className="mx-auto max-w-xs" />
+        <Stepper steps={ONBOARDING_STEPS} current={step - 1} size="sm" label="Onboarding progress" className="mx-auto max-w-md" />
       </div>
 
       <div className="text-center">
@@ -305,7 +311,7 @@ const OnboardingPage = () => {
         >
           {saving ? (
             <>
-              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Creating workspace...
+              <Spinner decorative /> Creating workspace...
             </>
           ) : (
             <>

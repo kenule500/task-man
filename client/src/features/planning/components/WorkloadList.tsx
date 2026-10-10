@@ -71,7 +71,7 @@ const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProp
             {!unassigned && <span className="text-slate-600"> / {capacity} pts</span>}
             {unassigned && <span className="text-slate-600"> pts</span>}
             {flagged && (
-              <span className="mt-0.5 flex items-center justify-end gap-1 text-xs font-semibold text-red-700">
+              <span className="mt-0.5 flex items-center justify-end gap-1 text-xs font-semibold text-danger-fg">
                 <CircleAlert aria-hidden className="size-3.5" />
                 Over by {row.overBy}
               </span>

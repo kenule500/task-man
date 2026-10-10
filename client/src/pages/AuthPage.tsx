@@ -4,14 +4,14 @@ import api, { getApiErrorMessage } from '../utils/api';
 import { saveSession } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, Field, fieldMessageId } from '@/components/ds';
+import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import PasswordField from '@/components/auth/PasswordField';
 import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
   validateEmail, validateName, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
-import { ArrowRight, CheckCircle2, LayoutGrid, Loader2, Mail, Shield, Smartphone } from 'lucide-react';
+import { ArrowRight, CheckCircle2, LayoutGrid, Mail, Shield, Smartphone } from 'lucide-react';
 
 const INPUT =
   'h-12 rounded-xl border-slate-300 bg-white text-base text-slate-900 shadow-sm placeholder:text-slate-500 md:text-base';
@@ -304,7 +304,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden />
+                    <Spinner decorative />
                     {isLogin ? 'Signing in...' : 'Creating account...'}
                   </>
                 ) : (

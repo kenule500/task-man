@@ -168,9 +168,9 @@ describe('CalendarView', () => {
       const pill = weekStrip().getByRole('button', { name: label });
       const dots = pill.querySelectorAll('[aria-hidden="true"] > span.rounded-full');
       expect(Array.from(dots).map(dot => dot.className)).toEqual([
-        expect.stringContaining('bg-red-600'),
-        expect.stringContaining('bg-red-600'),
-        expect.stringContaining('bg-red-600'),
+        expect.stringContaining('bg-danger-dot'),
+        expect.stringContaining('bg-danger-dot'),
+        expect.stringContaining('bg-danger-dot'),
       ]);
       expect(pill).toHaveTextContent('+1');
     });
@@ -186,15 +186,15 @@ describe('CalendarView', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Next week' }));
       await userEvent.click(weekStrip().getByRole('button', { name: label }));
       const panel = within(screen.getByTestId('calendar-day-panel'));
-      expect(panel.getByRole('button', { name: /^Late/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-red-600');
-      expect(panel.getByRole('button', { name: /^Shipped/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-emerald-500');
+      expect(panel.getByRole('button', { name: /^Late/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-danger-dot');
+      expect(panel.getByRole('button', { name: /^Shipped/ }).querySelector('span[class~="w-1.5"]')?.className).toContain('bg-success-dot');
       expect(panel.getByRole('button', { name: /^Late/ })).toHaveTextContent('(overdue)');
     });
 
     it('adds the dot summary to the desktop day cell', () => {
       render(<CalendarView tasks={tasks} initialMonth={new Date(2020, 2, 1)} {...handlers()} />);
       const cell = screen.getByTestId('calendar-grid').querySelector('[data-day-key="2020-03-10"]') as HTMLElement;
-      expect(cell.querySelectorAll('[aria-hidden="true"] > span.rounded-full.bg-red-600')).toHaveLength(3);
+      expect(cell.querySelectorAll('[aria-hidden="true"] > span.rounded-full.bg-danger-dot')).toHaveLength(3);
       expect(within(cell).getByRole('button', { name: 'Late' })).toBeInTheDocument();
     });
   });

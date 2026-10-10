@@ -7,7 +7,7 @@ import { AlarmClock, CalendarClock, CheckSquare, ListTodo } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlowReportPanel } from '@/features/flow';
-import { Alert, PageHeader, SectionHeader, SkeletonCards, StatCard, Surface, Tag } from '@/components/ds';
+import { Alert, AnimatedNumber, PageHeader, SectionHeader, SkeletonChart, StatCard, Surface, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import {
   DueDate, PRIORITY_META, STATUS_META, StatusBadge, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, TASK_TYPE_META, buildReport, useTasks,
@@ -96,16 +96,16 @@ const ReportsPage = () => {
   const overview = (
     <>
       {loading ? (
-        <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+        <SkeletonChart label="Loading reports" height="h-64" />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-            <StatCard className="p-4 sm:p-5" title="Completion rate" value={`${report.completionRate}%`} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
-            <StatCard className="p-4 sm:p-5" title="Overdue" value={report.overdue.length} subtitle={report.overdue.length ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
-            <StatCard className="p-4 sm:p-5" title="Due this week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard index={0} className="p-4 sm:p-5" title="Total tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard index={1} className="p-4 sm:p-5" title="Completion rate" value={<><AnimatedNumber value={report.completionRate} />%</>} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-success-fg" />
+            <StatCard index={2} className="p-4 sm:p-5" title="Overdue" value={report.overdue.length} subtitle={report.overdue.length ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-danger-fg" />
+            <StatCard index={3} className="p-4 sm:p-5" title="Due this week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

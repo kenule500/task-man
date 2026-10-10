@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Download, Loader2, ScrollText, ShieldAlert } from 'lucide-react';
-import { EmptyState, ErrorState, PageHeader, Surface, toast } from '@/components/ds';
+import { Download, ScrollText, ShieldAlert } from 'lucide-react';
+import { EmptyState, ErrorState, PageHeader, Surface, toast, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   AuditEntrySheet, AuditFilterBar, AuditList, AuditPagination, AuditSkeleton, AuditTable,
@@ -80,7 +80,7 @@ const AuditLogPage = () => {
               aria-busy={exporting}
               className="h-10 gap-2 px-4 text-sm md:h-9"
             >
-              {exporting ? <Loader2 aria-hidden className="animate-spin motion-reduce:animate-none" /> : <Download aria-hidden />}
+              {exporting ? <Spinner decorative /> : <Download aria-hidden />}
               {exporting ? 'Exporting…' : 'Export CSV'}
             </Button>
           </>

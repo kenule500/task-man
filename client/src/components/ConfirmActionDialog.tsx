@@ -34,7 +34,7 @@ const ConfirmActionDialog = ({
       </AlertDialogHeader>
       <AlertDialogFooter className="border-t border-slate-200 bg-slate-50">
         <AlertDialogCancel className="border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</AlertDialogCancel>
-        <AlertDialogAction onClick={onConfirm} disabled={busy} className="bg-red-600 text-white hover:bg-red-700">
+        <AlertDialogAction onClick={onConfirm} disabled={busy} className="bg-danger-solid text-white hover:bg-danger-solid-hover">
           {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
         </AlertDialogAction>
       </AlertDialogFooter>

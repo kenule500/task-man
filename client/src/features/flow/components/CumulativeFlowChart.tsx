@@ -14,12 +14,12 @@ const PAD = { left: 36, right: 12, top: 12, bottom: 28 };
 const FILL: Record<FlowStatusKey, string> = {
   pending: 'fill-slate-400',
   inProgress: 'fill-blue-600',
-  completed: 'fill-emerald-500',
+  completed: 'fill-success-dot',
 };
 const SWATCH: Record<FlowStatusKey, string> = {
   pending: 'bg-slate-400',
   inProgress: 'bg-blue-600',
-  completed: 'bg-emerald-500',
+  completed: 'bg-success-dot',
 };
 
 const shortDate = (key: string) => formatDate(key, { month: 'short', day: 'numeric' });

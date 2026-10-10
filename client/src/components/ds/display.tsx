@@ -179,7 +179,7 @@ interface ErrorStateProps {
 /** A failed page or panel: what happened, why, and what to do. Announced as an alert. */
 export const ErrorState = ({ title, reason, nextStep, action, className }: ErrorStateProps) => (
   <div role="alert" className={cn('px-4 py-14 text-center sm:py-16', className)}>
-    <div aria-hidden className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-red-50 text-red-600">
+    <div aria-hidden className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger-bg text-danger-fg">
       <AlertCircle className="size-7" />
     </div>
     <h3 className="mb-1 text-lg font-semibold text-text-strong">{title}</h3>

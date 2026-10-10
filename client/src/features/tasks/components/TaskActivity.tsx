@@ -1,7 +1,6 @@
 import { History } from 'lucide-react';
-import { EmptyState, Timeline, UserAvatar } from '@/components/ds';
+import { EmptyState, SkeletonList, Timeline, UserAvatar } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import type { TaskActivityEntry } from '../api';
 import { useTaskActivity } from '../hooks/useTaskActivity';
 import { absoluteTime, describeActivity, type ActivityTextOptions } from '../lib/activityText';
@@ -39,19 +38,7 @@ const ActivityRow = ({ entry, sprintName }: { entry: TaskActivityEntry; sprintNa
   );
 };
 
-const ActivitySkeleton = () => (
-  <div role="status" aria-label="Loading activity" className="space-y-5">
-    {[0, 1, 2].map(row => (
-      <div key={row} className="flex gap-3">
-        <Skeleton className="size-7 shrink-0 rounded-full bg-slate-200 motion-reduce:animate-none" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-3/4 bg-slate-200 motion-reduce:animate-none" />
-          <Skeleton className="h-3 w-16 bg-slate-200 motion-reduce:animate-none" />
-        </div>
-      </div>
-    ))}
-  </div>
-);
+const ActivitySkeleton = () => <SkeletonList bare trailing={false} rows={3} label="Loading activity" />;
 
 /** Task history: who changed what and when, newest first, with "Load older". Mount it when its tab opens. */
 const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskActivityProps) => {
@@ -64,9 +51,9 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
 
   if (error && items.length === 0) {
     return (
-      <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-fg">
         <p>{error}</p>
-        <Button type="button" variant="outline" onClick={retry} className="h-10 border-red-300 bg-white text-red-800 sm:h-9">
+        <Button type="button" variant="outline" onClick={retry} className="h-10 border-danger-border bg-white text-danger-fg sm:h-9">
           Try again
         </Button>
       </div>
@@ -86,11 +73,11 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
 
   return (
     <div className="space-y-4">
-      {error && <p role="alert" className="text-xs text-red-700">Could not refresh: {error}</p>}
+      {error && <p role="alert" className="text-xs text-danger-fg">Could not refresh: {error}</p>}
       <Timeline aria-label="Task activity">
         {items.map(entry => <ActivityRow key={entry._id} entry={entry} sprintName={sprintName} />)}
       </Timeline>
-      {moreError && <p role="alert" className="text-xs text-red-700">{moreError}</p>}
+      {moreError && <p role="alert" className="text-xs text-danger-fg">{moreError}</p>}
       {nextBefore && (
         <Button
           type="button"

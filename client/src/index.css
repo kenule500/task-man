@@ -29,7 +29,7 @@
   --color-muted-foreground: #5B6B82;
   --color-accent: #F1F5F9;
   --color-accent-foreground: #0F172A;
-  --color-destructive: #DC2626;
+  --color-destructive: #B4493E;
   --color-border: #E2E8F0;
   --color-input: #E2E8F0;
   --color-ring: #93C5FD;
@@ -75,25 +75,25 @@
   --color-status-in-progress: #2563EB;
   --color-status-in-progress-fg: #1D4ED8;
   --color-status-in-progress-bg: #EFF6FF;
-  --color-status-completed: #10B981;
-  --color-status-completed-fg: #047857;
-  --color-status-completed-bg: #ECFDF5;
+  --color-status-completed: #3A9170;
+  --color-status-completed-fg: #1F6B4A;
+  --color-status-completed-bg: #EDF6F1;
 
-  /* Priority: marker color (dots, card accents) and AA-safe text color */
-  --color-priority-high: #EF4444;
-  --color-priority-high-text: #DC2626;
-  --color-priority-medium: #F59E0B;
-  --color-priority-medium-text: #B45309;
-  --color-priority-low: #10B981;
-  --color-priority-low-text: #047857;
+  /* Priority: marker color (dots, card accents) and AA-safe text color. Same hues as the danger, warning and success tones. */
+  --color-priority-high: #C4574A;
+  --color-priority-high-text: #A33A30;
+  --color-priority-medium: #B8801A;
+  --color-priority-medium-text: #8A5B0F;
+  --color-priority-low: #3A9170;
+  --color-priority-low-text: #1F6B4A;
 
-  /* Scrum work item types: label/icon color (700 shade, AA on white and on the soft background) and soft background */
-  --color-type-story: #047857;
-  --color-type-story-bg: #ECFDF5;
+  /* Scrum work item types: label/icon color (AA on white and on the soft background) and soft background */
+  --color-type-story: #1F6B4A;
+  --color-type-story-bg: #EDF6F1;
   --color-type-task: #1D4ED8;
   --color-type-task-bg: #EFF6FF;
-  --color-type-bug: #B91C1C;
-  --color-type-bug-bg: #FEF2F2;
+  --color-type-bug: #A33A30;
+  --color-type-bug-bg: #FBF0EE;
   --color-type-spike: #6D28D9;
   --color-type-spike-bg: #F5F3FF;
 
@@ -134,6 +134,58 @@
 }
 
 /*
+ * Semantic tones: the only reds, greens, ochres and blues for feedback and meaning. Calm, low chroma hues.
+ *   -solid  filled buttons and badges (white text, AA)     -solid-hover  pressed/hover of -solid
+ *   -dot    markers, bars, chart fills (3:1 against surfaces)
+ *   -fg     text on a surface and on -bg (AA)              -bg  soft background      -border  soft border
+ * Hex values are mirrored in pages/design-system/tokens.ts and darkTokens.ts and checked by tests.
+ * Never write raw red/green/emerald/rose utilities: ESLint rejects them, and the Tailwind scales below
+ * are only a safety net that lands any leftover class on these same hues.
+ */
+@theme {
+  --color-danger-solid: #B4493E;
+  --color-danger-solid-hover: #9A3B31;
+  --color-danger-dot: #C4574A;
+  --color-danger-fg: #A33A30;
+  --color-danger-bg: #FBF0EE;
+  --color-danger-border: #EBCDC8;
+
+  --color-success-solid: #2E7D5B;
+  --color-success-solid-hover: #256A4B;
+  --color-success-dot: #3A9170;
+  --color-success-fg: #1F6B4A;
+  --color-success-bg: #EDF6F1;
+  --color-success-border: #C9E0D4;
+
+  --color-warning-solid: #946212;
+  --color-warning-solid-hover: #7D520E;
+  --color-warning-dot: #B8801A;
+  --color-warning-fg: #8A5B0F;
+  --color-warning-bg: #FBF3E1;
+  --color-warning-border: #EBD9AE;
+
+  --color-info-solid: #2563EB;
+  --color-info-solid-hover: #1D4ED8;
+  --color-info-dot: #3B82F6;
+  --color-info-fg: #1D4ED8;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: #DBEAFE;
+
+  /* Safety net: Tailwind's red, rose, emerald, green and amber scales point at the tones above
+     (50 bg, 200 border, 500 dot, 600 solid, 700 fg). */
+  --color-red-50: #FBF0EE; --color-red-100: #F6E1DD; --color-red-200: #EBCDC8; --color-red-300: #DDAEA7; --color-red-400: #D0786C;
+  --color-red-500: #C4574A; --color-red-600: #B4493E; --color-red-700: #A33A30; --color-red-800: #862F27; --color-red-900: #6A2620; --color-red-950: #451915;
+  --color-rose-50: #FBF0EE; --color-rose-100: #F6E1DD; --color-rose-200: #EBCDC8; --color-rose-300: #DDAEA7; --color-rose-400: #D0786C;
+  --color-rose-500: #C4574A; --color-rose-600: #B4493E; --color-rose-700: #A33A30; --color-rose-800: #862F27; --color-rose-900: #6A2620; --color-rose-950: #451915;
+  --color-emerald-50: #EDF6F1; --color-emerald-100: #DCEDE4; --color-emerald-200: #C9E0D4; --color-emerald-300: #A5CDB9; --color-emerald-400: #66AE90;
+  --color-emerald-500: #3A9170; --color-emerald-600: #2E7D5B; --color-emerald-700: #1F6B4A; --color-emerald-800: #195A3E; --color-emerald-900: #144A33; --color-emerald-950: #0B2E20;
+  --color-green-50: #EDF6F1; --color-green-100: #DCEDE4; --color-green-200: #C9E0D4; --color-green-300: #A5CDB9; --color-green-400: #66AE90;
+  --color-green-500: #3A9170; --color-green-600: #2E7D5B; --color-green-700: #1F6B4A; --color-green-800: #195A3E; --color-green-900: #144A33; --color-green-950: #0B2E20;
+  --color-amber-50: #FBF3E1; --color-amber-100: #F6E8C6; --color-amber-200: #EBD9AE; --color-amber-300: #DCC080; --color-amber-400: #CB9B3E;
+  --color-amber-500: #B8801A; --color-amber-600: #946212; --color-amber-700: #8A5B0F; --color-amber-800: #6F490B; --color-amber-900: #553709; --color-amber-950: #352205;
+}
+
+/*
  * Dark theme (authored, not inverted). Applied when <html> has the `dark` class.
  *
  * Why variables: Tailwind v4 utilities read these custom properties, so re-authoring the slate ramp and the
@@ -161,31 +213,60 @@
 
   /* Tint ramps: 50/100 = soft background, 200/300 = border, 600-900 = readable text on those backgrounds.
      400 and 500 stay as they are: they are marker fills (dots, bars, icons). */
-  --color-red-50: #2A151B;
-  --color-red-100: #3A1A22;
-  --color-red-200: #5A2430;
-  --color-red-300: #7A2B38;
-  --color-red-600: #F87171;
-  --color-red-700: #FCA5A5;
-  --color-red-800: #FECACA;
-  --color-red-900: #FEE2E2;
+  --color-red-50: #2B1816;
+  --color-red-100: #3A201D;
+  --color-red-200: #5A2C27;
+  --color-red-300: #7A3A33;
+  --color-red-400: #E0857A;
+  --color-red-500: #D4685B;
+  --color-red-600: #E8948A;
+  --color-red-700: #F0A79E;
+  --color-red-800: #F6C3BC;
+  --color-red-900: #FAD9D4;
 
-  --color-emerald-50: #0E2B26;
-  --color-emerald-100: #123B33;
-  --color-emerald-200: #1C5445;
-  --color-emerald-300: #2B7A62;
-  --color-emerald-600: #34D399;
-  --color-emerald-700: #6EE7B7;
-  --color-emerald-800: #A7F3D0;
-  --color-emerald-900: #D1FAE5;
+  --color-rose-50: #2B1816;
+  --color-rose-100: #3A201D;
+  --color-rose-200: #5A2C27;
+  --color-rose-300: #7A3A33;
+  --color-rose-400: #E0857A;
+  --color-rose-500: #D4685B;
+  --color-rose-600: #E8948A;
+  --color-rose-700: #F0A79E;
+  --color-rose-800: #F6C3BC;
+  --color-rose-900: #FAD9D4;
 
-  --color-amber-50: #2B2108;
-  --color-amber-100: #3D2D0A;
-  --color-amber-200: #5C4410;
-  --color-amber-600: #FBBF24;
-  --color-amber-700: #FCD34D;
-  --color-amber-800: #FDE68A;
-  --color-amber-900: #FEF3C7;
+  --color-emerald-50: #0F2620;
+  --color-emerald-100: #15342B;
+  --color-emerald-200: #25503F;
+  --color-emerald-300: #356B55;
+  --color-emerald-400: #6BC09D;
+  --color-emerald-500: #4BAA84;
+  --color-emerald-600: #74C4A2;
+  --color-emerald-700: #8FD3B4;
+  --color-emerald-800: #B3E4CC;
+  --color-emerald-900: #D2F0E1;
+
+  --color-green-50: #0F2620;
+  --color-green-100: #15342B;
+  --color-green-200: #25503F;
+  --color-green-300: #356B55;
+  --color-green-400: #6BC09D;
+  --color-green-500: #4BAA84;
+  --color-green-600: #74C4A2;
+  --color-green-700: #8FD3B4;
+  --color-green-800: #B3E4CC;
+  --color-green-900: #D2F0E1;
+
+  --color-amber-50: #2A2008;
+  --color-amber-100: #3A2D0C;
+  --color-amber-200: #554015;
+  --color-amber-300: #735A1F;
+  --color-amber-400: #E0AE4C;
+  --color-amber-500: #D19A33;
+  --color-amber-600: #DBA94D;
+  --color-amber-700: #E6BE6A;
+  --color-amber-800: #EFD293;
+  --color-amber-900: #F6E4B8;
 
   --color-blue-50: #0F1E3A;
   --color-blue-100: #172C52;
@@ -201,9 +282,6 @@
   --color-violet-700: #C4B5FD;
   --color-violet-800: #DDD6FE;
 
-  --color-rose-100: #3A1A2A;
-  --color-rose-200: #5C2640;
-  --color-rose-800: #FECDD3;
   --color-pink-100: #3A1A33;
   --color-pink-200: #5A2650;
   --color-pink-800: #FBCFE8;
@@ -229,7 +307,7 @@
   --color-muted-foreground: #94A3B8;
   --color-accent: #1C2740;
   --color-accent-foreground: #F1F5F9;
-  --color-destructive: #F87171;
+  --color-destructive: #E38476;
   --color-border: #263449;
   --color-input: #3A4A63;
   --color-ring: #60A5FA;
@@ -265,23 +343,52 @@
   --color-status-in-progress: #3B82F6;
   --color-status-in-progress-fg: #93C5FD;
   --color-status-in-progress-bg: #13244A;
-  --color-status-completed: #10B981;
-  --color-status-completed-fg: #6EE7B7;
-  --color-status-completed-bg: #0E2B26;
+  --color-status-completed: #4BAA84;
+  --color-status-completed-fg: #8FD3B4;
+  --color-status-completed-bg: #0F2620;
 
-  --color-priority-high: #EF4444;
-  --color-priority-high-text: #F87171;
-  --color-priority-medium: #F59E0B;
-  --color-priority-medium-text: #FBBF24;
-  --color-priority-low: #10B981;
-  --color-priority-low-text: #34D399;
+  --color-priority-high: #D4685B;
+  --color-priority-high-text: #F0A79E;
+  --color-priority-medium: #D19A33;
+  --color-priority-medium-text: #E6BE6A;
+  --color-priority-low: #4BAA84;
+  --color-priority-low-text: #8FD3B4;
 
-  --color-type-story: #6EE7B7;
-  --color-type-story-bg: #0E2B26;
+  --color-type-story: #8FD3B4;
+  --color-type-story-bg: #0F2620;
   --color-type-task: #93C5FD;
   --color-type-task-bg: #13244A;
-  --color-type-bug: #FCA5A5;
-  --color-type-bug-bg: #2A151B;
+  --color-type-bug: #F0A79E;
+  --color-type-bug-bg: #2B1816;
+
+  /* Semantic tones, authored for dark surfaces (-solid keeps white text at AA, -fg is AA on -bg and on the surfaces) */
+  --color-danger-solid: #B4493E;
+  --color-danger-solid-hover: #9A3B31;
+  --color-danger-dot: #D4685B;
+  --color-danger-fg: #F0A79E;
+  --color-danger-bg: #2B1816;
+  --color-danger-border: #5A2C27;
+
+  --color-success-solid: #2E7D5B;
+  --color-success-solid-hover: #256A4B;
+  --color-success-dot: #4BAA84;
+  --color-success-fg: #8FD3B4;
+  --color-success-bg: #0F2620;
+  --color-success-border: #25503F;
+
+  --color-warning-solid: #946212;
+  --color-warning-solid-hover: #7D520E;
+  --color-warning-dot: #D19A33;
+  --color-warning-fg: #E6BE6A;
+  --color-warning-bg: #2A2008;
+  --color-warning-border: #554015;
+
+  --color-info-solid: #2563EB;
+  --color-info-solid-hover: #1D4ED8;
+  --color-info-dot: #5B93F0;
+  --color-info-fg: #93C5FD;
+  --color-info-bg: #13244A;
+  --color-info-border: #1F3B6E;
   --color-type-spike: #C4B5FD;
   --color-type-spike-bg: #1D1740;
 
@@ -323,10 +430,6 @@
   :where(.dark) .border-slate-900,
   :where(.dark) .border-slate-800 { border-color: var(--color-inverse-border); }
 
-  /* Solid destructive button keeps its red; its hover darkens */
-  :where(.dark) .bg-red-600 { background-color: #DC2626; }
-  :where(.dark) .hover\:bg-red-700:hover { background-color: #B91C1C; }
-
   /* Blue text and focus outlines: #2563EB is 3.4:1 on the dark surface, so use a lighter step */
   :where(.dark) .text-primary,
   :where(.dark) .hover\:text-primary:hover,
@@ -355,6 +458,83 @@
   --duration-fast: 150ms;
   --duration-base: 200ms;
   --duration-slow: 280ms;
+
+  /* Motion tokens shared with lib/motion.ts (JavaScript uses seconds: 0.12 / 0.2 / 0.32) */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  /* Spring-like curves as CSS linear(): `bouncy` overshoots once, `soft` settles without overshoot */
+  --ease-spring-bouncy: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+  --ease-spring-soft: linear(0, 0.1 4%, 0.4 10%, 0.75 18%, 0.95 28%, 1.03 40%, 1.01 55%, 1);
+}
+
+/*
+ * Animation utilities (components/ds/motion.tsx and loaders.tsx). All of them stop under
+ * prefers-reduced-motion through the global rule at the bottom of this file.
+ */
+@theme {
+  --animate-tm-rise: tm-rise var(--motion-slow) var(--ease-enter) backwards;
+  --animate-tm-float: tm-float 3.6s ease-in-out infinite;
+  --animate-tm-dot: tm-dot 1.2s ease-in-out infinite;
+  --animate-tm-bar: tm-bar 1.3s var(--ease-standard) infinite;
+  --animate-tm-flip: tm-flip 2.2s var(--ease-standard) infinite;
+  --animate-tm-flip-shadow: tm-flip-shadow 2.2s var(--ease-standard) infinite;
+  --animate-tm-toast-in: tm-toast-in 420ms var(--ease-spring-bouncy) backwards;
+  --animate-tm-pop: tm-pop 360ms var(--ease-spring-bouncy) backwards;
+  --animate-tm-ring: tm-ring 520ms var(--ease-enter) both;
+  --animate-tm-spark: tm-spark 520ms var(--ease-enter) both;
+  --animate-tm-pulse-once: tm-pulse-once 1100ms var(--ease-standard) 1;
+  --animate-tm-delayed-in: tm-delayed-in 200ms linear 160ms both;
+
+  @keyframes tm-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes tm-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes tm-dot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.45; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes tm-bar {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(260%); }
+  }
+  @keyframes tm-flip {
+    0% { transform: rotateX(-14deg) rotateY(0deg); }
+    55%, 100% { transform: rotateX(-14deg) rotateY(360deg); }
+  }
+  @keyframes tm-flip-shadow {
+    0%, 100% { transform: scaleX(1); opacity: 0.22; }
+    25%, 75% { transform: scaleX(0.3); opacity: 0.1; }
+    50% { transform: scaleX(1); opacity: 0.22; }
+  }
+  @keyframes tm-toast-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.94); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes tm-pop {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes tm-ring {
+    from { opacity: 0.7; transform: scale(0.4); }
+    to { opacity: 0; transform: scale(1.9); }
+  }
+  @keyframes tm-spark {
+    from { opacity: 1; transform: rotate(var(--a)) translateY(-4px) scale(1); }
+    to { opacity: 0; transform: rotate(var(--a)) translateY(-18px) scale(0.3); }
+  }
+  @keyframes tm-pulse-once {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 4px var(--tm-pulse, rgb(245 158 11 / 0.35)); }
+  }
+  @keyframes tm-delayed-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
 
 /*

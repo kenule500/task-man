@@ -1,8 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
-import { BellOff, CheckCheck, Loader2 } from 'lucide-react';
-import { EmptyState, ErrorState, PageHeader, SegmentedControl, Surface } from '@/components/ds';
+import { BellOff, CheckCheck } from 'lucide-react';
+import { EmptyState, ErrorState, PageHeader, SegmentedControl, SkeletonList, Surface, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   NotificationRow, useNotificationInbox, useOpenNotification, type InboxFilter,
 } from '@/features/notifications';
@@ -55,9 +54,7 @@ const InboxPage = () => {
 
       <Surface padding="none" className="overflow-hidden">
         {loading ? (
-          <div className="space-y-4 p-4" role="status" aria-busy="true" aria-label="Loading notifications">
-            {[0, 1, 2, 3].map(row => <Skeleton key={row} className="h-10 w-full" />)}
-          </div>
+          <SkeletonList bare avatar={false} trailing={false} rows={4} label="Loading notifications" />
         ) : error && items.length === 0 ? (
           <ErrorState
             title="We could not load your notifications"
@@ -85,7 +82,7 @@ const InboxPage = () => {
       </Surface>
 
       {error && items.length > 0 && (
-        <p role="alert" className="text-sm text-red-700">We could not load older notifications. Try again.</p>
+        <p role="alert" className="text-sm text-danger-fg">We could not load older notifications. Try again.</p>
       )}
 
       {hasMore && (
@@ -98,7 +95,7 @@ const InboxPage = () => {
             aria-busy={loadingMore}
             className="h-11 min-w-40 gap-2 sm:h-9"
           >
-            {loadingMore && <Loader2 className="size-4 animate-spin" aria-hidden />}
+            {loadingMore && <Spinner decorative />}
             {loadingMore ? 'Loading...' : 'Load older'}
           </Button>
         </div>

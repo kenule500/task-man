@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { GanttChart } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Alert, EmptyState, PageHeader, SegmentedControl, SkeletonCards, Surface } from '@/components/ds';
+import { Alert, EmptyState, PageHeader, SegmentedControl, SkeletonTable, Surface } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ROADMAP_LABEL_WIDTH, sprintBands as bandsOf, buildAxis, buildRoadmap, type RoadmapEpic, type RoadmapZoom } from '@/features/planning/lib/roadmap';
@@ -21,8 +21,8 @@ const Legend = () => (
   <ul className="hidden flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600 md:flex" aria-label="Legend">
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-slate-400 bg-primary" /> In progress</li>
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-dashed border-slate-400 bg-slate-100" /> Upcoming</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-emerald-600 bg-emerald-500" /> Done</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-red-600 bg-red-600" /> Overdue</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-success-solid bg-success-dot" /> Done</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-danger-solid bg-danger-dot" /> Overdue</li>
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-0.5 bg-primary" /> Today</li>
   </ul>
 );
@@ -98,7 +98,7 @@ const RoadmapPage = () => {
       />
 
       {loading ? (
-        <SkeletonCards count={3} columns="sm:grid-cols-3" />
+        <SkeletonTable label="Loading roadmap" rows={5} columns={5} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={tasksError ? clearError : undefined}>{error}</Alert>}

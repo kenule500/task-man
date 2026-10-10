@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Alert, Tag } from '@/components/ds';
+import { Alert, Tag, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { Loader2, XCircle, Users, ArrowRight } from 'lucide-react';
 
@@ -144,7 +144,7 @@ const AcceptInvitePage = () => {
         >
           {submitting ? (
             <>
-              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Joining...
+              <Spinner decorative /> Joining...
             </>
           ) : (
             <>

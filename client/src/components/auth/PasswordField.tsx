@@ -23,7 +23,7 @@ interface PasswordFieldProps {
   className?: string;
 }
 
-const STRENGTH_BAR = ['bg-slate-200', 'bg-red-500', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500'];
+const STRENGTH_BAR = ['bg-slate-200', 'bg-danger-dot', 'bg-warning-dot', 'bg-blue-500', 'bg-success-dot'];
 
 /** Password input with a show/hide toggle, optional strength hint and inline error. */
 const PasswordField = ({

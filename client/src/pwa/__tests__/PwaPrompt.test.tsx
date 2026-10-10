@@ -28,7 +28,7 @@ describe('PwaPrompt', () => {
     pwaState.needRefresh = true;
     render(<PwaPrompt />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Later' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remind me later' }));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(updateServiceWorker).not.toHaveBeenCalled();
   });

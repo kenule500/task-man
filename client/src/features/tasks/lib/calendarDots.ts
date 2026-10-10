@@ -23,7 +23,7 @@ interface DotMeta {
 }
 
 export const DOT_META: Record<DotState, DotMeta> = {
-  overdue: { summary: 'overdue', legend: 'Overdue', dot: 'bg-red-600' },
+  overdue: { summary: 'overdue', legend: 'Overdue', dot: 'bg-danger-dot' },
   pending: { summary: 'pending', legend: STATUS_META.pending.label, dot: STATUS_META.pending.dot },
   'in-progress': { summary: 'in progress', legend: 'In progress', dot: STATUS_META['in-progress'].dot },
   completed: { summary: 'completed', legend: 'Done', dot: STATUS_META.completed.dot },

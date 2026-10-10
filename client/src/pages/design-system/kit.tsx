@@ -146,13 +146,13 @@ export const CodeBlock = ({ code, label = 'Code' }: { code: string; label?: stri
 
 export const DoDont = ({ doText, dontText }: { doText: ReactNode; dontText: ReactNode }) => (
   <div className="grid gap-3 sm:grid-cols-2">
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5">
-      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-emerald-800"><ThumbsUp aria-hidden className="size-4" />Do</p>
-      <p className="text-sm text-emerald-900">{doText}</p>
+    <div className="rounded-xl border border-success-border bg-success-bg p-3.5">
+      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-success-fg"><ThumbsUp aria-hidden className="size-4" />Do</p>
+      <p className="text-sm text-success-fg">{doText}</p>
     </div>
-    <div className="rounded-xl border border-red-200 bg-red-50 p-3.5">
-      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-red-800"><ThumbsDown aria-hidden className="size-4" />Don&apos;t</p>
-      <p className="text-sm text-red-900">{dontText}</p>
+    <div className="rounded-xl border border-danger-border bg-danger-bg p-3.5">
+      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-danger-fg"><ThumbsDown aria-hidden className="size-4" />Don&apos;t</p>
+      <p className="text-sm text-danger-fg">{dontText}</p>
     </div>
   </div>
 );

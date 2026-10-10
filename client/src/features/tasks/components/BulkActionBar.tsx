@@ -139,7 +139,7 @@ const BulkActionBar = ({
                       {sprints.map(sprint => (
                         <DropdownMenuItem key={sprint._id} className={ITEM} onClick={() => onApply({ sprint: sprint._id })}>
                           <span className="truncate">{sprint.name}</span>
-                          {sprint.status === 'active' && <span className="ml-auto text-xs text-emerald-700">Active</span>}
+                          {sprint.status === 'active' && <span className="ml-auto text-xs text-success-fg">Active</span>}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuGroup>

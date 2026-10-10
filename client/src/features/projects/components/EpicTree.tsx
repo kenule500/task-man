@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { ChevronRight, Circle, CircleCheck, ExternalLink, Link2, ListChecks, Loader2, MoreHorizontal, Plus, Unlink } from 'lucide-react';
+import { ChevronRight, Circle, CircleCheck, ExternalLink, Link2, ListChecks, MoreHorizontal, Plus, Unlink } from 'lucide-react';
+import { Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -78,9 +79,9 @@ const DoneToggle = ({ task, canWrite, onToggle }: { task: Task; canWrite: boolea
       onClick={() => onToggle(task, !done)}
       aria-label={done ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
       className={cn(
-        raisedClass, tapClass, 'rounded-full text-slate-500 transition-colors hover:text-emerald-700',
+        raisedClass, tapClass, 'rounded-full text-slate-500 transition-colors hover:text-success-fg',
         'focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:hover:text-slate-500',
-        done && 'text-emerald-600',
+        done && 'text-success-fg',
       )}
     >
       {done ? <CircleCheck className="size-5" aria-hidden /> : <Circle className="size-5" aria-hidden />}
@@ -132,7 +133,7 @@ const InlineAdd = ({ label, submitLabel, onAdd }: InlineAddProps) => {
         aria-label={submitLabel}
         className="h-11 shrink-0 rounded-lg bg-primary px-3 text-white hover:bg-primary-hover sm:h-9"
       >
-        {busy ? <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+        {busy ? <Spinner decorative /> : <Plus className="size-4" aria-hidden />}
       </Button>
     </form>
   );
@@ -300,7 +301,7 @@ const EpicTree = ({
                   className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100"
                 >
                   <div
-                    className={cn('h-full rounded-full', complete ? 'bg-emerald-500' : 'bg-fuchsia-600')}
+                    className={cn('h-full rounded-full', complete ? 'bg-success-dot' : 'bg-fuchsia-600')}
                     style={{ width: `${progress.percent}%` }}
                   />
                 </div>

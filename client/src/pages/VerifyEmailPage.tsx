@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, Field, fieldMessageId } from '@/components/ds';
+import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { useFormValidation } from '@/components/auth/useFormValidation';
 import { validateEmail } from '@/components/auth/validation';
@@ -107,7 +107,7 @@ const VerifyEmailPage = () => {
                 <Button type="submit" variant="outline" disabled={resendStatus === 'sending'} className="h-11 w-full gap-2 rounded-xl">
                   {resendStatus === 'sending' ? (
                     <>
-                      <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Sending...
+                      <Spinner decorative /> Sending...
                     </>
                   ) : (
                     <>

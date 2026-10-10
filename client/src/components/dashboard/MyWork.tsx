@@ -16,7 +16,7 @@ interface MyWorkProps {
 }
 
 const HEADING_CLASS: Record<MyWorkBucket, string> = {
-  overdue: 'text-red-700',
+  overdue: 'text-danger-fg',
   today: 'text-slate-700',
   week: 'text-slate-500',
   later: 'text-slate-500',
@@ -84,7 +84,7 @@ const MyWork = ({ tasks, userId, slug, limit = MY_WORK_LIMIT }: MyWorkProps) => 
       )}
 
       <p className="mt-4 flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs text-slate-600">
-        <CheckCircle2 className="size-3.5 text-emerald-600" aria-hidden />
+        <CheckCircle2 className="size-3.5 text-success-fg" aria-hidden />
         <span>{recent}</span>
       </p>
     </Surface>

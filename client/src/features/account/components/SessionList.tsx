@@ -1,6 +1,6 @@
-import { Loader2, Monitor, Smartphone, Tablet, type LucideIcon } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ds';
+import { Tag, Spinner } from '@/components/ds';
 import type { AccountSession } from '../types';
 import { deviceLabel, describeUserAgent, formatRelativeTime, type DeviceKind } from '../lib/userAgent';
 
@@ -54,7 +54,7 @@ export const SessionList = ({ sessions, busyId = null, onSignOut, now }: Session
               aria-label={`Sign out ${label}`}
               className="h-11 w-full gap-2 sm:h-9 sm:w-auto"
             >
-              {busy && <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden />}
+              {busy && <Spinner decorative />}
               Sign out
             </Button>
           </li>

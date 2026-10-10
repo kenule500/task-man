@@ -38,9 +38,9 @@ export const STATUS_META: Record<TaskStatus, StatusMeta> = {
   },
   completed: {
     label: 'Completed',
-    badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    dot: 'bg-emerald-500',
-    surface: 'bg-emerald-50 border-emerald-300 text-emerald-800',
+    badge: 'bg-success-bg text-success-fg border-success-border',
+    dot: 'bg-success-dot',
+    surface: 'bg-success-bg border-success-border text-success-fg',
   },
 };
 
@@ -54,9 +54,9 @@ interface PriorityMeta {
 }
 
 export const PRIORITY_META: Record<TaskPriority, PriorityMeta> = {
-  high: { label: 'High', text: 'text-red-600', dot: 'bg-red-500', accent: 'border-t-red-400', rank: 1 },
-  medium: { label: 'Medium', text: 'text-amber-700', dot: 'bg-amber-500', accent: 'border-t-amber-400', rank: 2 },
-  low: { label: 'Low', text: 'text-emerald-700', dot: 'bg-emerald-500', accent: 'border-t-emerald-400', rank: 3 },
+  high: { label: 'High', text: 'text-danger-fg', dot: 'bg-danger-dot', accent: 'border-t-danger-dot', rank: 1 },
+  medium: { label: 'Medium', text: 'text-warning-fg', dot: 'bg-warning-dot', accent: 'border-t-warning-dot', rank: 2 },
+  low: { label: 'Low', text: 'text-success-fg', dot: 'bg-success-dot', accent: 'border-t-success-dot', rank: 3 },
 };
 
 export const STATUS_OPTIONS: SelectOption<TaskStatus>[] = TASK_STATUSES.map(status => ({
@@ -94,9 +94,9 @@ interface TypeMeta {
 }
 
 export const TASK_TYPE_META: Record<TaskType, TypeMeta> = {
-  story: { label: 'Story', text: 'text-emerald-700', badge: 'bg-emerald-50 text-emerald-700 border-emerald-100', dot: 'bg-emerald-500' },
+  story: { label: 'Story', text: 'text-success-fg', badge: 'bg-success-bg text-success-fg border-success-border', dot: 'bg-success-dot' },
   task: { label: 'Task', text: 'text-blue-700', badge: 'bg-blue-50 text-blue-700 border-blue-100', dot: 'bg-blue-600' },
-  bug: { label: 'Bug', text: 'text-red-700', badge: 'bg-red-50 text-red-700 border-red-100', dot: 'bg-red-500' },
+  bug: { label: 'Bug', text: 'text-danger-fg', badge: 'bg-danger-bg text-danger-fg border-danger-border', dot: 'bg-danger-dot' },
   spike: { label: 'Spike', text: 'text-violet-700', badge: 'bg-violet-50 text-violet-700 border-violet-100', dot: 'bg-violet-500' },
   // Fuchsia stays apart from the blue / violet of tasks and spikes (-700 on -50 is AA)
   epic: { label: 'Epic', text: 'text-fuchsia-700', badge: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', dot: 'bg-fuchsia-500' },
