@@ -11,10 +11,14 @@ import {
 } from '../controllers/bulkTaskController.js';
 
 jest.mock('../utils/gridfs.js', () => ({ deleteFiles: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../utils/customFieldsDb.js', () => ({
+  planRequestCustom: jest.fn().mockResolvedValue({ ok: true, plan: { set: {}, clear: [] }, defs: [] }),
+}));
 jest.mock('../utils/activity.js', () => ({
   ...jest.requireActual('../utils/activity.js'),
   recordActivity: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../models/timeEntryModel.js', () => ({ __esModule: true, default: { deleteMany: jest.fn().mockResolvedValue({}) } }));
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
   TASK_STATUSES: ['pending', 'in-progress', 'completed'],
@@ -22,6 +26,7 @@ jest.mock('../models/taskModel.js', () => ({
   MAX_LABELS: 3,
   MAX_LABEL_LENGTH: 10,
   MAX_STORY_POINTS: 100,
+  MAX_ESTIMATE_MINUTES: 100000,
   TASK_TYPES: ['story', 'task', 'bug', 'spike', 'epic'],
   default: {
     populate: jest.fn(async (docs: unknown) => docs),
@@ -210,7 +215,7 @@ describe('bulkUpdateTasks', () => {
     expect(task).toMatchObject({ project: 'Web', sprint: null });
     expect(TaskMock.updateMany).toHaveBeenCalledWith(
       { workspace: workspaceId, parent: task._id },
-      { $set: { project: 'Web', sprint: null } },
+      { $set: { project: 'Web', sprint: null, release: null } },
     );
   });
 });

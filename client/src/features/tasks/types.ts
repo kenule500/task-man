@@ -1,3 +1,5 @@
+import type { CustomValues, CustomValuesInput } from '@/features/fields/types';
+
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
 /** Scrum work item type; an 'epic' is a container that groups items of its project across sprints. */
@@ -82,12 +84,18 @@ export interface Task {
   type?: TaskType;
   /** Story points estimate; null = not estimated. */
   storyPoints?: number | null;
+  /** Time estimate in minutes; null/unset = none. */
+  estimateMinutes?: number | null;
+  /** Time logged so far, in minutes (kept by the time-tracking API). */
+  loggedMinutes?: number;
   /** Sprint id; null/unset = product backlog. */
   sprint?: string | null;
   /** Parent task id when this is a subtask. */
   parent?: string | null;
   /** Id of the epic (a task of type 'epic') this item belongs to; subtasks inherit their parent's. */
   epic?: string | null;
+  /** Id of the release (version) of the task's project it ships in; subtasks follow their parent. */
+  release?: string | null;
   /** ISO date string. Optional: tasks without a start are shown as one-day bars. */
   startDate?: string | null;
   /** ISO date string. */
@@ -110,6 +118,8 @@ export interface Task {
   attachments?: TaskAttachment[];
   /** Pull requests, commits and branches that mention the task key (GitHub integration). */
   links?: TaskLink[];
+  /** Values of the workspace's custom fields by field key (see features/fields). */
+  custom?: CustomValues;
   owner?: string;
   workspace?: string;
   completedAt?: string;
@@ -128,9 +138,11 @@ export interface TaskInput {
   priority?: TaskPriority;
   type?: TaskType;
   storyPoints?: number | null;
+  estimateMinutes?: number | null;
   sprint?: string | null;
   parent?: string | null;
   epic?: string | null;
+  release?: string | null;
   startDate?: string | null;
   deadline: string;
   position?: number;
@@ -141,6 +153,8 @@ export interface TaskInput {
   /** Whole checklist; items keep their `_id` (new ones may omit it or bring a fresh 24-hex id). */
   checklist?: ChecklistInput[];
   recurrence?: TaskRecurrence | null;
+  /** Custom field values by key; merged into the task's values, `null` clears one. */
+  custom?: CustomValuesInput;
 }
 
 export type TaskPatch = Partial<TaskInput>;

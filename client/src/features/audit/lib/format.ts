@@ -1,6 +1,6 @@
 import {
   CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
-  MessageSquareX, Paperclip, Pencil, Play, Plus, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
+  MessageSquareX, Package, Paperclip, Pencil, Play, Plus, Rocket, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
   UserPlus, Webhook, Zap, type LucideIcon,
 } from 'lucide-react';
 import { toDateKey } from '@/features/tasks/lib/date';
@@ -26,6 +26,10 @@ export const AREA_LABELS: Record<AuditArea, string> = {
   workflow: 'Workflow',
   webhook: 'Webhooks',
   token: 'API tokens',
+  time: 'Time',
+  release: 'Releases',
+  field: 'Custom fields',
+  import: 'Imports',
 };
 
 export const ACTION_META: Record<string, ActionMeta> = {
@@ -68,6 +72,16 @@ export const ACTION_META: Record<string, ActionMeta> = {
   'webhook.deleted': { label: 'Webhook removed', icon: Webhook, tone: 'danger' },
   'token.created': { label: 'API token created', icon: KeyRound, tone: 'warning' },
   'token.revoked': { label: 'API token revoked', icon: KeyRound, tone: 'danger' },
+  'time.logged': { label: 'Time logged', icon: Timer, tone: 'primary' },
+  'time.deleted': { label: 'Time entry removed', icon: Timer, tone: 'warning' },
+  'release.created': { label: 'Release created', icon: Package, tone: 'success' },
+  'release.updated': { label: 'Release updated', icon: Package, tone: 'primary' },
+  'release.deleted': { label: 'Release deleted', icon: Package, tone: 'danger' },
+  'release.released': { label: 'Version released', icon: Rocket, tone: 'success' },
+  'field.created': { label: 'Custom field added', icon: Settings, tone: 'success' },
+  'field.updated': { label: 'Custom field updated', icon: Settings, tone: 'primary' },
+  'field.deleted': { label: 'Custom field removed', icon: Settings, tone: 'danger' },
+  'import.completed': { label: 'Import completed', icon: Download, tone: 'success' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

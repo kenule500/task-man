@@ -2,8 +2,8 @@ import { cn } from '@/lib/utils';
 import { ProjectFolderIcon } from '@/features/projects';
 import { ROADMAP_LABEL_WIDTH } from '../lib/roadmap';
 import {
-  HEALTH_LABEL, describeEpic, formatSpan, placeSpan,
-  type EpicHealth, type RoadmapAxis, type RoadmapEpic, type RoadmapGroup, type SprintBand,
+  HEALTH_LABEL, describeEpic, describeReleaseMarker, formatSpan, placeSpan,
+  type EpicHealth, type ReleaseMarker, type RoadmapAxis, type RoadmapEpic, type RoadmapGroup, type SprintBand,
 } from '../lib/roadmap';
 
 /** Width of the sticky name column. */
@@ -34,10 +34,19 @@ interface RoadmapTimelineProps {
   groups: RoadmapGroup[];
   axis: RoadmapAxis;
   bands: SprintBand[];
+  /** Release milestones, drawn as diamonds under the month header. */
+  markers?: ReleaseMarker[];
   onOpen: (epic: RoadmapEpic) => void;
+  onOpenMarker?: (marker: ReleaseMarker) => void;
 }
 
-const HeaderRow = ({ axis, bands }: Pick<RoadmapTimelineProps, 'axis' | 'bands'>) => (
+const MARKER_TONE: Record<ReleaseMarker['status'], string> = {
+  unreleased: 'bg-primary',
+  released: 'bg-success-dot',
+  archived: 'bg-slate-400',
+};
+
+const HeaderRow = ({ axis, bands, markers = [], onOpenMarker }: Pick<RoadmapTimelineProps, 'axis' | 'bands' | 'markers' | 'onOpenMarker'>) => (
   <div className="flex border-b border-slate-200 bg-white">
     <div
       style={{ width: LABEL_W }}
@@ -45,7 +54,7 @@ const HeaderRow = ({ axis, bands }: Pick<RoadmapTimelineProps, 'axis' | 'bands'>
     >
       Epic
     </div>
-    <div className="relative shrink-0" style={{ width: axis.width, height: bands.length > 0 ? 64 : 36 }}>
+    <div className="relative shrink-0" style={{ width: axis.width, height: 36 + (bands.length > 0 ? 28 : 0) + (markers.length > 0 ? 28 : 0) }}>
       {axis.ticks.map(tick => (
         <div
           key={tick.key}
@@ -64,6 +73,20 @@ const HeaderRow = ({ axis, bands }: Pick<RoadmapTimelineProps, 'axis' | 'bands'>
         >
           <span className="truncate">{band.name}</span>
         </div>
+      ))}
+      {markers.map(marker => (
+        <button
+          key={marker.id}
+          type="button"
+          onClick={() => onOpenMarker?.(marker)}
+          aria-label={describeReleaseMarker(marker)}
+          title={describeReleaseMarker(marker)}
+          style={{ left: marker.left, top: 36 + (bands.length > 0 ? 28 : 0) }}
+          className="absolute flex h-6 -translate-x-3 items-center gap-1 rounded-md px-1 text-xs font-medium text-slate-700 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <span aria-hidden className={cn('size-2.5 shrink-0 rotate-45', MARKER_TONE[marker.status])} />
+          <span className="whitespace-nowrap">{marker.name}</span>
+        </button>
       ))}
       {axis.todayLeft !== null && (
         <span
@@ -110,7 +133,7 @@ const EpicRow = ({ epic, axis, onOpen }: { epic: RoadmapEpic; axis: RoadmapAxis;
 };
 
 /** Desktop roadmap: sticky name column, month/week header with sprint bands, bars as buttons, today line. */
-const RoadmapTimeline = ({ groups, axis, bands, onOpen }: RoadmapTimelineProps) => (
+const RoadmapTimeline = ({ groups, axis, bands, markers, onOpen, onOpenMarker }: RoadmapTimelineProps) => (
   <div
     role="region"
     aria-label="Roadmap timeline"
@@ -119,7 +142,7 @@ const RoadmapTimeline = ({ groups, axis, bands, onOpen }: RoadmapTimelineProps) 
     className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white outline-none focus-visible:outline-2 focus-visible:outline-primary md:block"
   >
     <div className="relative" style={{ width: LABEL_W + axis.width }}>
-      <HeaderRow axis={axis} bands={bands} />
+      <HeaderRow axis={axis} bands={bands} markers={markers} onOpenMarker={onOpenMarker} />
       {groups.map(group => (
         <section key={group.id} aria-label={group.name}>
           <h2 className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700" style={{ width: LABEL_W + axis.width }}>

@@ -22,6 +22,8 @@ export interface IWorkspace extends Document {
   boardSettings?: { wipLimits?: Partial<WipLimits> };
   // Custom board stages (each mapped to a status group); unset = the default To do / In progress / Done
   workflow?: { stages?: WorkflowStage[] };
+  // Workspace-wide security policy
+  security?: { require2fa?: boolean };
   integrations?: {
     github?: {
       enabled?: boolean;
@@ -79,6 +81,10 @@ const workspaceSchema: Schema = new Schema(
           message: `A workflow needs between 1 and ${MAX_STAGES} stages`,
         },
       },
+    },
+    security: {
+      // Members without two-factor authentication get 403 TWO_FACTOR_REQUIRED on workspace routes
+      require2fa: { type: Boolean, default: false },
     },
     integrations: {
       github: {

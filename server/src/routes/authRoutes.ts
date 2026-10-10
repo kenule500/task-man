@@ -15,6 +15,7 @@ import {
   validateResetPassword,
   validateResendVerification,
 } from '../controllers/authController.js';
+import { completeTwoFactorLogin } from '../controllers/twoFactorController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router: Router = express.Router();
@@ -22,6 +23,7 @@ const router: Router = express.Router();
 // Registration & Login
 router.post('/signup', validateSignup, registerUser);
 router.post('/login', validateLogin, loginUser);
+router.post('/login/2fa', completeTwoFactorLogin);
 router.post('/logout', protect, logoutUser);
 
 // Current user (RBAC)

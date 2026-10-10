@@ -7,7 +7,7 @@ import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
   validateConfirmPassword, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
-import { SignedInDevices } from '@/features/account';
+import { SignedInDevices, TwoFactorCard } from '@/features/account';
 import { Lock } from 'lucide-react';
 
 const validators = {
@@ -110,6 +110,7 @@ const SecurityPage = () => {
         </Button>
       </div>
     </form>
+    <TwoFactorCard />
     <SignedInDevices />
     </div>
   );

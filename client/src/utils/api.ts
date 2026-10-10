@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '@/config';
 import { clearSession, getToken } from '@/utils/session';
+import { TWO_FACTOR_REQUIRED_EVENT } from '@/utils/twoFactorRequired';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -34,6 +35,11 @@ api.interceptors.response.use(
       if (window.location.pathname !== '/login') {
         window.location.assign('/login?expired=1');
       }
+    }
+
+    // The workspace requires two-factor authentication and this account has none: the layout shows a blocking screen
+    if (status === 403 && error?.response?.data?.code === 'TWO_FACTOR_REQUIRED') {
+      window.dispatchEvent(new Event(TWO_FACTOR_REQUIRED_EVENT));
     }
 
     return Promise.reject(error);

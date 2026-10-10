@@ -11,6 +11,7 @@ We acknowledge reports within 3 working days.
 | Area | Measures |
 |---|---|
 | Authentication | bcrypt password hashes; JWT with a unique id per session, checked against a server-side session that can be revoked ("sign out other devices") |
+| Two-factor authentication | Optional TOTP (authenticator app) with one-time recovery codes; workspaces can require it for every member. See below |
 | Tokens at rest | Session, email-verification, password-reset and invitation tokens are stored as SHA-256 hashes |
 | Authorization | Every workspace route passes `requirePermission('<area>:<action>')`; role grants are capped by the granter's own access |
 | Input | express-validator on every write; NoSQL operator injection rejected; request bodies limited to 100 kB |
@@ -20,6 +21,44 @@ We acknowledge reports within 3 working days.
 | Audit | Append-only activity log (who, what, when, IP, device) for tasks, projects, sprints, members, invitations, settings and exports, kept 365 days; owners and admins can filter and export it |
 | Data exposure | Users never serialize password or token hashes; public user fields only (name, avatar) on tasks |
 | Supply chain | `pnpm audit --prod` gate in CI, Dependabot updates, CodeQL analysis; SonarQube configuration in `sonar-project.properties` |
+
+## Two-factor authentication
+
+People turn it on in Settings, Security. Sign-in then asks for a code after the password. Owners and admins can require it
+for a whole workspace.
+
+- **TOTP parameters.** RFC 6238 with HMAC-SHA1, a 30 second step and 6 digits, the profile every authenticator app supports.
+  Implemented with Node `crypto` only (`utils/totp.ts`, checked against the RFC 6238 and RFC 4226 test vectors). The shared
+  secret is 20 random bytes (160 bits), base32 encoded. A code is accepted for the current step and one step either side
+  (clock drift of 30 seconds); candidates are compared in constant time.
+- **Setup.** `POST /api/profile/2fa/setup` stores a pending secret and returns it with an `otpauth://` URL (the web app draws the
+  QR code in the browser). Nothing is enforced until `POST /api/profile/2fa/enable` receives a valid code and the account
+  password. Repeating the password and a code is also required to turn it off or to replace the recovery codes.
+- **Encryption at rest.** Secrets are encrypted with AES-256-GCM before they reach MongoDB (`utils/secretBox.ts`). The key is
+  derived with HKDF-SHA256 from `TWO_FACTOR_KEY`, falling back to `JWT_SECRET`; the user id is authenticated as additional data,
+  so a value copied to another account does not decrypt. The encrypted secret, the pending secret and the recovery code hashes are
+  `select: false` and never serialized. Changing the key makes existing secrets unreadable, so people would have to be reset: set
+  `TWO_FACTOR_KEY` before the first user enrolls and keep it stable.
+- **Recovery codes.** Ten codes shaped `xxxx-xxxx` (about 40 random bits each, from `crypto.randomInt`), shown once. Only bcrypt
+  hashes are stored. Each code works once: it is removed with a conditional update, so two parallel requests cannot both use it.
+  Creating new codes replaces all of them. A recovery code can turn two-factor off or complete a sign-in, but cannot create new codes.
+- **Replay protection.** The last accepted time step is stored (`lastUsedStep`); a code is accepted only for a newer step, and the
+  step is claimed with a conditional write, so the same code cannot be used twice, even in parallel. The code that proves the setup
+  is counted as used.
+- **Sign-in flow.** After a correct password, `POST /api/auth/login` answers `{ twoFactorRequired, challenge }` and creates no session.
+  The challenge is a 5 minute JWT (`purpose: '2fa'`) signed with a key derived from `JWT_SECRET` (not the session key) and bound to a
+  random nonce whose hash is stored in the `twofactorchallenges` collection (TTL index). `POST /api/auth/login/2fa` with the
+  challenge and a code or recovery code creates the session exactly like a password login. The challenge is single use and is deleted
+  after 5 wrong codes. Five consecutive wrong codes on an account, across challenges, pause second-step attempts for 15 minutes.
+  The endpoint also sits behind the sensitive rate limiter.
+- **Workspace policy.** `security.require2fa` on the workspace (changed by `settings:manage` through `PUT /api/workspaces/:slug`
+  with `{ require2fa }`, audited as `workspace.updated` with the change field `require2fa`). `requirePermission` answers
+  `403 { code: 'TWO_FACTOR_REQUIRED' }` to members, and to their API tokens, who have no two-factor. Account routes (profile, two-factor
+  setup, workspace list) are not workspace scoped and stay open so people can fix it. Nobody can switch the policy on without two-factor
+  on their own account, and nobody can turn two-factor off while a workspace they belong to requires it, so the policy cannot lock an
+  owner out.
+- **Scope.** None of the two-factor endpoints accept an API token. Resetting a forgotten password through the email link does not
+  remove two-factor, and does not skip it at the next sign-in.
 
 ## API tokens and webhooks
 

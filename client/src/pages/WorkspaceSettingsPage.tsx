@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap, Code2, Columns3 } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap, Code2, Columns3, TextCursorInput, Upload } from 'lucide-react';
 import {
   Alert,
   Field,
@@ -32,6 +32,7 @@ import ConfirmActionDialog from '../components/ConfirmActionDialog';
 import { usePermissions } from '../hooks/usePermissions';
 import { getApiErrorMessage } from '@/utils/api';
 import { useWorkspaceData, workspaceApi } from '@/features/workspace';
+import { WorkspaceSecurityCard } from '@/features/workspace/components/WorkspaceSecurityCard';
 import { GitHubIntegrationCard } from '@/features/integrations';
 import api from '../utils/api';
 
@@ -342,6 +343,40 @@ const WorkspaceSettingsPage = () => {
 
       {canManage && (
         <Link
+          to={`/${workspaceSlug}/settings/fields`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><TextCursorInput /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Custom fields</span>
+            <span className="block text-xs text-slate-600">Extra task information such as a customer, a budget or a link.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
+
+      {canManage && (
+        <Link
+          to={`/${workspaceSlug}/settings/import`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><Upload /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Import</span>
+            <span className="block text-xs text-slate-600">Bring tasks over from Trello, Jira or a CSV file.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
+
+      {canManage && (
+        <Link
           to={`/${workspaceSlug}/settings/developers`}
           className={cn(
             surfaceVariants({ radius: 'lg', padding: 'sm' }),
@@ -456,6 +491,16 @@ const WorkspaceSettingsPage = () => {
               </div>
             )}
           </Surface>
+
+          {/* ==================== Security policy ==================== */}
+          {workspaceSlug && (
+            <WorkspaceSecurityCard
+              workspaceSlug={workspaceSlug}
+              require2fa={Boolean(workspace.security?.require2fa)}
+              canManage={canManage}
+              onChange={(require2fa) => setWorkspace((current) => current && { ...current, security: { ...current.security, require2fa } })}
+            />
+          )}
 
           {/* ==================== 3. Integrations ==================== */}
           {canManage && workspaceSlug && <GitHubIntegrationCard workspaceSlug={workspaceSlug} />}

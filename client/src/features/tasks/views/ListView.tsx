@@ -11,7 +11,7 @@ import { CheckBurst, EmptyState, toast } from '@/components/ds';
 import { getApiErrorMessage, type BulkTaskPatch } from '../api';
 import BulkActionBar from '../components/BulkActionBar';
 import {
-  ChecklistBadge, DependencyCount, PriorityIndicator, RelationCount, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon,
+  ChecklistBadge, DependencyCount, PriorityIndicator, RelationCount, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon, TimeBadge,
 } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
 import TaskActionsMenu from '../components/TaskActionsMenu';
@@ -23,6 +23,7 @@ import { pruneSelection, selectRange, selectionState, toggleAll } from '../lib/s
 import { arrangeWithSubtasks, countSubtasks, indexSubtasks, type ListEntry, type SubtaskProgressCount } from '../lib/subtasks';
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
+import TaskCustomChips from '@/features/fields/components/TaskCustomChips';
 
 const GRID = 'grid grid-cols-[2.5rem_minmax(0,1fr)_6rem_7.5rem_9.5rem_9.5rem_4.5rem] items-center gap-4';
 // Same columns with a leading one for the selection checkbox
@@ -491,8 +492,10 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }:
     {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
     <RelationCount count={task.relations?.length ?? 0} />
+    <TaskCustomChips task={task} />
     <ChecklistBadge items={task.checklist} />
     <RepeatBadge recurrence={task.recurrence} />
+    <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />
     <ActivityCounts task={task} />
     {showAssignees && <AssigneeStack users={task.assignees} className="ml-auto" />}
   </div>

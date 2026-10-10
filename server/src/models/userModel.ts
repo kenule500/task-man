@@ -39,6 +39,19 @@ export interface IUser extends Document {
   workspaces: mongoose.Types.ObjectId[];
   activeWorkspace?: mongoose.Types.ObjectId;
 
+  // Two-factor authentication (authenticator app). The secrets are encrypted and never selected by default.
+  twoFactor?: {
+    enabled: boolean;
+    secretEncrypted?: string;
+    pendingSecretEncrypted?: string;
+    recoveryCodeHashes?: string[];
+    enabledAt?: Date;
+    /** Last accepted TOTP time step: a code is valid once */
+    lastUsedStep?: number;
+    failedAttempts?: number;
+    lockedUntil?: Date;
+  };
+
   matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -80,6 +93,18 @@ const userSchema: Schema = new Schema({
   },
   workspaces: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' }],
   activeWorkspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
+
+  // Two-factor authentication
+  twoFactor: {
+    enabled: { type: Boolean, default: false },
+    secretEncrypted: { type: String, select: false },
+    pendingSecretEncrypted: { type: String, select: false },
+    recoveryCodeHashes: { type: [String], select: false },
+    enabledAt: { type: Date },
+    lastUsedStep: { type: Number },
+    failedAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date },
+  },
 }, {
   timestamps: true,
   // Defence in depth: serialized users never carry the password hash or token hashes
@@ -88,6 +113,9 @@ const userSchema: Schema = new Schema({
       delete ret.password;
       delete ret.verificationToken;
       delete ret.resetPasswordToken;
+      // Only whether 2FA is on and since when; never secrets, hashes or counters
+      const twoFactor = ret.twoFactor as { enabled?: boolean; enabledAt?: Date } | undefined;
+      if (twoFactor) ret.twoFactor = { enabled: Boolean(twoFactor.enabled), enabledAt: twoFactor.enabledAt };
       return ret;
     },
   },

@@ -23,6 +23,10 @@ import type { Task, TaskInput } from '../types';
 import AssigneePicker from './AssigneePicker';
 import LabelInput from './LabelInput';
 import TaskScrumFields from './TaskScrumFields';
+import TaskFormCustomFields from '@/features/fields/components/TaskFormCustomFields';
+import { useCustomFields } from '@/features/fields/hooks/useCustomFields';
+import { createCustom, diffCustom, fieldsForProject, missingRequired } from '@/features/fields/lib/fields';
+import type { CustomValue, CustomValues } from '@/features/fields/types';
 import { DueDate, StatusDot } from './TaskBadges';
 import { PrioritySelect, StatusSelect } from './TaskSelects';
 
@@ -63,6 +67,9 @@ const TaskFormDialog = ({
   const [errors, setErrors] = useState<TaskFormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
+  const { active: customFields } = useCustomFields();
+  const [custom, setCustom] = useState<CustomValues>(() => ({ ...(task?.custom ?? {}) }));
+  const [customErrors, setCustomErrors] = useState<Record<string, string>>({});
 
   const candidates = useMemo(() => getDependencyCandidates(tasks, task?._id), [tasks, task?._id]);
   const projectNames = useMemo(
@@ -96,12 +103,19 @@ const TaskFormDialog = ({
     event.preventDefault();
     const nextErrors = validateTaskForm(values);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    // Required custom fields are only enforced when a task is created (as the API does)
+    const missing = isEdit ? [] : missingRequired(customFields, values.project.trim(), custom);
+    setCustomErrors(Object.fromEntries(missing.map(field => [field.key, `${field.name} is required.`])));
+    if (Object.keys(nextErrors).length > 0 || missing.length > 0) return;
 
     setSaving(true);
     setSubmitError('');
     try {
-      const result = await onSubmit(toTaskInput(values, task));
+      const input = toTaskInput(values, task);
+      const shown = fieldsForProject(customFields, values.project.trim());
+      const customInput = task ? diffCustom(task.custom, { ...custom }) : createCustom(shown, custom);
+      if (customInput) input.custom = customInput;
+      const result = await onSubmit(input);
       if (result === null) {
         setSubmitError('Your changes could not be saved. Please try again.');
         return;
@@ -190,6 +204,26 @@ const TaskFormDialog = ({
             </div>
 
             <TaskScrumFields values={values} onChange={set} projects={projects} epics={epics} isSubtask={Boolean(task?.parent)} />
+
+            <TaskFormCustomFields
+              project={values.project}
+              values={custom}
+              onChange={(key: string, value: CustomValue | null) => {
+                setCustom(current => {
+                  const next = { ...current };
+                  if (value === null) delete next[key];
+                  else next[key] = value;
+                  return next;
+                });
+                setCustomErrors(current => {
+                  if (!(key in current)) return current;
+                  const rest = { ...current };
+                  delete rest[key];
+                  return rest;
+                });
+              }}
+              errors={customErrors}
+            />
 
             <div className="space-y-1.5">
               <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">Labels</Label>

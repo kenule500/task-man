@@ -42,7 +42,7 @@ const LIST_SCROLL =
   'max-h-[60dvh] overflow-y-auto overscroll-contain [scrollbar-width:thin] [scrollbar-gutter:stable] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary';
 
 const formatDate =(iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 interface RoleControlProps {
   member: Member;

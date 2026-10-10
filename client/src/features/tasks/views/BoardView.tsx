@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ChecklistBadge, DependencyCount, DueDate, PriorityIndicator, RelationCount, RepeatBadge, SubtaskProgress, TaskTypeIcon,
+  ChecklistBadge, DependencyCount, DueDate, PriorityIndicator, RelationCount, RepeatBadge, SubtaskProgress, TaskTypeIcon, TimeBadge,
 } from '../components/TaskBadges';
 import BoardQuickFilters from '../components/BoardQuickFilters';
 import BoardSwimlanes from '../components/BoardSwimlanes';
@@ -790,6 +790,7 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, 
           <RelationCount count={task.relations?.length ?? 0} />
           <ChecklistBadge items={task.checklist} />
           <RepeatBadge recurrence={task.recurrence} />
+          <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />
           {(task.comments?.length ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Comments">
               <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only"> comments</span>

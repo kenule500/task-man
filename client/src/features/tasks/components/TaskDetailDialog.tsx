@@ -33,6 +33,9 @@ import TaskDevelopment from './TaskDevelopment';
 import TaskRecurrenceField from './TaskRecurrenceField';
 import TaskRelations from './TaskRelations';
 import TaskWatchToggle from './TaskWatchToggle';
+import TaskTimeSection from '@/features/time/components/TaskTimeSection';
+import TaskCustomFields from '@/features/fields/components/TaskCustomFields';
+import TaskReleaseDetail from '@/features/releases/components/TaskReleaseDetail';
 
 /** Everything the dialog can do to a task besides editing its fields. */
 export interface TaskDetailActions {
@@ -228,6 +231,14 @@ const TaskDetailDialog = ({
                 {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
               </DescriptionItem>
             )}
+            {!isEpic && (
+              <TaskReleaseDetail
+                task={task}
+                projects={projects}
+                canEdit={canEditFields}
+                onChange={releaseId => actions.updateTask!(taskId, { release: releaseId })}
+              />
+            )}
             {canRepeat(task) && (
               <DescriptionItem label="Repeat" wide>
                 <TaskRecurrenceField
@@ -282,6 +293,16 @@ const TaskDetailDialog = ({
             onChange={items => actions.updateTask!(taskId, { checklist: toChecklistInput(items) })}
           />
 
+          <TaskTimeSection
+            workspaceSlug={slug || undefined}
+            taskId={taskId}
+            estimateMinutes={task.estimateMinutes}
+            currentUserId={currentUser?._id}
+            canWrite={canWrite}
+            canEditEstimate={canEditFields}
+            onEstimateChange={minutes => actions.updateTask!(taskId, { estimateMinutes: minutes })}
+          />
+
           {epicStats && (
             <section aria-label="Items in this epic">
               <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -327,6 +348,13 @@ const TaskDetailDialog = ({
               onDelete={onDelete}
             />
           )}
+
+          <TaskCustomFields
+            task={task}
+            workspaceSlug={slug || undefined}
+            canWrite={canEditFields}
+            onChange={custom => actions.updateTask!(taskId, { custom })}
+          />
 
           <TaskRelations task={task} tasks={tasks} canWrite={canWrite} workspaceSlug={slug || undefined} onOpen={actions.openTask} />
 

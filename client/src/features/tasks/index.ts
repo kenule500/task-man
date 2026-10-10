@@ -23,7 +23,7 @@ export * from './lib/activityText';
 
 export {
   StatusBadge, StatusDot, PriorityIndicator, DueDate, DependencyCount,
-  TaskTypeIcon, TaskTypeBadge, StoryPoints, SubtaskProgress,
+  TaskTypeIcon, TaskTypeBadge, StoryPoints, SubtaskProgress, TimeBadge,
 } from './components/TaskBadges';
 export {
   OptionSelect, StatusSelect, PrioritySelect, TypeSelect, StoryPointsSelect, SprintSelect,

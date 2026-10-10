@@ -1,17 +1,21 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body } from 'express-validator';
-import Task, { MAX_LABELS, MAX_LABEL_LENGTH, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, type TaskStatus } from '../models/taskModel.js';
+import Task, { type ITask, MAX_LABELS, MAX_LABEL_LENGTH, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, type TaskStatus } from '../models/taskModel.js';
 import { recordActivity } from '../utils/activity.js';
 import { normalizeIds } from '../utils/taskGraph.js';
 import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
 import { normalizeLabels } from '../utils/taskQuery.js';
+import { describeCustomChanges, fieldPath, plainCustom } from '../utils/customFields.js';
+import { planRequestCustom } from '../utils/customFieldsDb.js';
 import {
   assertEpicTypeChange,
   assertValidAssignees,
   cleanUpRemovedTasks,
   describeTaskChanges,
   findOpenSprint,
+  reconcileRelease,
+  resolveRelease,
   findValidEpic,
   handleError,
   hasValidationErrors,
@@ -48,6 +52,8 @@ export const validateBulkUpdate = [
   body('patch.type').optional().isIn(TASK_TYPES).withMessage('Invalid type'),
   body('patch.sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
   body('patch.epic').optional({ values: 'null' }).isMongoId().withMessage('Invalid epic'),
+  body('patch.release').optional({ values: 'null' }).isMongoId().withMessage('Invalid release'),
+  body('patch.custom').optional().isObject().withMessage('Custom fields must be an object of key and value'),
   ...addRemoveRules('assignees'),
   body(['patch.assignees.add.*', 'patch.assignees.remove.*']).isMongoId().withMessage('Invalid assignee id'),
   ...addRemoveRules('labels'),
@@ -62,7 +68,7 @@ export const validateBulkDelete = [
   idListItems('ids'),
 ];
 
-const PATCH_KEYS = ['status', 'stage', 'priority', 'type', 'sprint', 'epic', 'assignees', 'labels'] as const;
+const PATCH_KEYS = ['status', 'stage', 'priority', 'type', 'sprint', 'epic', 'release', 'assignees', 'labels', 'custom'] as const;
 
 type Patch = {
   status?: string;
@@ -71,8 +77,10 @@ type Patch = {
   type?: string;
   sprint?: string | null;
   epic?: string | null;
+  release?: string | null;
   assignees?: { add?: unknown; remove?: unknown };
   labels?: { add?: unknown; remove?: unknown };
+  custom?: unknown;
 };
 
 const removeLabels = (labels: string[], remove: string[]): string[] => {
@@ -108,11 +116,18 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
     const labelsToRemove = normalizeLabels(patch.labels?.remove);
     assertValidAssignees(workspace, assigneesToAdd);
 
+    // Custom field values are validated once against the workspace's fields
+    const customPlan = 'custom' in patch ? await planRequestCustom(workspace, patch.custom, 'update') : null;
+    if (customPlan && !customPlan.ok) throw new TaskRuleError(customPlan.error);
+
     // Resolve the sprint once; moving into it also moves the tasks to its project
     const sprintProject = patch.sprint ? (await findOpenSprint(workspaceId, patch.sprint)).projectName : null;
 
     // Resolve the epic once; items join it only when they belong to its project
     const epic = patch.epic ? await findValidEpic(workspaceId, patch.epic, null) : null;
+
+    // Resolve the release once; tasks join it only when they belong to its project
+    const release = patch.release ? await resolveRelease(workspaceId, patch.release, { type: 'task', project: '' }) : null;
 
     const tasks = await Task.find({ _id: { $in: ids }, workspace: workspaceId });
     if (tasks.length === 0) {
@@ -179,6 +194,21 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
         task.set('epic', epic ? epic._id : null);
       }
 
+      if ('release' in patch) {
+        if (task.type === 'epic' && release) throw new TaskRuleError(`"${task.title}" is an epic and cannot be assigned to a release`);
+        if (task.parent) throw new TaskRuleError(`"${task.title}" is a subtask and follows the release of its parent`);
+        if (release) {
+          if (task.project && task.project.toLowerCase() !== release.project.toLowerCase()) {
+            throw new TaskRuleError(`"${task.title}" belongs to another project than the release`);
+          }
+          if (!task.project) task.set('project', release.project);
+        }
+        task.set('release', release ? release._id : null);
+      } else if (task.release && (sprintProject !== null || patch.type === 'epic')) {
+        // A new project or type can make the task's release no longer fit
+        await reconcileRelease(workspaceId, task as unknown as ITask, task.release);
+      }
+
       if (assigneesToAdd.length > 0 || assigneesToRemove.length > 0) {
         const removed = new Set(assigneesToRemove);
         const next = normalizeIds([...task.assignees.map(String), ...assigneesToAdd]).filter(id => !removed.has(id));
@@ -194,6 +224,11 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
         task.set('labels', next);
       }
 
+      if (customPlan?.ok) {
+        for (const [key, value] of Object.entries(customPlan.plan.set)) task.set(fieldPath(key), value);
+        for (const key of customPlan.plan.clear) task.custom?.delete(key);
+      }
+
       changed.push({ task, before });
     }
 
@@ -202,6 +237,7 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
       await task.save();
 
       const changes = describeTaskChanges(before, task.toObject() as unknown as Record<string, unknown>);
+      if (customPlan?.ok) changes.push(...describeCustomChanges(plainCustom(before.custom), task.custom, customPlan.defs));
       if (changes.length > 0) {
         await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
       }
@@ -209,12 +245,12 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
       if (task.status === 'completed' && before.status !== 'completed') await spawnNextOccurrence(req, task);
     }
 
-    // Subtasks follow their parent between projects, sprints and epics
-    if ('sprint' in patch || 'epic' in patch) {
+    // Subtasks follow their parent between projects, sprints, epics and releases
+    if ('sprint' in patch || 'epic' in patch || 'release' in patch) {
       for (const { task } of changed) {
         await Task.updateMany(
           { workspace: workspaceId, parent: task._id },
-          { $set: { project: task.project, sprint: task.sprint ?? null, ...('epic' in patch && { epic: task.epic ?? null }) } },
+          { $set: { project: task.project, sprint: task.sprint ?? null, release: task.release ?? null, ...('epic' in patch && { epic: task.epic ?? null }) } },
         );
       }
     }

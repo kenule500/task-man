@@ -78,6 +78,8 @@ const allowedOrigins = new Set(config.corsOrigins.filter(origin => origin !== '*
 app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
 // GitHub signs the exact bytes it sends, so its webhook gets the raw body (must come before express.json)
 app.use('/api/integrations/github', express.raw({ type: 'application/json', limit: '1mb' }));
+// Import files are text up to 2 MB (a little more once JSON-escaped), so that path gets a larger parser first
+app.use('/api/workspaces/:slug/import', express.json({ limit: '3mb' }));
 app.use(express.json({ limit: '100kb' }));
 
 // ============================================================
@@ -116,7 +118,7 @@ const sensitiveLimiter = rateLimit({
 app.use('/api/auth', authLimiter);
 app.use(
   ['/api/auth/login', '/api/auth/forgot-password', '/api/auth/resend-verification',
-    '/api/workspaces/join', '/api/invitations', '/api/profile/password'],
+    '/api/workspaces/join', '/api/invitations', '/api/profile/password', '/api/auth/login/2fa', '/api/profile/2fa'],
   (req, res, next) => (req.method === 'GET' ? next() : sensitiveLimiter(req, res, next)),
 );
 app.use('/api', apiLimiter);

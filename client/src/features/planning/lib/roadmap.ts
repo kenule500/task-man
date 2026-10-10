@@ -239,3 +239,30 @@ export const describeEpic = (epic: RoadmapEpic): string => {
     : `${epic.doneItems} of ${epic.items} ${epic.items === 1 ? 'item' : 'items'} done${epic.points > 0 ? `, ${epic.donePoints} of ${epic.points} points` : ''}`;
   return `${epic.title}, ${formatSpan(epic.start, epic.end)}, ${epic.percent}% complete, ${work}, ${HEALTH_LABEL[epic.health].toLowerCase()}`;
 };
+
+export interface ReleaseMarker {
+  id: string;
+  name: string;
+  status: 'unreleased' | 'released' | 'archived';
+  /** `YYYY-MM-DD` */
+  date: string;
+  /** Pixel offset of the marker's centre. */
+  left: number;
+}
+
+/** Milestone markers for the dated releases of a project, in date order. */
+export const releaseMarkers = (
+  releases: { _id: string; name: string; status: ReleaseMarker['status']; releaseDate?: string | null }[],
+  axis: RoadmapAxis,
+): ReleaseMarker[] =>
+  releases
+    .filter(release => release.status !== 'archived' && release.releaseDate)
+    .map(release => {
+      const date = dateKeyOf(release.releaseDate as string);
+      return { id: release._id, name: release.name, status: release.status, date, left: placeSpan({ start: date, end: date }, axis).left + axis.dayPx / 2 };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+/** Text alternative of one release marker. */
+export const describeReleaseMarker = (marker: Pick<ReleaseMarker, 'name' | 'status' | 'date'>): string =>
+  `Release ${marker.name}, ${marker.status === 'released' ? 'released' : 'due'} ${formatSpan(marker.date, marker.date)}`;

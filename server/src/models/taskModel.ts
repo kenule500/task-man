@@ -11,6 +11,7 @@ export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type TaskType = (typeof TASK_TYPES)[number];
 
 export const MAX_STORY_POINTS = 100;
+export const MAX_ESTIMATE_MINUTES = 100000;
 
 export const MAX_LABELS = 10;
 export const MAX_LABEL_LENGTH = 40;
@@ -91,6 +92,9 @@ export interface ITask extends Document {
   type: TaskType;
   // Effort estimate (Scrum story points); unset = not estimated
   storyPoints?: number | null;
+  // Time estimate in minutes (null = none) and the sum of the logged time entries (kept in sync by timeController)
+  estimateMinutes?: number | null;
+  loggedMinutes?: number;
   // Name of the project (see projectModel); '' = no project
   project: string;
   // Sprint the task is planned in; unset = product backlog
@@ -99,6 +103,8 @@ export interface ITask extends Document {
   parent?: mongoose.Types.ObjectId | null;
   // Epic (a task of type 'epic') this item belongs to; never set on epics themselves
   epic?: mongoose.Types.ObjectId | null;
+  // Release (fix version) of the task's project this item ships in; unset = none
+  release?: mongoose.Types.ObjectId | null;
   startDate?: Date;
   deadline: Date;
   // Manual ordering inside a board column (lower comes first)
@@ -120,6 +126,8 @@ export interface ITask extends Document {
   attachments: ITaskAttachment[];
   // Development links (GitHub pull requests, commits, branches) maintained by the webhook
   links?: ITaskLink[];
+  // Values of the workspace's custom fields, by field key (see customFieldModel)
+  custom?: Map<string, unknown>;
   owner: mongoose.Types.ObjectId;
   workspace: mongoose.Types.ObjectId;
   completedAt?: Date;
@@ -181,10 +189,13 @@ const taskSchema: Schema = new Schema({
   priority: { type: String, enum: TASK_PRIORITIES, default: 'medium' },
   type: { type: String, enum: TASK_TYPES, default: 'task' },
   storyPoints: { type: Number, min: 0, max: MAX_STORY_POINTS, default: null },
+  estimateMinutes: { type: Number, min: 0, max: MAX_ESTIMATE_MINUTES, default: null },
+  loggedMinutes: { type: Number, min: 0, default: 0 },
   project: { type: String, default: '', trim: true, maxlength: 60 },
   sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
   epic: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
+  release: { type: mongoose.Schema.Types.ObjectId, ref: 'Release', default: null },
   startDate: { type: Date },
   deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },
@@ -242,6 +253,7 @@ const taskSchema: Schema = new Schema({
   },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace', required: true },
+  custom: { type: Map, of: Schema.Types.Mixed },
   completedAt: { type: Date },
 }, {
   timestamps: true,
@@ -256,6 +268,7 @@ taskSchema.index({ workspace: 1, sprint: 1 });
 taskSchema.index({ workspace: 1, number: 1 }, { unique: true, partialFilterExpression: { number: { $type: 'number' } } });
 taskSchema.index({ workspace: 1, parent: 1 });
 taskSchema.index({ workspace: 1, epic: 1 });
+taskSchema.index({ workspace: 1, release: 1 });
 taskSchema.index({ workspace: 1, status: 1 });
 taskSchema.index({ workspace: 1, project: 1 });
 taskSchema.index({ workspace: 1, dependencies: 1 });

@@ -19,7 +19,7 @@ const formatExpiry = (iso: string): string => {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+    : date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 const getErrorMessage = (err: unknown, fallback: string): string =>

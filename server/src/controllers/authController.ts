@@ -13,6 +13,8 @@ import { verifyEmailTemplate, resetPasswordTemplate } from '../utils/emailTempla
 import { deriveActions } from '../config/permissions.js';
 import { createSecureToken, getBearerToken, hashToken } from '../utils/tokens.js';
 import { getConfig } from '../config/env.js';
+import { createChallenge } from '../utils/twoFactor.js';
+import type { IUser } from '../models/userModel.js';
 
 // ============================================================
 // Password rules
@@ -81,6 +83,27 @@ const createSession = async (userId: string, token: string, req: Request) => {
     ipAddress,
     lastLoggedIn: new Date(),
   });
+};
+
+/** Creates the session and builds the sign-in response (shared by password login and the two-factor step). */
+export const issueSession = async (user: IUser, req: Request) => {
+  const token = generateToken(user._id.toString());
+  await createSession(user._id.toString(), token, req);
+
+  const activeWs = user.activeWorkspace
+    ? await Workspace.findById(user.activeWorkspace).select('slug name')
+    : null;
+
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    token,
+    onboardingComplete: !!(user.onboarding?.completedAt),
+    activeWorkspace: user.activeWorkspace,
+    activeWorkspaceSlug: activeWs?.slug || null,
+    workspaces: user.workspaces,
+  };
 };
 
 const generateSlug = async (name: string): Promise<string> => {
@@ -269,23 +292,13 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      const token = generateToken(user._id.toString());
-      await createSession(user._id.toString(), token, req);
+      // Second step: no session until the authenticator code (or a recovery code) is accepted
+      if (user.twoFactor?.enabled) {
+        res.json({ twoFactorRequired: true, challenge: await createChallenge(user._id) });
+        return;
+      }
 
-      const activeWs = user.activeWorkspace
-        ? await Workspace.findById(user.activeWorkspace).select('slug name')
-        : null;
-
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token,
-        onboardingComplete: !!(user.onboarding?.completedAt),
-        activeWorkspace: user.activeWorkspace,
-        activeWorkspaceSlug: activeWs?.slug || null,
-        workspaces: user.workspaces,
-      });
+      res.json(await issueSession(user, req));
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }

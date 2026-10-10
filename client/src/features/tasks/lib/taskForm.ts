@@ -24,6 +24,8 @@ export interface TaskFormValues {
   sprint: string;
   /** Epic id; '' = none */
   epic: string;
+  /** Release id; '' = none */
+  release: string;
   /** `YYYY-MM-DD` or empty */
   startDate: string;
   /** `YYYY-MM-DD` */
@@ -48,6 +50,7 @@ export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValue
   storyPoints: task?.storyPoints ?? null,
   sprint: task?.sprint ?? '',
   epic: task?.epic ?? '',
+  release: task?.release ?? '',
   startDate: task?.startDate ? dateKeyOf(task.startDate) : '',
   deadline: task ? dateKeyOf(task.deadline) : todayKey(),
   dependencies: task?.dependencies ?? [],
@@ -82,6 +85,7 @@ export const toTaskInput = (values: TaskFormValues, task?: Task | null): TaskInp
     storyPoints: values.storyPoints,
     sprint: values.sprint || null,
     epic: values.epic || null,
+    release: values.release || null,
     startDate: values.startDate || null,
     deadline: values.deadline,
     dependencies: values.dependencies,
@@ -92,7 +96,10 @@ export const toTaskInput = (values: TaskFormValues, task?: Task | null): TaskInp
   if (task && (task.parent || (task.sprint ?? '') === values.sprint)) delete input.sprint;
   // Subtasks inherit their parent's epic; epics are containers outside sprints and epics
   if (task?.parent) delete input.epic;
+  // Subtasks follow their parent's release; an unchanged release is left out (the server refuses released ones)
+  if (task ? task.parent || (task.release ?? '') === values.release : !values.release) delete input.release;
   if (values.type === 'epic') {
+    input.release = null;
     input.epic = null;
     input.sprint = null;
   }

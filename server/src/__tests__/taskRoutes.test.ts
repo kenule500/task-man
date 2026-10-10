@@ -57,6 +57,11 @@ describe('task routes permissions', () => {
     ['delete', '/:id/watch', 'tasks:read'],
     ['get', '/:id/attachments/:attachmentId', 'tasks:read'],
     ['delete', '/:id/attachments/:attachmentId', 'tasks:write'],
+    ['get', '/:id/time', 'tasks:read'],
+    ['post', '/:id/time', 'tasks:write'],
+    ['delete', '/:id/time/:entryId', 'tasks:write'],
+    ['post', '/:id/timer/start', 'tasks:write'],
+    ['post', '/:id/timer/stop', 'tasks:write'],
   ])('%s %s needs %s', (method, path, permission) => {
     expect(permissionFor(method, path)).toBe(permission);
   });
@@ -69,7 +74,7 @@ describe('task routes permissions', () => {
 
   it('guards every route with a permission before its handler', () => {
     const routes = stack.filter(l => l.route);
-    expect(routes.length).toBe(19);
+    expect(routes.length).toBe(24);
     for (const layer of routes) {
       expect(layer.route?.stack[0].handle.permission).toMatch(/^tasks:(read|write|delete)$/);
     }

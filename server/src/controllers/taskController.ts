@@ -5,6 +5,7 @@ import Task, {
   ITask,
   MAX_CHECKLIST_ITEMS,
   MAX_CHECKLIST_TEXT,
+  MAX_ESTIMATE_MINUTES,
   MAX_LABELS,
   MAX_LABEL_LENGTH,
   MAX_STORY_POINTS,
@@ -14,13 +15,17 @@ import Task, {
   type TaskStatus,
 } from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
+import TimeEntry from '../models/timeEntryModel.js';
 import Sprint from '../models/sprintModel.js';
+import Release from '../models/releaseModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
 import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
 import { notifyTaskEvents } from '../utils/notify.js';
+import { describeCustomChanges, fieldPath, plainCustom } from '../utils/customFields.js';
+import { planRequestCustom } from '../utils/customFieldsDb.js';
 import { ensureTaskNumbers, reserveTaskNumbers } from '../utils/taskNumbers.js';
 import {
   describeRecurrence,
@@ -40,7 +45,7 @@ import {
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
   'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
-  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent', 'epic', 'checklist', 'recurrence',
+  'labels', 'assignees', 'type', 'storyPoints', 'estimateMinutes', 'sprint', 'parent', 'epic', 'release', 'checklist', 'recurrence',
 ] as const;
 
 // People shown on tasks: never expose email, password hashes or tokens
@@ -54,7 +59,7 @@ export class TaskRuleError extends Error {}
 
 // Fields whose changes are written to the activity log (description changes are noted without the text)
 const AUDITED_FIELDS = [
-  'title', 'status', 'priority', 'type', 'storyPoints', 'project', 'startDate', 'deadline', 'labels',
+  'title', 'status', 'priority', 'type', 'storyPoints', 'project', 'startDate', 'deadline', 'labels', 'estimateMinutes',
 ] as const;
 
 /** The workspace attached by requirePermission (req.workspace). */
@@ -115,6 +120,7 @@ const validatorFrom = (problem: (value: unknown) => string | null) => (value: un
 const optionalFieldRules = [
   body('checklist').optional().custom(validatorFrom(checklistProblem)),
   body('recurrence').optional({ values: 'null' }).custom(validatorFrom(recurrenceProblem)),
+  body('custom').optional().isObject().withMessage('Custom fields must be an object of key and value'),
   body('description').optional().isString().isLength({ max: 2000 }).withMessage('Description is too long'),
   body('project').optional().isString().isLength({ max: 60 }).withMessage('Project name is too long'),
   body('status').optional().isIn(TASK_STATUSES).withMessage('Invalid status'),
@@ -125,9 +131,12 @@ const optionalFieldRules = [
   body('type').optional().isIn(TASK_TYPES).withMessage('Invalid type'),
   body('storyPoints').optional({ values: 'null' }).isInt({ min: 0, max: MAX_STORY_POINTS })
     .withMessage(`Story points must be a whole number from 0 to ${MAX_STORY_POINTS}`),
+  body('estimateMinutes').optional({ values: 'null' }).isInt({ min: 0, max: MAX_ESTIMATE_MINUTES })
+    .withMessage(`Estimate must be a whole number of minutes from 0 to ${MAX_ESTIMATE_MINUTES}`),
   body('sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
   body('parent').optional({ values: 'null' }).isMongoId().withMessage('Invalid parent task'),
   body('epic').optional({ values: 'null' }).isMongoId().withMessage('Invalid epic'),
+  body('release').optional({ values: 'null' }).isMongoId().withMessage('Invalid release'),
   body('dependencies').optional().isArray().withMessage('Dependencies must be a list'),
   body('assignees').optional().isArray({ max: 50 }).withMessage('Assignees must be a list'),
   body('labels').optional().isArray({ max: 50 }).withMessage('Labels must be a list')
@@ -230,7 +239,7 @@ export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprin
 const findValidParent = async (workspaceId: mongoose.Types.ObjectId, taskId: string | null, parentId: string) => {
   if (typeof parentId !== 'string' || !mongoose.isValidObjectId(parentId)) throw new TaskRuleError('Invalid parent task');
   if (taskId && parentId === taskId) throw new TaskRuleError('A task cannot be its own parent');
-  const parent = await Task.findOne({ _id: new mongoose.Types.ObjectId(parentId), workspace: workspaceId }).select('parent project sprint epic type').lean();
+  const parent = await Task.findOne({ _id: new mongoose.Types.ObjectId(parentId), workspace: workspaceId }).select('parent project sprint epic release type').lean();
   if (!parent) throw new TaskRuleError('Parent task not found in this workspace');
   if (parent.type === 'epic') throw new TaskRuleError('An epic cannot have subtasks; link the item to the epic instead');
   if (parent.parent) throw new TaskRuleError('Subtasks cannot have subtasks');
@@ -248,6 +257,49 @@ export const findValidEpic = async (workspaceId: mongoose.Types.ObjectId, epicId
   const epic = await Task.findOne({ _id: new mongoose.Types.ObjectId(epicId), workspace: workspaceId }).select('type project').lean();
   if (!epic || epic.type !== 'epic') throw new TaskRuleError('Epic not found in this workspace');
   return { _id: epic._id as mongoose.Types.ObjectId, project: (epic.project ?? '') as string };
+};
+
+/**
+ * The release a task is assigned to: it must belong to the workspace and to the task's project (a task
+ * without a project joins the release's project), and only an unreleased release can receive tasks.
+ */
+export const resolveRelease = async (
+  workspaceId: mongoose.Types.ObjectId,
+  releaseId: unknown,
+  subject: { type: string; project: string },
+) => {
+  // Only a plain id string reaches the query (never an operator object from the request body)
+  if (typeof releaseId !== 'string' || !mongoose.isValidObjectId(releaseId)) throw new TaskRuleError('Invalid release');
+  if (subject.type === 'epic') throw new TaskRuleError('Epics cannot be assigned to a release');
+  const release = await Release.findOne({ _id: new mongoose.Types.ObjectId(releaseId), workspace: workspaceId }).select('project status').lean();
+  if (!release) throw new TaskRuleError('Release not found in this workspace');
+  if (release.status !== 'unreleased') throw new TaskRuleError(`This release is ${release.status}; choose an unreleased one`);
+  const project = await Project.findOne({ _id: release.project, workspace: workspaceId }).select('name').lean();
+  if (!project) throw new TaskRuleError('Release not found in this workspace');
+  if (subject.project && subject.project.toLowerCase() !== project.name.toLowerCase()) {
+    throw new TaskRuleError('This release belongs to another project');
+  }
+  return { _id: release._id as mongoose.Types.ObjectId, project: subject.project || project.name };
+};
+
+/**
+ * Keeps the release of an updated task consistent: a newly chosen release is validated, and a release
+ * that no longer fits the task's project (or type) is dropped.
+ */
+export const reconcileRelease = async (
+  workspaceId: mongoose.Types.ObjectId,
+  task: ITask,
+  beforeRelease: unknown,
+) => {
+  if (!task.release) return;
+  if (String(task.release) !== String(beforeRelease ?? '')) {
+    if (task.parent) throw new TaskRuleError('Subtasks follow the release of their parent task');
+    task.set('project', (await resolveRelease(workspaceId, String(task.release), task)).project);
+    return;
+  }
+  const release = await Release.findOne({ _id: task.release, workspace: workspaceId }).select('project').lean();
+  const project = release && await Project.findOne({ _id: release.project, workspace: workspaceId }).select('name').lean();
+  if (task.type === 'epic' || !project || task.project.toLowerCase() !== project.name.toLowerCase()) task.set('release', null);
 };
 
 export interface EpicSubject {
@@ -340,6 +392,9 @@ export const describeTaskChanges = (before: Record<string, unknown>, after: Reco
   if (String(before.epic ?? '') !== String(after.epic ?? '')) {
     changes.push({ field: 'epic', from: before.epic ? String(before.epic) : undefined, to: after.epic ? String(after.epic) : undefined });
   }
+  if (String(before.release ?? '') !== String(after.release ?? '')) {
+    changes.push({ field: 'release', from: before.release ? String(before.release) : undefined, to: after.release ? String(after.release) : undefined });
+  }
   if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
     changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
   }
@@ -412,6 +467,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     let sprint: string | null = req.body.sprint ?? null;
     const parentId: string | null = req.body.parent ?? null;
     let parentEpic: unknown = null;
+    let parentRelease: unknown = null;
     const dependencies = normalizeIds(req.body.dependencies);
     const assignees = normalizeIds(req.body.assignees);
     const labels = normalizeLabels(req.body.labels);
@@ -431,9 +487,24 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       if (project === undefined) project = parent.project;
       if (req.body.sprint === undefined && parent.sprint) sprint = String(parent.sprint);
       parentEpic = parent.epic;
+      parentRelease = parent.release;
     }
     if (type === 'epic' && sprint) throw new TaskRuleError('Epics cannot be planned in a sprint');
     if (sprint) project = (await findOpenSprint(workspaceId, sprint)).projectName;
+    // Subtasks follow the release of their parent (while it is still open)
+    let release: mongoose.Types.ObjectId | null = null;
+    if (parentId && req.body.release && String(req.body.release) !== String(parentRelease ?? '')) {
+      throw new TaskRuleError('Subtasks follow the release of their parent task');
+    }
+    const releaseId = parentId && (req.body.release ?? null) === null && parentRelease
+      && await Release.exists({ _id: parentRelease, workspace: workspaceId, status: { $eq: 'unreleased' } })
+      ? String(parentRelease)
+      : req.body.release;
+    if (releaseId) {
+      const resolved = await resolveRelease(workspaceId, releaseId, { type: type ?? 'task', project: project ?? '' });
+      release = resolved._id;
+      project = resolved.project;
+    }
     const resolvedStage = stageFor(workflowOf(workspace), { stage: req.body.stage, status });
     if (!resolvedStage) throw new TaskRuleError(UNKNOWN_STAGE_MESSAGE);
     const link = await resolveEpicLink(
@@ -443,6 +514,8 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     );
     project = link.project;
     assertCanRecur(recurrence, { parent: parentId, type: type ?? 'task' });
+    const customPlan = await planRequestCustom(workspace, req.body.custom, 'create', project);
+    if (!customPlan.ok) throw new TaskRuleError(customPlan.error);
 
     const number = await reserveTaskNumbers(workspaceId);
     const task = await Task.create({
@@ -452,9 +525,11 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       project,
       type,
       storyPoints: storyPoints ?? null,
+      estimateMinutes: req.body.estimateMinutes ?? null,
       sprint,
       parent: parentId,
       epic: link.epic,
+      release,
       status: resolvedStage.status,
       stage: resolvedStage.stage,
       priority,
@@ -466,6 +541,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       labels,
       checklist,
       recurrence,
+      custom: customPlan.plan.set,
       // Whoever creates a task follows it
       watchers: req.user ? [req.user._id] : [],
       owner: req.user?._id,
@@ -528,10 +604,10 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       } else if (field === 'parent') {
         if (value) await findValidParent(workspace._id as mongoose.Types.ObjectId, id, String(value));
         task.set('parent', value || null);
-      } else if (field === 'epic') {
-        // Epic rules are applied to the final state below
-        task.set('epic', value || null);
-      } else if (field === 'sprint' || field === 'storyPoints') {
+      } else if (field === 'epic' || field === 'release') {
+        // Epic and release rules are applied to the final state below
+        task.set(field, value || null);
+      } else if (field === 'sprint' || field === 'storyPoints' || field === 'estimateMinutes') {
         task.set(field, value ?? null);
       } else {
         task.set(field, value);
@@ -553,6 +629,14 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
 
     assertDateOrder(task.startDate, task.deadline);
     assertCanRecur(task.recurrence, task);
+    // Custom fields merge into the existing values; null clears one
+    const customBefore = plainCustom(before.custom);
+    const customPlan = 'custom' in req.body ? await planRequestCustom(workspace, req.body.custom, 'update', task.project) : null;
+    if (customPlan && !customPlan.ok) throw new TaskRuleError(customPlan.error);
+    if (customPlan?.ok) {
+      for (const [key, value] of Object.entries(customPlan.plan.set)) task.set(fieldPath(key), value);
+      for (const key of customPlan.plan.clear) task.custom?.delete(key);
+    }
     await reconcileSprint(task as unknown as ITask, workspace._id as mongoose.Types.ObjectId, {
       sprint: 'sprint' in req.body,
       project: 'project' in req.body,
@@ -570,10 +654,14 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       task.set('epic', link.epic);
       task.set('project', link.project);
     }
+    if (task.release && ['release', 'project', 'sprint', 'epic', 'type'].some(key => key in req.body)) {
+      await reconcileRelease(workspaceId, task as unknown as ITask, before.release);
+    }
     await task.save();
 
     const after = task.toObject() as unknown as Record<string, unknown>;
     const changes = describeTaskChanges(before, after);
+    if (customPlan?.ok) changes.push(...describeCustomChanges(customBefore, after.custom, customPlan.defs));
     if (changes.length > 0) {
       await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
     }
@@ -583,11 +671,11 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     });
     if (before.status !== 'completed' && task.status === 'completed') await spawnNextOccurrence(req, task);
 
-    // Subtasks follow their parent between projects and sprints
-    if ('sprint' in req.body || 'project' in req.body || 'epic' in req.body || task.project !== before.project) {
+    // Subtasks follow their parent between projects, sprints and releases
+    if ('sprint' in req.body || 'project' in req.body || 'epic' in req.body || 'release' in req.body || task.project !== before.project) {
       await Task.updateMany(
         { workspace: workspace._id, parent: task._id },
-        { $set: { project: task.project, sprint: task.sprint ?? null, epic: task.epic ?? null } },
+        { $set: { project: task.project, sprint: task.sprint ?? null, epic: task.epic ?? null, release: task.release ?? null } },
       );
     }
 
@@ -616,6 +704,8 @@ export const cleanUpRemovedTasks = async (workspaceId: mongoose.Types.ObjectId, 
   );
   // Deleting an epic keeps its items; they just leave the epic
   await Task.updateMany({ workspace: workspaceId, epic: { $in: removedIds } }, { $set: { epic: null } });
+  // Logged time goes with the task (a timer running on it disappears too)
+  await TimeEntry.deleteMany({ workspace: workspaceId, task: { $in: removedIds } });
   // Attachments live in GridFS, so they are removed explicitly
   await deleteFiles(removed.flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 };
@@ -685,6 +775,9 @@ const copiedFields = (source: ITask) => {
     assignees: [...(plain.assignees ?? [])],
     checklist: (plain.checklist ?? []).map(item => ({ text: item.text, done: false })),
     recurrence: plain.parent ? null : plain.recurrence ?? null,
+    custom: plainCustom(plain.custom),
+    // The estimate carries over; logged time belongs to the original
+    estimateMinutes: plain.estimateMinutes ?? null,
     status: 'pending' as const,
   };
 };

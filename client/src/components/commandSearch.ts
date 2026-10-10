@@ -1,6 +1,6 @@
 import {
   BarChart3, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
-  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, Zap, type LucideIcon,
+  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Upload, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import type { Project } from '@/features/projects';
@@ -54,11 +54,13 @@ const PAGES: PageDef[] = [
   { key: 'projects', label: 'Projects', icon: FolderKanban, permission: 'projects:read', path: 'projects' },
   { key: 'roadmap', label: 'Roadmap', icon: Milestone, permission: 'projects:read', path: 'roadmap', keywords: 'epics milestones' },
   { key: 'workload', label: 'Workload', icon: Gauge, permission: 'projects:read', path: 'workload', keywords: 'capacity people assignee points' },
+  { key: 'timesheet', label: 'Timesheet', icon: Timer, permission: 'tasks:read', path: 'timesheet', keywords: 'time tracking hours logged timer week' },
   { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports:read', path: 'reports', keywords: 'analytics stats' },
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },
   { key: 'audit', label: 'Audit log', icon: ScrollText, permission: 'settings:manage', path: 'settings/audit', keywords: 'activity history changes export security log' },
   { key: 'automations', label: 'Automations', icon: Zap, permission: 'settings:manage', path: 'settings/automations', keywords: 'rules triggers workflow when then' },
+  { key: 'import', label: 'Import', icon: Upload, permission: 'tasks:write', path: 'settings/import', keywords: 'trello jira csv migrate bring tasks upload spreadsheet' },
   { key: 'developers', label: 'Developers', icon: Code2, permission: 'tasks:read', path: 'settings/developers', keywords: 'api tokens webhooks integrations curl signature' },
   { key: 'help', label: 'Help', icon: HelpCircle, permission: null, path: 'help', keywords: 'support center' },
 ];
