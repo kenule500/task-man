@@ -27,6 +27,7 @@ import TaskFormCustomFields from '@/features/fields/components/TaskFormCustomFie
 import { useCustomFields } from '@/features/fields/hooks/useCustomFields';
 import { createCustom, diffCustom, fieldsForProject, missingRequired } from '@/features/fields/lib/fields';
 import type { CustomValue, CustomValues } from '@/features/fields/types';
+import { useLiveHold } from '@/features/live/hooks/useLiveHold';
 import { DueDate, StatusDot } from './TaskBadges';
 import { PrioritySelect, StatusSelect } from './TaskSelects';
 
@@ -70,6 +71,9 @@ const TaskFormDialog = ({
   const { active: customFields } = useCustomFields();
   const [custom, setCustom] = useState<CustomValues>(() => ({ ...(task?.custom ?? {}) }));
   const [customErrors, setCustomErrors] = useState<Record<string, string>>({});
+  // Unsaved edits: live updates from teammates wait instead of re-rendering the form's data underneath
+  const [pristine] = useState(() => JSON.stringify([values, custom]));
+  useLiveHold(open && JSON.stringify([values, custom]) !== pristine);
 
   const candidates = useMemo(() => getDependencyCandidates(tasks, task?._id), [tasks, task?._id]);
   const projectNames = useMemo(

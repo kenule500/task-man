@@ -205,7 +205,7 @@ describe('filters in the URL', () => {
 
   it('parses every filter', () => {
     expect(parseFilterParams(params('q=release&status=in-progress&priority=high&type=bug&label=ops&epic=abc123&assignedToMe=1&sort=deadline'))).toEqual({
-      search: 'release', status: 'in-progress', priority: 'high', type: 'bug', label: 'ops', epic: 'abc123', project: 'all', sprint: 'all', assignedToMe: true, sort: 'deadline',
+      search: 'release', status: 'in-progress', priority: 'high', type: 'bug', label: 'ops', epic: 'abc123', project: 'all', sprint: 'all', release: 'all', custom: {}, assignedToMe: true, sort: 'deadline',
     });
   });
 

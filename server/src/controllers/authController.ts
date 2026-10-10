@@ -478,6 +478,8 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     }
 
     user.password = password;
+    // An account created through single sign-on now has a password somebody chose
+    user.ssoOnly = false;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();

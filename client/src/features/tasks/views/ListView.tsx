@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckSquare, Circle, CircleCheck, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { ArrowDown, ArrowUp, CheckSquare, Circle, CircleCheck, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // Deep import: the projects index imports the tasks module back
 import ProjectChip from '@/features/projects/components/ProjectChip';
@@ -14,6 +15,7 @@ import {
   ChecklistBadge, DependencyCount, PriorityIndicator, RelationCount, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon, TimeBadge,
 } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
+import ListColumnsMenu from '../components/ListColumnsMenu';
 import TaskActionsMenu from '../components/TaskActionsMenu';
 import TaskKey from '../components/TaskKey';
 import { AssigneeStack, LabelList } from '../components/TaskChips';
@@ -24,10 +26,17 @@ import { arrangeWithSubtasks, countSubtasks, indexSubtasks, type ListEntry, type
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
 import TaskCustomChips from '@/features/fields/components/TaskCustomChips';
+import CustomFieldValue from '@/features/fields/components/CustomFieldValue';
+import { useCustomFields } from '@/features/fields/hooks/useCustomFields';
+import { useReleases } from '@/features/releases/hooks/useReleases';
+import { readListColumns, writeListColumns } from '@/utils/preferences';
+import {
+  builtInColumns, customColumns, gridTemplate, isSortableColumn, nextColumnSort, sortByColumn, tableMinWidth, toggleColumn, visibleColumns,
+  type ColumnSort, type ListColumn,
+} from '../lib/listColumns';
 
-const GRID = 'grid grid-cols-[2.5rem_minmax(0,1fr)_6rem_7.5rem_9.5rem_9.5rem_4.5rem] items-center gap-4';
-// Same columns with a leading one for the selection checkbox
-const GRID_SELECTABLE = 'grid grid-cols-[2.5rem_2.5rem_minmax(0,1fr)_6rem_7.5rem_9.5rem_9.5rem_4.5rem] items-center gap-4';
+// The columns come from the Columns menu, so the template is set per table (inline `gridTemplateColumns`)
+const GRID = 'grid items-center gap-4';
 
 /** Draws a dash instead of a tick while indeterminate (the shared Checkbox only knows the tick). */
 const INDETERMINATE = 'data-indeterminate:border-primary data-indeterminate:bg-primary data-indeterminate:[&_svg]:hidden data-indeterminate:before:block data-indeterminate:before:h-0.5 data-indeterminate:before:w-2 data-indeterminate:before:rounded-full data-indeterminate:before:bg-primary-foreground';
@@ -55,7 +64,31 @@ const ListView = ({
   tasks, totalCount, allTasks, onUpdate, onEdit, onDelete, onOpen, canWrite = true, canDelete = true,
   onBulkUpdate, onBulkDelete, projects, members,
 }: ListViewProps) => {
-  const entries = useMemo(() => arrangeWithSubtasks(tasks, allTasks ?? tasks), [tasks, allTasks]);
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const { active: activeFields } = useCustomFields();
+  // Visible columns are remembered per workspace; changing workspace re-reads them (state adjusted while rendering)
+  const [columnPrefs, setColumnPrefs] = useState<{ slug?: string; ids: string[] | null }>(() => ({
+    slug: workspaceSlug, ids: workspaceSlug ? readListColumns(workspaceSlug) : null,
+  }));
+  if (columnPrefs.slug !== workspaceSlug) setColumnPrefs({ slug: workspaceSlug, ids: workspaceSlug ? readListColumns(workspaceSlug) : null });
+  const columns = useMemo(() => visibleColumns(columnPrefs.ids, activeFields), [columnPrefs.ids, activeFields]);
+  const builtIn = useMemo(() => builtInColumns(), []);
+  const custom = useMemo(() => customColumns(activeFields), [activeFields]);
+  const visibleSet = useMemo(() => new Set(columns.map(column => column.id)), [columns]);
+  const chooseColumns = (ids: string[] | null) => {
+    setColumnPrefs({ slug: workspaceSlug, ids });
+    if (workspaceSlug) writeListColumns(workspaceSlug, ids);
+  };
+  // Sorting by a custom number or date column reorders the rows here; a third click restores the list's own order
+  const [columnSort, setColumnSort] = useState<ColumnSort | null>(null);
+  const sortField = columnSort ? columns.find(column => column.id === columnSort.id)?.field : undefined;
+  const shownTasks = useMemo(
+    () => (columnSort && sortField ? sortByColumn(tasks, sortField, columnSort.direction) : tasks),
+    [tasks, columnSort, sortField],
+  );
+  const { releases } = useReleases(workspaceSlug, visibleSet.has('release'));
+
+  const entries = useMemo(() => arrangeWithSubtasks(shownTasks, allTasks ?? tasks), [shownTasks, allTasks, tasks]);
   const children = useMemo(() => indexSubtasks(allTasks ?? tasks), [tasks, allTasks]);
   const visibleIds = useMemo(() => entries.map(entry => entry.task._id), [entries]);
 
@@ -134,7 +167,14 @@ const ListView = ({
     if (ok) clear();
   };
 
-  const rowProps = { onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete };
+  const table = useMemo((): TableContext => {
+    const names = new Map<string, string>();
+    for (const task of allTasks ?? tasks) for (const user of task.assignees ?? []) names.set(user._id, user.name);
+    for (const member of members ?? []) names.set(member._id, member.name);
+    const releaseNames = new Map(releases.map(release => [release._id, release.name]));
+    return { columns, template: gridTemplate(columns, selectable), userName: id => names.get(id), releaseName: id => releaseNames.get(id) };
+  }, [columns, selectable, allTasks, tasks, members, releases]);
+  const rowProps = { onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, table };
   const entryProps = (entry: ListEntry) => ({
     task: entry.task,
     depth: entry.depth,
@@ -184,15 +224,29 @@ const ListView = ({
         <>
           {/* Desktop and tablet: table */}
           <div data-testid="list-table" className="hidden overflow-x-auto md:block">
-            <div role="table" aria-label="Tasks" className={selectable ? 'min-w-[900px]' : 'min-w-[860px]'}>
-              <div role="row" className={cn(selectable ? GRID_SELECTABLE : GRID, 'px-6 py-4 border-b border-slate-100 bg-slate-50/50')}>
+            <div role="table" aria-label="Tasks" style={{ minWidth: `${tableMinWidth(columns, selectable)}rem` }}>
+              <div role="row" style={{ gridTemplateColumns: table.template }} className={cn(GRID, 'px-6 py-4 border-b border-slate-100 bg-slate-50/50')}>
                 {selectable && <div role="columnheader" className="flex items-center">{selectAll}</div>}
-                {['Done', 'Task Name', 'Assignees', 'Priority', 'Status', 'Due Date'].map((header, i) => (
-                  <div key={header} role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    <span className={cn(i === 0 && 'sr-only')}>{header}</span>
-                  </div>
+                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider"><span className="sr-only">Done</span></div>
+                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Task Name</div>
+                {columns.map(column => (
+                  <ColumnHeader
+                    key={column.id}
+                    column={column}
+                    sort={columnSort?.id === column.id ? columnSort : null}
+                    onSort={() => setColumnSort(nextColumnSort(columnSort, column.id))}
+                  />
                 ))}
-                <div role="columnheader"><span className="sr-only">Actions</span></div>
+                <div role="columnheader" className="flex items-center justify-end">
+                  <span className="sr-only">Actions</span>
+                  <ListColumnsMenu
+                    builtIn={builtIn}
+                    custom={custom}
+                    visible={visibleSet}
+                    onToggle={id => chooseColumns(toggleColumn(columnPrefs.ids, activeFields, id))}
+                    onReset={() => chooseColumns(null)}
+                  />
+                </div>
               </div>
               {entries.map(entry => (
                 <ListRow key={entry.task._id} {...entryProps(entry)} />
@@ -280,6 +334,39 @@ const labelsOf = (tasks: Task[]): string[] => {
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([label]) => label);
 };
 
+/** What the table's rows need to draw the chosen columns. */
+interface TableContext {
+  columns: ListColumn[];
+  /** CSS `grid-template-columns` shared by the header and every row. */
+  template: string;
+  userName: (id: string) => string | undefined;
+  releaseName: (id: string) => string | undefined;
+}
+
+/** A header cell; number and date custom columns sort the rows when clicked. */
+const ColumnHeader = ({ column, sort, onSort }: { column: ListColumn; sort: ColumnSort | null; onSort: () => void }) => {
+  const label = <span className="truncate">{column.header}</span>;
+  return (
+    <div
+      role="columnheader"
+      aria-sort={sort ? (sort.direction === 'asc' ? 'ascending' : 'descending') : undefined}
+      className="min-w-0 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+    >
+      {isSortableColumn(column) ? (
+        <button
+          type="button"
+          onClick={onSort}
+          className="-mx-1 inline-flex max-w-full items-center gap-1 rounded px-1 uppercase tracking-wider hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          {label}
+          {sort && (sort.direction === 'asc' ? <ArrowUp className="size-3 shrink-0" aria-hidden /> : <ArrowDown className="size-3 shrink-0" aria-hidden />)}
+          <span className="sr-only">, sort by this column</span>
+        </button>
+      ) : label}
+    </div>
+  );
+};
+
 type ListRowProps = Pick<TaskViewProps, 'onUpdate' | 'onEdit' | 'onDelete' | 'onOpen'> & {
   task: Task;
   canWrite: boolean;
@@ -348,7 +435,7 @@ const SelectCheckbox = ({ task, selection }: Pick<ListRowProps, 'task'> & { sele
   />
 );
 
-const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, depth = 0, orphanOf, progress, selection }: ListRowProps) => {
+const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, depth = 0, orphanOf, progress, selection, table }: ListRowProps & { table: TableContext }) => {
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
   const titleClass = cn('font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through');
@@ -358,8 +445,9 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
     <div
       role="row"
       aria-selected={selection ? selection.selected : undefined}
+      style={{ gridTemplateColumns: table.template }}
       className={cn(
-        selection ? GRID_SELECTABLE : GRID,
+        GRID,
         'py-3 px-6 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors group',
         selection?.selected && 'bg-primary/5 hover:bg-primary/5',
       )}
@@ -389,47 +477,14 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
             />
           </div>
         </div>
-        <TaskMeta task={task} showAssignees={false} progress={progress} orphanOf={orphanOf} className={cn(depth === 1 && 'pl-6')} />
+        <TaskMeta task={task} showAssignees={false} progress={progress} orphanOf={orphanOf} className={cn(depth === 1 && 'pl-6')} columns={table.columns} />
       </div>
 
-      <div role="cell" className="flex items-center">
-        <AssigneeStack users={task.assignees} preview />
-        {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-500" aria-label="Unassigned">—</span>}
-      </div>
-
-      <div role="cell">
-        {canWrite ? (
-          <PrioritySelect variant="inline" aria-label={`Priority of ${task.title}`} value={task.priority} onChange={priority => onUpdate(task._id, { priority })} />
-        ) : (
-          <PriorityIndicator priority={task.priority} className="px-2" />
-        )}
-      </div>
-
-      <div role="cell">
-        {canWrite ? (
-          <StatusSelect
-            variant="inline"
-            aria-label={`Status of ${task.title}`}
-            value={task.status}
-            stage={task.stage}
-            onChange={status => onUpdate(task._id, { status })}
-            onStageChange={stage => onUpdate(task._id, { stage })}
-          />
-        ) : (
-          <StatusBadge status={task.status} stage={task.stage ?? ''} />
-        )}
-      </div>
-
-      <div role="cell">
-        <InlineDate
-          label={`Due date for ${task.title}`}
-          value={dateKeyOf(task.deadline)}
-          min={task.startDate ? dateKeyOf(task.startDate) : undefined}
-          onSave={deadline => onUpdate(task._id, { deadline })}
-          readOnly={!canWrite}
-          className={overdue ? 'font-medium text-danger-fg' : 'text-slate-500'}
-        />
-      </div>
+      {table.columns.map(column => (
+        <div key={column.id} role="cell" className={cn('min-w-0', column.id === 'assignees' && 'flex items-center')}>
+          <ColumnCell column={column} task={task} overdue={overdue} canWrite={canWrite} onUpdate={onUpdate} table={table} />
+        </div>
+      ))}
 
       <div role="cell" className="flex items-center justify-end gap-0.5">
         <DetailsButton task={task} onOpen={onOpen} onEdit={onEdit} className={hoverReveal} />
@@ -446,6 +501,73 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
       </div>
     </div>
   );
+};
+
+const EMPTY_CELL = <span className="text-xs text-slate-500" aria-label="None">{'\u2014'}</span>;
+
+/** The value of one column in a table row. */
+const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
+  column: ListColumn;
+  task: Task;
+  overdue: boolean;
+  canWrite: boolean;
+  onUpdate: ListRowProps['onUpdate'];
+  table: TableContext;
+}) => {
+  switch (column.id) {
+    case 'assignees':
+      return (
+        <>
+          <AssigneeStack users={task.assignees} preview />
+          {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-500" aria-label="Unassigned">{'\u2014'}</span>}
+        </>
+      );
+    case 'priority':
+      return canWrite ? (
+        <PrioritySelect variant="inline" aria-label={`Priority of ${task.title}`} value={task.priority} onChange={priority => onUpdate(task._id, { priority })} />
+      ) : (
+        <PriorityIndicator priority={task.priority} className="px-2" />
+      );
+    case 'status':
+      return canWrite ? (
+        <StatusSelect
+          variant="inline"
+          aria-label={`Status of ${task.title}`}
+          value={task.status}
+          stage={task.stage}
+          onChange={status => onUpdate(task._id, { status })}
+          onStageChange={stage => onUpdate(task._id, { stage })}
+        />
+      ) : (
+        <StatusBadge status={task.status} stage={task.stage ?? ''} />
+      );
+    case 'dueDate':
+      return (
+        <InlineDate
+          label={`Due date for ${task.title}`}
+          value={dateKeyOf(task.deadline)}
+          min={task.startDate ? dateKeyOf(task.startDate) : undefined}
+          onSave={deadline => onUpdate(task._id, { deadline })}
+          readOnly={!canWrite}
+          className={overdue ? 'font-medium text-danger-fg' : 'text-slate-500'}
+        />
+      );
+    case 'storyPoints':
+      return task.storyPoints === null || task.storyPoints === undefined ? EMPTY_CELL : <StoryPoints points={task.storyPoints} />;
+    case 'release':
+      return task.release ? (
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-slate-700">
+          <Rocket aria-hidden className="size-3.5 shrink-0 text-slate-500" />
+          <span className="truncate">{table.releaseName(task.release) ?? 'Release'}</span>
+        </span>
+      ) : EMPTY_CELL;
+    case 'time':
+      return (task.loggedMinutes ?? 0) > 0 || task.estimateMinutes ? <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} /> : EMPTY_CELL;
+    default:
+      return column.field ? (
+        <CustomFieldValue field={column.field} value={task.custom?.[column.field.key]} userName={table.userName} empty={'\u2014'} />
+      ) : null;
+  }
 };
 
 /** Counters of comments and attachments, hidden when zero. */
@@ -471,13 +593,18 @@ const ActivityCounts = ({ task }: { task: Task }) => {
 };
 
 /** Project, labels, description, counters and assignees under a task title. */
-const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }: {
+const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf, columns }: {
   task: Task;
   className?: string;
   showAssignees?: boolean;
   progress?: SubtaskProgressCount;
   orphanOf?: string;
-}) => (
+  /** Table columns on screen: what they show is left out of the meta line. */
+  columns?: ListColumn[];
+}) => {
+  const shown = new Set(columns?.map(column => column.id));
+  const columnFields = columns?.flatMap(column => (column.field ? [column.field.key] : []));
+  return (
   <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5', className)}>
     {orphanOf && (
       <span className="inline-flex max-w-40 shrink-0 items-center gap-1 truncate rounded bg-slate-100 px-1.5 text-xs text-slate-600" title={`Subtask of ${orphanOf}`}>
@@ -485,21 +612,22 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }:
         <span className="truncate">Subtask of {orphanOf}</span>
       </span>
     )}
-    <StoryPoints points={task.storyPoints} />
+    {!shown.has('storyPoints') && <StoryPoints points={task.storyPoints} />}
     {progress && <SubtaskProgress done={progress.done} total={progress.total} />}
     {task.project && <ProjectChip name={task.project} className="max-w-40 shrink-0" />}
     <LabelList labels={task.labels} />
     {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
     <RelationCount count={task.relations?.length ?? 0} />
-    <TaskCustomChips task={task} />
+    <TaskCustomChips task={task} exclude={columnFields} />
     <ChecklistBadge items={task.checklist} />
     <RepeatBadge recurrence={task.recurrence} />
-    <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />
+    {!shown.has('time') && <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />}
     <ActivityCounts task={task} />
     {showAssignees && <AssigneeStack users={task.assignees} className="ml-auto" />}
   </div>
-);
+  );
+};
 
 /** Compact phone layout: title row with actions, then status, priority and due date. */
 const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, depth = 0, orphanOf, progress, selection }: ListRowProps) => {

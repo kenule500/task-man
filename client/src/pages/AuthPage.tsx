@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../utils/api';
 import { saveSession, type StoredUser } from '../utils/session';
+import { resolvePostLoginPath } from '../utils/postLogin';
+import { SsoButtons, clearFragment, parseSsoFragment, ssoErrorMessage } from '@/features/sso';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
@@ -44,11 +46,20 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  // Set when the password was right and the account asks for a second step
-  const [challenge, setChallenge] = useState<string | null>(null);
+  // A single sign-on of an account with two-factor lands here with the challenge in the URL fragment
+  const [fromSso] = useState(() => (isLogin ? parseSsoFragment(window.location.hash) : null));
+  // Set when the password was right (or the provider sign-in done) and the account asks for a second step
+  const [challenge, setChallenge] = useState<string | null>(fromSso?.challenge ?? null);
+  const ssoRedirect = fromSso?.redirect ?? null;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get('expired') === '1';
+  const ssoError = ssoErrorMessage(searchParams.get('sso_error'));
+
+  // The challenge is a credential for the second step: take it out of the address bar and history
+  useEffect(() => {
+    if (fromSso?.challenge || fromSso?.token) clearFragment();
+  }, [fromSso]);
 
   // Sign-in only needs presence; sign-up enforces the 8 character minimum
   const [validators] = useState(() => ({
@@ -64,32 +75,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   /** Stores the session and routes by onboarding and workspace state. */
   const finishLogin = (data: StoredUser & { token: string }) => {
     saveSession(data.token, data);
-
-    // Handle pending invite from the /accept-invite flow
-    const pendingInviteToken = sessionStorage.getItem('pendingInviteToken');
-    if (pendingInviteToken) {
-      sessionStorage.removeItem('pendingInviteToken');
-      navigate(`/accept-invite/${pendingInviteToken}`);
-      return;
-    }
-
-    // Handle pending invite code from the /join/:code page
-    const pendingInvite = sessionStorage.getItem('pendingInvite');
-    if (pendingInvite) {
-      sessionStorage.removeItem('pendingInvite');
-      navigate(`/join/${pendingInvite}`);
-      return;
-    }
-
-    // Route based on onboarding + workspace state
-    if (!data.onboardingComplete) {
-      navigate('/onboarding');
-    } else if (data.activeWorkspaceSlug) {
-      navigate(`/${data.activeWorkspaceSlug}/dashboard`);
-    } else {
-      // Edge case: onboarding marked complete but no workspace — send to onboarding
-      navigate('/onboarding');
-    }
+    navigate(ssoRedirect ?? resolvePostLoginPath(data));
   };
 
   const handleSecondFactor = async (input: SecondFactorInput) => {
@@ -282,6 +268,8 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
               <Alert tone="info" className="mb-6">Your session expired. Please sign in again.</Alert>
             )}
 
+            {ssoError && !error && <Alert tone="error" className="mb-6">{ssoError}</Alert>}
+
             {error && <Alert tone="error" className="mb-6">{error}</Alert>}
 
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
@@ -363,6 +351,8 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
                 )}
               </Button>
             </form>
+
+            <SsoButtons />
 
             <p className="mt-8 text-center text-sm text-slate-600">
               {isLogin ? 'New to TaskMan? ' : 'Already have an account? '}

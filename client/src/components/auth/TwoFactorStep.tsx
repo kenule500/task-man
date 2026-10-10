@@ -52,7 +52,7 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
         description={
           useRecovery
             ? 'Enter one of the recovery codes you saved when you turned on two-factor authentication.'
-            : <>Open your authenticator app and enter the code for <span className="font-semibold text-slate-800">{email}</span>.</>
+            : <>Open your authenticator app and enter the code{email ? <> for <span className="font-semibold text-slate-800">{email}</span></> : null}.</>
         }
       />
 

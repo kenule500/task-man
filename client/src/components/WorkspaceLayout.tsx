@@ -8,6 +8,7 @@ import { InsideWorkspaceShellContext } from './shellContext';
 import { EmptyState, SkeletonCards } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
 import { ProjectsProvider } from '@/features/projects';
+import { LiveSync } from '@/features/live';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
 import { clearSession, getToken } from '../utils/session';
@@ -24,7 +25,7 @@ import { clearSession, getToken } from '../utils/session';
 const WorkspaceLayout = () => {
   const navigate = useNavigate();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const { user, error } = usePermissions();
+  const { user, error, can } = usePermissions();
 
   const handleLogout = useCallback(async () => {
     await api.post('/auth/logout').catch(() => undefined);
@@ -69,6 +70,7 @@ const WorkspaceLayout = () => {
     <ProjectsProvider slug={workspaceSlug}>
       {workspaceSlug && <KeyboardShortcuts slug={workspaceSlug} />}
       <TwoFactorRequiredGate />
+      <LiveSync slug={workspaceSlug} enabled={can('tasks:read')} selfId={user._id} />
       <Sidebar user={user} onLogout={handleLogout}>
         <InsideWorkspaceShellContext.Provider value>
           <div className="w-full space-y-6">

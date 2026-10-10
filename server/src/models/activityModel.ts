@@ -12,6 +12,7 @@ export const ACTIVITY_ACTIONS = [
   'workflow.updated', 'webhook.created', 'webhook.updated', 'webhook.deleted', 'token.created', 'token.revoked',
   'time.logged', 'time.deleted', 'release.created', 'release.updated', 'release.deleted', 'release.released',
   'field.created', 'field.updated', 'field.deleted', 'import.completed',
+  'page.created', 'page.updated', 'page.deleted',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

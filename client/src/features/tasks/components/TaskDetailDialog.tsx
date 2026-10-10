@@ -16,7 +16,9 @@ import { useTaskExtras } from '../hooks/useTaskExtras';
 import { toChecklistInput } from '../lib/checklist';
 import { dateKeyOf, formatDate, isOverdue } from '../lib/date';
 import { describeEpicProgress, epicProgress, itemsOfEpic } from '../lib/epics';
-import { copyToClipboard, taskLink } from '../lib/taskKey';
+import { copyToClipboard, resolveTaskKey, taskLink } from '../lib/taskKey';
+import { useOpenTaskChanges } from '@/features/live/hooks/useOpenTaskChanges';
+import PresenceBar from '@/features/live/components/PresenceBar';
 import { canRepeat } from '../lib/recurrence';
 import { getSubtasks } from '../lib/subtasks';
 import type { Task, TaskPatch, TaskUser } from '../types';
@@ -84,6 +86,8 @@ const TaskDetailDialog = ({
   const slug = workspaceSlug ?? directory.slug;
   const extras = useTaskExtras(slug);
   const [duplicating, setDuplicating] = useState(false);
+  // Teammates changing the task that is open: tell the user (and offer a refresh when the view is held back)
+  useOpenTaskChanges(slug || undefined, task?._id, task ? resolveTaskKey(task, directory.byName) || task.title : '');
   // Names for ids we only know by reference (attachment uploaders)
   const userNames = useMemo(() => {
     const names = new Map<string, string>();
@@ -174,6 +178,7 @@ const TaskDetailDialog = ({
               )
             )}
           </div>
+          <PresenceBar slug={slug || undefined} taskId={taskId} />
           <DialogTitle className="text-lg leading-snug font-bold text-slate-900 [overflow-wrap:anywhere]">{task.title}</DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
             Details, comments and files for this task.

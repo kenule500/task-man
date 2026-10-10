@@ -8,6 +8,7 @@ import {
   validateConfirmPassword, validateNewPassword, validateRequiredPassword,
 } from '@/components/auth/validation';
 import { SignedInDevices, TwoFactorCard } from '@/features/account';
+import { ConnectedSignIn } from '@/features/sso';
 import { Lock } from 'lucide-react';
 
 const validators = {
@@ -110,6 +111,7 @@ const SecurityPage = () => {
         </Button>
       </div>
     </form>
+    <ConnectedSignIn />
     <TwoFactorCard />
     <SignedInDevices />
     </div>

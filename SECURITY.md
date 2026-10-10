@@ -12,6 +12,7 @@ We acknowledge reports within 3 working days.
 |---|---|
 | Authentication | bcrypt password hashes; JWT with a unique id per session, checked against a server-side session that can be revoked ("sign out other devices") |
 | Two-factor authentication | Optional TOTP (authenticator app) with one-time recovery codes; workspaces can require it for every member. See below |
+| Single sign-on | Optional Google and Microsoft sign-in over OpenID Connect: authorization code with PKCE, single-use hashed state, nonce, RS256 ID-token verification, linking only on provider-verified emails, session handed over in the URL fragment. See below |
 | Tokens at rest | Session, email-verification, password-reset and invitation tokens are stored as SHA-256 hashes |
 | Authorization | Every workspace route passes `requirePermission('<area>:<action>')`; role grants are capped by the granter's own access |
 | Input | express-validator on every write; NoSQL operator injection rejected; request bodies limited to 100 kB |
@@ -59,6 +60,56 @@ for a whole workspace.
   owner out.
 - **Scope.** None of the two-factor endpoints accept an API token. Resetting a forgotten password through the email link does not
   remove two-factor, and does not skip it at the next sign-in.
+
+## Single sign-on (Google and Microsoft)
+
+Optional OpenID Connect sign-in, off until a provider's client id and secret are set (see the README). It is implemented with
+`fetch`, Node `crypto` and `jsonwebtoken` only (`utils/oidc.ts`, unit tested against a locally generated RSA key and a fake JWKS;
+the HTTP flow is covered by `__integration__/sso.test.ts` with a fake provider).
+
+- **Authorization code with PKCE.** `GET /api/auth/sso/:provider/start` creates a random `state` (256 bits), a `nonce` and a PKCE
+  verifier (S256 challenge), stores them and redirects to the provider with `scope=openid email profile` and `prompt=select_account`.
+  The authorization endpoint, token endpoint and JWKS URI come from the provider's discovery document (cached for an hour) and
+  must be `https`. The client secret is sent only to the token endpoint, in the POST body.
+- **State.** Kept in the `ssostates` collection with a 10 minute TTL index. Only the SHA-256 of `state` is stored; the verifier and
+  nonce are needed to finish the exchange. The callback deletes the row atomically (`findOneAndDelete`) before doing anything else, so a
+  state works once, even when the sign-in later fails, and a replayed callback is refused. No cookie is set. The web app
+  remembers in `sessionStorage` that a sign-in was started in that tab and refuses a hand-off it did not start (login CSRF: a crafted
+  callback link that would sign you in to somebody else's account).
+- **Redirect path.** `redirect` must be a relative in-app path: absolute URLs, `//host`, backslashes, control characters and
+  anything that parses to another origin are refused with `400` and nothing is stored. The sign-in itself only ever redirects to
+  `CLIENT_URL`.
+- **ID token verification.** RS256 only (`none`, HMAC and other algorithms are refused, so there is no algorithm confusion); the key is
+  chosen by `kid` from the provider's JWKS and imported with `crypto.createPublicKey({ format: 'jwk' })`. An unknown `kid`
+  refetches the key set at most once a minute. Checked: signature, `iss` (exact match; for Microsoft's multi-tenant endpoints the
+  `{tenantid}` template is filled with the token's own `tid`, which must be a GUID), `aud` equal to the client id (with `azp` when
+  there are several), `exp` and `iat` with 2 minutes of clock skew (both required), `sub`, and the `nonce` (constant time).
+  `MICROSOFT_TENANT=organizations` refuses personal accounts and `consumers` accepts only them.
+- **Account linking rule.** A provider account that is already linked (`provider` + `sub`) signs in as that user, whatever its
+  email claim says now. Otherwise the provider must vouch for the email: Google needs `email_verified: true`; Microsoft's `email`
+  (or `preferred_username` when it is an address) is trusted only for personal Microsoft accounts, when `MICROSOFT_TENANT` is one specific
+  organization, or when the `xms_edov` claim (email domain owner verified) is true, because Entra otherwise allows a tenant to set any
+  address on its own users ("nOAuth"). Without a vouched email the sign-in ends with `email_unverified` and nothing is created. With one,
+  the account with that email (`$eq` lookup) is linked, or a new verified account is created with a random password nobody knows.
+  An account holds at most one identity per provider (a second one answers `account_conflict`), and a provider identity can belong to only
+  one account (unique partial index on `sso.provider` + `sso.subject`). If the existing account was never email-verified, it may have
+  been registered by someone who does not own the address (pre-hijacking): its password, verification and reset tokens are discarded and
+  its sessions revoked before the link is made.
+- **Two-factor stays in force.** When the account has two-factor authentication the callback creates no session; it redirects to
+  `/login#challenge=...` with the same single-use challenge as a password sign-in, and the code is entered on the usual second step.
+- **Hand-off.** A finished sign-in redirects to `/sso/complete#token=<session token>`. The fragment is never sent to a server, so the
+  token stays out of access logs, proxies and `Referer` headers (the app also sends `Referrer-Policy: no-referrer`); the page reads it,
+  removes it from the address bar and history, stores the session like a password login (a normal, revocable server-side session) and
+  continues. The redirects carry `Cache-Control: no-store`.
+- **Errors.** Failures redirect to `/login?sso_error=<code>` with one of a fixed set of codes (`access_denied`, `invalid_state`,
+  `provider_error`, `invalid_token`, `email_missing`, `email_unverified`, `tenant_not_allowed`, `account_conflict`, `server_error`); the web
+  app maps them to plain sentences. Provider messages, token endpoint bodies, codes, tokens and secrets are never put in a redirect or a
+  log line. The routes sit behind the authentication rate limiter.
+- **Removing a method.** `GET /api/profile/sso` and `DELETE /api/profile/sso/:provider` (never reachable with an API token). The last
+  way into an account that has no password cannot be removed; setting a password through "Forgot password" turns the account into a
+  normal one.
+- **Operating.** Rotate a client secret at the provider and in the host settings; changing it does not affect linked accounts. Removing
+  a provider's variables switches the button off and answers `404` on its routes; linked accounts keep their other sign-in methods.
 
 ## API tokens and webhooks
 

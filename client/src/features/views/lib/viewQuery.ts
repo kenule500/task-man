@@ -58,6 +58,9 @@ export const describeView = (view: Pick<SavedView, 'view' | 'query'>): string =>
   if (project) parts.push(`project ${project}`);
   const sprint = params.get('sprint');
   if (sprint) parts.push(sprint === 'active' ? 'active sprint' : sprint === 'backlog' ? 'backlog' : 'sprint');
+  if (params.get('release')) parts.push(params.get('release') === 'none' ? 'no release' : 'release');
+  const fieldFilters = [...params.keys()].filter(name => name.startsWith('cf.')).length;
+  if (fieldFilters > 0) parts.push(fieldFilters === 1 ? 'field filter' : `${fieldFilters} field filters`);
   if (params.get('assignedToMe')) parts.push('assigned to me');
   if (params.get('qf')) parts.push('quick filters');
   return parts.join(' · ');
