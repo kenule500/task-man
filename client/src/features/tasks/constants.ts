@@ -82,7 +82,7 @@ export const SORT_OPTIONS: SelectOption<TaskSort>[] = [
 export const TASK_VIEWS: TaskView[] = ['list', 'board', 'calendar', 'timeline'];
 
 
-export const TASK_TYPES: TaskType[] = ['story', 'task', 'bug', 'spike'];
+export const TASK_TYPES: TaskType[] = ['story', 'task', 'bug', 'spike', 'epic'];
 
 interface TypeMeta {
   label: string;
@@ -98,6 +98,8 @@ export const TASK_TYPE_META: Record<TaskType, TypeMeta> = {
   task: { label: 'Task', text: 'text-blue-700', badge: 'bg-blue-50 text-blue-700 border-blue-100', dot: 'bg-blue-600' },
   bug: { label: 'Bug', text: 'text-red-700', badge: 'bg-red-50 text-red-700 border-red-100', dot: 'bg-red-500' },
   spike: { label: 'Spike', text: 'text-violet-700', badge: 'bg-violet-50 text-violet-700 border-violet-100', dot: 'bg-violet-500' },
+  // Fuchsia stays apart from the blue / violet of tasks and spikes (-700 on -50 is AA)
+  epic: { label: 'Epic', text: 'text-fuchsia-700', badge: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', dot: 'bg-fuchsia-500' },
 };
 
 export const TASK_TYPE_OPTIONS: SelectOption<TaskType>[] = TASK_TYPES.map(type => ({

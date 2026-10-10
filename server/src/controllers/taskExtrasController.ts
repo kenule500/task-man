@@ -5,6 +5,7 @@ import { body } from 'express-validator';
 import Task, { MAX_ATTACHMENTS, MAX_COMMENT_LENGTH } from '../models/taskModel.js';
 import { ALLOWED_ATTACHMENT_TYPES, sanitizeFilename } from '../middleware/uploadMiddleware.js';
 import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
+import { loadMentionCandidates, notifyComment, resolveMentions, type NotifiableTask } from '../utils/notify.js';
 import { handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
 // Comments and attachments of a task. Routes guard these with requirePermission,
@@ -67,10 +68,18 @@ export const addComment = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
+    const text = String(req.body.text);
+    // "@Name" tags workspace members; the author is never notified about their own comment
+    const mentions = text.includes('@')
+      ? resolveMentions(text, await loadMentionCandidates(workspaceOf(req)))
+        .filter(memberId => !sameId(memberId, user._id))
+        .map(memberId => new mongoose.Types.ObjectId(memberId))
+      : [];
     const comment = {
       _id: new mongoose.Types.ObjectId(),
       author: user._id,
-      text: String(req.body.text),
+      text,
+      mentions,
       createdAt: new Date(),
     };
     const result = await Task.updateOne(
@@ -81,8 +90,11 @@ export const addComment = async (req: Request, res: Response): Promise<void> => 
       res.status(404).json({ message: 'Task not found' });
       return;
     }
-    const commented = await auditLookup(() => Task.findById(id).select('title').lean());
+    const commented = await auditLookup(() => Task.findById(id).select('title owner assignees').lean());
     await recordActivity(req, { action: 'task.commented', summary: commented?.title ?? '', task: id });
+    if (commented) {
+      await notifyComment(req, commented as unknown as NotifiableTask, { text, mentions });
+    }
 
     res.status(201).json({
       ...comment,

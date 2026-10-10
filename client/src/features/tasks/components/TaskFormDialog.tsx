@@ -12,9 +12,10 @@ import type { Project } from '@/features/projects';
 import type { WorkspaceMember } from '@/features/workspace';
 import { getApiErrorMessage } from '../api';
 import { getDependencyCandidates } from '../lib/dependencies';
+import { epicsOf } from '../lib/filters';
 import { collectLabels } from '../lib/labels';
 import {
-  sprintBelongsTo, toFormValues, toTaskInput, validateTaskForm, type TaskFormErrors, type TaskFormValues,
+  epicFitsProject, sprintBelongsTo, toFormValues, toTaskInput, validateTaskForm, type TaskFormErrors, type TaskFormValues,
 } from '../lib/taskForm';
 import type { Task, TaskInput } from '../types';
 import AssigneePicker from './AssigneePicker';
@@ -69,6 +70,7 @@ const TaskFormDialog = ({
     [tasks, projects],
   );
   const labelSuggestions = useMemo(() => collectLabels(tasks), [tasks]);
+  const epics = useMemo(() => epicsOf(tasks), [tasks]);
   const isEdit = Boolean(task);
 
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
@@ -80,6 +82,8 @@ const TaskFormDialog = ({
       ...current,
       project,
       sprint: current.sprint && sprintBelongsTo(projects, project, current.sprint) ? current.sprint : '',
+      // ...and an epic of another project
+      epic: current.epic && epicFitsProject(epics.find(epic => epic._id === current.epic), project) ? current.epic : '',
     }));
 
   const toggleDependency = (id: string, checked: boolean) =>
@@ -182,7 +186,7 @@ const TaskFormDialog = ({
               </datalist>
             </div>
 
-            <TaskScrumFields values={values} onChange={set} projects={projects} isSubtask={Boolean(task?.parent)} />
+            <TaskScrumFields values={values} onChange={set} projects={projects} epics={epics} isSubtask={Boolean(task?.parent)} />
 
             <div className="space-y-1.5">
               <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">Labels</Label>

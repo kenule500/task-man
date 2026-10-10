@@ -41,12 +41,12 @@ const ToastCard = ({ item, onDismiss }: ToastCardProps) => {
       onMouseLeave={resume}
       onFocus={pause}
       onBlur={resume}
-      className="pointer-events-auto flex w-full items-start gap-3 rounded-xl bg-slate-900 px-4 py-3 text-white shadow-lg ring-1 ring-white/10 sm:w-96 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
+      className="pointer-events-auto flex w-full items-start gap-3 rounded-xl bg-inverse px-4 py-3 text-inverse-text shadow-lg ring-1 ring-white/10 sm:w-96 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2"
     >
       <Icon className={cn('mt-0.5 size-4 shrink-0', iconClass)} aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium [overflow-wrap:anywhere]">{item.title}</p>
-        {item.description && <p className="mt-0.5 text-xs text-slate-300 [overflow-wrap:anywhere]">{item.description}</p>}
+        {item.description && <p className="mt-0.5 text-xs text-inverse-muted [overflow-wrap:anywhere]">{item.description}</p>}
       </div>
       {item.action && (
         <button
@@ -55,7 +55,7 @@ const ToastCard = ({ item, onDismiss }: ToastCardProps) => {
             item.action?.onClick();
             onDismiss(item.id);
           }}
-          className="-my-1 min-h-9 shrink-0 rounded-md px-2 text-sm font-semibold text-blue-300 hover:bg-white/10 hover:text-blue-200 focus-visible:outline-2 focus-visible:outline-blue-300"
+          className="-my-1 min-h-9 shrink-0 rounded-md px-2 text-sm font-semibold text-blue-300 hover:bg-white/10 hover:text-[#BFDBFE] focus-visible:outline-2 focus-visible:outline-blue-300"
         >
           {item.action.label}
         </button>
@@ -64,7 +64,7 @@ const ToastCard = ({ item, onDismiss }: ToastCardProps) => {
         type="button"
         onClick={() => onDismiss(item.id)}
         aria-label="Dismiss notification"
-        className="-my-1 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-300"
+        className="-my-1 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-inverse-text focus-visible:outline-2 focus-visible:outline-blue-300"
       >
         <X className="size-4" aria-hidden />
       </button>

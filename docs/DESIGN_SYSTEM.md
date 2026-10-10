@@ -11,7 +11,7 @@ One shared visual language for every TaskMan screen: tokens, accessible componen
 | Link from the app | Landing page footer → **Design system** |
 | Design system components | `client/src/components/ds/`, import from `@/components/ds` |
 | Base primitives (shadcn / Base UI) | `client/src/components/ui/` |
-| Design tokens | `client/src/index.css` (`@theme` and `:root`) |
+| Design tokens | `client/src/index.css` (`@theme`, `.dark` and `:root`) |
 | Style guide source | `client/src/pages/DesignSystemPage.tsx` (shell, search, navigation) and `client/src/pages/design-system/` (`registry.ts`, `tokens.ts`, `contrast.ts`, `kit.tsx`, `sections/*`) |
 | Rules (colors, layout, mobile, Scrum visuals, accessibility, PWA) | [`DESIGN.md`](../DESIGN.md) |
 | Teammate UI rules | [`perfect-ui-rules.md`](../perfect-ui-rules.md) |
@@ -78,6 +78,33 @@ Legacy names still work: `background`, `surface`, `foreground`, `muted-foregroun
 
 Marker colors (priority dots, `status-*` dots) are for shapes. For words use the `-text` / `-fg` tokens, which pass AA.
 Overdue stays `red-600` plus a screen-reader "(overdue)". Never color alone.
+
+### Dark mode
+
+Light, Dark or System (default). `lib/theme.ts` (`initTheme`, `setThemePreference`, `syncThemeFromUser`, `useThemePreference`) puts a `dark` class on `<html>`;
+`ThemeToggle` and the Appearance section of the profile page change it. It is stored in `localStorage` (`taskman.theme`) and on the account (`theme`).
+`index.css` declares `@custom-variant dark` and a `.dark` block that re-authors the variables Tailwind utilities read, so existing components need no `dark:` classes.
+
+| Token or utility | Light | Dark | Notes |
+|---|---|---|---|
+| `slate-50` / `canvas` | `#F8FAFC` | `#0B1220` | Canvas and input wells (lowest level) |
+| `white` / `surface-raised` / `card` | `#FFFFFF` | `#0F172A` | Cards, tables, sidebar |
+| `popover` | `#FFFFFF` | `#131D33` | One step above cards |
+| `slate-100` / `surface-sunken` / `muted` | `#F1F5F9` | `#172033` | Chips, tracks, hairlines |
+| `slate-200` / `border` | `#E2E8F0` | `#263449` | Default borders |
+| `slate-300` / `border-strong` / `input` | `#CBD5E1` | `#3A4A63` | Input borders |
+| `slate-500` / `text-subtle` | `#5B6B82` | `#94A3B8` | Meta text (6.96:1 on the card) |
+| `slate-700` / `text-body` | `#334155` | `#CBD5E1` | Body text |
+| `slate-900` / `text-strong` | `#0F172A` | `#F1F5F9` | Titles |
+| `text-primary` | `#2563EB` | `#60A5FA` | Solid `bg-primary` buttons keep `#2563EB` + white text |
+| `inverse` / `inverse-text` / `inverse-muted` / `inverse-border` | `#0F172A` `#FFFFFF` `#CBD5E1` `#1E293B` | `#1E293B` `#F8FAFC` `#CBD5E1` `#334155` | Toasts, code blocks, dark chips |
+| Tint ramps (red, emerald, amber, blue, violet) | `-50/-100/-200` light panels, `-600..-900` dark text | deep panels (for example red-50 `#2A151B`), light text (red-700 `#FCA5A5`) | Chips and alerts keep their class names |
+
+Rules: use tokens or the existing utilities (no raw hex, no `dark:` variants for covered colors); `text-white` on solid fills stays white (pinned in the
+`@layer utilities` block of `index.css`); surfaces that stay dark in both themes use `bg-inverse text-inverse-text`; borders keep separating cards because
+shadows nearly vanish on dark. Every text pair is at least 4.5:1 and icon/focus pairs at least 3:1; `pages/design-system/darkTokens.ts` lists the pairs and
+`pages/design-system/__tests__/darkTheme.test.ts` checks them and the hex values against `index.css`. The live page is **Foundations → Dark mode** in the guide.
+Adding a color: light value in `@theme`, dark value in `.dark`, mirror in `darkTokens.ts`, list its text pairs.
 
 ### Scales
 
@@ -209,7 +236,7 @@ The guide lists ten checks with an honest status for TaskMan today. Update the s
 |---|---|---|---|
 | 1 | Keyboard operable | Pass | Native elements and Base UI; menu or arrow-key alternative for every drag |
 | 2 | Focus visible | Pass | Ring or 2px outline on every interactive element |
-| 3 | Contrast | Partial | Text tokens pass. Existing priority labels still use `amber-600` (3.2:1); migrate to `priority-medium-text` |
+| 3 | Contrast | Partial | Text tokens pass in light and dark (dark pairs are tested). Existing priority labels still use `amber-600` (3.2:1); migrate to `priority-medium-text` |
 | 4 | Labels | Pass | `Field` with `aria-describedby`; no placeholder-only labels |
 | 5 | Landmarks and one `h1` | Pass | `PageHeader` is the `h1`; the shell supplies `main`; skip link on the guide |
 | 6 | Reduced motion | Pass | Global `prefers-reduced-motion` rule |

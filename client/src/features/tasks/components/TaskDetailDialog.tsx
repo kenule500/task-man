@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, CornerDownRight, Link2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
 import { UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
 // Deep import: the projects index imports the tasks module back
@@ -11,7 +11,9 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { UploadOptions } from '../api';
+import { TASK_TYPE_META } from '../constants';
 import { dateKeyOf, formatDate, isOverdue } from '../lib/date';
+import { describeEpicProgress, epicProgress, itemsOfEpic } from '../lib/epics';
 import { copyToClipboard, taskLink } from '../lib/taskKey';
 import { getSubtasks } from '../lib/subtasks';
 import type { Task, TaskPatch, TaskUser } from '../types';
@@ -19,7 +21,7 @@ import SubtaskList from './SubtaskList';
 import TaskActivity from './TaskActivity';
 import DevCopyMenu from './DevCopyMenu';
 import TaskKey from './TaskKey';
-import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge } from './TaskBadges';
+import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge, TaskTypeIcon } from './TaskBadges';
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
 import TaskComments from './TaskComments';
@@ -94,7 +96,11 @@ const TaskDetailDialog = ({
     .filter((item): item is Task => Boolean(item));
   const taskId = task._id;
   const parent = task.parent ? tasks.find(item => item._id === task.parent) : undefined;
-  const subtasks = task.parent ? [] : getSubtasks(tasks, taskId);
+  const subtasks = task.parent || task.type === 'epic' ? [] : getSubtasks(tasks, taskId);
+  const isEpic = task.type === 'epic';
+  const epic = !isEpic && task.epic ? tasks.find(item => item._id === task.epic) : undefined;
+  const epicItems = isEpic ? itemsOfEpic(tasks, taskId) : [];
+  const epicStats = isEpic ? epicProgress(task, tasks) : null;
   const sprintNameOf = (id: string) => projects.flatMap(project => project.sprints).find(sprint => sprint._id === id)?.name;
   const sprintName = task.sprint ? sprintNameOf(task.sprint) ?? 'Sprint' : null;
 
@@ -137,6 +143,23 @@ const TaskDetailDialog = ({
             <StatusBadge status={task.status} />
             <PriorityIndicator priority={task.priority} />
             {task.project && <ProjectChip name={task.project} showKey className="max-w-56" />}
+            {epic && (
+              actions.openTask ? (
+                <button
+                  type="button"
+                  onClick={() => actions.openTask?.(epic)}
+                  className={`inline-flex min-h-8 max-w-64 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:brightness-95 focus-visible:outline-2 focus-visible:outline-primary ${TASK_TYPE_META.epic.badge}`}
+                >
+                  <Zap className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate" title={epic.title}>Epic: {epic.title}</span>
+                </button>
+              ) : (
+                <span className={`inline-flex max-w-64 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${TASK_TYPE_META.epic.badge}`}>
+                  <Zap className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate" title={epic.title}>Epic: {epic.title}</span>
+                </span>
+              )
+            )}
           </div>
           <DialogTitle className="text-lg leading-snug font-bold text-slate-900 [overflow-wrap:anywhere]">{task.title}</DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
@@ -190,9 +213,11 @@ const TaskDetailDialog = ({
                 </span>
               </Detail>
             )}
-            <Detail label="Sprint">
-              {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
-            </Detail>
+            {!isEpic && (
+              <Detail label="Sprint">
+                {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
+              </Detail>
+            )}
             <Detail label="Labels">
               {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">None</span>}
             </Detail>
@@ -232,7 +257,41 @@ const TaskDetailDialog = ({
             )}
           </section>
 
-          {!task.parent && (subtasks.length > 0 || (canWrite && actions.createSubtask)) && (
+          {epicStats && (
+            <section aria-label="Items in this epic">
+              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+                Items <span className="tabular-nums">({epicItems.length})</span>
+              </h3>
+              {epicItems.length === 0 ? (
+                <p className="text-sm text-slate-500">No items yet. Choose this epic when you create or edit a story, task, bug or spike.</p>
+              ) : (
+                <>
+                  <p className="mb-2 text-sm text-slate-600">{describeEpicProgress(epicStats)}</p>
+                  <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                    {epicItems.map(item => (
+                      <li key={item._id} className="flex items-center gap-2 px-3 py-2">
+                        <TaskTypeIcon type={item.type} />
+                        {actions.openTask ? (
+                          <button
+                            type="button"
+                            onClick={() => actions.openTask?.(item)}
+                            className="min-h-8 min-w-0 flex-1 truncate rounded text-left text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                          >
+                            {item.title}
+                          </button>
+                        ) : (
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{item.title}</span>
+                        )}
+                        <StatusBadge status={item.status} className="px-2 py-0.5" />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
+
+          {!task.parent && !isEpic && (subtasks.length > 0 || (canWrite && actions.createSubtask)) && (
             <SubtaskList
               subtasks={subtasks}
               canWrite={canWrite}

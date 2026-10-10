@@ -125,16 +125,16 @@ export const CodeBlock = ({ code, label = 'Code' }: { code: string; label?: stri
   };
 
   return (
-    <div className="relative min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-      <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-1.5">
-        <span className="text-xs font-medium text-slate-300">{label}</span>
-        <Button type="button" variant="ghost" size="sm" onClick={copy} className="text-slate-300 hover:bg-slate-800 hover:text-white">
+    <div className="relative min-w-0 overflow-hidden rounded-xl border border-inverse-border bg-inverse">
+      <div className="flex items-center justify-between gap-2 border-b border-inverse-border px-3 py-1.5">
+        <span className="text-xs font-medium text-inverse-muted">{label}</span>
+        <Button type="button" variant="ghost" size="sm" onClick={copy} className="text-inverse-muted hover:bg-inverse-border hover:text-inverse-text">
           {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
           <span>{copied ? 'Copied' : 'Copy'}</span>
           <span className="sr-only"> {label.toLowerCase()} to clipboard</span>
         </Button>
       </div>
-      <pre tabIndex={0} className="overflow-x-auto p-4 text-xs leading-5 text-slate-100 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"><code>{code}</code></pre>
+      <pre tabIndex={0} className="overflow-x-auto p-4 text-xs leading-5 text-inverse-text outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"><code>{code}</code></pre>
       <span role="status" className="sr-only">{copied ? 'Copied to clipboard' : ''}</span>
     </div>
   );

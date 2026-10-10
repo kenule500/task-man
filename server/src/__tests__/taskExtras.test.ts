@@ -28,6 +28,11 @@ jest.mock('../models/taskModel.js', () => ({
   MAX_ATTACHMENTS: 20,
   default: { findOne: jest.fn(), updateOne: jest.fn(), populate: jest.fn() },
 }));
+jest.mock('../utils/notify.js', () => ({
+  resolveMentions: jest.fn(() => []),
+  loadMentionCandidates: jest.fn().mockResolvedValue([]),
+  notifyComment: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../utils/gridfs.js', () => ({
   saveFile: jest.fn(),
   openFileStream: jest.fn(),

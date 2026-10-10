@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import {
-  ConfirmTaskDelete, DELETE_UNDO_MS, OptionSelect, TaskDetailDialog, TaskFormDialog, addDays, dateKeyOf, getApiErrorMessage, toDateKey,
+  ConfirmTaskDelete, DELETE_UNDO_MS, OptionSelect, TaskDetailDialog, TaskFormDialog, addDays, dateKeyOf, epicsOf, getApiErrorMessage, toDateKey,
   useTasks, useWorkspaceMembers,
   type Task, type TaskDetailActions, type TaskInput,
 } from '@/features/tasks';
@@ -17,6 +17,7 @@ import { groupProjectTasks, projectTasks } from '../lib/grouping';
 import { workProgress } from '../lib/sprintStats';
 import { averageVelocity } from '../lib/velocity';
 import CompleteSprintDialog from './CompleteSprintDialog';
+import EpicsPanel from './EpicsPanel';
 import OverviewTab from './OverviewTab';
 import QuickAdd from './QuickAdd';
 import SprintCard from './SprintCard';
@@ -42,7 +43,7 @@ interface ProjectWorkspaceProps {
   onEditSprint: (sprint: Sprint) => void;
 }
 
-const TABS = ['sprints', 'backlog', 'overview'] as const;
+const TABS = ['sprints', 'backlog', 'epics', 'overview'] as const;
 type TabValue = (typeof TABS)[number];
 
 const MOVE_PLACEHOLDER = '';
@@ -90,6 +91,7 @@ const ProjectWorkspace = ({
   const own = useMemo(() => projectTasks(tasks, project), [tasks, project]);
   const groups = useMemo(() => groupProjectTasks(own, project.sprints), [own, project.sprints]);
   const progress = useMemo(() => workProgress(own), [own]);
+  const epics = useMemo(() => epicsOf(own), [own]);
   const velocity = useMemo(() => averageVelocity(project.sprints), [project.sprints]);
   const detailTask = detailId ? tasks.find(task => task._id === detailId) ?? null : null;
 
@@ -113,6 +115,17 @@ const ProjectWorkspace = ({
       return created;
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not add the story.'));
+      throw err;
+    }
+  };
+
+  const addEpic = async (title: string) => {
+    try {
+      const created = await createTask({ title, project: project.name, type: 'epic', deadline: toDateKey(addDays(new Date(), 30)) });
+      if (created) toast.success('Epic added');
+      return created;
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not add the epic.'));
       throw err;
     }
   };
@@ -155,6 +168,7 @@ const ProjectWorkspace = ({
     uploadAttachment,
     removeAttachment,
     downloadAttachment,
+    openTask: (task: Task) => setDetailId(task._id),
   };
 
   // ----- sprint actions ---------------------------------------------------
@@ -262,6 +276,7 @@ const ProjectWorkspace = ({
         <TabsList aria-label="Project sections" className="w-full group-data-horizontal/tabs:h-11 sm:w-fit sm:group-data-horizontal/tabs:h-9">
           <TabsTrigger value="sprints" className="px-4">Sprints <span className="tabular-nums text-slate-600">{project.sprints.length}</span></TabsTrigger>
           <TabsTrigger value="backlog" className="px-4">Backlog <span className="tabular-nums text-slate-600">{groups.backlog.length}</span></TabsTrigger>
+          <TabsTrigger value="epics" className="px-4">Epics <span className="tabular-nums text-slate-600">{epics.length}</span></TabsTrigger>
           <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
         </TabsList>
 
@@ -354,6 +369,18 @@ const ProjectWorkspace = ({
                     : 'Stories that are not planned into a sprint wait here.'}
                 />
               )}
+            />
+          </Surface>
+        </TabsContent>
+
+        <TabsContent value="epics">
+          <Surface as="section" padding="none" aria-label="Epics" className="overflow-hidden">
+            <EpicsPanel
+              epics={epics}
+              tasks={own}
+              canWrite={canWriteTasks}
+              onOpen={epic => setDetailId(epic._id)}
+              onAdd={addEpic}
             />
           </Surface>
         </TabsContent>

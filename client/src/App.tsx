@@ -44,6 +44,7 @@ const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
+const InboxPage = lazy(() => import('./pages/InboxPage'));
 
 const PageFallback = () => (
   <div className="mx-auto max-w-5xl p-6">
@@ -212,6 +213,9 @@ function App() {
                   </PermissionRoute>
                 }
               />
+
+              {/* Inbox: the signed-in user's own notifications, no permission required */}
+              <Route path="/:workspaceSlug/inbox" element={<Lazy><InboxPage /></Lazy>} />
 
               {/* Help: no permission required */}
               <Route

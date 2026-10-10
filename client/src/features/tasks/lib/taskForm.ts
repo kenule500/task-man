@@ -6,6 +6,8 @@ import { dateKeyOf, todayKey } from './date';
 /** Select value standing for "no sprint" (the product backlog) and "no estimate". */
 export const BACKLOG_VALUE = 'backlog';
 export const NO_ESTIMATE_VALUE = 'none';
+/** Select value standing for "no epic". */
+export const NO_EPIC_VALUE = 'none';
 
 export interface TaskFormValues {
   title: string;
@@ -18,6 +20,8 @@ export interface TaskFormValues {
   storyPoints: number | null;
   /** Sprint id; '' = backlog */
   sprint: string;
+  /** Epic id; '' = none */
+  epic: string;
   /** `YYYY-MM-DD` or empty */
   startDate: string;
   /** `YYYY-MM-DD` */
@@ -40,6 +44,7 @@ export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValue
   type: task?.type ?? 'task',
   storyPoints: task?.storyPoints ?? null,
   sprint: task?.sprint ?? '',
+  epic: task?.epic ?? '',
   startDate: task?.startDate ? dateKeyOf(task.startDate) : '',
   deadline: task ? dateKeyOf(task.deadline) : todayKey(),
   dependencies: task?.dependencies ?? [],
@@ -73,6 +78,7 @@ export const toTaskInput = (values: TaskFormValues, task?: Task | null): TaskInp
     type: values.type,
     storyPoints: values.storyPoints,
     sprint: values.sprint || null,
+    epic: values.epic || null,
     startDate: values.startDate || null,
     deadline: values.deadline,
     dependencies: values.dependencies,
@@ -80,6 +86,12 @@ export const toTaskInput = (values: TaskFormValues, task?: Task | null): TaskInp
     assignees: values.assignees,
   };
   if (task && (task.parent || (task.sprint ?? '') === values.sprint)) delete input.sprint;
+  // Subtasks inherit their parent's epic; epics are containers outside sprints and epics
+  if (task?.parent) delete input.epic;
+  if (values.type === 'epic') {
+    input.epic = null;
+    input.sprint = null;
+  }
   return input;
 };
 
@@ -122,6 +134,25 @@ export const sprintOptionsFor = (
     { value: BACKLOG_VALUE, label: 'Backlog' },
     ...sprints.map(sprint => ({ value: sprint._id, label: sprint.status === 'completed' ? `${sprint.name} (completed)` : sprintLabel(sprint) })),
   ];
+};
+
+/**
+ * Epics an item of `projectName` can join: those of the same project (all epics while the item has no project),
+ * plus the one it is already in. Returns the options with "No epic" first.
+ */
+export const epicOptionsFor = (epics: Task[], projectName: string | undefined, currentEpicId = ''): SelectOption<string>[] => {
+  const project = projectName?.trim() ?? '';
+  const usable = epics.filter(epic => !project || (epic.project ?? '') === project || epic._id === currentEpicId);
+  return [
+    { value: NO_EPIC_VALUE, label: 'No epic' },
+    ...usable.map(epic => ({ value: epic._id, label: epic.title })),
+  ];
+};
+
+/** Whether the epic can hold items of the named project (an item without project fits any epic). */
+export const epicFitsProject = (epic: Task | undefined, projectName: string | undefined): boolean => {
+  const project = projectName?.trim() ?? '';
+  return Boolean(epic) && (!project || (epic?.project ?? '') === project);
 };
 
 /** Whether the sprint belongs to the named project (a project change otherwise leaves the sprint). */

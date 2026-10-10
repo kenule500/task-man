@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   audit:
-    name: Dependency audit (production)
+    name: Dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,8 +26,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Fails on high or critical advisories in shipped (non-dev) dependencies
+      # Fails on high or critical advisories in shipped dependencies, and on any advisory at all in dev tooling
       - run: pnpm audit --prod --audit-level high
+      - run: pnpm audit --audit-level moderate
 
   server:
     name: Server (typecheck, test, build)

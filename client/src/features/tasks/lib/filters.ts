@@ -4,10 +4,10 @@ import type { Task, TaskFilters, TaskSort, TaskStatus } from '../types';
 import { matchesKey } from './taskKey';
 
 export const DEFAULT_FILTERS: TaskFilters = {
-  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all',
+  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all', epic: 'all',
 };
 
-type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type'>>;
+type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type' | 'epic'>>;
 
 /**
  * `currentUserId` is needed for the "assigned to me" filter; without it that filter matches nothing.
@@ -15,13 +15,14 @@ type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<Ta
  */
 export const matchesFilters = (
   task: Task,
-  { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all' }: MatchableFilters,
+  { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all', epic = 'all' }: MatchableFilters,
   currentUserId?: string,
   projectKeyOf?: (task: Task) => string | undefined,
 ) => {
   if (status !== 'all' && task.status !== status) return false;
   if (priority !== 'all' && task.priority !== priority) return false;
   if (type !== 'all' && (task.type ?? 'task') !== type) return false;
+  if (epic !== 'all' && (epic === 'none' ? Boolean(task.epic) : task.epic !== epic)) return false;
   if (assignedToMe && !(currentUserId && task.assignees?.some(user => user._id === currentUserId))) return false;
   if (label !== 'all' && !task.labels?.some(item => item.toLowerCase() === label.toLowerCase())) return false;
   const term = search.trim().toLowerCase();
@@ -30,6 +31,13 @@ export const matchesFilters = (
     || (task.description?.toLowerCase().includes(term) ?? false)
     || matchesKey(task, term, projectKeyOf?.(task));
 };
+
+/** Epics are containers: the board and the calendar show the work items inside them instead. */
+export const withoutEpics = (tasks: Task[]): Task[] => tasks.filter(task => task.type !== 'epic');
+
+/** The epics among `tasks`, oldest first. */
+export const epicsOf = (tasks: Task[]): Task[] =>
+  tasks.filter(task => task.type === 'epic').sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.title.localeCompare(b.title));
 
 const byDeadline = (a: Task, b: Task) => a.deadline.localeCompare(b.deadline);
 const byPriority = (a: Task, b: Task) => PRIORITY_META[a.priority].rank - PRIORITY_META[b.priority].rank;

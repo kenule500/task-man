@@ -24,7 +24,7 @@ export const tagVariants = cva(
         success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         warning: 'bg-amber-50 text-amber-700 border-amber-100',
         danger: 'bg-red-50 text-red-700 border-red-100',
-        dark: 'bg-slate-900 text-white border-slate-900',
+        dark: 'bg-inverse text-inverse-text border-inverse',
       },
       size: { sm: 'px-1.5 py-0.5 text-[11px]', md: 'px-2.5 py-1 text-xs' },
     },
@@ -122,7 +122,7 @@ export const segmentedItemVariants = cva(
   {
     variants: {
       selected: {
-        true: 'bg-white text-text-strong shadow-raised',
+        true: 'bg-white text-text-strong shadow-raised dark:bg-slate-200',
         false: 'text-text-subtle hover:text-text-strong',
       },
       size: { sm: 'h-7 px-2.5 text-xs', md: 'h-8 px-3 text-sm' },

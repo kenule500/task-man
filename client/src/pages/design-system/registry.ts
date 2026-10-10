@@ -20,6 +20,7 @@ import {
   DataViewsPatternSection, FeedbackPatternSection, FormsPatternSection, MobilePatternSection, NavigationPatternSection,
   StatesPatternSection,
 } from './sections/Patterns';
+import { DarkModeSection } from './sections/DarkMode';
 import { ScrumPatternSection } from './sections/ScrumPattern';
 import { ChangelogSection, OverviewSection, PrinciplesSection } from './sections/Start';
 
@@ -31,6 +32,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'changelog', group: 'Start', title: 'Changelog', keywords: 'release version v2 history new', Component: ChangelogSection },
 
   { id: 'color', group: 'Foundations', title: 'Color', keywords: 'tokens palette contrast hex status priority type project', Component: ColorSection },
+  { id: 'dark-mode', group: 'Foundations', title: 'Dark mode', keywords: 'theme night light system toggle appearance contrast dark class', Component: DarkModeSection },
   { id: 'typography', group: 'Foundations', title: 'Typography', keywords: 'font inter type scale headings text size weight', Component: TypographySection },
   { id: 'spacing', group: 'Foundations', title: 'Spacing', keywords: 'gap padding margin 4px scale', Component: SpacingSection },
   { id: 'radius', group: 'Foundations', title: 'Radius', keywords: 'corners rounded border-radius', Component: RadiusSection },

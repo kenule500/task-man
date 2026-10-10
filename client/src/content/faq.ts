@@ -157,6 +157,24 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     title: 'Notifications & account',
     items: [
       {
+        id: 'notifications-what',
+        question: 'What notifications do I get?',
+        answer:
+          'You are notified when someone assigns you a task, completes a task you own or are assigned to, mentions you in a comment, or comments on a task you own or are assigned to. They appear under the bell in the top bar and in your inbox, and are kept for 90 days. You never get a notification for your own actions.',
+      },
+      {
+        id: 'notifications-mention',
+        question: 'How do I mention someone in a comment?',
+        answer:
+          'Type @ in a comment and pick a teammate from the list with the arrow keys and Enter, or tap a name. You can also type @FirstName or @First Last. Mentioned people are notified right away.',
+      },
+      {
+        id: 'notifications-email',
+        question: 'How do I choose which emails I get?',
+        answer:
+          'In-app notifications are always on. Under Settings, then Notifications, turn emails on or off: the general switch controls all emails, Task Assigned also covers mentions and comments on your tasks, and Task Completed covers finished tasks.',
+      },
+      {
         id: 'edit-profile',
         question: 'Where do I edit my profile?',
         answer: 'Under Settings, then Profile. You can change your name, job title and other details.',

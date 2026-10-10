@@ -27,6 +27,8 @@ export const groupProjectTasks = (tasks: Task[], sprints: Sprint[]): ProjectTask
   const backlog: Task[] = [];
 
   for (const task of tasks) {
+    // Epics are containers: they live on the Epics tab, not in sprints or the backlog
+    if (task.type === 'epic') continue;
     if (task.parent) {
       subtasks.set(task.parent, [...(subtasks.get(task.parent) ?? []), task]);
       continue;

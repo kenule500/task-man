@@ -3,6 +3,8 @@
 /* Base UI marks orientation with data-orientation; shadcn's base-nova classes use these short variants */
 @custom-variant data-horizontal (&[data-orientation="horizontal"]);
 @custom-variant data-vertical (&[data-orientation="vertical"]);
+/* Dark mode is class based: lib/theme.ts toggles `dark` on <html> (user preference or system) */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* Tailwind's slate-500 is 4.35:1 on slate-100 surfaces; this shade passes AA (4.95:1 there, 5.43:1 on white) */
@@ -60,6 +62,11 @@
   --color-text-subtle: #5B6B82;
   --color-text-faint: #94A3B8;
   --color-focus: #2563EB;
+  /* Inverse surface: toasts, code blocks, dark chips. Near-black in light mode, a raised slate in dark mode. */
+  --color-inverse: #0F172A;
+  --color-inverse-text: #FFFFFF;
+  --color-inverse-muted: #CBD5E1;
+  --color-inverse-border: #1E293B;
 
   /* Status: dot/marker color, text on the soft background, soft background */
   --color-status-pending: #94A3B8;
@@ -124,6 +131,214 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/*
+ * Dark theme (authored, not inverted). Applied when <html> has the `dark` class.
+ *
+ * Why variables: Tailwind v4 utilities read these custom properties, so re-authoring the slate ramp and the
+ * tint ramps recolors every existing bg-white / bg-slate-* / text-slate-* / bg-red-50 text-red-700 pair at once.
+ * Elevation in dark mode is lightness: canvas (slate-50) < card (white) < raised well (slate-100) < border (slate-200).
+ * Tint chips become deep, low-chroma panels with light 600-900 text. Every text pair is >= 4.5:1
+ * (checked by pages/design-system/__tests__/darkTheme.test.ts, which reads this block).
+ */
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-white: #0F172A;
+  --color-slate-50: #0B1220;
+  --color-slate-100: #172033;
+  --color-slate-200: #263449;
+  --color-slate-300: #3A4A63;
+  --color-slate-400: #64748B;
+  /* Text, weakest to strongest */
+  --color-slate-500: #94A3B8;
+  --color-slate-600: #A8B5C8;
+  --color-slate-700: #CBD5E1;
+  --color-slate-800: #E2E8F0;
+  --color-slate-900: #F1F5F9;
+
+  /* Tint ramps: 50/100 = soft background, 200/300 = border, 600-900 = readable text on those backgrounds.
+     400 and 500 stay as they are: they are marker fills (dots, bars, icons). */
+  --color-red-50: #2A151B;
+  --color-red-100: #3A1A22;
+  --color-red-200: #5A2430;
+  --color-red-300: #7A2B38;
+  --color-red-600: #F87171;
+  --color-red-700: #FCA5A5;
+  --color-red-800: #FECACA;
+  --color-red-900: #FEE2E2;
+
+  --color-emerald-50: #0E2B26;
+  --color-emerald-100: #123B33;
+  --color-emerald-200: #1C5445;
+  --color-emerald-300: #2B7A62;
+  --color-emerald-600: #34D399;
+  --color-emerald-700: #6EE7B7;
+  --color-emerald-800: #A7F3D0;
+  --color-emerald-900: #D1FAE5;
+
+  --color-amber-50: #2B2108;
+  --color-amber-100: #3D2D0A;
+  --color-amber-200: #5C4410;
+  --color-amber-600: #FBBF24;
+  --color-amber-700: #FCD34D;
+  --color-amber-800: #FDE68A;
+  --color-amber-900: #FEF3C7;
+
+  --color-blue-50: #0F1E3A;
+  --color-blue-100: #172C52;
+  --color-blue-200: #1F3B6E;
+  --color-blue-600: #60A5FA;
+  --color-blue-700: #93C5FD;
+  --color-blue-800: #BFDBFE;
+
+  --color-violet-50: #1D1740;
+  --color-violet-100: #2A2060;
+  --color-violet-200: #3B2E85;
+  --color-violet-600: #A78BFA;
+  --color-violet-700: #C4B5FD;
+  --color-violet-800: #DDD6FE;
+
+  --color-rose-100: #3A1A2A;
+  --color-rose-200: #5C2640;
+  --color-rose-800: #FECDD3;
+  --color-pink-100: #3A1A33;
+  --color-pink-200: #5A2650;
+  --color-pink-800: #FBCFE8;
+  --color-cyan-100: #0F2F3A;
+  --color-cyan-200: #164E63;
+  --color-cyan-900: #CFFAFE;
+
+  /* Legacy names */
+  --color-background: #0B1220;
+  --color-surface: #0F172A;
+  --color-text-main: #F1F5F9;
+  --color-text-muted: #94A3B8;
+
+  /* shadcn semantic tokens. Solid buttons keep primary #2563EB (white text 5.17:1); text-primary is re-pointed below. */
+  --color-foreground: #F1F5F9;
+  --color-card: #0F172A;
+  --color-card-foreground: #F1F5F9;
+  --color-popover: #131D33;
+  --color-popover-foreground: #F1F5F9;
+  --color-secondary: #172033;
+  --color-secondary-foreground: #F1F5F9;
+  --color-muted: #172033;
+  --color-muted-foreground: #94A3B8;
+  --color-accent: #1C2740;
+  --color-accent-foreground: #F1F5F9;
+  --color-destructive: #F87171;
+  --color-border: #263449;
+  --color-input: #3A4A63;
+  --color-ring: #60A5FA;
+
+  --color-sidebar: #0F172A;
+  --color-sidebar-foreground: #F1F5F9;
+  --color-sidebar-primary: #2563EB;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #1C2740;
+  --color-sidebar-accent-foreground: #F1F5F9;
+  --color-sidebar-border: #263449;
+  --color-sidebar-ring: #60A5FA;
+
+  /* Tier 2 roles */
+  --color-canvas: #0B1220;
+  --color-surface-raised: #0F172A;
+  --color-surface-sunken: #172033;
+  --color-border-subtle: #172033;
+  --color-border-strong: #3A4A63;
+  --color-text-strong: #F1F5F9;
+  --color-text-body: #CBD5E1;
+  --color-text-subtle: #94A3B8;
+  --color-text-faint: #64748B;
+  --color-focus: #60A5FA;
+  --color-inverse: #1E293B;
+  --color-inverse-text: #F8FAFC;
+  --color-inverse-muted: #CBD5E1;
+  --color-inverse-border: #334155;
+
+  --color-status-pending: #64748B;
+  --color-status-pending-fg: #CBD5E1;
+  --color-status-pending-bg: #1B2740;
+  --color-status-in-progress: #3B82F6;
+  --color-status-in-progress-fg: #93C5FD;
+  --color-status-in-progress-bg: #13244A;
+  --color-status-completed: #10B981;
+  --color-status-completed-fg: #6EE7B7;
+  --color-status-completed-bg: #0E2B26;
+
+  --color-priority-high: #EF4444;
+  --color-priority-high-text: #F87171;
+  --color-priority-medium: #F59E0B;
+  --color-priority-medium-text: #FBBF24;
+  --color-priority-low: #10B981;
+  --color-priority-low-text: #34D399;
+
+  --color-type-story: #6EE7B7;
+  --color-type-story-bg: #0E2B26;
+  --color-type-task: #93C5FD;
+  --color-type-task-bg: #13244A;
+  --color-type-bug: #FCA5A5;
+  --color-type-bug-bg: #2A151B;
+  --color-type-spike: #C4B5FD;
+  --color-type-spike-bg: #1D1740;
+
+  /* Project palette keeps its fills (white text on each passes AA); slate is lifted so the folder separates from the canvas */
+  --color-project-slate: #56637C;
+  --color-project-slate-deep: #444F64;
+
+  /* Elevation: shadows nearly vanish on dark, so they get heavier and borders do the separating */
+  --shadow-raised: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --shadow-floating: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.55), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --color-scrim: rgb(2 6 23 / 0.7);
+}
+
+/*
+ * Dark mode exceptions. A few utilities mean "fixed color" rather than "surface or text" and would be recolored
+ * by the ramp above, so they are pinned here. They sit in the utilities layer after Tailwind's own utilities, and
+ * use :where() so state variants (hover:, focus-visible:) of the same utility keep their higher specificity.
+ */
+@layer utilities {
+  /* White text and white overlays sit on solid fills (bg-primary, emerald-500, project colors) */
+  :where(.dark) .text-white,
+  :where(.dark) .hover\:text-white:hover,
+  :where(.dark) .focus-visible\:text-white:focus-visible { color: #FFFFFF; }
+  :where(.dark) .text-white\/90 { color: rgb(255 255 255 / 0.9); }
+  :where(.dark) .bg-white\/20,
+  :where(.dark) .hover\:bg-white\/20:hover,
+  :where(.dark) .aria-expanded\:bg-white\/20[aria-expanded="true"] { background-color: rgb(255 255 255 / 0.2); }
+  :where(.dark) .bg-white\/30 { background-color: rgb(255 255 255 / 0.3); }
+  :where(.dark) .bg-white\/30 > .bg-white { background-color: #FFFFFF; } /* progress fill inside a project folder */
+  :where(.dark) .hover\:bg-white\/10:hover { background-color: rgb(255 255 255 / 0.1); }
+  :where(.dark) .ring-white\/10 { --tw-ring-color: rgb(255 255 255 / 0.1); }
+  :where(.dark) .focus-visible\:ring-white\/70:focus-visible { --tw-ring-color: rgb(255 255 255 / 0.7); }
+  :where(.dark) .border-white\/50 { border-color: rgb(255 255 255 / 0.08); }
+
+  /* Inverse surfaces: dark chips, toasts and the multi-select pill become a raised slate (white text stays) */
+  :where(.dark) .bg-slate-900,
+  :where(.dark) .bg-slate-800 { background-color: var(--color-inverse); }
+  :where(.dark) .border-slate-900,
+  :where(.dark) .border-slate-800 { border-color: var(--color-inverse-border); }
+
+  /* Solid destructive button keeps its red; its hover darkens */
+  :where(.dark) .bg-red-600 { background-color: #DC2626; }
+  :where(.dark) .hover\:bg-red-700:hover { background-color: #B91C1C; }
+
+  /* Blue text and focus outlines: #2563EB is 3.4:1 on the dark surface, so use a lighter step */
+  :where(.dark) .text-primary,
+  :where(.dark) .hover\:text-primary:hover,
+  :where(.dark) .focus\:text-primary:focus { color: #60A5FA; }
+  :where(.dark) .text-primary-hover,
+  :where(.dark) .hover\:text-primary-hover:hover { color: #93C5FD; }
+  :where(.dark) .focus-visible\:outline-primary:focus-visible { outline-color: #60A5FA; }
+  :where(.dark) .focus-visible\:ring-primary:focus-visible,
+  :where(.dark) .ring-primary\/60 { --tw-ring-color: #60A5FA; }
+
+  /* Modal scrims at 10% black are invisible on a dark page */
+  :where(.dark) .bg-black\/10 { background-color: var(--color-scrim); }
 }
 
 /* Scales that Tailwind has no theme namespace for: use as z-(--z-nav), duration-(--duration-fast) */

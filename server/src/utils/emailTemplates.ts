@@ -135,3 +135,54 @@ export const invitationTemplate = (
   `),
   };
 };
+
+// ================================================================
+// Task notifications (assigned, completed, @mention, comment on my task)
+// ================================================================
+export type NotificationEmailKind = 'task.assigned' | 'task.completed' | 'comment.mention' | 'comment.reply_on_my_task';
+
+const NOTIFICATION_SENTENCES: Record<NotificationEmailKind, (actor: string, task: string) => string> = {
+  'task.assigned': (actor, task) => `${actor} assigned you "${task}".`,
+  'task.completed': (actor, task) => `${actor} completed "${task}".`,
+  'comment.mention': (actor, task) => `${actor} mentioned you in a comment on "${task}".`,
+  'comment.reply_on_my_task': (actor, task) => `${actor} commented on "${task}".`,
+};
+
+const NOTIFICATION_SUBJECTS: Record<NotificationEmailKind, (actor: string, task: string) => string> = {
+  'task.assigned': (actor, task) => `${actor} assigned you: ${task}`,
+  'task.completed': (_actor, task) => `Completed: ${task}`,
+  'comment.mention': (actor, task) => `${actor} mentioned you on ${task}`,
+  'comment.reply_on_my_task': (actor, task) => `New comment on ${task}`,
+};
+
+export const notificationTemplate = (
+  kind: NotificationEmailKind,
+  rawActorName: string,
+  rawTaskTitle: string,
+  rawWorkspaceName: string,
+  taskLink: string,
+  rawExcerpt?: string,
+): EmailTemplate => {
+  // Names, titles and comment text are user-controlled: escape them before they reach the HTML body
+  const sentence = escapeHtml(NOTIFICATION_SENTENCES[kind](rawActorName, rawTaskTitle));
+  const workspaceName = escapeHtml(rawWorkspaceName);
+  const link = escapeHtml(taskLink);
+  const excerpt = rawExcerpt ? escapeHtml(rawExcerpt.length > 280 ? `${rawExcerpt.slice(0, 279)}…` : rawExcerpt) : '';
+  const textExcerpt = rawExcerpt ? `\n\n"${rawExcerpt.length > 280 ? `${rawExcerpt.slice(0, 279)}…` : rawExcerpt}"` : '';
+  return {
+    subject: NOTIFICATION_SUBJECTS[kind](rawActorName, rawTaskTitle),
+    text: `${NOTIFICATION_SENTENCES[kind](rawActorName, rawTaskTitle)} (${rawWorkspaceName})${textExcerpt}\n\nOpen the task:\n${taskLink}\n\nYou can change which emails you get in Settings > Notifications.`,
+    html: wrap(`
+    ${brandHeader()}
+    <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px; line-height: 1.4;">${sentence}</h2>
+    <p style="color: #475569; line-height: 1.6; margin: 0 0 16px;">Workspace: ${workspaceName}</p>
+    ${excerpt ? `<blockquote style="margin: 0 0 24px; padding: 12px 16px; background: #f1f5f9; border-left: 3px solid #2563EB; color: #334155; line-height: 1.6;">${excerpt}</blockquote>` : ''}
+
+    ${ctaButton(link, 'Open task')}
+
+    <p style="color: #64748b; font-size: 12px; margin: 32px 0 0; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+      You can change which emails you get in Settings &gt; Notifications.
+    </p>
+  `),
+  };
+};

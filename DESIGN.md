@@ -1,6 +1,6 @@
 # DESIGN.md
 
-TaskMan's UI is a calm, light productivity dashboard: white cards on a soft slate background, one blue
+TaskMan's UI is a calm productivity dashboard in a light and an authored dark theme: cards on a soft slate canvas, one blue
 accent, color reserved for meaning (status, priority, deadlines). References: the Renza tasks screen
 (stat row + dense task table) and Planora (soft, scannable kanban cards).
 
@@ -34,6 +34,24 @@ and in `docs/DESIGN_SYSTEM.md`.
 | Z-index | `--z-base` 0 · `sticky` 10 · `nav` 30 · `overlay` 40 · `modal` 50 · `toast` 60 · `tooltip` 70 | Use `z-(--z-nav)`; no `z-[9999]` |
 | Motion | `--duration-instant|fast|base|slow` 80/150/200/280ms; `ease-standard|enter|exit` | Transform and opacity only; exits faster than entries |
 | Spacing | 4px base | Card padding 16 on phones, 20 from `sm` |
+
+## Dark mode
+
+Light, Dark or System (default), chosen in Settings → Profile → Appearance or with `ThemeToggle` (`components/ThemeToggle.tsx`).
+The choice is stored in `localStorage` (`taskman.theme`, applied in `main.tsx` before the first render because the CSP forbids inline
+scripts) and on the account (`theme` on `PUT /api/profile`). `lib/theme.ts` toggles `dark` on `<html>`; `index.css` has
+`@custom-variant dark (&:where(.dark, .dark *))` and a `.dark` block.
+
+- **Re-authored variables, not `dark:` variants.** The `.dark` block re-maps the slate ramp (`white` = card `#0F172A`, `slate-50` = canvas `#0B1220`,
+  `slate-100` = raised well `#172033`, `slate-200` = border, text steps 500 `#94A3B8` … 900 `#F1F5F9`), the tint ramps (`-50/-100/-200` become deep panels,
+  `-600/-700/-800/-900` become light text) and the shadcn, role, status, priority and type tokens. Existing `bg-white`, `text-slate-500`, `bg-red-50 text-red-700`
+  switch with no change. Elevation is lightness: canvas < card < raised well; shadows get heavier but borders still do the separating.
+- **Fixed colors are pinned** in an `@layer utilities` block in `index.css`: `text-white` and white overlays on solid fills stay white, `bg-slate-900/800` become the
+  inverse surface, `bg-red-600` (destructive button) keeps its red, `text-primary` turns `#60A5FA` (solid primary buttons stay `#2563EB` with white text).
+  New code uses `bg-inverse text-inverse-text` (tokens `inverse`, `inverse-text`, `inverse-muted`, `inverse-border`) for surfaces that stay dark in both themes.
+- **Contrast:** every text pair is at least 4.5:1 and icon/focus pairs at least 3:1. `pages/design-system/darkTokens.ts` lists the pairs and `darkTheme.test.ts`
+  checks them against `index.css`. Adding a color means adding both values and its pairs.
+- Never write raw hex or `dark:bg-[#…]` for colors the ramp already covers. Verify each screen in both themes, including focus, disabled, error and empty states.
 
 ## Meaning colors (single source: `features/tasks/constants.ts`)
 
@@ -156,7 +174,7 @@ Adding a component: build it from tokens and existing primitives, add it to `com
 
 ## Progressive Web App
 
-- Installable (manifest, icons in `client/public/icons`, theme `#2563EB`, background `#F8FAFC`), standalone display.
+- Installable (manifest, icons in `client/public/icons`, theme `#2563EB`, background `#F8FAFC`), standalone display. The browser theme color follows the active theme (`#2563EB` light, `#0B1220` dark, set by `lib/theme.ts`).
 - The service worker caches the app shell only; API responses are never cached (private data).
 - Updates are opt-in through the "New version available" prompt; an amber banner shows when offline.
 

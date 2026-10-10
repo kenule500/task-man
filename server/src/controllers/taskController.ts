@@ -16,6 +16,7 @@ import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
+import { notifyTaskEvents } from '../utils/notify.js';
 import { ensureTaskNumbers, reserveTaskNumbers } from '../utils/taskNumbers.js';
 import {
   buildTaskFilter,
@@ -28,7 +29,7 @@ import {
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
   'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
-  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent',
+  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent', 'epic',
 ] as const;
 
 // People shown on tasks: never expose email, password hashes or tokens
@@ -67,6 +68,7 @@ const optionalFieldRules = [
     .withMessage(`Story points must be a whole number from 0 to ${MAX_STORY_POINTS}`),
   body('sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
   body('parent').optional({ values: 'null' }).isMongoId().withMessage('Invalid parent task'),
+  body('epic').optional({ values: 'null' }).isMongoId().withMessage('Invalid epic'),
   body('dependencies').optional().isArray().withMessage('Dependencies must be a list'),
   body('assignees').optional().isArray({ max: 50 }).withMessage('Assignees must be a list'),
   body('labels').optional().isArray({ max: 50 }).withMessage('Labels must be a list')
@@ -162,13 +164,80 @@ export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprin
 const findValidParent = async (workspaceId: mongoose.Types.ObjectId, taskId: string | null, parentId: string) => {
   if (typeof parentId !== 'string' || !mongoose.isValidObjectId(parentId)) throw new TaskRuleError('Invalid parent task');
   if (taskId && parentId === taskId) throw new TaskRuleError('A task cannot be its own parent');
-  const parent = await Task.findOne({ _id: new mongoose.Types.ObjectId(parentId), workspace: workspaceId }).select('parent project sprint').lean();
+  const parent = await Task.findOne({ _id: new mongoose.Types.ObjectId(parentId), workspace: workspaceId }).select('parent project sprint epic type').lean();
   if (!parent) throw new TaskRuleError('Parent task not found in this workspace');
+  if (parent.type === 'epic') throw new TaskRuleError('An epic cannot have subtasks; link the item to the epic instead');
   if (parent.parent) throw new TaskRuleError('Subtasks cannot have subtasks');
   if (taskId && await Task.exists({ workspace: workspaceId, parent: taskId })) {
     throw new TaskRuleError('A task with subtasks cannot become a subtask');
   }
   return parent;
+};
+
+/** The epic must be a task of type 'epic' in this workspace; returns its id and project. */
+export const findValidEpic = async (workspaceId: mongoose.Types.ObjectId, epicId: unknown, taskId: string | null) => {
+  // Only a plain id string reaches the query (never an operator object from the request body)
+  if (typeof epicId !== 'string' || !mongoose.isValidObjectId(epicId)) throw new TaskRuleError('Invalid epic');
+  if (taskId && epicId === taskId) throw new TaskRuleError('A task cannot be its own epic');
+  const epic = await Task.findOne({ _id: new mongoose.Types.ObjectId(epicId), workspace: workspaceId }).select('type project').lean();
+  if (!epic || epic.type !== 'epic') throw new TaskRuleError('Epic not found in this workspace');
+  return { _id: epic._id as mongoose.Types.ObjectId, project: (epic.project ?? '') as string };
+};
+
+export interface EpicSubject {
+  _id?: unknown;
+  type: string;
+  epic?: unknown;
+  parent?: unknown;
+  sprint?: unknown;
+  project: string;
+}
+
+/**
+ * Applies the epic rules to the final state of a task and returns the epic and project it must end up with:
+ * epics are containers (no epic, parent or sprint), subtasks inherit the epic of their parent, and an item
+ * joins an epic of its own project (an item without project takes the epic's project).
+ */
+export const resolveEpicLink = async (
+  workspaceId: mongoose.Types.ObjectId,
+  subject: EpicSubject,
+  opts: { epicGiven: boolean; parentEpic?: unknown },
+): Promise<{ epic: string | null; project: string }> => {
+  const taskId = subject._id ? String(subject._id) : null;
+  if (subject.type === 'epic') {
+    if (subject.parent) throw new TaskRuleError('An epic cannot be a subtask');
+    if (subject.sprint) throw new TaskRuleError('Epics cannot be planned in a sprint');
+    if (opts.epicGiven && subject.epic) throw new TaskRuleError('An epic cannot belong to another epic');
+    return { epic: null, project: subject.project };
+  }
+  if (subject.parent) {
+    const inherited = opts.parentEpic ? String(opts.parentEpic) : null;
+    if (opts.epicGiven && subject.epic && String(subject.epic) !== inherited) {
+      throw new TaskRuleError('Subtasks inherit the epic of their parent task');
+    }
+    return { epic: inherited, project: subject.project };
+  }
+  if (!subject.epic) return { epic: null, project: subject.project };
+  const epic = await findValidEpic(workspaceId, String(subject.epic), taskId);
+  if (subject.project && epic.project !== subject.project) throw new TaskRuleError('This epic belongs to another project');
+  return { epic: String(epic._id), project: subject.project || epic.project };
+};
+
+/** Turning a task into an epic or back needs a clean slate: no subtasks, and no items left in the epic. */
+export const assertEpicTypeChange = async (
+  workspaceId: mongoose.Types.ObjectId,
+  taskId: unknown,
+  from: string,
+  to: string,
+) => {
+  if (from === to || (from !== 'epic' && to !== 'epic')) return;
+  const id = new mongoose.Types.ObjectId(String(taskId));
+  if (to === 'epic' && await Task.exists({ workspace: workspaceId, parent: id })) {
+    throw new TaskRuleError('A task with subtasks cannot become an epic');
+  }
+  if (from === 'epic' && await Task.exists({ workspace: workspaceId, epic: id })) {
+    throw new TaskRuleError('Move its items first');
+  }
 };
 
 /**
@@ -195,6 +264,9 @@ export const describeTaskChanges = (before: Record<string, unknown>, after: Reco
   const changes = diffFields(before, after, AUDITED_FIELDS);
   if (String(before.sprint ?? '') !== String(after.sprint ?? '')) {
     changes.push({ field: 'sprint', from: before.sprint ? String(before.sprint) : undefined, to: after.sprint ? String(after.sprint) : undefined });
+  }
+  if (String(before.epic ?? '') !== String(after.epic ?? '')) {
+    changes.push({ field: 'epic', from: before.epic ? String(before.epic) : undefined, to: after.epic ? String(after.epic) : undefined });
   }
   if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
     changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
@@ -257,6 +329,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     let { project } = req.body;
     let sprint: string | null = req.body.sprint ?? null;
     const parentId: string | null = req.body.parent ?? null;
+    let parentEpic: unknown = null;
     const dependencies = normalizeIds(req.body.dependencies);
     const assignees = normalizeIds(req.body.assignees);
     const labels = normalizeLabels(req.body.labels);
@@ -273,8 +346,16 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       const parent = await findValidParent(workspaceId, null, parentId);
       if (project === undefined) project = parent.project;
       if (req.body.sprint === undefined && parent.sprint) sprint = String(parent.sprint);
+      parentEpic = parent.epic;
     }
+    if (type === 'epic' && sprint) throw new TaskRuleError('Epics cannot be planned in a sprint');
     if (sprint) project = (await findOpenSprint(workspaceId, sprint)).projectName;
+    const link = await resolveEpicLink(
+      workspaceId,
+      { type: type ?? 'task', epic: req.body.epic ?? null, parent: parentId, sprint, project: project ?? '' },
+      { epicGiven: req.body.epic !== undefined, parentEpic },
+    );
+    project = link.project;
 
     const number = await reserveTaskNumbers(workspaceId);
     const task = await Task.create({
@@ -286,6 +367,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       storyPoints: storyPoints ?? null,
       sprint,
       parent: parentId,
+      epic: link.epic,
       status,
       priority,
       startDate: start,
@@ -302,6 +384,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       action: 'task.created', summary: task.title, task: task._id as mongoose.Types.ObjectId,
       changes: parentId ? [{ field: 'parent', to: parentId }] : [],
     });
+    await notifyTaskEvents(req, task);
     res.status(201).json(await populateTasks(task));
   } catch (error) {
     handleError(res, error, 'createTask');
@@ -349,6 +432,9 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       } else if (field === 'parent') {
         if (value) await findValidParent(workspace._id as mongoose.Types.ObjectId, id, String(value));
         task.set('parent', value || null);
+      } else if (field === 'epic') {
+        // Epic rules are applied to the final state below
+        task.set('epic', value || null);
       } else if (field === 'sprint' || field === 'storyPoints') {
         task.set(field, value ?? null);
       } else {
@@ -361,6 +447,19 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       sprint: 'sprint' in req.body,
       project: 'project' in req.body,
     });
+    const workspaceId = workspace._id as mongoose.Types.ObjectId;
+    await assertEpicTypeChange(workspaceId, task._id, String(before.type), task.type);
+    if (['epic', 'project', 'sprint', 'type', 'parent'].some(key => key in req.body)) {
+      const parentEpic = task.parent
+        ? (await Task.findOne({ _id: task.parent, workspace: workspaceId }).select('epic').lean())?.epic
+        : null;
+      const link = await resolveEpicLink(workspaceId, task, { epicGiven: 'epic' in req.body, parentEpic });
+      if (task.type === 'epic' && task.project !== before.project && await Task.exists({ workspace: workspaceId, epic: task._id })) {
+        throw new TaskRuleError('Move its items first');
+      }
+      task.set('epic', link.epic);
+      task.set('project', link.project);
+    }
     await task.save();
 
     const after = task.toObject() as unknown as Record<string, unknown>;
@@ -368,12 +467,16 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     if (changes.length > 0) {
       await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
     }
+    await notifyTaskEvents(req, task, {
+      assignees: before.assignees as mongoose.Types.ObjectId[] | undefined,
+      status: before.status as string | undefined,
+    });
 
     // Subtasks follow their parent between projects and sprints
-    if ('sprint' in req.body || 'project' in req.body) {
+    if ('sprint' in req.body || 'project' in req.body || 'epic' in req.body || task.project !== before.project) {
       await Task.updateMany(
         { workspace: workspace._id, parent: task._id },
-        { $set: { project: task.project, sprint: task.sprint ?? null } },
+        { $set: { project: task.project, sprint: task.sprint ?? null, epic: task.epic ?? null } },
       );
     }
 
@@ -395,6 +498,8 @@ export const cleanUpRemovedTasks = async (workspaceId: mongoose.Types.ObjectId, 
     { workspace: workspaceId, dependencies: { $in: removedIds } },
     { $pull: { dependencies: { $in: removedIds } } },
   );
+  // Deleting an epic keeps its items; they just leave the epic
+  await Task.updateMany({ workspace: workspaceId, epic: { $in: removedIds } }, { $set: { epic: null } });
   // Attachments live in GridFS, so they are removed explicitly
   await deleteFiles(removed.flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 };

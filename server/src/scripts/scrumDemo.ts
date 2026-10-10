@@ -94,15 +94,25 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
   await Promise.all([finishedOn(done[0]._id, -15), finishedOn(done[1]._id, -11), finishedOn(done[2]._id, -9), finishedOn(done[3]._id, -12)]);
   await Sprint.updateOne({ _id: webDone._id }, { $set: { completedPoints: 19 } });
 
+  // ---- Website v1 · epics (containers across sprints; never in a sprint themselves) ----
+  const viewsEpic = await create({
+    title: 'Task views', type: 'epic', project: webName, status: 'in-progress', priority: 'high',
+    startDate: day(-7), deadline: day(6), description: 'List, board, calendar and timeline on top of the tasks API.',
+  });
+  const launchEpic = await create({
+    title: 'Launch readiness', type: 'epic', project: webName, status: 'pending', priority: 'medium',
+    startDate: day(7), deadline: day(20), description: 'Quality, performance and the launch itself.',
+  });
+
   // ---- Website v1 · Sprint 2 (active) ----
   const api = await create({
-    title: 'Tasks API with filters and sorting', type: 'story', storyPoints: 5, sprint: webActive._id, project: webName,
+    title: 'Tasks API with filters and sorting', type: 'story', storyPoints: 5, sprint: webActive._id, epic: viewsEpic._id, project: webName,
     status: 'completed', priority: 'high', startDate: day(-7), deadline: day(-4), labels: ['backend'], assignees: [dev],
     description: 'CRUD endpoints, status/priority filters, search and sort by deadline or priority.',
     comments: [{ author: scrum, text: 'Merged and deployed to staging.' }],
   });
   const board = await create({
-    title: 'Kanban board with drag and drop', type: 'story', storyPoints: 8, sprint: webActive._id, project: webName,
+    title: 'Kanban board with drag and drop', type: 'story', storyPoints: 8, sprint: webActive._id, epic: viewsEpic._id, project: webName,
     status: 'in-progress', priority: 'high', startDate: day(-4), deadline: day(2), labels: ['frontend', 'ux'],
     assignees: [dev, designer], dependencies: [api._id],
     description: 'Pending → In Progress → Completed columns, keyboard alternative via "Move to…".',
@@ -112,17 +122,17 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
     ],
   });
   const calendar = await create({
-    title: 'Calendar view by due date', type: 'story', storyPoints: 5, sprint: webActive._id, project: webName,
+    title: 'Calendar view by due date', type: 'story', storyPoints: 5, sprint: webActive._id, epic: viewsEpic._id, project: webName,
     status: 'pending', priority: 'medium', startDate: day(1), deadline: day(5), labels: ['frontend'], assignees: [dev],
     dependencies: [api._id], description: 'Month grid on desktop, week strip and agenda on phones.',
   });
   await create({
-    title: 'Timeline (Gantt) with dependencies', type: 'story', storyPoints: 8, sprint: webActive._id, project: webName,
+    title: 'Timeline (Gantt) with dependencies', type: 'story', storyPoints: 8, sprint: webActive._id, epic: viewsEpic._id, project: webName,
     status: 'pending', priority: 'medium', startDate: day(2), deadline: day(6), labels: ['frontend'], assignees: [dev],
     dependencies: [api._id],
   });
   const crash = await create({
-    title: 'Board crashes when a column is empty', type: 'bug', storyPoints: 2, sprint: webActive._id, project: webName,
+    title: 'Board crashes when a column is empty', type: 'bug', storyPoints: 2, sprint: webActive._id, epic: viewsEpic._id, project: webName,
     status: 'completed', priority: 'high', deadline: day(-2), labels: ['frontend'], assignees: [dev],
   });
   await create({
@@ -133,23 +143,23 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
 
   // Subtasks of the board story
   const subtasks = await Promise.all([
-    create({ title: 'Column layout and card design', parent: board._id, sprint: webActive._id, project: webName,
+    create({ title: 'Column layout and card design', parent: board._id, epic: viewsEpic._id, sprint: webActive._id, project: webName,
       status: 'completed', deadline: day(-1), assignees: [designer], description: 'Status colors, counts, empty column state.' }),
-    create({ title: 'Drag and drop between columns', parent: board._id, sprint: webActive._id, project: webName,
+    create({ title: 'Drag and drop between columns', parent: board._id, epic: viewsEpic._id, sprint: webActive._id, project: webName,
       status: 'completed', deadline: day(0), assignees: [dev] }),
-    create({ title: 'Keyboard "Move to…" menu', parent: board._id, sprint: webActive._id, project: webName,
+    create({ title: 'Keyboard "Move to…" menu', parent: board._id, epic: viewsEpic._id, sprint: webActive._id, project: webName,
       status: 'in-progress', deadline: day(1), assignees: [dev], description: 'Screen reader announces the new column.' }),
-    create({ title: 'Mobile status tabs', parent: board._id, sprint: webActive._id, project: webName,
+    create({ title: 'Mobile status tabs', parent: board._id, epic: viewsEpic._id, sprint: webActive._id, project: webName,
       status: 'pending', deadline: day(2), assignees: [designer] }),
   ]);
   await Promise.all([finishedOn(subtasks[0]._id, -1), finishedOn(subtasks[1]._id, 0)]);
-  await create({ title: 'Week strip for phones', parent: calendar._id, sprint: webActive._id, project: webName,
+  await create({ title: 'Week strip for phones', parent: calendar._id, epic: viewsEpic._id, sprint: webActive._id, project: webName,
     status: 'pending', deadline: day(4), assignees: [dev] });
 
   // ---- Website v1 · Sprint 3 (planned) and backlog ----
-  await create({ title: 'Performance budget and Lighthouse checks', type: 'task', storyPoints: 3, sprint: webNext._id, project: webName,
+  await create({ title: 'Performance budget and Lighthouse checks', type: 'task', storyPoints: 3, sprint: webNext._id, epic: launchEpic._id, project: webName,
     status: 'pending', priority: 'medium', startDate: day(8), deadline: day(12), labels: ['qa'], assignees: [scrum] });
-  await create({ title: 'Release checklist and launch', type: 'task', storyPoints: 2, sprint: webNext._id, project: webName,
+  await create({ title: 'Release checklist and launch', type: 'task', storyPoints: 2, sprint: webNext._id, epic: launchEpic._id, project: webName,
     status: 'pending', priority: 'high', startDate: day(18), deadline: day(20), labels: ['release'], assignees: [lead] });
   await create({ title: 'Recurring tasks', type: 'story', storyPoints: 8, project: webName, status: 'pending', priority: 'low',
     deadline: day(30), labels: ['backlog'], description: 'Repeat a task every day, week or month.' });

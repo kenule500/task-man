@@ -24,6 +24,9 @@ import SidebarProjects from '@/features/projects/components/SidebarProjects';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import CommandPalette from './CommandPalette';
 import MobileTabBar from './MobileTabBar';
+import { NotificationBell } from '@/features/notifications';
+import ThemeToggle from '@/components/ThemeToggle';
+import { loadThemeFromAccount } from '@/lib/themeApi';
 import { usePermissions } from '../hooks/usePermissions';
 import api, { getApiErrorMessage } from '../utils/api';
 import type { StoredUser } from '../utils/session';
@@ -153,6 +156,11 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
 
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
+
+  // The account's saved theme (light/dark/system) follows the person across browsers
+  useEffect(() => {
+    void loadThemeFromAccount();
+  }, []);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -399,6 +407,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                   {shortcutLabel()}
                 </kbd>
               </button>
+              <ThemeToggle />
+              <NotificationBell slug={targetSlug} />
             </div>
           )}
         </header>

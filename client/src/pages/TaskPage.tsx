@@ -11,7 +11,7 @@ import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
 import {
   BoardView, ConfirmTaskDelete, CalendarView, DEFAULT_FILTERS, DELETE_UNDO_MS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
   TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
-  tasksApi, useTasks, useWorkspaceMembers,
+  tasksApi, useTasks, useWorkspaceMembers, epicsOf,
   type Task, type TaskDetailActions, type TaskFilters, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
@@ -87,13 +87,15 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   }, [workspaceSlug, view]);
 
   const labels = useMemo(() => collectLabels(tasks), [tasks]);
-  // A label filter whose label no longer exists would hide everything: fall back to "all"
-  const activeFilters = useMemo(
-    () => (filters.label && filters.label !== 'all' && !labels.some(label => label.toLowerCase() === filters.label?.toLowerCase())
-      ? { ...filters, label: 'all' }
-      : filters),
-    [filters, labels],
-  );
+  const epics = useMemo(() => epicsOf(tasks), [tasks]);
+  // A label or epic filter whose target no longer exists would hide everything: fall back to "all"
+  const activeFilters = useMemo(() => {
+    const labelGone = Boolean(filters.label && filters.label !== 'all' && !labels.some(label => label.toLowerCase() === filters.label?.toLowerCase()));
+    const epicGone = Boolean(filters.epic && filters.epic !== 'all' && filters.epic !== 'none' && !epics.some(epic => epic._id === filters.epic));
+    return labelGone || epicGone
+      ? { ...filters, ...(labelGone && { label: 'all' }), ...(epicGone && { epic: 'all' }) }
+      : filters;
+  }, [filters, labels, epics]);
   // Lets the search find "WEB-12" and labels the CSV key column
   const projectKeyOf = useCallback((task: Task) => (task.project ? byName(task.project)?.key : undefined), [byName]);
   // The board's columns are the statuses, so a status filter set in another view must not hide columns
@@ -215,6 +217,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
               showStatus={view !== 'board'}
               showSort={view === 'list'}
               labels={labels}
+              epics={epics}
               canFilterMine={Boolean(currentUser)}
               onExport={exportCsv}
               exportCount={visibleTasks.length}
