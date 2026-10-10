@@ -131,7 +131,8 @@ export const getSprintReport = async (req: Request, res: Response): Promise<void
       const list = eventsByTask.get(key) ?? [];
       for (const change of move.changes) {
         if (change.field !== 'sprint') continue;
-        const atCompletion = completedAtMs !== undefined && move.createdAt.getTime() >= completedAtMs - 1000;
+        // Carry-overs are logged right after completedAt is stamped; a manual move just before must stay a removal
+        const atCompletion = completedAtMs !== undefined && move.createdAt.getTime() >= completedAtMs;
         if (change.from === sprintObjectId && atCompletion) {
           carried.add(key);
           continue;

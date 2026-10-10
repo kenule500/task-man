@@ -47,6 +47,16 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - Task keys like `WEB-12` (search by key, copy key or link); copy a git branch name, commit message or markdown link
 - Board: quick filters (my tasks, bugs, due this week, blocked, unassigned), swimlanes by assignee/project/type,
   soft WIP limits per column; bulk edit in the list (status, priority, assignee, sprint, labels, delete)
+- **Epic tree** per project: epics → tasks → subtasks, editable in place (add, link existing work, remove from epic)
+- **Planning**: Roadmap (epics and sprints on a zoomable timeline that fills the page), Workload (points and tasks
+  per person per sprint), Sprint report (committed, added, removed, completed and carried-over work)
+
+### Developer workflow
+- **GitHub integration**: branches, pushes and pull requests that mention a task key (`WEB-12`) show up on the task;
+  opening a PR starts the task, merging it completes it. Signed webhook, per workspace
+- **Keyboard shortcuts** (`?` lists them): `c` new task, `/` search, `g` then a letter to jump between pages, and more
+- **Saved views**: filters, sort and view live in the URL; save them per workspace, shareable by link
+- **My work**: everything assigned to you, grouped by overdue, today, this week and later
 
 ### Enterprise
 - **Audit log** (Settings → Audit log): who did what, when and from where, for tasks, projects, sprints, members,
@@ -166,6 +176,14 @@ npx web-push generate-vapid-keys
 
 People then turn push on per device under Settings > Notifications. On iPhone and iPad it works once the app is
 added to the Home Screen. Changing the key pair later means everyone turns push on again.
+
+### Optional: GitHub integration
+
+An owner or admin turns it on in the GitHub card of Workspace settings, which shows the webhook URL
+(`/api/integrations/github/<workspace-slug>`) and a generated secret. In the GitHub repository go to
+Settings > Webhooks > Add webhook, paste both, choose `application/json`, and select the **Pull requests**,
+**Pushes** and **Branch or tag creation** events. Deliveries without a valid `X-Hub-Signature-256` are rejected.
+Mention task keys in branch names, PR titles or commit messages (`feature/WEB-12-login`, `Fix WEB-12`).
 
 ## Branching and releases
 
