@@ -25,6 +25,7 @@ import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTy
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
 import TaskComments from './TaskComments';
+import TaskDevelopment from './TaskDevelopment';
 
 /** Everything the dialog can do to a task besides editing its fields. */
 export interface TaskDetailActions {
@@ -302,6 +303,8 @@ const TaskDetailDialog = ({
               onDelete={onDelete}
             />
           )}
+
+          <TaskDevelopment task={task} />
 
           <TaskAttachments
             attachments={task.attachments ?? []}

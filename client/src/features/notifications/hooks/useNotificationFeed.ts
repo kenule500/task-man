@@ -33,6 +33,8 @@ export const useNotificationFeed = (enabled = true) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(false);
+  // True after the first successful fetch: later changes can be told apart from the initial list
+  const [loaded, setLoaded] = useState(false);
   const [self] = useState(() => ({}));
   const mounted = useRef(true);
 
@@ -43,6 +45,7 @@ export const useNotificationFeed = (enabled = true) => {
       setItems(page.items);
       setUnreadCount(page.unreadCount);
       setError(false);
+      setLoaded(true);
     } catch {
       if (mounted.current) setError(true);
     } finally {
@@ -102,5 +105,5 @@ export const useNotificationFeed = (enabled = true) => {
     }
   }, [refresh, self]);
 
-  return { items, unreadCount, loading, error, refresh, markRead, markAllRead };
+  return { items, unreadCount, loading, loaded, error, refresh, markRead, markAllRead };
 };

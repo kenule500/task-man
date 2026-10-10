@@ -130,6 +130,47 @@ const ProjectWorkspace = ({
     }
   };
 
+  // ----- epic hierarchy ---------------------------------------------------
+
+  const addToEpic = async (epic: Task, title: string) => {
+    try {
+      const created = await createTask({
+        title, project: project.name, type: 'story', epic: epic._id,
+        deadline: dateKeyOf(epic.deadline) || toDateKey(addDays(new Date(), 14)),
+      });
+      if (created) toast.success(`Added to ${epic.title}`);
+      return created;
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not add the task.'));
+      throw err;
+    }
+  };
+
+  const addSubtaskTo = async (item: Task, title: string) => {
+    try {
+      const created = await createTask({ title, parent: item._id, project: project.name, deadline: dateKeyOf(item.deadline) });
+      if (created) toast.success('Subtask added');
+      return created;
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not add the subtask.'));
+      throw err;
+    }
+  };
+
+  const linkToEpic = async (epic: Task, taskIds: string[]) => {
+    const saved = await Promise.all(taskIds.map(id => updateTask(id, { epic: epic._id })));
+    const failed = saved.filter(task => !task).length;
+    if (failed === taskIds.length) throw new Error('Could not link the tasks. Try again.');
+    if (failed > 0) toast.error(`Could not link ${failed} of ${taskIds.length} tasks`);
+    else toast.success(`Linked ${taskIds.length} ${taskIds.length === 1 ? 'task' : 'tasks'} to ${epic.title}`);
+  };
+
+  const changeEpic = async (task: Task, epic: string | null, success: string) => {
+    const saved = await updateTask(task._id, { epic });
+    if (saved) toast.success(success);
+    else toast.error(`Could not update "${task.title}"`);
+  };
+
   const moveToSprint = async (task: Task, sprintId: string) => {
     const target = project.sprints.find(sprint => sprint._id === sprintId);
     const saved = await updateTask(task._id, { sprint: sprintId });
@@ -379,8 +420,17 @@ const ProjectWorkspace = ({
               epics={epics}
               tasks={own}
               canWrite={canWriteTasks}
-              onOpen={epic => setDetailId(epic._id)}
+              onOpen={task => setDetailId(task._id)}
               onAdd={addEpic}
+              storageKey={project._id}
+              onToggleDone={toggleSubtask}
+              onAddToEpic={addToEpic}
+              onAddSubtask={addSubtaskTo}
+              onLinkTasks={linkToEpic}
+              onRemoveFromEpic={task => { void changeEpic(task, null, 'Removed from epic'); }}
+              onMoveToEpic={(task, epicId) => {
+                void changeEpic(task, epicId, `Moved to ${epics.find(epic => epic._id === epicId)?.title ?? 'the epic'}`);
+              }}
             />
           </Surface>
         </TabsContent>

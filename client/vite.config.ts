@@ -34,9 +34,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Web Push handlers (public/push-sw.js), loaded into the generated worker; served as-is, not precached
+        importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // The public style guide is big and rarely opened: fetch it on demand instead of with every install
-        globIgnores: ['**/DesignSystemPage-*.js'],
+        globIgnores: ['**/DesignSystemPage-*.js', 'push-sw.js'],
         // index.html is precached with a content revision, so a new deploy replaces it (the update prompt handles the reload)
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],

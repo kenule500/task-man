@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { ArrowUpDown, Download, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,10 +36,12 @@ interface TaskToolbarProps {
   onExport?: () => void;
   /** Tasks the export would contain; the button is disabled at 0. */
   exportCount?: number;
+  /** Slot for the saved-views menu, placed beside the export button. */
+  viewsMenu?: ReactNode;
 }
 
 /** Search, status pills (not on the board), priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
+const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, onExport, exportCount, viewsMenu }: TaskToolbarProps) => {
   const epicOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All epics' },
     { value: 'none', label: 'No epic' },
@@ -104,6 +106,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             </span>
           )}
         </button>
+        {viewsMenu && <div className="shrink-0 sm:order-last sm:ml-auto">{viewsMenu}</div>}
         {onExport && (
           <Button
             type="button"
@@ -112,7 +115,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             title={exportCount === undefined ? 'Export CSV' : `Export ${exportCount} ${exportCount === 1 ? 'task' : 'tasks'} as CSV`}
             disabled={exportCount === 0}
             onClick={onExport}
-            className="h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:ml-auto sm:h-9 sm:w-auto sm:px-3"
+            className={cn('h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:h-9 sm:w-auto sm:px-3', !viewsMenu && 'sm:ml-auto')}
           >
             <Download className="size-4" aria-hidden />
             <span className="hidden sm:inline">Export CSV</span>

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bell, BellOff, CheckCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNotificationFeed } from '../hooks/useNotificationFeed';
+import { useNewNotificationToasts } from '../hooks/useNewNotificationToasts';
 import { useOpenNotification } from '../hooks/useOpenNotification';
 import { bellLabel, formatUnreadCount } from '../lib/format';
 import NotificationRow from './NotificationRow';
@@ -22,9 +23,15 @@ export interface NotificationBellProps {
  */
 const NotificationBell = ({ slug }: NotificationBellProps) => {
   const [open, setOpen] = useState(false);
-  const { items, unreadCount, loading, error, refresh, markRead, markAllRead } = useNotificationFeed();
+  const { items, unreadCount, loading, loaded, error, refresh, markRead, markAllRead } = useNotificationFeed();
+  const navigate = useNavigate();
   const close = useCallback(() => setOpen(false), []);
   const openNotification = useOpenNotification(markRead, close);
+  useNewNotificationToasts(items, {
+    loaded,
+    onOpen: openNotification,
+    onOpenInbox: slug ? () => navigate(`/${slug}/inbox`) : undefined,
+  });
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

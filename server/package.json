@@ -29,7 +29,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.2",
     "multer": "^2.4.0",
-    "nodemailer": "^10.0.15"
+    "nodemailer": "^10.0.15",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@swc/core": "^1.16.13",
@@ -42,6 +43,7 @@
     "@types/node": "^24.13.6",
     "@types/nodemailer": "^8.0.2",
     "@types/supertest": "^7.2.1",
+    "@types/web-push": "^3.6.4",
     "jest": "^30.5.2",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",

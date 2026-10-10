@@ -371,10 +371,17 @@ export const completeSprint = async (req: Request, res: Response): Promise<void>
     );
     if (!completed) throw new ConflictError('This sprint was changed by someone else');
 
+    // Each carried-over task gets a history entry, so sprint reports can count it as "not completed"
+    const carried = await Task.find({ workspace: sprint.workspace, sprint: sprint._id, status: { $ne: 'completed' } })
+      .select('title').lean();
     const moved = await Task.updateMany(
       { workspace: sprint.workspace, sprint: sprint._id, status: { $ne: 'completed' } },
       { $set: { sprint: target } },
     );
+    await Promise.all(carried.map(task => recordActivity(req, {
+      action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, sprint: sprint._id as mongoose.Types.ObjectId,
+      changes: [{ field: 'sprint', from: String(sprint._id), to: target ? String(target) : undefined }],
+    })));
     await recordActivity(req, {
       action: 'sprint.completed', summary: completed.name, project: completed.project, sprint: completed._id as mongoose.Types.ObjectId,
       changes: [
@@ -397,7 +404,12 @@ export const deleteSprint = async (req: Request, res: Response): Promise<void> =
     const sprint = await findSprint(req);
     if (!sprint) return notFound(res, 'Sprint');
 
+    const released = await Task.find({ workspace: sprint.workspace, sprint: sprint._id }).select('title').lean();
     await Task.updateMany({ workspace: sprint.workspace, sprint: sprint._id }, { $set: { sprint: null } });
+    await Promise.all(released.map(task => recordActivity(req, {
+      action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId,
+      changes: [{ field: 'sprint', from: String(sprint._id) }],
+    })));
     await sprint.deleteOne();
 
     await recordActivity(req, { action: 'sprint.deleted', summary: sprint.name, project: sprint.project, sprint: sprint._id as mongoose.Types.ObjectId });

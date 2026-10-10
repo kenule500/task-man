@@ -15,7 +15,7 @@ const mockedApi = api as unknown as { get: jest.Mock; put: jest.Mock };
 
 beforeEach(() => {
   mockedApi.get.mockResolvedValue({
-    data: { notifications: { email: true, taskAssigned: true, taskCompleted: false, weeklyDigest: true } },
+    data: { notifications: { email: true, taskAssigned: true, taskCompleted: false, weeklyDigest: true, push: true } },
   });
   mockedApi.put.mockResolvedValue({ data: {} });
 });
@@ -41,7 +41,7 @@ describe('NotificationsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save preferences' }));
 
     await waitFor(() => expect(mockedApi.put).toHaveBeenCalledWith('/profile/notifications', {
-      email: true, taskAssigned: true, taskCompleted: true, weeklyDigest: true,
+      email: true, taskAssigned: true, taskCompleted: true, weeklyDigest: true, push: true,
     }));
     expect(await screen.findByText('Notification preferences saved')).toBeInTheDocument();
   });
@@ -52,5 +52,19 @@ describe('NotificationsPage', () => {
     await waitFor(() => expect(main).toBeChecked());
     await userEvent.click(main);
     expect(screen.getByText(/Email is off, so nothing below is sent/)).toBeInTheDocument();
+  });
+
+  it('has a push section with the device status and a saved preference switch', async () => {
+    render(<NotificationsPage />);
+    expect(screen.getByRole('heading', { name: 'Push' })).toBeInTheDocument();
+    // jsdom has no PushManager, so this device is reported as unsupported (and nothing prompts)
+    expect(await screen.findByText('Not available in this browser')).toBeInTheDocument();
+
+    const push = screen.getByRole('switch', { name: 'Send me push notifications' });
+    await waitFor(() => expect(push).toBeChecked());
+    await userEvent.click(push);
+    expect(push).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Save preferences' }));
+    await waitFor(() => expect(mockedApi.put).toHaveBeenCalledWith('/profile/notifications', expect.objectContaining({ push: false })));
   });
 });

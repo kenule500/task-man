@@ -1,6 +1,7 @@
 import {
-  CheckCircle2, Download, FolderPlus, FolderX, KeyRound, Mail, MailX, MessageSquare, Paperclip, Pencil, Play,
-  Plus, Settings, Timer, Trash2, UserCog, UserMinus, UserPlus, type LucideIcon,
+  CheckCircle2, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
+  MessageSquareX, Paperclip, Pencil, Play, Plus, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
+  UserPlus, type LucideIcon,
 } from 'lucide-react';
 import { toDateKey } from '@/features/tasks/lib/date';
 import type { AuditArea, AuditChange, AuditEntry } from '../types';
@@ -46,6 +47,12 @@ export const ACTION_META: Record<string, ActionMeta> = {
   'workspace.updated': { label: 'Workspace updated', icon: Settings, tone: 'primary' },
   'workspace.invite_code_regenerated': { label: 'Invite code reset', icon: KeyRound, tone: 'warning' },
   'audit.exported': { label: 'Log exported', icon: Download, tone: 'neutral' },
+  'member.left': { label: 'Member left', icon: LogOut, tone: 'warning' },
+  'role.created': { label: 'Role created', icon: ShieldCheck, tone: 'success' },
+  'role.updated': { label: 'Role updated', icon: ShieldCheck, tone: 'primary' },
+  'role.deleted': { label: 'Role deleted', icon: ShieldX, tone: 'danger' },
+  'task.comment_deleted': { label: 'Comment deleted', icon: MessageSquareX, tone: 'warning' },
+  'integration.updated': { label: 'Integration updated', icon: GitPullRequest, tone: 'primary' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -69,7 +76,9 @@ const FIELD_LABELS: Record<string, string> = {
 
 export const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? humanize(field);
 
-export const actorName = (entry: Pick<AuditEntry, 'actor'>): string => entry.actor?.name || 'A removed user';
+/** Who did it: the member, "GitHub" for webhook-driven changes, otherwise a removed account. */
+export const actorName = (entry: Pick<AuditEntry, 'actor'> & { summary?: string }): string =>
+  entry.actor?.name || (entry.summary?.includes('via GitHub') ? 'GitHub' : 'A removed user');
 
 /** "status: Pending → In progress". A value missing on one side shows as "none". */
 export const formatChange = (change: AuditChange): string => {

@@ -89,7 +89,7 @@ describe('searchCommands', () => {
 
   it('lists pages and the most recent tasks for an empty query', () => {
     const results = searchCommands('', items);
-    expect(results.filter(item => item.group === 'Pages')).toHaveLength(11);
+    expect(results.filter(item => item.group === 'Pages')).toHaveLength(13);
     expect(results.filter(item => item.group === 'Tasks').map(item => item.label)).toEqual([
       'Fix login bug', 'Plan sprint', 'Write launch email',
     ]);

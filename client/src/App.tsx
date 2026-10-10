@@ -17,6 +17,8 @@ const loaders = {
   projects: () => import('./pages/ProjectsPage'),
   projectDetail: () => import('./pages/ProjectDetailPage'),
   reports: () => import('./pages/ReportsPage'),
+  roadmap: () => import('./pages/RoadmapPage'),
+  workload: () => import('./pages/WorkloadPage'),
   team: () => import('./pages/TeamMembersPage'),
   help: () => import('./pages/HelpPage'),
   // The style guide is large and public; load it only when someone opens it
@@ -30,6 +32,9 @@ const TaskPage = lazy(loaders.tasks);
 const ProjectsPage = lazy(loaders.projects);
 const ProjectDetailPage = lazy(loaders.projectDetail);
 const ReportsPage = lazy(loaders.reports);
+const RoadmapPage = lazy(loaders.roadmap);
+const WorkloadPage = lazy(loaders.workload);
+const SprintReportPage = lazy(() => import('./pages/SprintReportPage'));
 const TeamMembersPage = lazy(loaders.team);
 const HelpPage = lazy(loaders.help);
 const DesignSystemPage = lazy(loaders.designSystem);
@@ -160,6 +165,36 @@ function App() {
                 element={
                   <PermissionRoute permission="projects:read">
                     <Lazy><ProjectDetailPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Sprint report: requires projects:read */}
+              <Route
+                path="/:workspaceSlug/projects/:projectId/sprints/:sprintId/report"
+                element={
+                  <PermissionRoute permission="projects:read">
+                    <Lazy><SprintReportPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Roadmap (epics over time): requires projects:read */}
+              <Route
+                path="/:workspaceSlug/roadmap"
+                element={
+                  <PermissionRoute permission="projects:read">
+                    <Lazy><RoadmapPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Workload (points per person): requires projects:read */}
+              <Route
+                path="/:workspaceSlug/workload"
+                element={
+                  <PermissionRoute permission="projects:read">
+                    <Lazy><WorkloadPage /></Lazy>
                   </PermissionRoute>
                 }
               />

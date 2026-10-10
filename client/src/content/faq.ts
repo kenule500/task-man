@@ -55,6 +55,24 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           'List, Board, Calendar and Timeline. They show the same tasks and stay in sync. Switch between them with the view switcher on the Tasks page.',
       },
       {
+        id: 'share-filters',
+        question: 'Can I share a filtered view with a teammate?',
+        answer:
+          'Yes. The search, filters and sort you choose on the Tasks page are kept in the address, so copy the link and send it. Whoever opens it sees the same layout and filters, within the tasks their role can see.',
+      },
+      {
+        id: 'saved-views',
+        question: 'How do I save a view?',
+        answer:
+          'Set the layout and filters you want, open Views on the Tasks page and choose Save current view. Give it a name, and tick Share with the workspace if teammates should see it too. Open Manage views to rename or delete the views you saved. Workspace admins can also rename or delete shared views.',
+      },
+      {
+        id: 'my-work',
+        question: 'Where do I see only my tasks?',
+        answer:
+          'The dashboard starts with My work: your open tasks grouped as overdue, due today, this week and later. View all opens the Tasks page filtered to tasks assigned to you.',
+      },
+      {
         id: 'move-board',
         question: 'How do I change a task status on the Board?',
         answer:
@@ -175,6 +193,12 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
           'In-app notifications are always on. Under Settings, then Notifications, turn emails on or off: the general switch controls all emails, Task Assigned also covers mentions and comments on your tasks, and Task Completed covers finished tasks.',
       },
       {
+        id: 'notifications-push',
+        question: 'How do I get push notifications on my phone or computer?',
+        answer:
+          'Under Settings, then Notifications, open the Push section and choose Turn on for this device. Your browser asks for permission only then. Each device and browser is set up on its own, and the Send me push notifications switch (saved with Save preferences) pauses push on all of them. If you blocked notifications, allow them for this site in your browser settings and reload. On iPhone and iPad, add TaskMan to the Home Screen first and turn push on from the installed app. Push needs the server to be set up for it; if the Push section says it is not set up, ask your administrator.',
+      },
+      {
         id: 'edit-profile',
         question: 'Where do I edit my profile?',
         answer: 'Under Settings, then Profile. You can change your name, job title and other details.',
@@ -228,9 +252,22 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
     title: 'Keyboard shortcuts',
     items: [
       {
+        id: 'shortcuts-list',
+        question: 'Which keyboard shortcuts are there?',
+        answer:
+          'Press ? anywhere in a workspace to see them all. The main ones: C creates a task, / searches tasks, and G followed by D, T, P, B, C or R jumps to the dashboard, tasks, projects, board, calendar or reports. Shortcuts pause while you type in a field or when a dialog is open, and they skip pages your role cannot open.',
+      },
+      {
         id: 'global-search',
         question: 'How do I search quickly?',
-        answer: 'Press Ctrl+K (Cmd+K on Mac) to open search from anywhere.',
+        answer:
+          'Press Ctrl+K (Cmd+K on Mac) to open search from anywhere. Press / on the Tasks page to jump to the task search box, or / on any other page to open search.',
+      },
+      {
+        id: 'go-to-page',
+        question: 'How do I jump to another page with the keyboard?',
+        answer:
+          'Press G, then within a second press D for the dashboard, T for tasks, P for projects, B for the board, C for the calendar or R for reports. If nothing happens, your role may not include that page.',
       },
       {
         id: 'gantt-keys',

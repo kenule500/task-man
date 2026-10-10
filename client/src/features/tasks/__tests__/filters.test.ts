@@ -1,5 +1,6 @@
 import {
-  applyFilters, getDropPosition, getTaskStats, groupByStatus, matchesFilters, positionBetween, sortTasks,
+  DEFAULT_FILTERS, applyFilters, filtersKey, getDropPosition, getTaskStats, groupByStatus, matchesFilters, parseFilterParams,
+  positionBetween, serializeFilters, sortTasks, withFilterParams,
 } from '../lib/filters';
 import { makeTask } from './fixtures';
 
@@ -169,5 +170,57 @@ describe('search by task key', () => {
     const filters = { ...base, search: '#7', priority: 'all' as const, sort: 'createdAt' as const };
     expect(applyFilters([task, other], filters).map(item => item._id)).toEqual([other._id]);
     expect(matchesFilters(task, { ...base, search: 'unrelated' })).toBe(true);
+  });
+});
+
+describe('filters in the URL', () => {
+  const params = (query: string) => new URLSearchParams(query);
+
+  it('parses every filter', () => {
+    expect(parseFilterParams(params('q=release&status=in-progress&priority=high&type=bug&label=ops&epic=abc123&assignedToMe=1&sort=deadline'))).toEqual({
+      search: 'release', status: 'in-progress', priority: 'high', type: 'bug', label: 'ops', epic: 'abc123', assignedToMe: true, sort: 'deadline',
+    });
+  });
+
+  it('falls back to the defaults for a missing query', () => {
+    expect(parseFilterParams(params(''))).toEqual(DEFAULT_FILTERS);
+  });
+
+  it('ignores unknown, oversized and malformed values', () => {
+    const parsed = parseFilterParams(params(`status=done&priority=urgent&type=saga&sort=random&assignedToMe=maybe&label=${'x'.repeat(81)}&epic=two words&q=${'y'.repeat(300)}`));
+    expect(parsed).toEqual({ ...DEFAULT_FILTERS, search: 'y'.repeat(200) });
+  });
+
+  it('accepts the "none" epic and "true" for assignedToMe', () => {
+    expect(parseFilterParams(params('epic=none&assignedToMe=true'))).toMatchObject({ epic: 'none', assignedToMe: true });
+  });
+
+  it('leaves defaults out of the query string', () => {
+    expect(serializeFilters(DEFAULT_FILTERS).toString()).toBe('');
+    expect(serializeFilters({ ...DEFAULT_FILTERS, search: '   ' }).toString()).toBe('');
+    expect(serializeFilters({ ...DEFAULT_FILTERS, status: 'pending', assignedToMe: true, sort: 'priority' }).toString())
+      .toBe('status=pending&assignedToMe=1&sort=priority');
+  });
+
+  it('round-trips through the query string', () => {
+    const filters = { ...DEFAULT_FILTERS, search: 'a & b', status: 'completed' as const, label: 'Front end', epic: 'none', type: 'spike' as const };
+    expect(parseFilterParams(serializeFilters(filters))).toEqual(filters);
+  });
+
+  it('replaces only its own parameters and keeps view, task and board parameters', () => {
+    const next = withFilterParams(params('view=board&task=t1&col=completed&qf=mine&group=assignee&status=pending&q=old'), { ...DEFAULT_FILTERS, priority: 'low' });
+    expect(next.get('view')).toBe('board');
+    expect(next.get('task')).toBe('t1');
+    expect(next.get('col')).toBe('completed');
+    expect(next.get('qf')).toBe('mine');
+    expect(next.get('group')).toBe('assignee');
+    expect(next.get('priority')).toBe('low');
+    expect(next.has('status')).toBe(false);
+    expect(next.has('q')).toBe(false);
+  });
+
+  it('compares filters by their query string', () => {
+    expect(filtersKey({ ...DEFAULT_FILTERS, search: ' ' })).toBe(filtersKey(DEFAULT_FILTERS));
+    expect(filtersKey({ ...DEFAULT_FILTERS, label: 'a' })).not.toBe(filtersKey(DEFAULT_FILTERS));
   });
 });

@@ -1,11 +1,71 @@
-import { PRIORITY_META, TASK_STATUSES } from '../constants';
+import { PRIORITY_META, SORT_OPTIONS, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from '../constants';
 import { isOverdue } from './date';
 import type { Task, TaskFilters, TaskSort, TaskStatus } from '../types';
 import { matchesKey } from './taskKey';
 
+const SORT_VALUES: TaskSort[] = SORT_OPTIONS.map(option => option.value);
+
 export const DEFAULT_FILTERS: TaskFilters = {
   search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all', epic: 'all',
 };
+
+// ---------------------------------------------------------------------------
+// Filters <-> URL query string, so any view can be shared by link
+// ---------------------------------------------------------------------------
+
+/** Query parameters owned by the filters; `view`, `task`, `new` and the board's `col`, `qf`, `group` are left alone. */
+export const FILTER_PARAMS = ['q', 'status', 'priority', 'type', 'label', 'epic', 'assignedToMe', 'sort'] as const;
+
+const MAX_SEARCH_PARAM = 200;
+const MAX_VALUE_PARAM = 80;
+
+const oneOf = <T extends string, F extends string>(value: string | null, allowed: readonly T[], fallback: F): T | F =>
+  allowed.includes(value as T) ? (value as T) : fallback;
+
+const freeText = (value: string | null): string => {
+  const text = value?.trim() ?? '';
+  return text && text.length <= MAX_VALUE_PARAM ? text : 'all';
+};
+
+/** Reads the filters from a query string. Missing, unknown or oversized values fall back to the defaults. */
+export const parseFilterParams = (params: URLSearchParams): TaskFilters => {
+  const epic = freeText(params.get('epic'));
+  return {
+    search: (params.get('q') ?? '').slice(0, MAX_SEARCH_PARAM),
+    status: oneOf(params.get('status'), TASK_STATUSES, 'all'),
+    priority: oneOf(params.get('priority'), TASK_PRIORITIES, 'all'),
+    type: oneOf(params.get('type'), TASK_TYPES, 'all'),
+    label: freeText(params.get('label')),
+    epic: /\s/.test(epic) ? 'all' : epic,
+    assignedToMe: params.get('assignedToMe') === '1' || params.get('assignedToMe') === 'true',
+    sort: oneOf(params.get('sort'), SORT_VALUES, DEFAULT_FILTERS.sort),
+  };
+};
+
+/** The query parameters for `filters`; values equal to the defaults are left out. */
+export const serializeFilters = (filters: TaskFilters): URLSearchParams => {
+  const params = new URLSearchParams();
+  if (filters.search.trim()) params.set('q', filters.search);
+  if (filters.status !== 'all') params.set('status', filters.status);
+  if (filters.priority !== 'all') params.set('priority', filters.priority);
+  if ((filters.type ?? 'all') !== 'all') params.set('type', filters.type as string);
+  if ((filters.label ?? 'all') !== 'all') params.set('label', filters.label as string);
+  if ((filters.epic ?? 'all') !== 'all') params.set('epic', filters.epic as string);
+  if (filters.assignedToMe) params.set('assignedToMe', '1');
+  if (filters.sort !== DEFAULT_FILTERS.sort) params.set('sort', filters.sort);
+  return params;
+};
+
+/** `current` with its filter parameters replaced by those of `filters`; every other parameter is kept. */
+export const withFilterParams = (current: URLSearchParams, filters: TaskFilters): URLSearchParams => {
+  const next = new URLSearchParams(current);
+  for (const name of FILTER_PARAMS) next.delete(name);
+  for (const [name, value] of serializeFilters(filters)) next.set(name, value);
+  return next;
+};
+
+/** Stable text for comparing the filters of two states (e.g. the URL and the page). */
+export const filtersKey = (filters: TaskFilters): string => serializeFilters(filters).toString();
 
 type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type' | 'epic'>>;
 

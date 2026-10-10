@@ -27,3 +27,21 @@ export const notificationsApi = {
     return data;
   },
 };
+
+export interface PushConfig {
+  publicKey: string | null;
+  enabled: boolean;
+}
+
+export const pushApi = {
+  config: async (): Promise<PushConfig> => {
+    const { data } = await api.get('/notifications/push/public-key');
+    return { publicKey: data?.publicKey ?? null, enabled: Boolean(data?.enabled && data?.publicKey) };
+  },
+  subscribe: async (subscription: PushSubscriptionJSON): Promise<void> => {
+    await api.post('/notifications/push/subscribe', subscription);
+  },
+  unsubscribe: async (endpoint: string): Promise<void> => {
+    await api.post('/notifications/push/unsubscribe', { endpoint });
+  },
+};

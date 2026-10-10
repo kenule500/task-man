@@ -125,7 +125,7 @@ export const updateNotifications = async (req: Request, res: Response): Promise<
     if (!userId) return;
 
     // Update only the provided switches, and only with real booleans
-    const keys = ['email', 'taskAssigned', 'taskCompleted', 'weeklyDigest'] as const;
+    const keys = ['email', 'taskAssigned', 'taskCompleted', 'weeklyDigest', 'push'] as const;
     const updates: Record<string, boolean> = {};
     for (const key of keys) {
       const value = req.body[key];

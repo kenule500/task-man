@@ -31,6 +31,7 @@ import api from '../utils/api';
 import { usePermissions } from '../hooks/usePermissions';
 import GetStartedChecklist from '@/components/dashboard/GetStartedChecklist';
 import ActiveSprints from '@/components/dashboard/ActiveSprints';
+import MyWork from '@/components/dashboard/MyWork';
 import { useProjects } from '@/features/projects';
 import {
   buildChecklist, hasTriedBoard, isChecklistComplete, markBoardTried,
@@ -254,6 +255,9 @@ const DashboardPage = () => {
       ) : (
         tasks.length > 0 && (
           <>
+            {/* What is on my plate comes first */}
+            {can('tasks:read') && <MyWork tasks={tasks} userId={user._id} slug={slug} />}
+
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
               <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
               <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />

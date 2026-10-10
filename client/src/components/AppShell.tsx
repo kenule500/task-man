@@ -26,7 +26,7 @@ const AppShell = ({ children, requireOnboarding = true }: AppShellProps) => {
 
   return (
     <Sidebar user={user} onLogout={logout}>
-      <div className="mx-auto w-full max-w-7xl space-y-6">{content}</div>
+      <div className="w-full space-y-6">{content}</div>
     </Sidebar>
   );
 };

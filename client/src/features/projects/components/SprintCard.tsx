@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
-import { CalendarDays, ChevronDown, ListTodo, Pencil, Play, Flag, Trash2 } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { CalendarDays, ChevronDown, FileBarChart, ListTodo, Pencil, Play, Flag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmptyState, ProgressBar, Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ const SprintCard = ({
   sprint, tasks, subtasks, expanded, onToggle, canManage, canWriteTasks, blockedByActive, starting = false,
   onStart, onComplete, onEdit, onDelete, onOpenTask, onToggleSubtask, onQuickAdd,
 }: SprintCardProps) => {
+  const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const headingId = useId();
   const panelId = useId();
   const hintId = useId();
@@ -74,18 +76,20 @@ const SprintCard = ({
     >
       <div className="space-y-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <div className="min-w-0 flex-1">
+          {/* Phones: the title takes the whole row and the actions wrap below it */}
+          <div className="w-full min-w-0 sm:w-auto sm:flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 id={headingId} className="min-w-0 text-base font-bold text-slate-900">
+              <h3 id={headingId} className="max-w-full shrink-0 text-base font-bold text-slate-900">
                 <button
                   type="button"
                   onClick={onToggle}
                   aria-expanded={expanded}
                   aria-controls={panelId}
-                  className="-ml-1 flex min-h-11 max-w-full items-center gap-1.5 rounded-lg px-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
+                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-lg px-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
                 >
                   <ChevronDown aria-hidden className={cn('size-4 shrink-0 text-slate-500 transition-transform motion-reduce:transition-none', !expanded && '-rotate-90')} />
-                  <span className="min-w-0 truncate" title={sprint.name}>{sprint.name}</span>
+                  {/* Full name: keeps its width and wraps only when longer than the card */}
+                  <span className="min-w-0 break-words">{sprint.name}</span>
                 </button>
               </h3>
               <Tag tone={status.tone} size="sm">{status.label}</Tag>
@@ -102,6 +106,15 @@ const SprintCard = ({
                 </Meta>
               )}
               <Meta icon={<ListTodo />}>{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</Meta>
+              {sprint.status !== 'planned' && workspaceSlug && (
+                <Link
+                  to={`/${workspaceSlug}/projects/${sprint.project}/sprints/${sprint._id}/report`}
+                  className="-my-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:-my-1 md:min-h-8"
+                >
+                  <FileBarChart aria-hidden className="size-3.5" />
+                  Sprint report<span className="sr-only"> for {sprint.name}</span>
+                </Link>
+              )}
             </div>
           </div>
 

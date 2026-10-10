@@ -30,11 +30,28 @@ import {
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { getWorkspaceActivity } from '../controllers/activityController.js';
+import { getSprintReport } from '../controllers/reportController.js';
 import {
   getBoardSettings,
   updateBoardSettings,
   validateBoardSettings,
 } from '../controllers/boardSettingsController.js';
+import {
+  createSavedView,
+  deleteSavedView,
+  listSavedViews,
+  updateSavedView,
+  validateCreateSavedView,
+  validateUpdateSavedView,
+} from '../controllers/savedViewController.js';
+import {
+  disableGithubIntegration,
+  enableGithubIntegration,
+  getGithubIntegration,
+  regenerateGithubSecret,
+  updateGithubIntegration,
+  validateGithubSettings,
+} from '../controllers/integrationController.js';
 import taskRoutes from './taskRoutes.js';
 import projectRoutes from './projectRoutes.js';
 
@@ -91,6 +108,22 @@ router.put(
   requirePermission('settings:manage'),
   validateBoardSettings,
   updateBoardSettings
+);
+
+// ============================================================
+// Integrations (GitHub): all of it, including the webhook secret, needs settings:manage
+// The public webhook receiver itself is POST /api/integrations/github/:slug
+// ============================================================
+router.get('/:slug/integrations/github', protect, requirePermission('settings:manage'), getGithubIntegration);
+router.post('/:slug/integrations/github/enable', protect, requirePermission('settings:manage'), enableGithubIntegration);
+router.post('/:slug/integrations/github/regenerate-secret', protect, requirePermission('settings:manage'), regenerateGithubSecret);
+router.post('/:slug/integrations/github/disable', protect, requirePermission('settings:manage'), disableGithubIntegration);
+router.patch(
+  '/:slug/integrations/github',
+  protect,
+  requirePermission('settings:manage'),
+  validateGithubSettings,
+  updateGithubIntegration
 );
 
 // ============================================================
@@ -171,6 +204,20 @@ router.use('/:slug/tasks', taskRoutes);
 
 // Audit log of the workspace (owners and admins)
 router.get('/:slug/activity', protect, requirePermission('settings:manage'), getWorkspaceActivity);
+
+// Saved task views (own + shared); everyone who can read tasks may save one, ownership is checked in the controller
+router.get('/:slug/views', protect, requirePermission('tasks:read'), listSavedViews);
+router.post('/:slug/views', protect, requirePermission('tasks:read'), validateCreateSavedView, createSavedView);
+router.patch('/:slug/views/:id', protect, requirePermission('tasks:read'), validateUpdateSavedView, updateSavedView);
+router.delete('/:slug/views/:id', protect, requirePermission('tasks:read'), deleteSavedView);
+
+// Sprint report (committed / completed / added / removed); read-only, so projects:read is enough
+router.get(
+  '/:slug/projects/:projectId/sprints/:sprintId/report',
+  protect,
+  requirePermission('projects:read'),
+  getSprintReport
+);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);
