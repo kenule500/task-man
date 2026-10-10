@@ -35,14 +35,32 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The public style guide is big and rarely opened: fetch it on demand instead of with every install
+        globIgnores: ['**/DesignSystemPage-*.js'],
+        // index.html is precached with a content revision, so a new deploy replaces it (the update prompt handles the reload)
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
-        // Only static font assets are cached at runtime. API responses are private and never cached.
         runtimeCaching: [
           {
+            // Last known lists, so the installed app opens offline. Only same-origin GET list endpoints:
+            // never /api/auth/*, never writes. The cache is deleted on logout (utils/session.ts, API_CACHE_NAME).
+            // This function is serialised into the service worker: keep it free of outside references.
+            urlPattern: ({ url, request }: { url: URL; request: Request }) =>
+              request.method === 'GET'
+              && url.origin === self.location.origin
+              && /^\/api\/(workspaces(\/[^/]+\/(tasks|projects))?|profile)\/?$/.test(url.pathname),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-v1',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'google-fonts-stylesheets',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
@@ -51,7 +69,7 @@ export default defineConfig({
           },
           {
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'google-fonts-webfonts',
               expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
@@ -63,6 +81,18 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Long-lived vendor chunks: they change far less often than app code, so returning visitors reuse them
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/, priority: 30 },
+          ],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

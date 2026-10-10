@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
+import { fetchCached, getCached, invalidate, setCached, subscribe, tasksKey } from '@/lib/queryCache';
 import { getApiErrorMessage, getApiErrorStatus, isTaskPayload, tasksApi, type UploadOptions } from '../api';
 import type { Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskUser } from '../types';
 
@@ -47,13 +48,39 @@ interface PendingDelete {
  * Every view (list, board, calendar, timeline) shares this single source of truth.
  */
 export const useTasks = (workspaceSlug: string | undefined) => {
-  const [allTasks, setTasks] = useState<Task[]>([]);
+  // Stale-while-revalidate: a cached list shows at once (no skeleton) and is refreshed in the background
+  const [allTasks, rawSetTasks] = useState<Task[]>(
+    () => (workspaceSlug ? getCached<Task[]>(tasksKey(workspaceSlug)) : undefined) ?? [],
+  );
   const [error, setError] = useState('');
   // Tasks hidden by a delete that can still be undone
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(() => new Set());
   // Workspace whose tasks are currently loaded; loading until it matches the URL
-  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(
+    () => (workspaceSlug && getCached(tasksKey(workspaceSlug)) ? workspaceSlug : null),
+  );
   const loading = Boolean(workspaceSlug) && loadedSlug !== workspaceSlug;
+
+  // Switching workspace: adopt that workspace's cached list during render, so there is no skeleton flash
+  const [seenSlug, setSeenSlug] = useState(workspaceSlug);
+  if (seenSlug !== workspaceSlug) {
+    setSeenSlug(workspaceSlug);
+    const cached = workspaceSlug ? getCached<Task[]>(tasksKey(workspaceSlug)) : undefined;
+    if (cached && workspaceSlug) {
+      rawSetTasks(cached);
+      setLoadedSlug(workspaceSlug);
+    }
+  }
+
+  // Local changes counted so a slower background refresh never overwrites them
+  const changesRef = useRef(0);
+  const busyRef = useRef(0);
+  // False after a failed load emptied the list: an empty fallback must not be cached as real data
+  const cacheableRef = useRef(true);
+  const setTasks = useCallback((update: SetStateAction<Task[]>) => {
+    changesRef.current += 1;
+    rawSetTasks(update);
+  }, []);
 
   // Latest committed tasks, read by mutations to build rollbacks
   const tasksRef = useRef(allTasks);
@@ -82,6 +109,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     if (!entry) return;
     clearTimeout(entry.timer);
     pendingRef.current.delete(id);
+    busyRef.current += 1;
     try {
       await tasksApi.remove(entry.slug, id);
       // The server also deletes the subtasks and detaches the tasks from dependants; mirror that locally.
@@ -94,6 +122,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     } catch (err) {
       setError(getApiErrorMessage(err, 'Could not delete the task.'));
     } finally {
+      busyRef.current -= 1;
       // On failure the task reappears
       setPendingIds(current => {
         const next = new Set(current);
@@ -101,7 +130,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
         return next;
       });
     }
-  }, []);
+  }, [setTasks]);
 
   const flushDeletes = useCallback(
     async () => { await Promise.all([...pendingRef.current.keys()].map(commitDelete)); },
@@ -111,18 +140,29 @@ export const useTasks = (workspaceSlug: string | undefined) => {
   useEffect(() => {
     if (!workspaceSlug) return;
     let cancelled = false;
+    const key = tasksKey(workspaceSlug);
+    const hadCache = getCached(key) !== undefined;
+    const changesAtStart = changesRef.current;
+    cacheableRef.current = true;
 
-    tasksApi.list(workspaceSlug)
+    fetchCached(key, () => tasksApi.list(workspaceSlug))
       .then(list => {
         if (cancelled) return;
-        setTasks(list);
+        // The user already changed something locally: their version is newer than this response
+        if (changesRef.current === changesAtStart && busyRef.current === 0) rawSetTasks(list);
         setError('');
       })
       .catch(err => {
         if (cancelled) return;
         const status = getApiErrorStatus(err);
-        setTasks([]);
-        setError(status === 403 || status === 404
+        const denied = status === 403 || status === 404;
+        // Offline or flaky network with cached data: keep showing it and just report the problem
+        if (denied || !hadCache) {
+          rawSetTasks([]);
+          cacheableRef.current = false;
+          invalidate(key);
+        }
+        setError(denied
           ? `You don't have access to "${workspaceSlug}". Use the workspace switcher to pick another one.`
           : getApiErrorMessage(err, 'Failed to load tasks.'));
       })
@@ -137,6 +177,22 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     };
   }, [workspaceSlug, flushDeletes]);
 
+  // Keep the shared cache in step with what the UI shows (after loads, and once optimistic changes settle)
+  useEffect(() => {
+    if (!workspaceSlug || loadedSlug !== workspaceSlug || !cacheableRef.current || busyRef.current > 0) return;
+    setCached(tasksKey(workspaceSlug), allTasks);
+  }, [allTasks, loadedSlug, workspaceSlug]);
+
+  // Another screen using the same workspace wrote newer data: follow it
+  useEffect(() => {
+    if (!workspaceSlug) return;
+    const key = tasksKey(workspaceSlug);
+    return subscribe(key, () => {
+      const next = getCached<Task[]>(key);
+      if (next && next !== tasksRef.current && busyRef.current === 0) rawSetTasks(next);
+    });
+  }, [workspaceSlug]);
+
   // Closing the tab must not silently drop a delete the user already saw as done
   useEffect(() => {
     const onPageHide = () => { void flushDeletes(); };
@@ -148,20 +204,27 @@ export const useTasks = (workspaceSlug: string | undefined) => {
   const reload = useCallback(async (): Promise<void> => {
     if (!workspaceSlug) return;
     try {
-      setTasks(await tasksApi.list(workspaceSlug));
+      const list = await fetchCached(tasksKey(workspaceSlug), () => tasksApi.list(workspaceSlug), true);
+      cacheableRef.current = true;
+      setTasks(list);
       setError('');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Failed to load tasks.'));
     }
-  }, [workspaceSlug]);
+  }, [workspaceSlug, setTasks]);
 
   /** Creates a task (or a subtask when `input.parent` is set); throws so forms can show the server's validation message. */
   const createTask = useCallback(async (input: TaskInput): Promise<Task | null> => {
     if (!workspaceSlug) return null;
-    const created = await tasksApi.create(workspaceSlug, input);
-    setTasks(current => [...current, created]);
-    return created;
-  }, [workspaceSlug]);
+    busyRef.current += 1;
+    try {
+      const created = await tasksApi.create(workspaceSlug, input);
+      setTasks(current => [...current, created]);
+      return created;
+    } finally {
+      busyRef.current -= 1;
+    }
+  }, [workspaceSlug, setTasks]);
 
   /**
    * Optimistic update: the UI changes immediately and rolls back on failure.
@@ -173,6 +236,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
 
     const directory = buildDirectory(tasksRef.current);
     setTasks(current => current.map(task => (task._id === id ? applyPatch(task, patch, directory) : task)));
+    busyRef.current += 1;
     try {
       const saved = await tasksApi.update(workspaceSlug, id, patch);
       const regrouped = 'sprint' in patch || 'project' in patch;
@@ -186,8 +250,10 @@ export const useTasks = (workspaceSlug: string | undefined) => {
       setTasks(current => current.map(task => (task._id === id ? previous : task)));
       setError(getApiErrorMessage(err, 'Could not save your change.'));
       return null;
+    } finally {
+      busyRef.current -= 1;
     }
-  }, [workspaceSlug]);
+  }, [workspaceSlug, setTasks]);
 
   /**
    * Deletes with undo: the task disappears at once and the request is only sent after
@@ -215,7 +281,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
 
   const replaceTask = useCallback((saved: Task) => {
     setTasks(current => current.map(task => (task._id === saved._id ? saved : task)));
-  }, []);
+  }, [setTasks]);
 
   /** Adds a comment; throws so the caller can show the server's message. */
   const addComment = useCallback(async (id: string, text: string, author?: TaskUser): Promise<void> => {
@@ -227,7 +293,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     }
     const comment = withAuthor(result, author);
     setTasks(current => current.map(task => (task._id === id ? { ...task, comments: [...(task.comments ?? []), comment] } : task)));
-  }, [workspaceSlug, replaceTask]);
+  }, [workspaceSlug, replaceTask, setTasks]);
 
   const removeComment = useCallback(async (id: string, commentId: string): Promise<void> => {
     if (!workspaceSlug) return;
@@ -239,7 +305,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     setTasks(current => current.map(task => (task._id === id
       ? { ...task, comments: (task.comments ?? []).filter(comment => comment._id !== commentId) }
       : task)));
-  }, [workspaceSlug, replaceTask]);
+  }, [workspaceSlug, replaceTask, setTasks]);
 
   const uploadAttachment = useCallback(async (id: string, file: File, options?: UploadOptions): Promise<void> => {
     if (!workspaceSlug) return;
@@ -252,7 +318,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     setTasks(current => current.map(task => (task._id === id
       ? { ...task, attachments: [...(task.attachments ?? []), attachment] }
       : task)));
-  }, [workspaceSlug, replaceTask]);
+  }, [workspaceSlug, replaceTask, setTasks]);
 
   const removeAttachment = useCallback(async (id: string, attachmentId: string): Promise<void> => {
     if (!workspaceSlug) return;
@@ -264,7 +330,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     setTasks(current => current.map(task => (task._id === id
       ? { ...task, attachments: (task.attachments ?? []).filter(item => item._id !== attachmentId) }
       : task)));
-  }, [workspaceSlug, replaceTask]);
+  }, [workspaceSlug, replaceTask, setTasks]);
 
   const downloadAttachment = useCallback(async (id: string, attachmentId: string): Promise<Blob> => {
     if (!workspaceSlug) throw new Error('No workspace selected.');
