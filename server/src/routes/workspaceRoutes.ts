@@ -33,6 +33,9 @@ import { getWorkspaceActivity } from '../controllers/activityController.js';
 import { getSprintReport } from '../controllers/reportController.js';
 import { getFlowReport } from '../controllers/flowController.js';
 import automationRoutes from './automationRoutes.js';
+import workflowRoutes from './workflowRoutes.js';
+import webhookRoutes from './webhookRoutes.js';
+import tokenRoutes from './tokenRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -226,6 +229,11 @@ router.get('/:slug/reports/flow', protect, requirePermission('projects:read'), g
 
 // Automation rules (routes protect themselves; managing them needs settings:manage)
 router.use('/:slug/automations', automationRoutes);
+
+// Workflow stages (board columns inside the status groups), outbound webhooks and API tokens
+router.use('/:slug/workflow', workflowRoutes);
+router.use('/:slug/webhooks', webhookRoutes);
+router.use('/:slug/tokens', tokenRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);

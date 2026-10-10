@@ -1,5 +1,5 @@
 /** Areas an audit entry belongs to (the part of the action before the dot). */
-export const AUDIT_AREAS = ['task', 'project', 'sprint', 'member', 'invitation', 'workspace', 'audit', 'automation'] as const;
+export const AUDIT_AREAS = ['task', 'project', 'sprint', 'member', 'invitation', 'workspace', 'audit', 'automation', 'workflow', 'webhook', 'token'] as const;
 export type AuditArea = (typeof AUDIT_AREAS)[number];
 
 export interface AuditActor {
