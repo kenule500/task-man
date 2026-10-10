@@ -46,15 +46,49 @@ export const auditLookup = async <T>(lookup: () => Promise<T>): Promise<T | unde
   }
 };
 
+/** An entry as it was written, handed to activity listeners. */
+export interface RecordedActivity extends ActivityInput {
+  workspace: Id;
+  actor?: Id;
+  createdAt: Date;
+}
+
 /**
- * Appends an entry to the workspace activity log. Never throws: an audit write must not fail the
- * user's request, so problems are logged instead.
+ * Reacts to a recorded entry (flow tracking, automation rules...). Listeners are awaited in order,
+ * so serverless requests do not end before they finish; their errors are logged, never thrown.
+ */
+export type ActivityListener = (req: Request, entry: RecordedActivity) => Promise<void> | void;
+
+const listeners: ActivityListener[] = [];
+
+/** Subscribes to every recorded activity; returns a function that unsubscribes. */
+export const onActivity = (listener: ActivityListener): (() => void) => {
+  listeners.push(listener);
+  return () => {
+    const index = listeners.indexOf(listener);
+    if (index >= 0) listeners.splice(index, 1);
+  };
+};
+
+const notifyListeners = async (req: Request, entry: RecordedActivity): Promise<void> => {
+  for (const listener of [...listeners]) {
+    try {
+      await listener(req, entry);
+    } catch (error) {
+      console.error('activity listener error:', (error as Error).message);
+    }
+  }
+};
+
+/**
+ * Appends an entry to the workspace activity log, then tells the listeners. Never throws: an audit
+ * write must not fail the user's request, so problems are logged instead.
  */
 export const recordActivity = async (req: Request, input: ActivityInput): Promise<void> => {
   const workspace = (req.workspace as { _id?: Id } | undefined)?._id;
   if (!workspace) return;
   try {
-    await Activity.create({
+    const entry = await Activity.create({
       workspace,
       actor: req.user?._id,
       action: input.action,
@@ -66,6 +100,9 @@ export const recordActivity = async (req: Request, input: ActivityInput): Promis
       ip: req.ip?.slice(0, 64),
       userAgent: req.get('user-agent')?.slice(0, 200),
     });
+    if (listeners.length > 0) {
+      await notifyListeners(req, { ...input, workspace, actor: req.user?._id as Id | undefined, createdAt: entry.createdAt });
+    }
   } catch (error) {
     console.error('recordActivity error:', (error as Error).message);
   }

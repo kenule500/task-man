@@ -16,12 +16,18 @@ import roleRoutes from './routes/roleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import integrationRoutes from './routes/integrationRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
+import { registerFlowTracking } from './utils/flow/register.js';
+import { registerAutomations } from './utils/automation/register.js';
 
 // ============================================================
 // 1. Validate environment first
 //    Exits with a clear message on missing or weak secrets
 // ============================================================
 const config = getConfig();
+
+// Activity listeners: flow tracking first, so automation-made moves are measured too
+registerFlowTracking();
+registerAutomations();
 
 // ============================================================
 // 2. Build the Express app

@@ -1,7 +1,7 @@
 import {
-  CheckCircle2, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
+  CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
   MessageSquareX, Paperclip, Pencil, Play, Plus, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
-  UserPlus, type LucideIcon,
+  UserPlus, Zap, type LucideIcon,
 } from 'lucide-react';
 import { toDateKey } from '@/features/tasks/lib/date';
 import type { AuditArea, AuditChange, AuditEntry } from '../types';
@@ -22,6 +22,7 @@ export const AREA_LABELS: Record<AuditArea, string> = {
   invitation: 'Invitations',
   workspace: 'Workspace',
   audit: 'Exports',
+  automation: 'Automations',
 };
 
 export const ACTION_META: Record<string, ActionMeta> = {
@@ -53,6 +54,11 @@ export const ACTION_META: Record<string, ActionMeta> = {
   'role.deleted': { label: 'Role deleted', icon: ShieldX, tone: 'danger' },
   'task.comment_deleted': { label: 'Comment deleted', icon: MessageSquareX, tone: 'warning' },
   'integration.updated': { label: 'Integration updated', icon: GitPullRequest, tone: 'primary' },
+  'task.duplicated': { label: 'Task duplicated', icon: Copy, tone: 'success' },
+  'automation.created': { label: 'Automation created', icon: Zap, tone: 'success' },
+  'automation.updated': { label: 'Automation updated', icon: Zap, tone: 'primary' },
+  'automation.deleted': { label: 'Automation deleted', icon: Zap, tone: 'danger' },
+  'automation.ran': { label: 'Automation ran', icon: Zap, tone: 'neutral' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
