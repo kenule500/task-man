@@ -1,7 +1,7 @@
 import {
   CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
   MessageSquareX, Paperclip, Pencil, Play, Plus, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
-  UserPlus, Zap, type LucideIcon,
+  UserPlus, Webhook, Zap, type LucideIcon,
 } from 'lucide-react';
 import { toDateKey } from '@/features/tasks/lib/date';
 import type { AuditArea, AuditChange, AuditEntry } from '../types';
@@ -23,6 +23,9 @@ export const AREA_LABELS: Record<AuditArea, string> = {
   workspace: 'Workspace',
   audit: 'Exports',
   automation: 'Automations',
+  workflow: 'Workflow',
+  webhook: 'Webhooks',
+  token: 'API tokens',
 };
 
 export const ACTION_META: Record<string, ActionMeta> = {
@@ -59,6 +62,12 @@ export const ACTION_META: Record<string, ActionMeta> = {
   'automation.updated': { label: 'Automation updated', icon: Zap, tone: 'primary' },
   'automation.deleted': { label: 'Automation deleted', icon: Zap, tone: 'danger' },
   'automation.ran': { label: 'Automation ran', icon: Zap, tone: 'neutral' },
+  'workflow.updated': { label: 'Workflow updated', icon: Settings, tone: 'primary' },
+  'webhook.created': { label: 'Webhook added', icon: Webhook, tone: 'success' },
+  'webhook.updated': { label: 'Webhook updated', icon: Webhook, tone: 'primary' },
+  'webhook.deleted': { label: 'Webhook removed', icon: Webhook, tone: 'danger' },
+  'token.created': { label: 'API token created', icon: KeyRound, tone: 'warning' },
+  'token.revoked': { label: 'API token revoked', icon: KeyRound, tone: 'danger' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

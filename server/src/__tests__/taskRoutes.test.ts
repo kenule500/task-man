@@ -12,6 +12,8 @@ jest.mock('../models/taskModel.js', () => ({
   MAX_LABEL_LENGTH: 40,
   MAX_COMMENT_LENGTH: 2000,
   MAX_ATTACHMENTS: 20,
+  MAX_TASK_RELATIONS: 50,
+  TASK_RELATION_TYPES: ['relates', 'duplicates', 'duplicated_by', 'clones', 'cloned_by'],
   default: {},
 }));
 
@@ -48,6 +50,9 @@ describe('task routes permissions', () => {
     ['delete', '/:id/comments/:commentId', 'tasks:write'],
     ['post', '/:id/attachments', 'tasks:write'],
     ['post', '/:id/duplicate', 'tasks:write'],
+    ['post', '/:id/relations', 'tasks:write'],
+    ['delete', '/:id/relations/:relatedId', 'tasks:write'],
+    ['post', '/:id/move', 'tasks:write'],
     ['post', '/:id/watch', 'tasks:read'],
     ['delete', '/:id/watch', 'tasks:read'],
     ['get', '/:id/attachments/:attachmentId', 'tasks:read'],
@@ -64,7 +69,7 @@ describe('task routes permissions', () => {
 
   it('guards every route with a permission before its handler', () => {
     const routes = stack.filter(l => l.route);
-    expect(routes.length).toBe(16);
+    expect(routes.length).toBe(19);
     for (const layer of routes) {
       expect(layer.route?.stack[0].handle.permission).toMatch(/^tasks:(read|write|delete)$/);
     }

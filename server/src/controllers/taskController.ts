@@ -11,6 +11,7 @@ import Task, {
   TASK_PRIORITIES,
   TASK_STATUSES,
   TASK_TYPES,
+  type TaskStatus,
 } from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
 import Sprint from '../models/sprintModel.js';
@@ -18,6 +19,7 @@ import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
+import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
 import { notifyTaskEvents } from '../utils/notify.js';
 import { ensureTaskNumbers, reserveTaskNumbers } from '../utils/taskNumbers.js';
 import {
@@ -116,6 +118,7 @@ const optionalFieldRules = [
   body('description').optional().isString().isLength({ max: 2000 }).withMessage('Description is too long'),
   body('project').optional().isString().isLength({ max: 60 }).withMessage('Project name is too long'),
   body('status').optional().isIn(TASK_STATUSES).withMessage('Invalid status'),
+  body('stage').optional().isString().isLength({ min: 1, max: 30 }).withMessage('Invalid stage'),
   body('priority').optional().isIn(TASK_PRIORITIES).withMessage('Invalid priority'),
   body('startDate').optional({ values: 'null' }).isISO8601().withMessage('Invalid start date'),
   body('position').optional().isNumeric().withMessage('Invalid position'),
@@ -176,7 +179,7 @@ const assertCanRecur = (recurrence: Recurrence | null | undefined, task: { paren
   if (task.type === 'epic') throw new TaskRuleError('Epics cannot repeat');
 };
 
-const assertValidDependencies = async (
+export const assertValidDependencies = async (
   workspaceId: mongoose.Types.ObjectId,
   taskId: string | null,
   dependencies: string[],
@@ -340,6 +343,10 @@ export const describeTaskChanges = (before: Record<string, unknown>, after: Reco
   if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
     changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
   }
+  // Moves between stages of the same group; the first assignment of a stage on an older task is not a change
+  if (before.stage && after.stage && before.stage !== after.stage) {
+    changes.push({ field: 'stage', from: String(before.stage), to: String(after.stage) });
+  }
   const progressBefore = checklistProgress(before.checklist);
   const progressAfter = checklistProgress(after.checklist);
   if (progressBefore !== progressAfter) changes.push({ field: 'checklist', from: progressBefore, to: progressAfter });
@@ -427,6 +434,8 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     }
     if (type === 'epic' && sprint) throw new TaskRuleError('Epics cannot be planned in a sprint');
     if (sprint) project = (await findOpenSprint(workspaceId, sprint)).projectName;
+    const resolvedStage = stageFor(workflowOf(workspace), { stage: req.body.stage, status });
+    if (!resolvedStage) throw new TaskRuleError(UNKNOWN_STAGE_MESSAGE);
     const link = await resolveEpicLink(
       workspaceId,
       { type: type ?? 'task', epic: req.body.epic ?? null, parent: parentId, sprint, project: project ?? '' },
@@ -446,7 +455,8 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       sprint,
       parent: parentId,
       epic: link.epic,
-      status,
+      status: resolvedStage.status,
+      stage: resolvedStage.stage,
       priority,
       startDate: start,
       deadline: due,
@@ -528,6 +538,19 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       }
     }
 
+    // Stage and status stay in sync: an explicit stage sets the status, a status-only change keeps or picks a stage
+    if ('stage' in req.body || 'status' in req.body) {
+      const resolvedStage = stageFor(workflowOf(workspace), {
+        stage: req.body.stage,
+        status: req.body.status,
+        currentStage: before.stage as string | undefined,
+        currentStatus: before.status as TaskStatus | undefined,
+      });
+      if (!resolvedStage) throw new TaskRuleError(UNKNOWN_STAGE_MESSAGE);
+      if (resolvedStage.stage !== task.stage) task.set('stage', resolvedStage.stage);
+      if (resolvedStage.status !== task.status) task.set('status', resolvedStage.status);
+    }
+
     assertDateOrder(task.startDate, task.deadline);
     assertCanRecur(task.recurrence, task);
     await reconcileSprint(task as unknown as ITask, workspace._id as mongoose.Types.ObjectId, {
@@ -585,6 +608,11 @@ export const cleanUpRemovedTasks = async (workspaceId: mongoose.Types.ObjectId, 
   await Task.updateMany(
     { workspace: workspaceId, dependencies: { $in: removedIds } },
     { $pull: { dependencies: { $in: removedIds } } },
+  );
+  // Typed links (relates, duplicates...) to a removed task disappear with it
+  await Task.updateMany(
+    { workspace: workspaceId, 'relations.task': { $in: removedIds } },
+    { $pull: { relations: { task: { $in: removedIds } } } },
   );
   // Deleting an epic keeps its items; they just leave the epic
   await Task.updateMany({ workspace: workspaceId, epic: { $in: removedIds } }, { $set: { epic: null } });

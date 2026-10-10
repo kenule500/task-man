@@ -38,7 +38,11 @@ const ProjectDetailPage = () => {
   }), [projectId, startSprint, completeSprint, deleteSprint]);
 
   const style = colorStyleOf(project?.color);
-  const boardHref = `/${workspaceSlug}/tasks?view=board`;
+  // The project's board: its running sprint when there is one, else all of its work
+  const hasActiveSprint = project?.sprints?.some(sprint => sprint.status === 'active') ?? false;
+  const boardHref = project
+    ? `/${workspaceSlug}/tasks?view=board&project=${encodeURIComponent(project.name)}${hasActiveSprint ? '&sprint=active' : ''}`
+    : `/${workspaceSlug}/tasks?view=board`;
 
   return (
     <AppShell>

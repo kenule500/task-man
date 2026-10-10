@@ -16,6 +16,9 @@ declare global {
 
       /** Attached by the `requirePermission` middleware */
       permissions?: string[];
+
+      /** Set by `protect` when the request is authenticated with a personal API token (`Bearer tm_...`) */
+      apiToken?: { _id: string; workspace: string; scopes: string[] };
     }
   }
 }

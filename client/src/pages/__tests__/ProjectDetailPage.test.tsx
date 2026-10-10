@@ -81,7 +81,7 @@ describe('ProjectDetailPage', () => {
     expect(screen.getByText('WEB')).toBeInTheDocument();
     expect(screen.getByText('The public site')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/demo/projects');
-    expect(screen.getByRole('link', { name: /open board/i })).toHaveAttribute('href', '/demo/tasks?view=board');
+    expect(screen.getByRole('link', { name: /open board/i })).toHaveAttribute('href', '/demo/tasks?view=board&project=Website&sprint=active');
 
     // 3 top-level tasks (the other project and subtasks do not count), 1 done, 3 of 8 points
     expect(await screen.findByText('Total tasks')).toBeInTheDocument();

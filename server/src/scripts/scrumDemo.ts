@@ -6,6 +6,7 @@ import Project from '../models/projectModel.js';
 import Sprint from '../models/sprintModel.js';
 import StatusTransition from '../models/statusTransitionModel.js';
 import Task from '../models/taskModel.js';
+import Workspace from '../models/workspaceModel.js';
 
 type Id = mongoose.Types.ObjectId;
 
@@ -188,8 +189,34 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
   await create({ title: 'Roles and permissions explained', type: 'task', project: docsName, status: 'pending', priority: 'low',
     deadline: day(12), labels: ['docs'], assignees: [scrum] });
 
+  await applyScrumWorkflow(workspace, [webName, marketingName, docsName]);
   await backfillFlowHistory(workspace, [webName, marketingName, docsName]);
   return Task.countDocuments({ workspace, project: { $in: [webName, marketingName, docsName] } });
+};
+
+/**
+ * A Scrum board with review and QA columns; some of the running work waits in them.
+ * Only for workspaces still on the default workflow, so a team's own columns are never replaced.
+ */
+const applyScrumWorkflow = async (workspace: Id, projects: string[]) => {
+  const applied = await Workspace.updateOne({ _id: workspace, 'workflow.stages.0': { $exists: false } }, {
+    $set: {
+      'workflow.stages': [
+        { key: 'todo', name: 'To do', group: 'pending', color: 'slate', wipLimit: 0 },
+        { key: 'in-progress', name: 'In progress', group: 'in-progress', color: 'blue', wipLimit: 4 },
+        { key: 'review', name: 'In review', group: 'in-progress', color: 'violet', wipLimit: 3 },
+        { key: 'qa', name: 'QA', group: 'in-progress', color: 'amber', wipLimit: 2 },
+        { key: 'done', name: 'Done', group: 'completed', color: 'emerald', wipLimit: 0 },
+      ],
+    },
+  });
+  if (applied.modifiedCount === 0) return;
+  const scope = { workspace, project: { $in: projects } };
+  await Task.updateMany({ ...scope, status: 'pending' }, { $set: { stage: 'todo' } });
+  await Task.updateMany({ ...scope, status: 'in-progress' }, { $set: { stage: 'in-progress' } });
+  await Task.updateMany({ ...scope, status: 'completed' }, { $set: { stage: 'done' } });
+  await Task.updateOne({ ...scope, title: 'Kanban board with drag and drop' }, { $set: { stage: 'review' } });
+  await Task.updateOne({ ...scope, title: 'Hero illustration' }, { $set: { stage: 'qa' } });
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;

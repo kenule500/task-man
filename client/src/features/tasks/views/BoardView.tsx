@@ -1,13 +1,20 @@
 import {
-  useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent, type TouchEvent,
+  useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type PointerEvent, type TouchEvent,
 } from 'react';
 import { ArrowRight, Check, Ellipsis, MessageSquare, Paperclip, Plus, RotateCcw, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { Link, useInRouterContext, useParams } from 'react-router-dom';
+import { StageDot } from '@/features/workflow/components/StageBadges';
+import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
+import { STAGE_COLOR_META, groupByStage, quickMoveFor, resolveStage, stagePatch, type QuickMove } from '@/features/workflow/lib/stages';
+import type { WorkflowStage } from '@/features/workflow/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChecklistBadge, DependencyCount, DueDate, PriorityIndicator, RepeatBadge, StatusDot, TaskTypeIcon } from '../components/TaskBadges';
+import {
+  ChecklistBadge, DependencyCount, DueDate, PriorityIndicator, RelationCount, RepeatBadge, SubtaskProgress, TaskTypeIcon,
+} from '../components/TaskBadges';
 import BoardQuickFilters from '../components/BoardQuickFilters';
 import BoardSwimlanes from '../components/BoardSwimlanes';
 import MoveTaskSheet from '../components/MoveTaskSheet';
@@ -15,30 +22,28 @@ import TaskActionsMenu from '../components/TaskActionsMenu';
 import { AssigneeStack, LabelList } from '../components/TaskChips';
 import TaskKey from '../components/TaskKey';
 import WipLimitsDialog from '../components/WipLimitsDialog';
-import { STATUS_META, TASK_STATUSES } from '../constants';
 import { useBoardSettings, useIsDesktop, type BoardUrlState } from '../hooks/useBoardSettings';
 import { applyQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
 import { stepColumn, swipeStep } from '../lib/columnSwipe';
-import { getDropPosition, groupByStatus, positionBetween, withoutEpics } from '../lib/filters';
+import { getDropPosition, positionBetween, withoutEpics } from '../lib/filters';
 import { BOARD_PAGE_SIZE, pageCount, paginate } from '../lib/pagination';
 import { ALL_LANE_ID, groupIntoSwimlanes, laneIdOf, type Swimlane, type SwimlaneGroup } from '../lib/swimlanes';
 import { isOverWip, wipCountLabel } from '../lib/wip';
-import type { Task, TaskStatus } from '../types';
+import type { Task } from '../types';
 import ProjectChip from '@/features/projects/components/ProjectChip';
 import type { TaskViewProps } from './types';
 
 interface DropTarget {
   laneId: string;
-  status: TaskStatus;
+  /** Stage key of the column */
+  status: string;
   /** Insertion index within the column (as currently rendered) */
   index: number;
 }
 
-/** One-tap phone action per status: where the card goes next. */
-const QUICK_MOVE: Record<TaskStatus, { to: TaskStatus; verb: string; icon: LucideIcon }> = {
-  pending: { to: 'in-progress', verb: 'Start', icon: ArrowRight },
-  'in-progress': { to: 'completed', verb: 'Done', icon: Check },
-  completed: { to: 'pending', verb: 'Reopen', icon: RotateCcw },
+/** Glyph of the one-tap phone action. */
+const QUICK_ICONS: Record<QuickMove['verb'], LucideIcon> = {
+  Start: ArrowRight, Next: ArrowRight, Done: Check, Reopen: RotateCcw,
 };
 
 const LONG_PRESS_MS = 500;
@@ -48,7 +53,7 @@ const LONG_PRESS_SLOP = 8;
 const HINT_MS = 6000;
 const SLIDE_MS = 150;
 
-const pageKey = (laneId: string, status: TaskStatus) => `${laneId}::${status}`;
+const pageKey = (laneId: string, status: string) => `${laneId}::${status}`;
 
 export interface BoardViewProps extends TaskViewProps {
   /**
@@ -75,15 +80,19 @@ const BoardView = ({
   controls, allTasks: everyTask, currentUserId, workspaceSlug, canManageBoard = false,
 }: BoardViewProps) => {
   const isDesktop = useIsDesktop();
+  // Columns are the workspace's workflow stages (the three plain statuses until the workflow is loaded)
+  const { stages, loaded: workflowLoaded } = useWorkflow(workspaceSlug);
+  const stageOf = (task: Task) => resolveStage(task, stages);
   // Epics are containers: the board shows their items (lanes can group by epic), never the epics themselves
   const incomingTasks = useMemo(() => withoutEpics(shownTasks), [shownTasks]);
   const allTasks = useMemo(() => (everyTask ? withoutEpics(everyTask) : undefined), [everyTask]);
 
   // Board UI state: the page's (URL backed) when given, local otherwise
-  const [localColumn, setLocalColumn] = useState<TaskStatus>(TASK_STATUSES[0]);
+  const [localColumn, setLocalColumn] = useState<string>('');
   const [localQuickFilters, setLocalQuickFilters] = useState<QuickFilterKey[]>([]);
   const [localGroupBy, setLocalGroupBy] = useState<SwimlaneGroup>('none');
-  const activeColumn = controls?.column ?? localColumn;
+  const requestedColumn = controls?.column ?? localColumn;
+  const activeColumn = stages.find(stage => stage.key === requestedColumn)?.key ?? stages[0].key;
   const setActiveColumn = controls?.setColumn ?? setLocalColumn;
   const quickFilters = controls?.quickFilters ?? localQuickFilters;
   const setQuickFilters = controls?.setQuickFilters ?? setLocalQuickFilters;
@@ -95,29 +104,37 @@ const BoardView = ({
     () => applyQuickFilters(incomingTasks, quickFilters, { currentUserId, allTasks: allTasks ?? incomingTasks }),
     [incomingTasks, quickFilters, currentUserId, allTasks],
   );
-  const columns = useMemo(() => groupByStatus(tasks), [tasks]);
-  // Direct subtasks per parent, so "Duplicate" can copy them along
-  const subtaskCounts = useMemo(() => {
+  const columns = useMemo(() => groupByStage(tasks, stages), [tasks, stages]);
+  // Direct subtasks per parent (for "Duplicate" and the progress badge), and how many of them are done
+  const { subtaskCounts, subtasksDone } = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const item of everyTask ?? shownTasks) if (item.parent) counts.set(item.parent, (counts.get(item.parent) ?? 0) + 1);
-    return counts;
+    const done = new Map<string, number>();
+    for (const item of everyTask ?? shownTasks) {
+      if (!item.parent) continue;
+      counts.set(item.parent, (counts.get(item.parent) ?? 0) + 1);
+      if (item.status === 'completed') done.set(item.parent, (done.get(item.parent) ?? 0) + 1);
+    }
+    return { subtaskCounts: counts, subtasksDone: done };
   }, [everyTask, shownTasks]);
   const lanes = useMemo<Swimlane[]>(
     () => (laneMode ? groupIntoSwimlanes(tasks, groupBy, everyTask ?? shownTasks) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
     [laneMode, groupBy, tasks, everyTask, shownTasks],
   );
   const laneColumns = useMemo(
-    () => new Map(lanes.map(lane => [lane.id, laneMode ? groupByStatus(lane.tasks) : columns])),
-    [lanes, laneMode, columns],
+    () => new Map(lanes.map(lane => [lane.id, laneMode ? groupByStage(lane.tasks, stages) : columns])),
+    [lanes, laneMode, columns, stages],
   );
 
-  // WIP is about the whole column, whatever the page filters hide
-  const { limits, saveLimits } = useBoardSettings(workspaceSlug);
+  // WIP is about the whole column, whatever the page filters hide. Stage limits come with the workflow;
+  // until it is loaded the old per-status board limits apply.
+  const { limits, saveLimits } = useBoardSettings(workflowLoaded ? undefined : workspaceSlug);
   const wipCounts = useMemo(() => {
-    const all = groupByStatus(allTasks ?? incomingTasks);
-    return { pending: all.pending.length, 'in-progress': all['in-progress'].length, completed: all.completed.length };
-  }, [allTasks, incomingTasks]);
-  const [wipDialog, setWipDialog] = useState<TaskStatus | null>(null);
+    const all = groupByStage(allTasks ?? incomingTasks, stages);
+    return Object.fromEntries(Object.entries(all).map(([key, list]) => [key, list.length])) as Record<string, number>;
+  }, [allTasks, incomingTasks, stages]);
+  const limitOf = (stage: WorkflowStage): number | null =>
+    workflowLoaded ? (stage.wipLimit > 0 ? stage.wipLimit : null) : limits[stage.group];
+  const [wipDialog, setWipDialog] = useState<WorkflowStage['group'] | null>(null);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingLane, setDraggingLane] = useState<string | null>(null);
@@ -132,16 +149,17 @@ const BoardView = ({
   // Mobile move sheet + "Moved to" announcement / hint chip
   const [sheetTaskId, setSheetTaskId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [movedTo, setMovedTo] = useState<TaskStatus | null>(null);
+  const [movedToKey, setMovedTo] = useState<string | null>(null);
+  const movedTo = stages.find(stage => stage.key === movedToKey) ?? null;
   const announceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const announceMove = (status: TaskStatus) => {
+  const announceMove = (stage: WorkflowStage) => {
     clearTimeout(announceTimer.current);
-    setMovedTo(status);
+    setMovedTo(stage.key);
     announceTimer.current = setTimeout(() => setMovedTo(null), HINT_MS);
   };
   useEffect(() => () => clearTimeout(announceTimer.current), []);
 
-  const showMore = (laneId: string, status: TaskStatus, cell: Task[], all = false) => {
+  const showMore = (laneId: string, status: string, cell: Task[], all = false) => {
     const current = pages[pageKey(laneId, status)] ?? 1;
     pendingFocus.current = cell[paginate(cell, current).shown]?._id ?? null;
     const next = all ? pageCount(cell.length) : current + 1;
@@ -154,28 +172,29 @@ const BoardView = ({
     setDropTarget(null);
   };
 
-  const handleDrop = (event: DragEvent, laneId: string, status: TaskStatus) => {
+  const handleDrop = (event: DragEvent, laneId: string, stage: WorkflowStage) => {
     event.preventDefault();
     if (!canWrite) return;
     const id = event.dataTransfer.getData('text/plain') || draggingId;
     const task = tasks.find(t => t._id === id);
-    const cell = laneColumns.get(laneId)?.[status] ?? [];
-    const index = dropTarget?.laneId === laneId && dropTarget.status === status ? dropTarget.index : cell.length;
+    const cell = laneColumns.get(laneId)?.[stage.key] ?? [];
+    const index = dropTarget?.laneId === laneId && dropTarget.status === stage.key ? dropTarget.index : cell.length;
     resetDrag();
     // A card only moves between the columns of its own lane
     if (!task || laneIdOf(task, laneMode ? groupBy : 'none') !== laneId) return;
 
     const position = getDropPosition(cell, task._id, index);
-    if (task.status === status && position === null) return;
-    void onUpdate(task._id, { status, ...(position !== null && { position }) });
-    if (task.status !== status) announceMove(status);
+    const sameColumn = stageOf(task).key === stage.key;
+    if (sameColumn && position === null) return;
+    void onUpdate(task._id, { ...stagePatch(stage, workflowLoaded), ...(position !== null && { position }) });
+    if (!sameColumn) announceMove(stage);
   };
 
-  const handleMove = (task: Task, status: TaskStatus) => {
+  const handleMoveToStage = (task: Task, stage: WorkflowStage) => {
     if (!canWrite) return;
-    const column = columns[status];
-    void onUpdate(task._id, { status, position: positionBetween(column[column.length - 1]?.position) });
-    announceMove(status);
+    const column = columns[stage.key] ?? [];
+    void onUpdate(task._id, { ...stagePatch(stage, workflowLoaded), position: positionBetween(column[column.length - 1]?.position) });
+    announceMove(stage);
   };
 
   const openMoveSheet = (task: Task) => {
@@ -186,9 +205,10 @@ const BoardView = ({
   // Phone status switcher
   const idPrefix = useId();
   const boardRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<Partial<Record<TaskStatus, HTMLElement | null>>>({});
-  const tabRefs = useRef<Partial<Record<TaskStatus, HTMLButtonElement | null>>>({});
-  const columnId = (status: TaskStatus) => `${idPrefix}-column-${status}`;
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const columnId = (key: string) => `${idPrefix}-column-${key}`;
+  const stageKeys = useMemo(() => stages.map(stage => stage.key), [stages]);
   const sheetTask = tasks.find(task => task._id === sheetTaskId) ?? null;
 
   // After "Show more", focus the first newly shown card.
@@ -208,20 +228,20 @@ const BoardView = ({
     const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
     const section = sectionRefs.current[activeColumn];
     if (isDesktop || reduced || !section || typeof section.animate !== 'function') return;
-    const direction = TASK_STATUSES.indexOf(activeColumn) > TASK_STATUSES.indexOf(previous) ? 1 : -1;
+    const direction = stageKeys.indexOf(activeColumn) > stageKeys.indexOf(previous) ? 1 : -1;
     section.animate(
       [{ opacity: 0, transform: `translateX(${direction * 24}px)` }, { opacity: 1, transform: 'translateX(0)' }],
       { duration: SLIDE_MS, easing: 'ease-out' },
     );
-  }, [activeColumn, isDesktop]);
+  }, [activeColumn, isDesktop, stageKeys]);
 
-  const handleTabKeyDown = (event: KeyboardEvent, status: TaskStatus) => {
-    const index = TASK_STATUSES.indexOf(status);
+  const handleTabKeyDown = (event: KeyboardEvent, key: string) => {
+    const index = stageKeys.indexOf(key);
     const target =
-      event.key === 'ArrowRight' ? TASK_STATUSES[(index + 1) % TASK_STATUSES.length]
-        : event.key === 'ArrowLeft' ? TASK_STATUSES[(index + TASK_STATUSES.length - 1) % TASK_STATUSES.length]
-          : event.key === 'Home' ? TASK_STATUSES[0]
-            : event.key === 'End' ? TASK_STATUSES[TASK_STATUSES.length - 1]
+      event.key === 'ArrowRight' ? stageKeys[(index + 1) % stageKeys.length]
+        : event.key === 'ArrowLeft' ? stageKeys[(index + stageKeys.length - 1) % stageKeys.length]
+          : event.key === 'Home' ? stageKeys[0]
+            : event.key === 'End' ? stageKeys[stageKeys.length - 1]
               : null;
     if (!target) return;
     event.preventDefault();
@@ -241,31 +261,33 @@ const BoardView = ({
     swipeOrigin.current = null;
     if (!origin || !touch) return;
     const step = swipeStep(touch.clientX - origin.x, touch.clientY - origin.y);
-    if (step !== 0) setActiveColumn(stepColumn(TASK_STATUSES, activeColumn, step));
+    if (step !== 0) setActiveColumn(stepColumn(stageKeys, activeColumn, step));
   };
 
-  const renderHeader = (status: TaskStatus, className?: string) => (
+  const renderHeader = (stage: WorkflowStage, className?: string) => (
     <ColumnHeader
-      key={status}
-      status={status}
-      count={columns[status].length}
-      wipCount={wipCounts[status]}
-      limit={limits[status]}
+      key={stage.key}
+      stage={stage}
+      count={(columns[stage.key] ?? []).length}
+      wipCount={wipCounts[stage.key] ?? 0}
+      limit={limitOf(stage)}
       canAdd={canWrite}
-      onAdd={() => onCreate({ status })}
+      onAdd={() => onCreate(workflowLoaded ? { status: stage.group, stage: stage.key } : { status: stage.group })}
       canManage={canManageBoard && Boolean(workspaceSlug)}
-      onManage={() => setWipDialog(status)}
+      workflowLoaded={workflowLoaded}
+      onManage={() => setWipDialog(stage.group)}
       className={className}
     />
   );
 
-  const renderColumn = (lane: Swimlane, status: TaskStatus) => {
+  const renderColumn = (lane: Swimlane, status: string) => {
+    const stage = stages.find(item => item.key === status) ?? stages[0];
     const column = laneColumns.get(lane.id)?.[status] ?? [];
     const { visible, shown, total, hasMore, remaining } = paginate(column, pages[pageKey(lane.id, status)] ?? 1);
     const isTarget = dropTarget?.laneId === lane.id && dropTarget.status === status;
     // Swimlanes: a dragged card may only be dropped in the columns of its own lane
     const accepts = draggingLane === null || draggingLane === lane.id;
-    const label = STATUS_META[status].label;
+    const label = stage.name;
 
     return (
       <section
@@ -281,7 +303,7 @@ const BoardView = ({
         onDragLeave={event => {
           if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null);
         }}
-        onDrop={event => handleDrop(event, lane.id, status)}
+        onDrop={event => handleDrop(event, lane.id, stage)}
         className={cn(
           'flex flex-col rounded-2xl border border-slate-100 bg-slate-50/70 transition-colors',
           // Phones: one column at a time
@@ -289,7 +311,7 @@ const BoardView = ({
           isTarget && 'border-primary/30 bg-blue-50/40',
         )}
       >
-        {!laneMode && renderHeader(status)}
+        {!laneMode && renderHeader(stage)}
 
         <ol className={cn('flex flex-col gap-2 px-2.5 pb-3 md:gap-2.5 md:px-3', laneMode ? 'min-h-16 pt-3' : 'min-h-32')}>
           {visible.map((task, index) => (
@@ -309,6 +331,7 @@ const BoardView = ({
               <BoardCard
                 task={task}
                 subtaskCount={subtaskCounts.get(task._id) ?? 0}
+                subtasksDone={subtasksDone.get(task._id) ?? 0}
                 canWrite={canWrite}
                 canDelete={canDelete}
                 canDrag={canWrite && isDesktop}
@@ -323,7 +346,8 @@ const BoardView = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onOpen={onOpen}
-                onMove={handleMove}
+                stages={stages}
+                onMoveToStage={handleMoveToStage}
                 onOpenMoveSheet={openMoveSheet}
               />
             </li>
@@ -391,36 +415,38 @@ const BoardView = ({
           role="tablist"
           aria-label="Task status"
           data-testid="board-tabs"
-          className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 mb-3 flex gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur md:hidden"
+          className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 mb-3 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur md:hidden"
         >
-          {TASK_STATUSES.map(status => {
-            const active = status === activeColumn;
+          {stages.map(stage => {
+            const active = stage.key === activeColumn;
             return (
               <button
-                key={status}
-                ref={node => { tabRefs.current[status] = node; }}
+                key={stage.key}
+                ref={node => { tabRefs.current[stage.key] = node; }}
                 type="button"
                 role="tab"
-                id={`${idPrefix}-tab-${status}`}
+                id={`${idPrefix}-tab-${stage.key}`}
                 aria-selected={active}
-                aria-controls={columnId(status)}
+                aria-controls={columnId(stage.key)}
                 tabIndex={active ? 0 : -1}
-                onClick={() => setActiveColumn(status)}
-                onKeyDown={event => handleTabKeyDown(event, status)}
+                onClick={() => setActiveColumn(stage.key)}
+                onKeyDown={event => handleTabKeyDown(event, stage.key)}
                 className={cn(
                   'flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors',
+                  stages.length > 3 && 'min-w-28 shrink-0',
                   'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary active:scale-[0.98]',
                   active ? 'bg-primary text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100',
                 )}
               >
-                <span className="truncate">{STATUS_META[status].label}</span>
+                {workflowLoaded && <StageDot stage={stage} className={active ? 'ring-1 ring-white' : undefined} />}
+                <span className="truncate">{stage.name}</span>
                 <span
                   className={cn(
                     'rounded-md px-1.5 text-[11px] font-medium tabular-nums',
                     active ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-600',
                   )}
                 >
-                  {columns[status].length}
+                  {(columns[stage.key] ?? []).length}
                   <span className="sr-only"> tasks</span>
                 </span>
               </button>
@@ -433,12 +459,12 @@ const BoardView = ({
       <div role="status" aria-live="polite" className={cn(movedTo ? 'mb-3 flex md:mb-0 md:sr-only' : 'sr-only')}>
         {movedTo && (
           <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-slate-800 pr-1 pl-4 text-xs font-medium text-white md:min-h-0">
-            <span>Moved to {STATUS_META[movedTo].label}</span>
-            {movedTo !== activeColumn && (
+            <span>Moved to {movedTo.name}</span>
+            {movedTo.key !== activeColumn && (
               <button
                 type="button"
-                aria-label={`View ${STATUS_META[movedTo].label}`}
-                onClick={() => setActiveColumn(movedTo)}
+                aria-label={`View ${movedTo.name}`}
+                onClick={() => setActiveColumn(movedTo.key)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white md:hidden"
               >
                 <span aria-hidden>·</span> View
@@ -451,7 +477,9 @@ const BoardView = ({
       {laneMode ? (
         <BoardSwimlanes
           lanes={lanes}
-          header={TASK_STATUSES.map(status => renderHeader(status, 'rounded-xl border border-slate-100 bg-slate-50/70 md:pt-2 md:pb-2'))}
+          header={stages.map(stage => renderHeader(stage, 'rounded-xl border border-slate-100 bg-slate-50/70 md:pt-2 md:pb-2'))}
+          columns={stages.map(stage => ({ key: stage.key, label: stage.name, dot: STAGE_COLOR_META[stage.color].dot }))}
+          columnOf={task => stageOf(task).key}
           renderCell={renderColumn}
         />
       ) : (
@@ -460,9 +488,14 @@ const BoardView = ({
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={() => { swipeOrigin.current = null; }}
-          className="md:grid md:grid-cols-3 md:items-start md:gap-4 lg:gap-5"
+          style={stages.length === 3 ? undefined : ({ '--board-cols': `repeat(${stages.length}, minmax(${stages.length > 3 ? '15rem' : '0px'}, 1fr))` } as CSSProperties)}
+          className={cn(
+            'md:grid md:items-start md:gap-4 lg:gap-5',
+            stages.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-(--board-cols)',
+            stages.length > 3 && 'md:overflow-x-auto md:pb-2',
+          )}
         >
-          {TASK_STATUSES.map(status => renderColumn(lanes[0], status))}
+          {stages.map(stage => renderColumn(lanes[0], stage.key))}
         </div>
       )}
 
@@ -470,8 +503,11 @@ const BoardView = ({
         open={sheetOpen && canWrite}
         onOpenChange={setSheetOpen}
         task={sheetTask}
-        counts={{ pending: columns.pending.length, 'in-progress': columns['in-progress'].length, completed: columns.completed.length }}
-        onMove={handleMove}
+        counts={{ pending: 0, 'in-progress': 0, completed: 0 }}
+        onMove={() => undefined}
+        stages={stages}
+        stageCounts={Object.fromEntries(Object.entries(columns).map(([key, list]) => [key, list.length]))}
+        onMoveToStage={handleMoveToStage}
       />
       {wipDialog && (
         <WipLimitsDialog limits={limits} focusStatus={wipDialog} onClose={() => setWipDialog(null)} onSave={saveLimits} />
@@ -481,7 +517,9 @@ const BoardView = ({
 };
 
 interface ColumnHeaderProps {
-  status: TaskStatus;
+  stage: WorkflowStage;
+  /** True once the workspace workflow is loaded: limits are edited in Settings > Workflow. */
+  workflowLoaded: boolean;
   /** Cards shown in the column. */
   count: number;
   /** Cards in the whole column, whatever the filters hide; compared with the limit. */
@@ -495,9 +533,11 @@ interface ColumnHeaderProps {
 }
 
 /** Column title with its count; turns red with "5 / 4" when the (soft) WIP limit is exceeded. */
-const ColumnHeader = ({ status, count, wipCount, limit, canAdd, onAdd, canManage, onManage, className }: ColumnHeaderProps) => {
+const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, onAdd, canManage, onManage, className }: ColumnHeaderProps) => {
   const over = isOverWip(wipCount, limit);
-  const label = STATUS_META[status].label;
+  const label = stage.name;
+  const inRouter = useInRouterContext();
+  const { workspaceSlug } = useParams();
   return (
     <header
       className={cn(
@@ -507,7 +547,7 @@ const ColumnHeader = ({ status, count, wipCount, limit, canAdd, onAdd, canManage
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
-        <StatusDot status={status} />
+        <StageDot stage={stage} />
         <h2 className="truncate text-sm font-semibold text-slate-700">{label}</h2>
         <span
           title={limit === null ? undefined : `WIP limit ${limit}`}
@@ -537,7 +577,7 @@ const ColumnHeader = ({ status, count, wipCount, limit, canAdd, onAdd, canManage
             <Plus />
           </Button>
         )}
-        {canManage && (
+        {canManage && (!workflowLoaded || (inRouter && workspaceSlug)) && (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -552,9 +592,18 @@ const ColumnHeader = ({ status, count, wipCount, limit, canAdd, onAdd, canManage
               <Ellipsis />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={onManage} className="min-h-11 text-slate-700 md:min-h-0">
-                Set WIP limits…
-              </DropdownMenuItem>
+              {workflowLoaded ? (
+                <DropdownMenuItem
+                  render={<Link to={`/${workspaceSlug}/settings/workflow`} />}
+                  className="min-h-11 text-slate-700 md:min-h-0"
+                >
+                  Edit stages and limits…
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={onManage} className="min-h-11 text-slate-700 md:min-h-0">
+                  Set WIP limits…
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -575,17 +624,20 @@ interface BoardCardProps {
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
   onOpen?: (task: Task) => void;
-  onMove: (task: Task, status: TaskStatus) => void;
+  /** Workflow stages in board order, and the move to one of them. */
+  stages: WorkflowStage[];
+  onMoveToStage: (task: Task, stage: WorkflowStage) => void;
   onOpenMoveSheet: (task: Task) => void;
   canWrite: boolean;
   canDelete: boolean;
   subtaskCount: number;
+  subtasksDone: number;
 }
 
-const BoardCard = ({ task, subtaskCount, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
+const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, stages, onMoveToStage, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
-  const quick = QUICK_MOVE[task.status];
-  const QuickIcon = quick.icon;
+  const quick = quickMoveFor(stages, resolveStage(task, stages));
+  const QuickIcon = QUICK_ICONS[quick.verb];
 
   // Long-press (touch) opens the move sheet; moving the finger or dragging cancels it.
   const pressTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -652,8 +704,8 @@ const BoardCard = ({ task, subtaskCount, dragging, canDrag, onDragStart, onDragE
           {canWrite && (
             <button
               type="button"
-              onClick={() => onMove(task, quick.to)}
-              aria-label={`${quick.verb} ${task.title}: move to ${STATUS_META[quick.to].label}`}
+              onClick={() => onMoveToStage(task, quick.to)}
+              aria-label={`${quick.verb} ${task.title}: move to ${quick.to.name}`}
               className={cn(
                 'inline-flex h-11 items-center gap-1 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 md:hidden',
                 'hover:bg-slate-200 active:bg-slate-200 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
@@ -668,7 +720,8 @@ const BoardCard = ({ task, subtaskCount, dragging, canDrag, onDragStart, onDragE
             onEdit={onEdit}
             onDelete={onDelete}
             onOpen={onOpen}
-            onMove={onMove}
+            stages={stages}
+            onMoveToStage={onMoveToStage}
             onOpenMoveSheet={onOpenMoveSheet}
             canEdit={canWrite}
             canDelete={canDelete}
@@ -698,6 +751,8 @@ const BoardCard = ({ task, subtaskCount, dragging, canDrag, onDragStart, onDragE
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <DueDate deadline={task.deadline} completed={completed} />
           <DependencyCount count={task.dependencies.length} />
+          <SubtaskProgress done={subtasksDone} total={subtaskCount} />
+          <RelationCount count={task.relations?.length ?? 0} />
           <ChecklistBadge items={task.checklist} />
           <RepeatBadge recurrence={task.recurrence} />
           {(task.comments?.length ?? 0) > 0 && (

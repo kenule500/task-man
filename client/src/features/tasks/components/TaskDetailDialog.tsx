@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Copy, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
+import { Copy, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
 import { UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
 // Deep import: the projects index imports the tasks module back
@@ -23,7 +23,7 @@ import type { Task, TaskPatch, TaskUser } from '../types';
 import SubtaskList from './SubtaskList';
 import TaskActivity from './TaskActivity';
 import DevCopyMenu from './DevCopyMenu';
-import TaskKey from './TaskKey';
+import TaskBreadcrumb from './TaskBreadcrumb';
 import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge, TaskTypeIcon } from './TaskBadges';
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
@@ -31,6 +31,7 @@ import TaskChecklist from './TaskChecklist';
 import TaskComments from './TaskComments';
 import TaskDevelopment from './TaskDevelopment';
 import TaskRecurrenceField from './TaskRecurrenceField';
+import TaskRelations from './TaskRelations';
 import TaskWatchToggle from './TaskWatchToggle';
 
 /** Everything the dialog can do to a task besides editing its fields. */
@@ -139,19 +140,8 @@ const TaskDetailDialog = ({
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
         <DialogHeader className="shrink-0 space-y-2 border-b border-slate-200 px-4 pt-5 pb-4 pr-12 sm:px-6 sm:pt-6">
-          {parent && actions.openTask && (
-            <button
-              type="button"
-              onClick={() => actions.openTask?.(parent)}
-              className="-ml-1 inline-flex min-h-11 max-w-full items-center gap-1.5 rounded px-1 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary sm:min-h-0"
-            >
-              <ArrowLeft className="size-4 shrink-0" aria-hidden />
-              <span className="shrink-0">Back to parent</span>
-              <span className="truncate font-normal text-slate-500" title={parent.title}>{parent.title}</span>
-            </button>
-          )}
+          <TaskBreadcrumb task={task} tasks={tasks} workspaceSlug={slug || undefined} onOpenTask={actions.openTask} />
           <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
-            <TaskKey task={task} copyable />
             {slug && (
               <button
                 type="button"
@@ -167,7 +157,7 @@ const TaskDetailDialog = ({
           <div className="flex flex-wrap items-center gap-2">
             <TaskTypeBadge type={task.type} />
             <StoryPoints points={task.storyPoints} />
-            <StatusBadge status={task.status} />
+            <StatusBadge status={task.status} stage={task.stage ?? ''} />
             <PriorityIndicator priority={task.priority} />
             {task.project && <ProjectChip name={task.project} showKey className="max-w-56" />}
             {epic && (
@@ -344,6 +334,8 @@ const TaskDetailDialog = ({
               onDelete={onDelete}
             />
           )}
+
+          <TaskRelations task={task} tasks={tasks} canWrite={canWrite} workspaceSlug={slug || undefined} onOpen={actions.openTask} />
 
           <TaskDevelopment task={task} />
 

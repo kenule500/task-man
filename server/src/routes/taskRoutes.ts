@@ -25,6 +25,13 @@ import {
   uploadAttachment,
   validateComment,
 } from '../controllers/taskExtrasController.js';
+import {
+  addRelation,
+  moveTask,
+  removeRelation,
+  validateAddRelation,
+  validateMoveTask,
+} from '../controllers/taskRelationController.js';
 import { getTaskActivity } from '../controllers/activityController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
@@ -50,6 +57,11 @@ router.delete('/:id', requirePermission('tasks:delete'), deleteTask);
 router.post('/:id/duplicate', requirePermission('tasks:write'), validateDuplicateTask, duplicateTask);
 router.post('/:id/watch', requirePermission('tasks:read'), watchTask);
 router.delete('/:id/watch', requirePermission('tasks:read'), unwatchTask);
+
+// Issue links (relates, duplicates, clones, blocks) and subtask conversion
+router.post('/:id/relations', requirePermission('tasks:write'), validateAddRelation, addRelation);
+router.delete('/:id/relations/:relatedId', requirePermission('tasks:write'), removeRelation);
+router.post('/:id/move', requirePermission('tasks:write'), validateMoveTask, moveTask);
 
 // History of field changes, comments and files
 router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);

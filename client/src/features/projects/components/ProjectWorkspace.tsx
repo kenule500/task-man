@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CheckSquare, ChevronDown, Gauge, Inbox, ListTodo, Plus, Target } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CheckSquare, ChevronDown, Gauge, Inbox, LayoutGrid, ListTodo, Plus, Target } from 'lucide-react';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Alert, EmptyState, SkeletonCards, StatCard, Surface, toast } from '@/components/ds';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import {
-  ConfirmTaskDelete, DELETE_UNDO_MS, OptionSelect, TaskDetailDialog, TaskFormDialog, addDays, dateKeyOf, epicsOf, getApiErrorMessage, toDateKey,
+  ConfirmTaskDelete, DELETE_UNDO_MS, OptionSelect, TaskDetailDialog, TaskFormDialog, addDays, dateKeyOf, epicsOf, getApiErrorMessage, scopeHref, toDateKey,
   useTasks, useWorkspaceMembers,
   type Task, type TaskDetailActions, type TaskInput,
 } from '@/features/tasks';
@@ -247,6 +247,7 @@ const ProjectWorkspace = ({
     <SprintCard
       key={sprint._id}
       sprint={sprint}
+      projectName={project.name}
       tasks={groups.bySprint.get(sprint._id) ?? []}
       subtasks={groups.subtasks}
       expanded={isOpen(sprint)}
@@ -277,6 +278,17 @@ const ProjectWorkspace = ({
   return (
     <>
       {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
+
+      {active[0] && (
+        <Link
+          to={scopeHref(workspaceSlug, { view: 'board', project: project.name, sprint: active[0]._id })}
+          className={buttonVariants({ className: 'h-11 w-full justify-center gap-2 rounded-lg bg-primary px-4 text-sm text-white shadow-sm hover:bg-primary-hover sm:h-10 sm:w-fit' })}
+        >
+          <LayoutGrid className="size-4 shrink-0" aria-hidden />
+          Active sprint board
+          <span className="max-w-48 truncate font-normal opacity-90">{active[0].name}</span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <StatCard
@@ -378,6 +390,15 @@ const ProjectWorkspace = ({
 
         <TabsContent value="backlog">
           <Surface as="section" padding="none" aria-label="Backlog" className="overflow-hidden">
+            <div className="flex justify-end border-b border-slate-100 px-4 py-1.5 sm:px-5">
+              <Link
+                to={scopeHref(workspaceSlug, { view: 'list', project: project.name, sprint: 'backlog' })}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
+              >
+                <ListTodo aria-hidden className="size-3.5" />
+                Open as list<span className="sr-only"> in Tasks</span>
+              </Link>
+            </div>
             {canWriteTasks && (
               <QuickAdd
                 label="Add a story to the backlog…"

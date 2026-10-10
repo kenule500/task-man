@@ -6,15 +6,18 @@ import { matchesKey } from './taskKey';
 const SORT_VALUES: TaskSort[] = SORT_OPTIONS.map(option => option.value);
 
 export const DEFAULT_FILTERS: TaskFilters = {
-  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all', epic: 'all',
+  search: '', status: 'all', priority: 'all', sort: 'createdAt', assignedToMe: false, label: 'all', type: 'all', epic: 'all', project: 'all', sprint: 'all',
 };
 
 // ---------------------------------------------------------------------------
 // Filters <-> URL query string, so any view can be shared by link
 // ---------------------------------------------------------------------------
 
-/** Query parameters owned by the filters; `view`, `task`, `new` and the board's `col`, `qf`, `group` are left alone. */
-export const FILTER_PARAMS = ['q', 'status', 'priority', 'type', 'label', 'epic', 'assignedToMe', 'sort'] as const;
+/**
+ * Query parameters owned by the filters; `view`, `task`, `new` and the board's `col`, `qf`, `group` are left alone.
+ * `project` is a project name; `sprint` is a sprint id, `active` (the project's running sprint) or `backlog` (no sprint).
+ */
+export const FILTER_PARAMS = ['q', 'status', 'priority', 'type', 'label', 'epic', 'project', 'sprint', 'assignedToMe', 'sort'] as const;
 
 const MAX_SEARCH_PARAM = 200;
 const MAX_VALUE_PARAM = 80;
@@ -27,6 +30,12 @@ const freeText = (value: string | null): string => {
   return text && text.length <= MAX_VALUE_PARAM ? text : 'all';
 };
 
+/** A sprint id (letters, digits, `-`, `_`) or one of the keywords; anything else is ignored. */
+const sprintParam = (value: string | null): string => {
+  const text = value?.trim() ?? '';
+  return /^[\w-]{1,64}$/.test(text) ? text : 'all';
+};
+
 /** Reads the filters from a query string. Missing, unknown or oversized values fall back to the defaults. */
 export const parseFilterParams = (params: URLSearchParams): TaskFilters => {
   const epic = freeText(params.get('epic'));
@@ -37,6 +46,8 @@ export const parseFilterParams = (params: URLSearchParams): TaskFilters => {
     type: oneOf(params.get('type'), TASK_TYPES, 'all'),
     label: freeText(params.get('label')),
     epic: /\s/.test(epic) ? 'all' : epic,
+    project: freeText(params.get('project')),
+    sprint: sprintParam(params.get('sprint')),
     assignedToMe: params.get('assignedToMe') === '1' || params.get('assignedToMe') === 'true',
     sort: oneOf(params.get('sort'), SORT_VALUES, DEFAULT_FILTERS.sort),
   };
@@ -51,6 +62,8 @@ export const serializeFilters = (filters: TaskFilters): URLSearchParams => {
   if ((filters.type ?? 'all') !== 'all') params.set('type', filters.type as string);
   if ((filters.label ?? 'all') !== 'all') params.set('label', filters.label as string);
   if ((filters.epic ?? 'all') !== 'all') params.set('epic', filters.epic as string);
+  if ((filters.project ?? 'all') !== 'all') params.set('project', filters.project as string);
+  if ((filters.sprint ?? 'all') !== 'all') params.set('sprint', filters.sprint as string);
   if (filters.assignedToMe) params.set('assignedToMe', '1');
   if (filters.sort !== DEFAULT_FILTERS.sort) params.set('sort', filters.sort);
   return params;
@@ -67,15 +80,18 @@ export const withFilterParams = (current: URLSearchParams, filters: TaskFilters)
 /** Stable text for comparing the filters of two states (e.g. the URL and the page). */
 export const filtersKey = (filters: TaskFilters): string => serializeFilters(filters).toString();
 
-type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type' | 'epic'>>;
+type MatchableFilters = Pick<TaskFilters, 'search' | 'status'> & Partial<Pick<TaskFilters, 'priority' | 'assignedToMe' | 'label' | 'type' | 'epic' | 'project' | 'sprint'>>;
 
 /**
+ * `sprint` is `all`, `backlog` (no sprint) or one or more sprint ids joined by commas. `active` must be turned into
+ * ids first (`resolveScopeFilters` in `scope.ts`); left as it is, it matches nothing.
+ *
  * `currentUserId` is needed for the "assigned to me" filter; without it that filter matches nothing.
  * `projectKeyOf` gives a task's project key so searching "WEB-12" works (without it keys read "TM-12").
  */
 export const matchesFilters = (
   task: Task,
-  { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all', epic = 'all' }: MatchableFilters,
+  { search, status, priority = 'all', assignedToMe = false, label = 'all', type = 'all', epic = 'all', project = 'all', sprint = 'all' }: MatchableFilters,
   currentUserId?: string,
   projectKeyOf?: (task: Task) => string | undefined,
 ) => {
@@ -83,6 +99,8 @@ export const matchesFilters = (
   if (priority !== 'all' && task.priority !== priority) return false;
   if (type !== 'all' && (task.type ?? 'task') !== type) return false;
   if (epic !== 'all' && (epic === 'none' ? Boolean(task.epic) : task.epic !== epic)) return false;
+  if (project !== 'all' && (task.project ?? '').trim().toLowerCase() !== project.trim().toLowerCase()) return false;
+  if (sprint !== 'all' && (sprint === 'backlog' ? Boolean(task.sprint) : !task.sprint || !sprint.split(',').includes(task.sprint))) return false;
   if (assignedToMe && !(currentUserId && task.assignees?.some(user => user._id === currentUserId))) return false;
   if (label !== 'all' && !task.labels?.some(item => item.toLowerCase() === label.toLowerCase())) return false;
   const term = search.trim().toLowerCase();

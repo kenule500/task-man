@@ -21,6 +21,17 @@ export const MAX_CHECKLIST_ITEMS = 50;
 export const MAX_CHECKLIST_TEXT = 200;
 export const MAX_WATCHERS = 500;
 
+// Typed links between tasks (Jira style); "blocks" / "blocked by" live in `dependencies` instead
+export const MAX_TASK_RELATIONS = 50;
+export const TASK_RELATION_TYPES = ['relates', 'duplicates', 'duplicated_by', 'clones', 'cloned_by'] as const;
+export type TaskRelationType = (typeof TASK_RELATION_TYPES)[number];
+
+/** One side of a link: this task `type` the other `task` (the other task stores the inverse type). */
+export interface ITaskRelation {
+  type: TaskRelationType;
+  task: mongoose.Types.ObjectId;
+}
+
 export const TASK_LINK_KINDS = ['pull_request', 'commit', 'branch'] as const;
 export const TASK_LINK_STATES = ['open', 'merged', 'closed'] as const;
 export type TaskLinkKind = (typeof TASK_LINK_KINDS)[number];
@@ -74,6 +85,8 @@ export interface ITask extends Document {
   title: string;
   description: string;
   status: TaskStatus;
+  // Key of the workspace workflow stage; its group is `status` ('' = not set yet, resolved from the status)
+  stage?: string;
   priority: TaskPriority;
   type: TaskType;
   // Effort estimate (Scrum story points); unset = not estimated
@@ -92,6 +105,8 @@ export interface ITask extends Document {
   position: number;
   // Tasks that must finish before this one can start (Gantt dependencies)
   dependencies: mongoose.Types.ObjectId[];
+  // Typed links to other tasks of the workspace (relates, duplicates, clones...), written on both sides
+  relations: ITaskRelation[];
   labels: string[];
   // Workspace members responsible for the task
   assignees: mongoose.Types.ObjectId[];
@@ -139,6 +154,11 @@ const attachmentSchema = new Schema<ITaskAttachment>({
   uploadedAt: { type: Date, default: Date.now },
 });
 
+const relationSchema = new Schema<ITaskRelation>({
+  type: { type: String, enum: TASK_RELATION_TYPES, required: true },
+  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
+}, { _id: false });
+
 const linkSchema = new Schema<ITaskLink>({
   provider: { type: String, enum: ['github'], required: true },
   kind: { type: String, enum: TASK_LINK_KINDS, required: true },
@@ -157,6 +177,7 @@ const taskSchema: Schema = new Schema({
   title: { type: String, required: true, trim: true, maxlength: 140 },
   description: { type: String, default: '', trim: true, maxlength: 2000 },
   status: { type: String, enum: TASK_STATUSES, default: 'pending' },
+  stage: { type: String, default: '', maxlength: 30 },
   priority: { type: String, enum: TASK_PRIORITIES, default: 'medium' },
   type: { type: String, enum: TASK_TYPES, default: 'task' },
   storyPoints: { type: Number, min: 0, max: MAX_STORY_POINTS, default: null },
@@ -168,6 +189,18 @@ const taskSchema: Schema = new Schema({
   deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },
   dependencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+  relations: {
+    type: [relationSchema],
+    validate: {
+      validator(this: { _id?: unknown }, items: ITaskRelation[]) {
+        const self = String(this._id ?? '');
+        return items.length <= MAX_TASK_RELATIONS
+          && items.every(item => String(item.task) !== self)
+          && new Set(items.map(item => `${item.type}:${String(item.task)}`)).size === items.length;
+      },
+      message: `A task can have at most ${MAX_TASK_RELATIONS} unique links to other tasks, none to itself`,
+    },
+  },
   labels: {
     type: [{ type: String, trim: true, minlength: 1, maxlength: MAX_LABEL_LENGTH }],
     validate: {

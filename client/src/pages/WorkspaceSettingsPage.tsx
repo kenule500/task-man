@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap, Code2, Columns3 } from 'lucide-react';
 import {
   Alert,
   Field,
@@ -308,6 +308,23 @@ const WorkspaceSettingsPage = () => {
 
       {canManage && (
         <Link
+          to={`/${workspaceSlug}/settings/workflow`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><Columns3 /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Workflow</span>
+            <span className="block text-xs text-slate-600">Board stages like In review or QA, and their WIP limits.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
+
+      {canManage && (
+        <Link
           to={`/${workspaceSlug}/settings/automations`}
           className={cn(
             surfaceVariants({ radius: 'lg', padding: 'sm' }),
@@ -318,6 +335,23 @@ const WorkspaceSettingsPage = () => {
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-900">Automations</span>
             <span className="block text-xs text-slate-600">Rules that change tasks for you when something happens.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
+
+      {canManage && (
+        <Link
+          to={`/${workspaceSlug}/settings/developers`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><Code2 /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Developers</span>
+            <span className="block text-xs text-slate-600">API tokens for scripts and signed webhooks for your services.</span>
           </span>
           <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
         </Link>

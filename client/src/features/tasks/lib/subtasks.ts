@@ -30,6 +30,17 @@ export const countSubtasks = (subtasks: Task[]): SubtaskProgressCount => ({
   total: subtasks.length,
 });
 
+export interface SubtaskPoints {
+  done: number;
+  total: number;
+}
+
+/** Story points of the subtasks: completed ones over all (unestimated subtasks count as 0). */
+export const sumSubtaskPoints = (subtasks: Task[]): SubtaskPoints => ({
+  done: subtasks.filter(task => task.status === 'completed').reduce((sum, task) => sum + (task.storyPoints ?? 0), 0),
+  total: subtasks.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0),
+});
+
 export interface ListEntry {
   task: Task;
   /** 1 for a subtask rendered under its parent, 0 otherwise. */

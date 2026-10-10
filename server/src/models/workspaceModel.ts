@@ -1,4 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { MAX_STAGE_KEY, MAX_STAGE_NAME, MAX_STAGE_WIP, MAX_STAGES, STAGE_COLORS, type WorkflowStage } from '../utils/workflow.js';
+import { TASK_STATUSES } from './taskModel.js';
 
 // Work-in-progress limits per board column (null = no limit)
 export const WIP_STATUSES = ['pending', 'in-progress', 'completed'] as const;
@@ -18,6 +20,8 @@ export interface IWorkspace extends Document {
   // Last task number handed out (task keys like WEB-12 use it)
   taskCounter: number;
   boardSettings?: { wipLimits?: Partial<WipLimits> };
+  // Custom board stages (each mapped to a status group); unset = the default To do / In progress / Done
+  workflow?: { stages?: WorkflowStage[] };
   integrations?: {
     github?: {
       enabled?: boolean;
@@ -58,6 +62,22 @@ const workspaceSchema: Schema = new Schema(
         pending: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
         'in-progress': { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
         completed: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
+      },
+    },
+    workflow: {
+      stages: {
+        type: [new Schema({
+          key: { type: String, required: true, match: /^[a-z0-9][a-z0-9-]*$/, maxlength: MAX_STAGE_KEY },
+          name: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_STAGE_NAME },
+          group: { type: String, enum: TASK_STATUSES, required: true },
+          color: { type: String, enum: STAGE_COLORS, default: 'slate' },
+          wipLimit: { type: Number, default: 0, min: 0, max: MAX_STAGE_WIP },
+        }, { _id: false })],
+        default: undefined,
+        validate: {
+          validator: (stages: unknown[]) => stages.length >= 1 && stages.length <= MAX_STAGES,
+          message: `A workflow needs between 1 and ${MAX_STAGES} stages`,
+        },
       },
     },
     integrations: {

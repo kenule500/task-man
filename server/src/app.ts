@@ -18,6 +18,7 @@ import integrationRoutes from './routes/integrationRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 import { registerFlowTracking } from './utils/flow/register.js';
 import { registerAutomations } from './utils/automation/register.js';
+import { registerWebhooks } from './utils/webhooks/register.js';
 
 // ============================================================
 // 1. Validate environment first
@@ -28,6 +29,7 @@ const config = getConfig();
 // Activity listeners: flow tracking first, so automation-made moves are measured too
 registerFlowTracking();
 registerAutomations();
+registerWebhooks();
 
 // ============================================================
 // 2. Build the Express app

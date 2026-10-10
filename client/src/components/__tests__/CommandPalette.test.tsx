@@ -48,6 +48,14 @@ describe('buildCommandItems with loaded projects', () => {
     expect(items.some(item => item.label === 'Sprint 1')).toBe(false);
   });
 
+  it('offers a board and a backlog jump per project', () => {
+    const goTo = searchCommands('website', items).filter(item => item.group === 'Go to');
+    expect(goTo.map(item => item.label)).toEqual(['Website board', 'Website backlog']);
+    expect(goTo[0]).toMatchObject({ hint: 'Active sprint · Sprint 2', href: '/acme/tasks?view=board&project=Website&sprint=active' });
+    expect(goTo[1].href).toBe('/acme/projects/p1?tab=backlog');
+    expect(searchCommands('', items).some(item => item.group === 'Go to')).toBe(false);
+  });
+
   it('finds help answers and opens them in the help center', () => {
     const help = searchCommands('story points', items).filter(item => item.group === 'Help');
     expect(help.length).toBeGreaterThan(0);
@@ -89,7 +97,7 @@ describe('searchCommands', () => {
 
   it('lists pages and the most recent tasks for an empty query', () => {
     const results = searchCommands('', items);
-    expect(results.filter(item => item.group === 'Pages')).toHaveLength(14);
+    expect(results.filter(item => item.group === 'Pages')).toHaveLength(15);
     expect(results.filter(item => item.group === 'Tasks').map(item => item.label)).toEqual([
       'Fix login bug', 'Plan sprint', 'Write launch email',
     ]);
@@ -125,7 +133,7 @@ describe('searchCommands', () => {
   it('hides pages and results the user has no permission for', () => {
     const limited = buildCommandItems('acme', (permission: string) => permission === 'tasks:read', tasks);
     const labels = searchCommands('', limited).filter(item => item.group === 'Pages').map(item => item.label);
-    expect(labels).toEqual(['Dashboard', 'Tasks', 'Board', 'Calendar', 'Timeline', 'Help']);
+    expect(labels).toEqual(['Dashboard', 'Tasks', 'Board', 'Calendar', 'Timeline', 'Developers', 'Help']);
     expect(searchCommands('website', limited).some(item => item.group === 'Projects')).toBe(false);
     expect(searchCommands('login', buildCommandItems('acme', () => false, tasks))).toEqual([]);
   });

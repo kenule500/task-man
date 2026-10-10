@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body } from 'express-validator';
-import Task, { MAX_LABELS, MAX_LABEL_LENGTH, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from '../models/taskModel.js';
+import Task, { MAX_LABELS, MAX_LABEL_LENGTH, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, type TaskStatus } from '../models/taskModel.js';
 import { recordActivity } from '../utils/activity.js';
 import { normalizeIds } from '../utils/taskGraph.js';
+import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
 import { normalizeLabels } from '../utils/taskQuery.js';
 import {
   assertEpicTypeChange,
@@ -42,6 +43,7 @@ export const validateBulkUpdate = [
   idListItems('ids'),
   body('patch').isObject().withMessage('patch is required'),
   body('patch.status').optional().isIn(TASK_STATUSES).withMessage('Invalid status'),
+  body('patch.stage').optional().isString().isLength({ min: 1, max: 30 }).withMessage('Invalid stage'),
   body('patch.priority').optional().isIn(TASK_PRIORITIES).withMessage('Invalid priority'),
   body('patch.type').optional().isIn(TASK_TYPES).withMessage('Invalid type'),
   body('patch.sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
@@ -60,10 +62,11 @@ export const validateBulkDelete = [
   idListItems('ids'),
 ];
 
-const PATCH_KEYS = ['status', 'priority', 'type', 'sprint', 'epic', 'assignees', 'labels'] as const;
+const PATCH_KEYS = ['status', 'stage', 'priority', 'type', 'sprint', 'epic', 'assignees', 'labels'] as const;
 
 type Patch = {
   status?: string;
+  stage?: string;
   priority?: string;
   type?: string;
   sprint?: string | null;
@@ -92,6 +95,7 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
     // Validated ids, cast to ObjectIds so no request value reaches a query as-is
     const ids = normalizeIds(req.body.ids).filter(id => mongoose.isValidObjectId(id)).map(id => new mongoose.Types.ObjectId(id));
     const patch: Patch = req.body.patch ?? {};
+    const workflow = workflowOf(workspace);
 
     if (!PATCH_KEYS.some(key => key in patch)) {
       res.status(400).json({ message: 'Nothing to change' });
@@ -128,7 +132,20 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
     for (const task of tasks) {
       const before = task.toObject() as unknown as Record<string, unknown>;
 
-      if (patch.status !== undefined) task.set('status', patch.status);
+      if (patch.status !== undefined || patch.stage !== undefined) {
+        const resolved = stageFor(workflow, {
+          stage: patch.stage,
+          status: patch.status as TaskStatus | undefined,
+          currentStage: task.stage,
+          currentStatus: task.status,
+        });
+        if (!resolved) throw new TaskRuleError(UNKNOWN_STAGE_MESSAGE);
+        // A status-only request that changes nothing leaves an older task's stage alone (the next real move fixes it)
+        if (patch.stage !== undefined || resolved.status !== task.status) {
+          if (resolved.stage !== task.stage) task.set('stage', resolved.stage);
+          if (resolved.status !== task.status) task.set('status', resolved.status);
+        }
+      }
       if (patch.priority !== undefined) task.set('priority', patch.priority);
       if (patch.type !== undefined) {
         await assertEpicTypeChange(workspaceId, task._id, task.type, patch.type);

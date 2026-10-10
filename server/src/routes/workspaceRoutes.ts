@@ -27,12 +27,15 @@ import {
   updateCustomRole,
   deleteCustomRole,
 } from '../controllers/roleController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, rejectApiToken } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { getWorkspaceActivity } from '../controllers/activityController.js';
 import { getSprintReport } from '../controllers/reportController.js';
 import { getFlowReport } from '../controllers/flowController.js';
 import automationRoutes from './automationRoutes.js';
+import workflowRoutes from './workflowRoutes.js';
+import webhookRoutes from './webhookRoutes.js';
+import tokenRoutes from './tokenRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -69,8 +72,8 @@ router.get('/', protect, getMyWorkspaces);
 router.post('/join', protect, joinWorkspace);
 
 // These need a workspace in the URL
-router.get('/:slug', protect, getWorkspaceBySlug);
-router.put('/:slug/activate', protect, switchWorkspace);
+router.get('/:slug', protect, rejectApiToken, getWorkspaceBySlug);
+router.put('/:slug/activate', protect, rejectApiToken, switchWorkspace);
 
 // ============================================================
 // Workspace members (read requires users:read)
@@ -161,7 +164,7 @@ router.put(
   changeMemberRole
 );
 // Leaving needs no permission beyond membership (checked in the controller); must come before :userId
-router.delete('/:slug/members/me', protect, leaveWorkspace);
+router.delete('/:slug/members/me', protect, rejectApiToken, leaveWorkspace);
 router.delete(
   '/:slug/members/:userId',
   protect,
@@ -226,6 +229,11 @@ router.get('/:slug/reports/flow', protect, requirePermission('projects:read'), g
 
 // Automation rules (routes protect themselves; managing them needs settings:manage)
 router.use('/:slug/automations', automationRoutes);
+
+// Workflow stages (board columns inside the status groups), outbound webhooks and API tokens
+router.use('/:slug/workflow', workflowRoutes);
+router.use('/:slug/webhooks', webhookRoutes);
+router.use('/:slug/tokens', tokenRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);

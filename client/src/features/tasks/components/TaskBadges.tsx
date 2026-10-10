@@ -1,7 +1,9 @@
 import {
-  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, ListChecks, Repeat, Zap, type LucideIcon,
+  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, ListChecks, ListTree, Repeat, Waypoints, Zap, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
+import { STAGE_COLOR_META, resolveStage } from '@/features/workflow/lib/stages';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import { checklistProgress } from '../lib/checklist';
 import { formatDate, isOverdue } from '../lib/date';
@@ -12,11 +14,33 @@ export const StatusDot = ({ status, className }: { status: TaskStatus; className
   <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-full', STATUS_META[status].dot, className)} />
 );
 
-export const StatusBadge = ({ status, className }: { status: TaskStatus; className?: string }) => (
-  <span className={cn('inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium', STATUS_META[status].badge, className)}>
-    {STATUS_META[status].label}
-  </span>
-);
+interface StatusBadgeProps {
+  status: TaskStatus;
+  /**
+   * Stage key of the task ('' = not set). Pass it (`stage={task.stage ?? ''}`) to show the workspace stage name
+   * with its colored dot; without it the plain status label is shown.
+   */
+  stage?: string;
+  className?: string;
+}
+
+export const StatusBadge = ({ status, stage, className }: StatusBadgeProps) => {
+  const { stages, loaded } = useWorkflow();
+  if (loaded && stage !== undefined) {
+    const current = resolveStage({ status, stage }, stages);
+    return (
+      <span className={cn('inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700', className)}>
+        <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-full', STAGE_COLOR_META[current.color].dot)} />
+        {current.name}
+      </span>
+    );
+  }
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium', STATUS_META[status].badge, className)}>
+      {STATUS_META[status].label}
+    </span>
+  );
+};
 
 /** Jira-style glyph per priority; every tone passes AA on white. */
 const PRIORITY_VISUALS: Record<TaskPriority, { icon: LucideIcon; text: string }> = {
@@ -72,6 +96,16 @@ export const DependencyCount = ({ count, className }: { count: number; className
       <Link2 className="size-3" aria-hidden />
       {count}
       <span className="sr-only">dependencies</span>
+    </span>
+  ) : null;
+
+/** Number of typed links (relates, duplicates, clones) to other tasks, hidden when there are none. */
+export const RelationCount = ({ count, className }: { count: number; className?: string }) =>
+  count > 0 ? (
+    <span className={cn('inline-flex shrink-0 items-center gap-1 text-xs text-slate-500', className)} title="Linked work">
+      <Waypoints className="size-3" aria-hidden />
+      {count}
+      <span className="sr-only">linked {count === 1 ? 'task' : 'tasks'}</span>
     </span>
   ) : null;
 
@@ -133,6 +167,7 @@ export const SubtaskProgress = ({ done, total, className }: SubtaskProgressProps
       className={cn('inline-flex shrink-0 items-center gap-1.5 text-xs text-slate-500 tabular-nums', className)}
       title="Subtasks"
     >
+      <ListTree className="size-3" aria-hidden />
       <span aria-hidden className="h-1.5 w-8 overflow-hidden rounded-full bg-slate-200">
         <span className={cn('block h-full rounded-full', done === total ? 'bg-emerald-500' : 'bg-primary')} style={{ width: `${percent}%` }} />
       </span>
