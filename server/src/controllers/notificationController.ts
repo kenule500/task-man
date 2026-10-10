@@ -204,10 +204,11 @@ export const subscribePush = async (req: Request, res: Response): Promise<void> 
       return;
     }
     const userAgent = String(req.get('user-agent') ?? '').slice(0, 300);
+    // Plain strings with $eq, so a crafted body can never become a query operator
     await PushSubscription.findOneAndUpdate(
-      { endpoint },
+      { endpoint: { $eq: String(endpoint) } },
       {
-        $set: { user: userId(req), keys: { p256dh: keys.p256dh, auth: keys.auth }, userAgent, lastUsedAt: new Date() },
+        $set: { user: userId(req), keys: { p256dh: String(keys.p256dh), auth: String(keys.auth) }, userAgent, lastUsedAt: new Date() },
       },
       { upsert: true, runValidators: true },
     );
@@ -228,7 +229,7 @@ export const unsubscribePush = async (req: Request, res: Response): Promise<void
       return;
     }
     // Only the caller's own: someone else's endpoint is left alone and reported the same way
-    await PushSubscription.deleteOne({ endpoint, user: userId(req) });
+    await PushSubscription.deleteOne({ endpoint: { $eq: String(endpoint) }, user: userId(req) });
     res.status(200).json({ subscribed: false });
   } catch (error) {
     console.error('unsubscribePush error:', (error as Error).message);
