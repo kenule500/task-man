@@ -74,14 +74,15 @@ export const sendEmail = async (options: SendEmailOptions) => {
       throw new Error('No email provider configured (set RESEND_API_KEY or EMAIL_HOST).');
     }
     // Development fallback: no provider needed, the link is in the server logs
-    console.log(`📧 [dev email] To: ${options.to}\nSubject: ${options.subject}\n\n${options.text}\n`);
+    // JSON keeps user-supplied text on one log line (no forged log entries)
+    console.log('📧 [dev email]', JSON.stringify({ to: options.to, subject: options.subject, text: options.text }));
     return;
   }
 
   try {
     if (isResendConfigured()) await sendWithResend(options);
     else await sendWithSmtp(options);
-    console.log(`✅ Email sent to ${options.to}`);
+    console.log('✅ Email sent to', JSON.stringify(options.to));
   } catch (error) {
     console.error('❌ Email send error:', (error as Error).message);
     throw error;

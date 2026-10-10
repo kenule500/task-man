@@ -355,7 +355,9 @@ export const completeSprint = async (req: Request, res: Response): Promise<void>
     const moveOpenTo = req.body.moveOpenTo ?? 'backlog';
     let target: mongoose.Types.ObjectId | null = null;
     if (moveOpenTo !== 'backlog') {
-      const next = await Sprint.findOne({ _id: moveOpenTo, project: sprint.project, status: 'planned' }).select('_id').lean();
+      // Only a well-formed sprint id is ever used in the query
+      const nextId = mongoose.isValidObjectId(moveOpenTo) ? new mongoose.Types.ObjectId(String(moveOpenTo)) : null;
+      const next = nextId ? await Sprint.findOne({ _id: nextId, project: sprint.project, status: 'planned' }).select('_id').lean() : null;
       if (!next) throw new TaskRuleError('Open tasks can only move to a planned sprint of this project');
       target = next._id as mongoose.Types.ObjectId;
     }

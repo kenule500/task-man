@@ -116,7 +116,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   try {
     const { name, email, password } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: { $eq: String(email) } });
     if (userExists) {
       res.status(400).json({ message: 'User already exists' });
       return;
@@ -220,7 +220,7 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
 
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (!user || user.isVerified) {
       res.status(200).json(genericResponse);
@@ -258,7 +258,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (user && (await user.matchPassword(password))) {
       if (!user.isVerified) {
@@ -323,7 +323,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
 
     if (workspaceSlug) {
       workspace = await Workspace.findOne({
-        slug: workspaceSlug,
+        slug: { $eq: String(workspaceSlug) },
         'members.user': objectId,
       });
     } else if (user.activeWorkspace) {
@@ -413,7 +413,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (!user) {
       res.status(200).json({ message: 'If an account exists, a reset link has been sent.' });

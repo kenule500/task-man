@@ -38,7 +38,7 @@ export const requirePermission = (permission: PermissionKey) => {
       const objectId = new mongoose.Types.ObjectId(userId);
 
       const workspace = await Workspace.findOne({
-        slug,
+        slug: { $eq: String(slug) },
         'members.user': objectId,
       });
 
