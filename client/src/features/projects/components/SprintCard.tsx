@@ -85,7 +85,7 @@ const SprintCard = ({
                   className="-ml-1 flex min-h-11 max-w-full items-center gap-1.5 rounded-lg px-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
                 >
                   <ChevronDown aria-hidden className={cn('size-4 shrink-0 text-slate-500 transition-transform motion-reduce:transition-none', !expanded && '-rotate-90')} />
-                  <span className="break-words">{sprint.name}</span>
+                  <span className="min-w-0 truncate" title={sprint.name}>{sprint.name}</span>
                 </button>
               </h3>
               <Tag tone={status.tone} size="sm">{status.label}</Tag>
