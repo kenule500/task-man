@@ -25,8 +25,10 @@ We acknowledge reports within 3 working days.
 
 ### Personal API tokens
 
-- **Format and storage.** A token is `tm_` plus 40 random base62 characters (from `crypto.randomBytes`, no modulo bias). Only its
-  SHA-256 hash is stored (unique index, never selected by default); the plain value is returned once, in the create response.
+- **Format and storage.** A token is `tm_` plus 40 random base62 characters (from `crypto.randomBytes`, no modulo bias). Only an
+  HMAC-SHA256 digest keyed with a server secret (`API_TOKEN_PEPPER`, else `JWT_SECRET`) is stored (unique index, never
+  selected by default), so a database copy alone cannot test guessed tokens; rotating that secret revokes every token.
+  The plain value is returned once, in the create response.
   The list shows the first 8 characters after `tm_` so people can tell tokens apart.
 - **Use.** `Authorization: Bearer tm_...` is looked up by its digest. Revoked and expired tokens get `401`. Expiry is at most one year.
   `lastUsedAt` is written at most once a minute.
