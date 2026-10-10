@@ -35,6 +35,7 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - Tasks: title, description, status, priority, start/due dates, project, dependencies, labels, assignees, comments, attachments
 - Views: List (inline editing), Board (drag and drop), Calendar (drag to reschedule), Timeline (Gantt with dependency arrows)
 - Search, status and priority filters, sorting (also available as API query parameters)
+- Notifications: bell with toasts for new items, inbox, @mentions, email preferences, and opt-in Web Push (VAPID) on each device
 - Dashboard overview, Projects, Reports, Team page, searchable Help/FAQ, global search (Ctrl/Cmd + K)
 
 ### Scrum / agile
@@ -147,6 +148,24 @@ pnpm dev       # API on http://localhost:5000
 
 # in another terminal
 pnpm --filter client dev                 # web app on http://localhost:5173
+```
+
+### Optional: Web Push (device notifications)
+
+Push is off until the API has a VAPID key pair. Generate one and add it to `server/.env` (or the host settings):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+| Variable | Meaning |
+|---|---|
+| `VAPID_PUBLIC_KEY` | Public key, shared with browsers |
+| `VAPID_PRIVATE_KEY` | Private key. Keep it secret, never commit it |
+| `VAPID_SUBJECT` | Contact for the push services: `mailto:you@example.com` or your https site URL |
+
+People then turn push on per device under Settings > Notifications. On iPhone and iPad it works once the app is
+added to the Home Screen. Changing the key pair later means everyone turns push on again.
 
 ## Branching and releases
 

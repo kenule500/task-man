@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { unsubscribeThisDevice } from '@/features/notifications/hooks/usePushSubscription';
 import api from '@/utils/api';
 import { clearSession, getStoredUser, getToken, type StoredUser } from '@/utils/session';
 
@@ -25,6 +26,8 @@ export const useAuthGuard = ({ requireOnboarding = true }: AuthGuardOptions = {}
   }, [navigate, user, requireOnboarding]);
 
   const logout = useCallback(async () => {
+    // Stop pushing this device for the account that leaves (needs the session, so it comes first)
+    await unsubscribeThisDevice();
     // Invalidate the session server-side too; ignore network errors
     await api.post('/auth/logout').catch(() => undefined);
     clearSession();

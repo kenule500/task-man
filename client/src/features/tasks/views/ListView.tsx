@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckSquare, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip } from 'lucide-react';
+import { CheckSquare, Circle, CircleCheck, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // Deep import: the projects index imports the tasks module back
 import ProjectChip from '@/features/projects/components/ProjectChip';
@@ -65,6 +65,8 @@ const ListView = ({
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Phones show selection checkboxes only after tapping "Select" (or while something is selected)
+  const [phoneSelecting, setPhoneSelecting] = useState(false);
   const anchor = useRef<string | null>(null);
   const shiftHeld = useRef(false);
 
@@ -137,7 +139,7 @@ const ListView = ({
     depth: entry.depth,
     orphanOf: entry.orphanOf,
     progress: countSubtasks(children.get(entry.task._id) ?? []),
-    selection: selectable ? { selected: selected.has(entry.task._id), onChange: select } : undefined,
+    selection: selectable ? { selected: selected.has(entry.task._id), active: count > 0 || phoneSelecting, onChange: select } : undefined,
     ...rowProps,
   });
 
@@ -200,8 +202,27 @@ const ListView = ({
           {/* Phones: one card per task */}
           {selectable && (
             <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-1 md:hidden">
-              <div className="flex h-10 items-center">{selectAll}</div>
-              <span className="text-sm text-slate-600" aria-hidden>Select all</span>
+              {count > 0 || phoneSelecting ? (
+                <>
+                  <div className="flex h-10 items-center">{selectAll}</div>
+                  <span className="flex-1 text-sm text-slate-600" aria-hidden>Select all</span>
+                  <button
+                    type="button"
+                    onClick={() => { setPhoneSelecting(false); clear(); }}
+                    className="min-h-10 rounded-md px-2 text-sm font-medium text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
+                  >
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPhoneSelecting(true)}
+                  className="ml-auto min-h-10 rounded-md px-2 text-sm font-medium text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  Select
+                </button>
+              )}
             </div>
           )}
           <ul role="list" aria-label="Tasks" data-testid="list-cards" className="divide-y divide-slate-100 md:hidden">
@@ -268,7 +289,8 @@ type ListRowProps = Pick<TaskViewProps, 'onUpdate' | 'onEdit' | 'onDelete' | 'on
   orphanOf?: string;
   progress?: SubtaskProgressCount;
   /** Selection checkbox of the row; omitted when bulk edit is unavailable. */
-  selection?: { selected: boolean; onChange: (id: string, checked: boolean) => void };
+  /** `active`: some row is selected or the phone select mode is on, so every checkbox stays visible. */
+  selection?: { selected: boolean; active: boolean; onChange: (id: string, checked: boolean) => void };
 };
 
 /** Opens the details dialog (falls back to the edit form when the page has none). */
@@ -284,6 +306,24 @@ const DetailsButton = ({ task, onOpen, onEdit, className }: Pick<ListRowProps, '
   >
     <PanelRightOpen />
   </Button>
+);
+
+/** Round "done" button, visually distinct from the square selection checkbox. */
+const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; completed: boolean; canWrite: boolean; onUpdate: ListRowProps['onUpdate'] }) => (
+  <button
+    type="button"
+    aria-pressed={completed}
+    disabled={!canWrite}
+    onClick={() => onUpdate(task._id, { status: completed ? 'pending' : 'completed' })}
+    aria-label={completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
+    className={cn(
+      'flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors md:size-8',
+      'hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:hover:text-slate-400',
+      completed && 'text-emerald-600',
+    )}
+  >
+    {completed ? <CircleCheck className="size-5" aria-hidden /> : <Circle className="size-5" aria-hidden />}
+  </button>
 );
 
 const SelectCheckbox = ({ task, selection }: Pick<ListRowProps, 'task'> & { selection: NonNullable<ListRowProps['selection']> }) => (
@@ -311,17 +351,12 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
       )}
     >
       {selection && (
-        <div role="cell" className="flex items-center">
+        <div role="cell" className={cn('flex items-center transition-opacity', !selection.active && 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
           <SelectCheckbox task={task} selection={selection} />
         </div>
       )}
       <div role="cell" className="flex items-center">
-        <Checkbox
-          checked={completed}
-          disabled={!canWrite}
-          onCheckedChange={checked => onUpdate(task._id, { status: checked ? 'completed' : 'pending' })}
-          aria-label={completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-        />
+        <DoneToggle task={task} completed={completed} canWrite={canWrite} onUpdate={onUpdate} />
       </div>
 
       <div role="cell" className={cn('min-w-0 pl-2', depth === 1 && 'pl-7')}>
@@ -451,18 +486,13 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
       data-selected={selection?.selected ? "" : undefined}
       className={cn('group flex items-start gap-3 px-4 py-3', depth === 1 && 'pl-9', selection?.selected && 'bg-primary/5')}
     >
-      {selection && (
+      {selection?.active && (
         <div className="flex h-10 items-center">
           <SelectCheckbox task={task} selection={selection} />
         </div>
       )}
       <div className="flex h-10 items-center">
-        <Checkbox
-          checked={completed}
-          disabled={!canWrite}
-          onCheckedChange={checked => onUpdate(task._id, { status: checked ? 'completed' : 'pending' })}
-          aria-label={completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-        />
+        <DoneToggle task={task} completed={completed} canWrite={canWrite} onUpdate={onUpdate} />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -478,11 +508,10 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
                 onSave={title => onUpdate(task._id, { title })}
                 readOnly={!canWrite}
                 onOpen={openTask({ task, onOpen, onEdit })}
-                className={cn('py-2.5 font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through')}
+                className={cn('!whitespace-normal line-clamp-2 break-words py-2.5 font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through')}
               />
             </div>
           </div>
-          <DetailsButton task={task} onOpen={onOpen} onEdit={onEdit} className="shrink-0" />
           <TaskActionsMenu
             task={task}
             onEdit={onEdit}

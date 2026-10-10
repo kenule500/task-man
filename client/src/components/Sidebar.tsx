@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown, DoorOpen,
-  Sparkles, Plus, Check, User, Settings, Search, type LucideIcon,
+  Sparkles, Plus, Check, User, Settings, Search, Milestone, Gauge, type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -53,6 +53,8 @@ const navMain = [
   { title: 'Dashboard', key: 'dashboard', icon: LayoutDashboard, permission: null },
   { title: 'Tasks', key: 'tasks', icon: CheckSquare, permission: 'tasks:read' },
   { title: 'Projects', key: 'projects', icon: FolderKanban, permission: 'projects:read' },
+  { title: 'Roadmap', key: 'roadmap', icon: Milestone, permission: 'projects:read' },
+  { title: 'Workload', key: 'workload', icon: Gauge, permission: 'projects:read' },
   { title: 'Team', key: 'team', icon: Users, permission: 'users:read' },
   { title: 'Calendar', key: 'calendar', icon: Calendar, permission: 'tasks:read' },
   { title: 'Reports', key: 'reports', icon: BarChart3, permission: 'reports:read' },

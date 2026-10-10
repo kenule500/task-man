@@ -86,7 +86,8 @@ describe('read-only views (no tasks:write)', () => {
 
     expect(table.queryByRole('combobox')).not.toBeInTheDocument();
     expect(table.queryByLabelText('Due date for Read me')).not.toBeInTheDocument();
-    expect(table.getByRole('checkbox')).toHaveAttribute('aria-disabled', 'true');
+    // The "done" toggle is a round button, disabled without tasks:write
+    expect(table.getByRole('button', { name: /as done$/ })).toBeDisabled();
     expect(table.getByText('Pending')).toBeInTheDocument();
 
     await userEvent.click(table.getByRole('button', { name: 'Read me' }));
@@ -253,7 +254,7 @@ describe('TaskPage', () => {
 
     expect(screen.queryByRole('button', { name: /add task/i })).not.toBeInTheDocument();
     expect(table.queryByRole('combobox')).not.toBeInTheDocument();
-    expect(table.getAllByRole('checkbox').every(box => box.getAttribute('aria-disabled') === 'true')).toBe(true);
+    expect(table.getAllByRole('button', { name: /as (not )?done$/ }).every(button => (button as HTMLButtonElement).disabled)).toBe(true);
 
     await userEvent.click(table.getByRole('button', { name: 'Open details for Alpha' }));
     const dialog = within(await screen.findByRole('dialog'));

@@ -3,6 +3,40 @@ import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ds';
 import { Bell, Save } from 'lucide-react';
+import { PushDeviceSettings } from '@/features/notifications';
+
+interface SwitchRowProps {
+  id: string;
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}
+
+const SwitchRow = ({ id, label, desc, checked, onChange }: SwitchRowProps) => (
+  <div className="flex items-start justify-between py-4">
+    <div className="flex-1 pr-4">
+      <p id={id} className="text-sm font-medium text-slate-900">{label}</p>
+      <p className="mt-0.5 text-xs text-slate-600">{desc}</p>
+    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={id}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full motion-safe:transition-colors before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+        checked ? 'bg-primary' : 'bg-slate-500'
+      }`}
+    >
+      <span
+        className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  </div>
+);
 
 const NotificationsPage = () => {
   const [saving, setSaving] = useState(false);
@@ -13,6 +47,7 @@ const NotificationsPage = () => {
     taskAssigned: true,
     taskCompleted: false,
     weeklyDigest: true,
+    push: true,
   });
 
   useEffect(() => {
@@ -24,6 +59,7 @@ const NotificationsPage = () => {
           taskAssigned: response.data.notifications?.taskAssigned ?? true,
           taskCompleted: response.data.notifications?.taskCompleted ?? false,
           weeklyDigest: response.data.notifications?.weeklyDigest ?? true,
+          push: response.data.notifications?.push ?? true,
         });
       } catch (err) {
         console.error('Failed to load notifications:', err);
@@ -50,7 +86,7 @@ const NotificationsPage = () => {
     }
   };
 
-  const options: { key: keyof typeof notifications; label: string; desc: string }[] = [
+  const options: { key: Exclude<keyof typeof notifications, 'push'>; label: string; desc: string }[] = [
     {
       key: 'email',
       label: 'Send me emails',
@@ -103,33 +139,37 @@ const NotificationsPage = () => {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {options.map(({ key, label, desc }) => {
-            const enabled = notifications[key];
-            return (
-              <div key={key} className="flex items-start justify-between py-4">
-                <div className="flex-1 pr-4">
-                  <p id={`notif-${key}`} className="text-sm font-medium text-slate-900">{label}</p>
-                  <p className="mt-0.5 text-xs text-slate-600">{desc}</p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={enabled}
-                  aria-labelledby={`notif-${key}`}
-                  onClick={() => setNotifications({ ...notifications, [key]: !enabled })}
-                  className={`relative h-6 w-11 shrink-0 rounded-full motion-safe:transition-colors before:absolute before:-inset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                    enabled ? 'bg-primary' : 'bg-slate-500'
-                  }`}
-                >
-                  <span
-                    className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm motion-safe:transition-transform ${
-                      enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-            );
-          })}
+          {options.map(({ key, label, desc }) => (
+            <SwitchRow
+              key={key}
+              id={`notif-${key}`}
+              label={label}
+              desc={desc}
+              checked={notifications[key]}
+              onChange={value => setNotifications({ ...notifications, [key]: value })}
+            />
+          ))}
+        </div>
+      </Surface>
+
+      <Surface padding="lg">
+        <div className="mb-4">
+          <h2 className="font-semibold text-slate-900">Push</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Pop-up notifications from your browser or phone, for the same events as the bell.
+          </p>
+        </div>
+
+        <PushDeviceSettings />
+
+        <div className="mt-4 divide-y divide-slate-100 border-t border-slate-100">
+          <SwitchRow
+            id="notif-push"
+            label="Send me push notifications"
+            desc="Applies to every device where push is on. Turn it off to pause push without removing your devices. Saved with the other preferences."
+            checked={notifications.push}
+            onChange={value => setNotifications({ ...notifications, push: value })}
+          />
         </div>
       </Surface>
 

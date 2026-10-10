@@ -32,6 +32,7 @@ import ConfirmActionDialog from '../components/ConfirmActionDialog';
 import { usePermissions } from '../hooks/usePermissions';
 import { getApiErrorMessage } from '@/utils/api';
 import { useWorkspaceData, workspaceApi } from '@/features/workspace';
+import { GitHubIntegrationCard } from '@/features/integrations';
 import api from '../utils/api';
 
 const INPUT =
@@ -405,7 +406,10 @@ const WorkspaceSettingsPage = () => {
             )}
           </Surface>
 
-          {/* ==================== 3. Roles & Permissions ==================== */}
+          {/* ==================== 3. Integrations ==================== */}
+          {canManage && workspaceSlug && <GitHubIntegrationCard workspaceSlug={workspaceSlug} />}
+
+          {/* ==================== 4. Roles & Permissions ==================== */}
           <Surface as="section" aria-labelledby="roles-heading" className="sm:p-6">
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>

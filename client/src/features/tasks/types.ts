@@ -61,6 +61,8 @@ export interface Task {
   assignees?: TaskUser[];
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
+  /** Pull requests, commits and branches that mention the task key (GitHub integration). */
+  links?: TaskLink[];
   owner?: string;
   workspace?: string;
   completedAt?: string;
@@ -109,3 +111,19 @@ export interface TaskFilters {
 /** Max labels per task (mirrors the server). */
 export const MAX_LABELS = 10;
 export const MAX_LABEL_LENGTH = 30;
+
+/** A GitHub pull request, commit or branch linked to a task by the webhook. */
+export interface TaskLink {
+  provider: 'github';
+  kind: 'pull_request' | 'commit' | 'branch';
+  /** https://github.com/... */
+  url: string;
+  title: string;
+  number?: number;
+  state?: 'open' | 'merged' | 'closed';
+  /** owner/name */
+  repo: string;
+  sha?: string;
+  author?: string;
+  updatedAt: string;
+}

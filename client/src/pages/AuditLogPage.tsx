@@ -47,7 +47,7 @@ const AuditLogPage = () => {
 
   if (!allowed) {
     return (
-      <div className="max-w-6xl">
+      <div>
         <PageHeader title="Audit log" />
         <Surface className="mt-6">
           <EmptyState
@@ -66,7 +66,7 @@ const AuditLogPage = () => {
   const filtered = hasActiveFilters(filters);
 
   return (
-    <div className="max-w-6xl space-y-5 pb-6">
+    <div className="space-y-5 pb-6">
       <PageHeader
         title="Audit log"
         description={`Every change in this workspace: who did what, when and from where. Entries are kept for ${retention} days.`}

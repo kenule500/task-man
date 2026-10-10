@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
+import { ViewsMenu, useUrlFilters } from '@/features/views';
 import {
-  BoardView, ConfirmTaskDelete, CalendarView, DEFAULT_FILTERS, DELETE_UNDO_MS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
+  BoardView, ConfirmTaskDelete, CalendarView, DELETE_UNDO_MS, FILTER_PARAMS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
   TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
   tasksApi, useTasks, useWorkspaceMembers, epicsOf,
-  type Task, type TaskDetailActions, type TaskFilters, type TaskFormValues, type TaskView,
+  type Task, type TaskDetailActions, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
 type FormState =
@@ -36,7 +37,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const boardControls = useBoardUrlState();
   const currentUser = useMemo(() => (user ? { _id: user._id, name: user.name } : null), [user]);
 
-  const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
+  // Filters live in the URL (?q=&status=&priority=&type=&label=&epic=&assignedToMe=&sort=) so any view is shareable by link
+  const [filters, setFilters] = useUrlFilters();
   const [form, setForm] = useState<FormState>({ mode: 'closed' });
   const [detailId, setDetailId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Task | null>(null);
@@ -52,7 +54,16 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const view: TaskView = requestedView && TASK_VIEWS.includes(requestedView) ? requestedView : defaultView;
   // Members feed the task form and the list's bulk "assign" action
   const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, (form.mode !== 'closed' || view === 'list') && canReadUsers);
-  const setView = (next: TaskView) => setSearchParams({ view: next }, { replace: true });
+  // Switching layout keeps the filters (they apply to every view) and drops the rest (open task, board state)
+  const setView = (next: TaskView) =>
+    setSearchParams(prev => {
+      const params = new URLSearchParams({ view: next });
+      for (const name of FILTER_PARAMS) {
+        const value = prev.get(name);
+        if (value !== null) params.set(name, value);
+      }
+      return params;
+    }, { replace: true });
 
   // Deep links: `?new=1` opens the create dialog, `?task=<id>` opens that task. Each runs once, then leaves the URL.
   const wantsNew = searchParams.get('new') === '1';
@@ -221,6 +232,9 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
               canFilterMine={Boolean(currentUser)}
               onExport={exportCsv}
               exportCount={visibleTasks.length}
+              viewsMenu={workspaceSlug ? (
+                <ViewsMenu slug={workspaceSlug} layout={view} params={searchParams} canManageShared={canManageBoard} />
+              ) : undefined}
               counts={{ all: stats.total, pending: stats.pending, 'in-progress': stats.inProgress, completed: stats.completed }}
             />
           </Surface>

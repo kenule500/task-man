@@ -1,6 +1,6 @@
 import {
   BarChart3, Calendar, CheckSquare, FolderKanban, GanttChart, HelpCircle,
-  LayoutDashboard, Columns3, ScrollText, Settings, Timer, Users, type LucideIcon,
+  Gauge, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import type { Project } from '@/features/projects';
@@ -50,6 +50,8 @@ const PAGES: PageDef[] = [
   { key: 'calendar', label: 'Calendar', icon: Calendar, permission: 'tasks:read', path: 'tasks?view=calendar', keywords: 'schedule' },
   { key: 'timeline', label: 'Timeline', icon: GanttChart, permission: 'tasks:read', path: 'tasks?view=timeline', keywords: 'gantt' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, permission: 'projects:read', path: 'projects' },
+  { key: 'roadmap', label: 'Roadmap', icon: Milestone, permission: 'projects:read', path: 'roadmap', keywords: 'epics milestones' },
+  { key: 'workload', label: 'Workload', icon: Gauge, permission: 'projects:read', path: 'workload', keywords: 'capacity people assignee points' },
   { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports:read', path: 'reports', keywords: 'analytics stats' },
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },

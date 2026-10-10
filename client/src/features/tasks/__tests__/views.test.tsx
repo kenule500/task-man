@@ -29,13 +29,13 @@ describe('ListView', () => {
     expect(screen.getByText(/no tasks match your current filters/i)).toBeInTheDocument();
   });
 
-  it('marks a task as done from its checkbox', async () => {
+  it('marks a task as done from its round done button', async () => {
     const props = handlers();
     const task = makeTask({ title: 'Write tests' });
     render(<ListView tasks={[task]} totalCount={1} {...props} />);
 
     const table = within(screen.getByTestId('list-table'));
-    await userEvent.click(table.getByRole('checkbox', { name: 'Mark "Write tests" as done' }));
+    await userEvent.click(table.getByRole('button', { name: 'Mark "Write tests" as done' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, { status: 'completed' });
   });
 
@@ -75,7 +75,7 @@ describe('ListView', () => {
     expect(card.getByRole('combobox', { name: 'Priority of Card task' })).toBeInTheDocument();
     expect(card.getByLabelText('Due date for Card task')).toBeInTheDocument();
 
-    await userEvent.click(card.getByRole('checkbox', { name: 'Mark "Card task" as done' }));
+    await userEvent.click(card.getByRole('button', { name: 'Mark "Card task" as done' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, { status: 'completed' });
 
     await userEvent.click(card.getByRole('button', { name: 'Card task' }));
