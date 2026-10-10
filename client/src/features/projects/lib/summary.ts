@@ -22,7 +22,7 @@ export interface ProjectEntry {
 
 /** Counts and sprint progress of one project, from the workspace tasks. */
 export const summarizeProject = (project: Project, tasks: Task[], today: Date = new Date()): ProjectStats => {
-  const own = projectTasks(tasks, project).filter(task => !task.parent);
+  const own = projectTasks(tasks, project).filter(task => !task.parent && task.type !== 'epic');
   const todayKey = toDateKey(today);
   const completed = own.filter(task => task.status === 'completed').length;
   const overdue = own.filter(task => task.status !== 'completed' && dateKeyOf(task.deadline) < todayKey).length;
@@ -69,15 +69,16 @@ export const filterProjectEntries = (entries: ProjectEntry[], query: string): Pr
 
 export const countByStatus = (tasks: Task[]): Record<TaskStatus, number> => {
   const counts: Record<TaskStatus, number> = { pending: 0, 'in-progress': 0, completed: 0 };
-  for (const task of tasks) if (!task.parent) counts[task.status] += 1;
+  for (const task of tasks) if (!task.parent && task.type !== 'epic') counts[task.status] += 1;
   return counts;
 };
 
+/** Types shown in the overview chart; epics are containers and are counted on the Epics tab. */
 export const TASK_TYPES: TaskType[] = ['story', 'task', 'bug', 'spike'];
 
 export const countByType = (tasks: Task[]): Record<TaskType, number> => {
-  const counts: Record<TaskType, number> = { story: 0, task: 0, bug: 0, spike: 0 };
-  for (const task of tasks) if (!task.parent) counts[task.type ?? 'task'] += 1;
+  const counts: Record<TaskType, number> = { story: 0, task: 0, bug: 0, spike: 0, epic: 0 };
+  for (const task of tasks) if (!task.parent && task.type !== 'epic') counts[task.type ?? 'task'] += 1;
   return counts;
 };
 

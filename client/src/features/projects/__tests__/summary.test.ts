@@ -87,7 +87,7 @@ describe('overview helpers', () => {
       makeTask({ parent: 'p', type: 'bug' }),
     ];
     expect(countByStatus(tasks)).toEqual({ pending: 1, 'in-progress': 1, completed: 1 });
-    expect(countByType(tasks)).toEqual({ story: 1, task: 1, bug: 1, spike: 0 });
+    expect(countByType(tasks)).toEqual({ story: 1, task: 1, bug: 1, spike: 0, epic: 0 });
   });
 
   it('lists open tasks by earliest deadline', () => {

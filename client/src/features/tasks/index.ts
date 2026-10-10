@@ -14,6 +14,7 @@ export * from './lib/reports';
 export * from './lib/labels';
 export * from './lib/files';
 export * from './lib/subtasks';
+export * from './lib/epics';
 export * from './lib/pagination';
 export * from './lib/taskKey';
 export * from './lib/csv';

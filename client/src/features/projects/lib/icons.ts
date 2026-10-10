@@ -1,4 +1,4 @@
-import { Bug, BookOpen, Briefcase, CheckSquare, Code2, FlaskConical, Folder, Megaphone, Palette, Rocket, type LucideIcon } from 'lucide-react';
+import { Bug, BookOpen, Briefcase, CheckSquare, Code2, FlaskConical, Folder, Megaphone, Palette, Rocket, Zap, type LucideIcon } from 'lucide-react';
 import type { TaskType } from '@/features/tasks';
 import type { ProjectIcon } from '../types';
 
@@ -41,4 +41,5 @@ export const TASK_TYPE_META: Record<TaskType, TypeMeta> = {
   task: { label: 'Task', icon: CheckSquare, color: 'text-blue-600', bar: 'bg-blue-500' },
   bug: { label: 'Bug', icon: Bug, color: 'text-red-600', bar: 'bg-red-500' },
   spike: { label: 'Spike', icon: FlaskConical, color: 'text-violet-600', bar: 'bg-violet-500' },
+  epic: { label: 'Epic', icon: Zap, color: 'text-fuchsia-700', bar: 'bg-fuchsia-500' },
 };

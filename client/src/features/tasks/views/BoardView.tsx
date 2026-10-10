@@ -19,7 +19,7 @@ import { STATUS_META, TASK_STATUSES } from '../constants';
 import { useBoardSettings, useIsDesktop, type BoardUrlState } from '../hooks/useBoardSettings';
 import { applyQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
 import { stepColumn, swipeStep } from '../lib/columnSwipe';
-import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
+import { getDropPosition, groupByStatus, positionBetween, withoutEpics } from '../lib/filters';
 import { BOARD_PAGE_SIZE, pageCount, paginate } from '../lib/pagination';
 import { ALL_LANE_ID, groupIntoSwimlanes, laneIdOf, type Swimlane, type SwimlaneGroup } from '../lib/swimlanes';
 import { isOverWip, wipCountLabel } from '../lib/wip';
@@ -71,10 +71,13 @@ export interface BoardViewProps extends TaskViewProps {
  * swipe, ?col= in the URL); from md the three columns sit side by side with drag & drop, optionally split into swimlanes.
  */
 const BoardView = ({
-  tasks: incomingTasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true,
-  controls, allTasks, currentUserId, workspaceSlug, canManageBoard = false,
+  tasks: shownTasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true,
+  controls, allTasks: everyTask, currentUserId, workspaceSlug, canManageBoard = false,
 }: BoardViewProps) => {
   const isDesktop = useIsDesktop();
+  // Epics are containers: the board shows their items (lanes can group by epic), never the epics themselves
+  const incomingTasks = useMemo(() => withoutEpics(shownTasks), [shownTasks]);
+  const allTasks = useMemo(() => (everyTask ? withoutEpics(everyTask) : undefined), [everyTask]);
 
   // Board UI state: the page's (URL backed) when given, local otherwise
   const [localColumn, setLocalColumn] = useState<TaskStatus>(TASK_STATUSES[0]);
@@ -94,8 +97,8 @@ const BoardView = ({
   );
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
   const lanes = useMemo<Swimlane[]>(
-    () => (laneMode ? groupIntoSwimlanes(tasks, groupBy) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
-    [laneMode, groupBy, tasks],
+    () => (laneMode ? groupIntoSwimlanes(tasks, groupBy, everyTask ?? shownTasks) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
+    [laneMode, groupBy, tasks, everyTask, shownTasks],
   );
   const laneColumns = useMemo(
     () => new Map(lanes.map(lane => [lane.id, laneMode ? groupByStatus(lane.tasks) : columns])),

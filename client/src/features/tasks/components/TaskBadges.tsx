@@ -1,5 +1,5 @@
 import {
-  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, type LucideIcon,
+  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, Zap, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
@@ -78,6 +78,7 @@ const TYPE_ICONS: Record<TaskType, LucideIcon> = {
   task: CheckSquare,
   bug: Bug,
   spike: FlaskConical,
+  epic: Zap,
 };
 
 /** Colored glyph of a work item type; tasks without a type count as plain tasks. */

@@ -1,7 +1,7 @@
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
 export type TaskPriority = 'low' | 'medium' | 'high';
-/** Scrum work item type. */
-export type TaskType = 'story' | 'task' | 'bug' | 'spike';
+/** Scrum work item type; an 'epic' is a container that groups items of its project across sprints. */
+export type TaskType = 'story' | 'task' | 'bug' | 'spike' | 'epic';
 export type TaskSort = 'createdAt' | 'deadline' | 'priority';
 export type TaskView = 'list' | 'board' | 'calendar' | 'timeline';
 
@@ -47,6 +47,8 @@ export interface Task {
   sprint?: string | null;
   /** Parent task id when this is a subtask. */
   parent?: string | null;
+  /** Id of the epic (a task of type 'epic') this item belongs to; subtasks inherit their parent's. */
+  epic?: string | null;
   /** ISO date string. Optional: tasks without a start are shown as one-day bars. */
   startDate?: string | null;
   /** ISO date string. */
@@ -77,6 +79,7 @@ export interface TaskInput {
   storyPoints?: number | null;
   sprint?: string | null;
   parent?: string | null;
+  epic?: string | null;
   startDate?: string | null;
   deadline: string;
   position?: number;
@@ -99,6 +102,8 @@ export interface TaskFilters {
   label?: string;
   /** Only this work item type (`'all'` or unset = any). */
   type?: TaskType | 'all';
+  /** Only items of this epic id (`'all'` or unset = any, `'none'` = items outside any epic). */
+  epic?: string;
 }
 
 /** Max labels per task (mirrors the server). */

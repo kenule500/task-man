@@ -1,8 +1,8 @@
-// Board swimlanes: rows of tasks grouped by assignee, project or type (desktop only).
+// Board swimlanes: rows of tasks grouped by assignee, project, type or epic (desktop only).
 import { TASK_TYPES, TASK_TYPE_META } from '../constants';
 import type { Task } from '../types';
 
-export const SWIMLANE_GROUPS = ['none', 'assignee', 'project', 'type'] as const;
+export const SWIMLANE_GROUPS = ['none', 'assignee', 'project', 'type', 'epic'] as const;
 export type SwimlaneGroup = (typeof SWIMLANE_GROUPS)[number];
 
 export const SWIMLANE_LABELS: Record<SwimlaneGroup, string> = {
@@ -10,6 +10,7 @@ export const SWIMLANE_LABELS: Record<SwimlaneGroup, string> = {
   assignee: 'Assignee',
   project: 'Project',
   type: 'Type',
+  epic: 'Epic',
 };
 
 /** Lane id used when the board is not grouped. */
@@ -36,8 +37,9 @@ interface LaneKey {
 
 const UNASSIGNED: LaneKey = { id: 'unassigned', label: 'Unassigned', sort: '', last: true };
 const NO_PROJECT: LaneKey = { id: 'no-project', label: 'No project', sort: '', last: true };
+const NO_EPIC: LaneKey = { id: 'no-epic', label: 'No epic', sort: '', last: true };
 
-const laneKeyOf = (task: Task, group: Exclude<SwimlaneGroup, 'none'>): LaneKey => {
+const laneKeyOf = (task: Task, group: Exclude<SwimlaneGroup, 'none'>, epicTitles: ReadonlyMap<string, string> = new Map()): LaneKey => {
   if (group === 'assignee') {
     // A task sits in one lane: its first assignee (the card still shows everyone)
     const first = task.assignees?.[0];
@@ -46,6 +48,11 @@ const laneKeyOf = (task: Task, group: Exclude<SwimlaneGroup, 'none'>): LaneKey =
   if (group === 'project') {
     return task.project ? { id: `project:${task.project}`, label: task.project, sort: task.project.toLowerCase() } : NO_PROJECT;
   }
+  if (group === 'epic') {
+    if (!task.epic) return NO_EPIC;
+    const title = epicTitles.get(task.epic) ?? 'Unknown epic';
+    return { id: `epic:${task.epic}`, label: title, sort: title.toLowerCase() };
+  }
   const type = task.type ?? 'task';
   return { id: `type:${type}`, label: TASK_TYPE_META[type].label, sort: String(TASK_TYPES.indexOf(type)).padStart(2, '0') };
 };
@@ -53,13 +60,15 @@ const laneKeyOf = (task: Task, group: Exclude<SwimlaneGroup, 'none'>): LaneKey =
 /**
  * Splits tasks into lanes. Empty lanes are not returned; each task lands in exactly one lane and the
  * order of tasks inside a lane is kept. `none` returns a single lane holding everything.
+ * `epics` (any tasks; the epics among them) name the lanes when grouping by epic.
  */
-export const groupIntoSwimlanes = (tasks: Task[], group: SwimlaneGroup): Swimlane[] => {
+export const groupIntoSwimlanes = (tasks: Task[], group: SwimlaneGroup, epics: Task[] = []): Swimlane[] => {
   if (group === 'none') return [{ id: ALL_LANE_ID, label: 'All tasks', tasks }];
 
+  const epicTitles = new Map(epics.filter(item => item.type === 'epic').map(item => [item._id, item.title]));
   const lanes = new Map<string, Swimlane & { key: LaneKey }>();
   for (const task of tasks) {
-    const key = laneKeyOf(task, group);
+    const key = laneKeyOf(task, group, epicTitles);
     const lane = lanes.get(key.id);
     if (lane) lane.tasks.push(task);
     else lanes.set(key.id, { id: key.id, label: key.label, tasks: [task], key });

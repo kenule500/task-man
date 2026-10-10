@@ -28,7 +28,7 @@ const MAX_DAYS = 120;
  * A task counts as done on the day of its `completedAt` (completed tasks without one count as done today).
  */
 export const buildBurndown = (sprint: Pick<Sprint, '_id' | 'startDate' | 'endDate'>, tasks: Task[], today: Date = new Date()): Burndown => {
-  const scope = tasks.filter(task => task.sprint === sprint._id && !task.parent);
+  const scope = tasks.filter(task => task.sprint === sprint._id && !task.parent && task.type !== 'epic');
   const estimated = scope.some(task => pointsOf(task) > 0);
   const weight = (task: Task) => (estimated ? pointsOf(task) : 1);
   const total = scope.reduce((sum, task) => sum + weight(task), 0);

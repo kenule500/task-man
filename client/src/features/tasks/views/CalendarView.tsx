@@ -6,6 +6,7 @@ import { SegmentedControl } from '@/components/ds';
 import { StatusBadge } from '../components/TaskBadges';
 import { AssigneeStack, LabelChip } from '../components/TaskChips';
 import { STATUS_META } from '../constants';
+import { withoutEpics } from '../lib/filters';
 import { getLabelStyle } from '../lib/labels';
 import {
   addMonths, dateKeyOf, formatDate, formatMonth, isOverdue, parseDateKey, startOfMonth, todayKey,
@@ -45,8 +46,10 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 };
 
 /** Month grid placing tasks on their due date. Drag a task to another day to reschedule it. */
-const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true, initialMonth }: CalendarViewProps) => {
+const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true, initialMonth }: CalendarViewProps) => {
   const open = onOpen ?? onEdit;
+  // Epics are containers: the calendar shows the work items inside them
+  const tasks = useMemo(() => withoutEpics(shownTasks), [shownTasks]);
   const [month, setMonth] = useState(() => startOfMonth(initialMonth ?? new Date()));
   const [selectedKey, setSelectedKey] = useState(() => defaultSelectedKey(startOfMonth(initialMonth ?? new Date())));
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);

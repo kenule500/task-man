@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Alert, Surface } from '@/components/ds';
-import { Save } from 'lucide-react';
+import { Bell, Save } from 'lucide-react';
 
 const NotificationsPage = () => {
   const [saving, setSaving] = useState(false);
@@ -50,11 +50,27 @@ const NotificationsPage = () => {
     }
   };
 
-  const options = [
-    { key: 'email', label: 'General Emails', desc: 'Account updates and important notices' },
-    { key: 'taskAssigned', label: 'Task Assigned', desc: 'When someone assigns you a task' },
-    { key: 'taskCompleted', label: 'Task Completed', desc: 'When a task in your workspace is completed' },
-    { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'A weekly summary of your workspace activity' },
+  const options: { key: keyof typeof notifications; label: string; desc: string }[] = [
+    {
+      key: 'email',
+      label: 'Send me emails',
+      desc: 'The main switch for email. When it is off you get no emails, only notifications in the app.',
+    },
+    {
+      key: 'taskAssigned',
+      label: 'Assignments, mentions and comments',
+      desc: 'Email me when someone assigns me a task, mentions me in a comment, or comments on a task I own or am assigned to.',
+    },
+    {
+      key: 'taskCompleted',
+      label: 'Completed tasks',
+      desc: 'Email me when a task I own or am assigned to is marked completed by someone else.',
+    },
+    {
+      key: 'weeklyDigest',
+      label: 'Weekly digest',
+      desc: 'Not sent yet. Your choice is saved for when the weekly summary launches.',
+    },
   ];
 
   return (
@@ -62,14 +78,33 @@ const NotificationsPage = () => {
       {message && <Alert tone={message.type}>{message.text}</Alert>}
 
       <Surface padding="lg">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+            <Bell className="size-4" />
+          </span>
+          <div>
+            <h2 className="font-semibold text-slate-900">In the app</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Always on. The bell in the top bar and your <span className="font-medium">Inbox</span> show assignments,
+              completed tasks, mentions and comments on your tasks. They are kept for 90 days, and you are never
+              notified about your own actions.
+            </p>
+          </div>
+        </div>
+      </Surface>
+
+      <Surface padding="lg">
         <div className="mb-6">
-          <h2 className="font-semibold text-slate-900">Email notifications</h2>
-          <p className="mt-1 text-sm text-slate-600">Choose what updates you want to receive</p>
+          <h2 className="font-semibold text-slate-900">Email</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Choose which of those notifications also reach your inbox.
+            {!notifications.email && ' Email is off, so nothing below is sent.'}
+          </p>
         </div>
 
         <div className="divide-y divide-slate-100">
           {options.map(({ key, label, desc }) => {
-            const enabled = notifications[key as keyof typeof notifications];
+            const enabled = notifications[key];
             return (
               <div key={key} className="flex items-start justify-between py-4">
                 <div className="flex-1 pr-4">

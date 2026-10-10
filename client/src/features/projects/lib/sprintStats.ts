@@ -16,9 +16,9 @@ export interface WorkProgress {
 
 const percentOf = (part: number, whole: number) => (whole === 0 ? 0 : Math.round((part / whole) * 100));
 
-/** Progress of a list of tasks; subtasks are ignored (their points are part of the parent's estimate). */
+/** Progress of a list of tasks; subtasks are ignored (their points are part of the parent's estimate) and so are epics (containers). */
 export const workProgress = (tasks: Task[]): WorkProgress => {
-  const top = tasks.filter(task => !task.parent);
+  const top = tasks.filter(task => !task.parent && task.type !== 'epic');
   const done = top.filter(task => task.status === 'completed');
   const totalPoints = top.reduce((sum, task) => sum + pointsOf(task), 0);
   const donePoints = done.reduce((sum, task) => sum + pointsOf(task), 0);

@@ -1,10 +1,10 @@
 import { useId, useState } from 'react';
-import { ArrowUpDown, Download, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck } from 'lucide-react';
+import { ArrowUpDown, Download, Flag, Layers, Search, SlidersHorizontal, Tag, UserCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
-import type { TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } from '../types';
+import type { Task, TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } from '../types';
 import FilterPills from './FilterPills';
 import { OptionSelect } from './TaskSelects';
 
@@ -28,6 +28,8 @@ interface TaskToolbarProps {
   showSort?: boolean;
   /** Labels used in the workspace; the label filter is hidden when there are none. */
   labels?: string[];
+  /** Epics of the workspace; the epic filter is hidden when there are none. */
+  epics?: Task[];
   /** Shows the "Assigned to me" toggle (needs a signed-in user to compare with). */
   canFilterMine?: boolean;
   /** Shows the "Export CSV" button; called when it is pressed. */
@@ -37,7 +39,12 @@ interface TaskToolbarProps {
 }
 
 /** Search, status pills (not on the board), priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
+const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
+  const epicOptions: SelectOption<string>[] = [
+    { value: 'all', label: 'All epics' },
+    { value: 'none', label: 'No epic' },
+    ...epics.map(epic => ({ value: epic._id, label: epic.title })),
+  ];
   const labelOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All labels' },
     ...labels.map(label => ({ value: label, label })),
@@ -50,6 +57,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
     assignedToMe,
     (filters.label ?? 'all') !== 'all',
     (filters.type ?? 'all') !== 'all',
+    (filters.epic ?? 'all') !== 'all',
     filters.priority !== 'all',
   ].filter(Boolean).length;
 
@@ -143,6 +151,16 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
           onChange={type => onChange({ ...filters, type })}
           className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
         />
+        {epics.length > 0 && (
+          <OptionSelect
+            aria-label="Filter by epic"
+            icon={<Zap className="size-3.5 text-slate-500" aria-hidden />}
+            value={filters.epic ?? 'all'}
+            options={epicOptions}
+            onChange={epic => onChange({ ...filters, epic })}
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
+          />
+        )}
         <OptionSelect
           aria-label="Filter by priority"
           icon={<Flag className="size-3.5 text-slate-500" aria-hidden />}
