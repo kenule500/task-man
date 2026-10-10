@@ -51,11 +51,15 @@ const tokenKey = (): string => {
   return key;
 };
 
+// PBKDF2 work factor: a few milliseconds per API call, while a leaked digest stays costly to attack offline
+const TOKEN_DIGEST_ITERATIONS = 10_000;
+
 /**
- * Keyed digest (HMAC-SHA256) of a token. Tokens carry 238 bits of randomness, so a slow password hash is not
- * needed; the key means a copy of the database alone cannot be used to check guessed tokens.
+ * Deterministic, keyed digest of a token (PBKDF2-SHA256 salted with the server key), so requests can be looked up by
+ * digest. Tokens carry 238 bits of randomness; the key means a copy of the database alone cannot test guessed tokens.
  */
-export const hashApiToken = (token: string): string => crypto.createHmac('sha256', tokenKey()).update(token).digest('hex');
+export const hashApiToken = (token: string): string =>
+  crypto.pbkdf2Sync(token, tokenKey(), TOKEN_DIGEST_ITERATIONS, 32, 'sha256').toString('hex');
 
 /** True when the string looks like one of our tokens (cheap check before touching the database). */
 export const isApiTokenFormat = (value: string): boolean => TOKEN_FORMAT.test(value);
