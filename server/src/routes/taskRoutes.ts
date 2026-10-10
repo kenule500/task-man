@@ -4,8 +4,12 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  duplicateTask,
+  unwatchTask,
   validateCreateTask,
+  validateDuplicateTask,
   validateUpdateTask,
+  watchTask,
 } from '../controllers/taskController.js';
 import {
   bulkDeleteTasks,
@@ -41,6 +45,11 @@ router.post('/bulk-delete', requirePermission('tasks:delete'), validateBulkDelet
 router.put('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.patch('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.delete('/:id', requirePermission('tasks:delete'), deleteTask);
+
+// Copy a task (and optionally its subtasks); follow / unfollow it (self only)
+router.post('/:id/duplicate', requirePermission('tasks:write'), validateDuplicateTask, duplicateTask);
+router.post('/:id/watch', requirePermission('tasks:read'), watchTask);
+router.delete('/:id/watch', requirePermission('tasks:read'), unwatchTask);
 
 // History of field changes, comments and files
 router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);

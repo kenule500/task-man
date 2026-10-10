@@ -31,6 +31,8 @@ import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { getWorkspaceActivity } from '../controllers/activityController.js';
 import { getSprintReport } from '../controllers/reportController.js';
+import { getFlowReport } from '../controllers/flowController.js';
+import automationRoutes from './automationRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -218,6 +220,12 @@ router.get(
   requirePermission('projects:read'),
   getSprintReport
 );
+
+// Flow analytics: cumulative flow, cycle and lead time, aging work in progress
+router.get('/:slug/reports/flow', protect, requirePermission('projects:read'), getFlowReport);
+
+// Automation rules (routes protect themselves; managing them needs settings:manage)
+router.use('/:slug/automations', automationRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);

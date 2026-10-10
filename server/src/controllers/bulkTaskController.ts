@@ -15,6 +15,7 @@ import {
   handleError,
   hasValidationErrors,
   populateTasks,
+  spawnNextOccurrence,
   TaskRuleError,
   workspaceOf,
 } from './taskController.js';
@@ -187,6 +188,8 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
       if (changes.length > 0) {
         await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
       }
+      // Completing a repeating task schedules its next occurrence (and clears the repeat on this one)
+      if (task.status === 'completed' && before.status !== 'completed') await spawnNextOccurrence(req, task);
     }
 
     // Subtasks follow their parent between projects, sprints and epics

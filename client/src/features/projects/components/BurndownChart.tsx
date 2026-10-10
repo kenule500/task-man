@@ -87,21 +87,23 @@ const BurndownChart = ({ burndown, title, today = new Date() }: BurndownChartPro
         </span>
       </figcaption>
 
-      <table className="sr-only">
-        <caption>{title}: remaining {unit} per day</caption>
-        <thead>
-          <tr><th scope="col">Date</th><th scope="col">Ideal</th><th scope="col">Remaining</th></tr>
-        </thead>
-        <tbody>
-          {points.map(point => (
-            <tr key={point.date}>
-              <th scope="row">{shortDate(point.date)}</th>
-              <td>{point.ideal}</td>
-              <td>{point.remaining ?? 'not yet'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>{title}: remaining {unit} per day</caption>
+          <thead>
+            <tr><th scope="col">Date</th><th scope="col">Ideal</th><th scope="col">Remaining</th></tr>
+          </thead>
+          <tbody>
+            {points.map(point => (
+              <tr key={point.date}>
+                <th scope="row">{shortDate(point.date)}</th>
+                <td>{point.ideal}</td>
+                <td>{point.remaining ?? 'not yet'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 };

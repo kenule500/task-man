@@ -46,6 +46,7 @@ const JoinWorkspacePage = lazy(() => import('./pages/JoinWorkspacePage'));
 const AcceptInvitePage = lazy(() => import('./pages/AcceptInvitePage'));
 const WorkspaceSettingsPage = lazy(() => import('./pages/WorkspaceSettingsPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
+const AutomationsPage = lazy(() => import('./pages/AutomationsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
@@ -245,6 +246,16 @@ function App() {
                 element={
                   <PermissionRoute permission="settings:manage">
                     <Lazy><AuditLogPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Automation rules: requires settings:manage */}
+              <Route
+                path="/:workspaceSlug/settings/automations"
+                element={
+                  <PermissionRoute permission="settings:manage">
+                    <Lazy><AutomationsPage /></Lazy>
                   </PermissionRoute>
                 }
               />

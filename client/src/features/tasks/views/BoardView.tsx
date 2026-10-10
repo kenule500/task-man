@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DependencyCount, DueDate, PriorityIndicator, StatusDot, TaskTypeIcon } from '../components/TaskBadges';
+import { ChecklistBadge, DependencyCount, DueDate, PriorityIndicator, RepeatBadge, StatusDot, TaskTypeIcon } from '../components/TaskBadges';
 import BoardQuickFilters from '../components/BoardQuickFilters';
 import BoardSwimlanes from '../components/BoardSwimlanes';
 import MoveTaskSheet from '../components/MoveTaskSheet';
@@ -96,6 +96,12 @@ const BoardView = ({
     [incomingTasks, quickFilters, currentUserId, allTasks],
   );
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
+  // Direct subtasks per parent, so "Duplicate" can copy them along
+  const subtaskCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of everyTask ?? shownTasks) if (item.parent) counts.set(item.parent, (counts.get(item.parent) ?? 0) + 1);
+    return counts;
+  }, [everyTask, shownTasks]);
   const lanes = useMemo<Swimlane[]>(
     () => (laneMode ? groupIntoSwimlanes(tasks, groupBy, everyTask ?? shownTasks) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
     [laneMode, groupBy, tasks, everyTask, shownTasks],
@@ -302,6 +308,7 @@ const BoardView = ({
               {isTarget && dropTarget.index === index && <DropIndicator />}
               <BoardCard
                 task={task}
+                subtaskCount={subtaskCounts.get(task._id) ?? 0}
                 canWrite={canWrite}
                 canDelete={canDelete}
                 canDrag={canWrite && isDesktop}
@@ -572,9 +579,10 @@ interface BoardCardProps {
   onOpenMoveSheet: (task: Task) => void;
   canWrite: boolean;
   canDelete: boolean;
+  subtaskCount: number;
 }
 
-const BoardCard = ({ task, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
+const BoardCard = ({ task, subtaskCount, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
   const quick = QUICK_MOVE[task.status];
   const QuickIcon = quick.icon;
@@ -664,6 +672,7 @@ const BoardCard = ({ task, dragging, canDrag, onDragStart, onDragEnd, onEdit, on
             onOpenMoveSheet={onOpenMoveSheet}
             canEdit={canWrite}
             canDelete={canDelete}
+            subtaskCount={subtaskCount}
             className="size-11 md:size-7 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
           />
         </div>
@@ -689,6 +698,8 @@ const BoardCard = ({ task, dragging, canDrag, onDragStart, onDragEnd, onEdit, on
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <DueDate deadline={task.deadline} completed={completed} />
           <DependencyCount count={task.dependencies.length} />
+          <ChecklistBadge items={task.checklist} />
+          <RepeatBadge recurrence={task.recurrence} />
           {(task.comments?.length ?? 0) > 0 && (
             <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Comments">
               <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only"> comments</span>

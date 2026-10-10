@@ -245,6 +245,8 @@ export const useTasks = (workspaceSlug: string | undefined) => {
         // Subtasks follow their parent between projects and sprints
         return regrouped && task.parent === id ? { ...task, project: saved.project, sprint: saved.sprint ?? null } : task;
       }));
+      // Completing a repeating task makes the server create its next occurrence
+      if (previous.recurrence && previous.status !== 'completed' && saved.status === 'completed') void reload();
       return saved;
     } catch (err) {
       setTasks(current => current.map(task => (task._id === id ? previous : task)));
@@ -253,7 +255,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
     } finally {
       busyRef.current -= 1;
     }
-  }, [workspaceSlug, setTasks]);
+  }, [workspaceSlug, setTasks, reload]);
 
   /**
    * Deletes with undo: the task disappears at once and the request is only sent after

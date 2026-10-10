@@ -1,6 +1,7 @@
 import { Request } from 'express';
 import { Types } from 'mongoose';
 import Notification from '../models/notificationModel.js';
+import Task from '../models/taskModel.js';
 import User from '../models/userModel.js';
 import { notificationTemplate } from '../utils/emailTemplates.js';
 import {
@@ -20,6 +21,13 @@ jest.mock('../models/notificationModel.js', () => ({
   __esModule: true,
   MAX_NOTIFICATION_SUMMARY: 140,
   default: { insertMany: jest.fn().mockResolvedValue([]) },
+}));
+jest.mock('../models/taskModel.js', () => ({
+  __esModule: true,
+  default: {
+    updateOne: jest.fn().mockResolvedValue({}),
+    findById: jest.fn(() => ({ select: () => ({ lean: async () => ({ watchers: [] }) }) })),
+  },
 }));
 jest.mock('../models/userModel.js', () => ({ __esModule: true, default: { find: jest.fn() } }));
 jest.mock('../utils/sendEmail.js', () => ({ sendEmail: jest.fn().mockResolvedValue(undefined) }));
@@ -65,6 +73,11 @@ describe('planTaskNotifications', () => {
     expect(plans).toEqual([{ type: 'task.completed', userIds: [owner, ada] }]);
   });
 
+  it('also tells watchers (once, never the actor) when the status becomes completed', () => {
+    const plans = planTaskNotifications(actor, { ...task, status: 'completed', watchers: [bob, ada, actor] }, { assignees: [ada, actor], status: 'pending' });
+    expect(plans).toEqual([{ type: 'task.completed', userIds: [owner, ada, bob] }]);
+  });
+
   it('stays quiet when the task was already completed or is created completed', () => {
     expect(planTaskNotifications(actor, { ...task, assignees: [], status: 'completed' }, { assignees: [], status: 'completed' })).toEqual([]);
     expect(planTaskNotifications(actor, { ...task, assignees: [], status: 'completed' })).toEqual([]);
@@ -82,6 +95,12 @@ describe('planCommentNotifications', () => {
     expect(planCommentNotifications(actor, task, [ada])).toEqual([
       { type: 'comment.mention', userIds: [ada] },
       { type: 'comment.reply_on_my_task', userIds: [owner, bob] },
+    ]);
+  });
+
+  it('includes watchers once, after the owner and assignees', () => {
+    expect(planCommentNotifications(actor, { ...task, watchers: [cy, ada, actor] }, [])).toEqual([
+      { type: 'comment.reply_on_my_task', userIds: [owner, ada, bob, cy] },
     ]);
   });
 
@@ -211,6 +230,17 @@ describe('delivery', () => {
     ]);
     expect(sendEmail).toHaveBeenCalledTimes(2);
     expect((sendEmail as jest.Mock).mock.calls[0][0].text).toContain('see @Bob Stone');
+  });
+
+  it('tells watchers read from the task about a comment and subscribes the commenter', async () => {
+    recipients({ [bob]: {} });
+    (Task.findById as jest.Mock).mockReturnValueOnce({ select: () => ({ lean: async () => ({ watchers: [bob] }) }) });
+    await notifyComment(req(), { _id: taskId, title: 'Fix login', owner: actor, assignees: [] }, { text: 'hello', mentions: [] });
+    expect(Notification.insertMany).toHaveBeenCalledWith([expect.objectContaining({ user: bob, type: 'comment.reply_on_my_task' })]);
+    expect(Task.updateOne).toHaveBeenCalledWith(
+      { _id: expect.anything() },
+      { $addToSet: { watchers: expect.anything() } },
+    );
   });
 
   describe('web push', () => {

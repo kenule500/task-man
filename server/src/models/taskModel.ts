@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { MAX_RECURRENCE_EVERY, RECURRENCE_BASES, RECURRENCE_UNITS, type Recurrence } from '../utils/recurrence.js';
 
 export const TASK_STATUSES = ['pending', 'in-progress', 'completed'] as const;
 export const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
@@ -16,6 +17,9 @@ export const MAX_LABEL_LENGTH = 40;
 export const MAX_COMMENT_LENGTH = 2000;
 export const MAX_ATTACHMENTS = 20;
 export const MAX_TASK_LINKS = 50;
+export const MAX_CHECKLIST_ITEMS = 50;
+export const MAX_CHECKLIST_TEXT = 200;
+export const MAX_WATCHERS = 500;
 
 export const TASK_LINK_KINDS = ['pull_request', 'commit', 'branch'] as const;
 export const TASK_LINK_STATES = ['open', 'merged', 'closed'] as const;
@@ -45,6 +49,12 @@ export interface ITaskComment {
   // Workspace members tagged with @Name in the text
   mentions?: mongoose.Types.ObjectId[];
   createdAt: Date;
+}
+
+export interface ITaskChecklistItem {
+  _id: mongoose.Types.ObjectId;
+  text: string;
+  done: boolean;
 }
 
 export interface ITaskAttachment {
@@ -85,6 +95,12 @@ export interface ITask extends Document {
   labels: string[];
   // Workspace members responsible for the task
   assignees: mongoose.Types.ObjectId[];
+  // Items to tick off inside the task, in display order
+  checklist: ITaskChecklistItem[];
+  // Workspace members who follow the task (told about comments and completion like assignees)
+  watchers: mongoose.Types.ObjectId[];
+  // Repeat rule of a top-level task; when it is completed the next occurrence is created
+  recurrence?: Recurrence | null;
   comments: ITaskComment[];
   attachments: ITaskAttachment[];
   // Development links (GitHub pull requests, commits, branches) maintained by the webhook
@@ -102,6 +118,17 @@ const commentSchema = new Schema<ITaskComment>({
   mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
 });
+
+const checklistItemSchema = new Schema<ITaskChecklistItem>({
+  text: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_CHECKLIST_TEXT },
+  done: { type: Boolean, default: false },
+});
+
+const recurrenceSchema = new Schema<Recurrence>({
+  every: { type: Number, required: true, min: 1, max: MAX_RECURRENCE_EVERY, validate: Number.isInteger },
+  unit: { type: String, enum: RECURRENCE_UNITS, required: true },
+  basis: { type: String, enum: RECURRENCE_BASES, required: true },
+}, { _id: false });
 
 const attachmentSchema = new Schema<ITaskAttachment>({
   fileId: { type: mongoose.Schema.Types.ObjectId, required: true },
@@ -150,6 +177,21 @@ const taskSchema: Schema = new Schema({
     },
   },
   assignees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  checklist: {
+    type: [checklistItemSchema],
+    validate: {
+      validator: (items: unknown[]) => items.length <= MAX_CHECKLIST_ITEMS,
+      message: `A checklist can have at most ${MAX_CHECKLIST_ITEMS} items`,
+    },
+  },
+  watchers: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    validate: {
+      validator: (ids: unknown[]) => ids.length <= MAX_WATCHERS,
+      message: `A task can have at most ${MAX_WATCHERS} watchers`,
+    },
+  },
+  recurrence: { type: recurrenceSchema, default: null },
   comments: [commentSchema],
   attachments: {
     type: [attachmentSchema],

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap } from 'lucide-react';
 import {
   Alert,
   Field,
@@ -301,6 +301,23 @@ const WorkspaceSettingsPage = () => {
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-900">Audit log</span>
             <span className="block text-xs text-slate-600">See who changed what, when and from where. Export it as CSV.</span>
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+        </Link>
+      )}
+
+      {canManage && (
+        <Link
+          to={`/${workspaceSlug}/settings/automations`}
+          className={cn(
+            surfaceVariants({ radius: 'lg', padding: 'sm' }),
+            'flex items-center gap-3 shadow-none outline-none hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          )}
+        >
+          <IconTile size="sm" tone="neutral"><Zap /></IconTile>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900">Automations</span>
+            <span className="block text-xs text-slate-600">Rules that change tasks for you when something happens.</span>
           </span>
           <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
         </Link>

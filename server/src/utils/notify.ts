@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import mongoose from 'mongoose';
+import Task from '../models/taskModel.js';
 import Notification, { MAX_NOTIFICATION_SUMMARY, NotificationType } from '../models/notificationModel.js';
 import User from '../models/userModel.js';
 import { notificationTemplate } from './emailTemplates.js';
@@ -15,6 +16,8 @@ export interface NotifiableTask {
   status?: string;
   owner?: Id | null;
   assignees?: Id[] | null;
+  // Followers; they hear about comments and completion like the assignees
+  watchers?: Id[] | null;
 }
 
 export interface TaskSnapshot {
@@ -61,13 +64,14 @@ export const planTaskNotifications = (
 
   // Only the transition counts: creating an already completed task, or saving it again, stays quiet
   if (previous && previous.status !== 'completed' && task.status === 'completed') {
-    const audience = unique([idOf(task.owner), ...(task.assignees ?? []).map(idOf)]).filter(id => id !== actor);
+    const audience = unique([idOf(task.owner), ...(task.assignees ?? []).map(idOf), ...(task.watchers ?? []).map(idOf)])
+      .filter(id => id !== actor);
     if (audience.length > 0) plans.push({ type: 'task.completed', userIds: audience });
   }
   return plans;
 };
 
-/** Who is told about a new comment: mentioned members, then the task's owner and assignees (once each). */
+/** Who is told about a new comment: mentioned members, then the task's owner, assignees and watchers (once each). */
 export const planCommentNotifications = (
   authorId: Id,
   task: NotifiableTask,
@@ -76,7 +80,7 @@ export const planCommentNotifications = (
   const author = idOf(authorId);
   const mentioned = unique(mentionedIds.map(idOf)).filter(id => id !== author);
   const taken = new Set(mentioned);
-  const repliers = unique([idOf(task.owner), ...(task.assignees ?? []).map(idOf)])
+  const repliers = unique([idOf(task.owner), ...(task.assignees ?? []).map(idOf), ...(task.watchers ?? []).map(idOf)])
     .filter(id => id !== author && !taken.has(id));
 
   const plans: PlannedNotification[] = [];
@@ -232,8 +236,9 @@ export const notifyTaskEvents = async (req: Request, task: NotifiableTask, previ
 };
 
 /**
- * Call after a comment is saved. Notifies the mentioned members and the task's other people.
- * `mentions` are the ids already resolved with `resolveMentions`.
+ * Call after a comment is saved. Notifies the mentioned members and the task's other people (owner,
+ * assignees, watchers) and makes the commenter a watcher. `mentions` are the ids already resolved with
+ * `resolveMentions`; watchers are read from the task when the caller did not load them.
  */
 export const notifyComment = async (
   req: Request,
@@ -243,7 +248,11 @@ export const notifyComment = async (
   try {
     const context = contextOf(req);
     if (!context) return;
-    const plans = planCommentNotifications(context.actor._id, task, comment.mentions);
+    const taskId = new mongoose.Types.ObjectId(idOf(task._id));
+    const watchers = task.watchers ?? (await Task.findById(taskId).select('watchers').lean())?.watchers ?? [];
+    const plans = planCommentNotifications(context.actor._id, { ...task, watchers }, comment.mentions);
+    // Commenting subscribes the author to the conversation
+    await Task.updateOne({ _id: taskId }, { $addToSet: { watchers: new mongoose.Types.ObjectId(idOf(context.actor._id)) } });
     if (plans.length > 0) await deliver({ ...context, task, excerpt: comment.text }, plans);
   } catch (error) {
     console.error('notifyComment error:', (error as Error).message);

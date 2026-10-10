@@ -1,6 +1,6 @@
 import {
   BarChart3, Calendar, CheckSquare, FolderKanban, GanttChart, HelpCircle,
-  Gauge, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, type LucideIcon,
+  Gauge, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
 import type { Project } from '@/features/projects';
@@ -56,6 +56,7 @@ const PAGES: PageDef[] = [
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },
   { key: 'audit', label: 'Audit log', icon: ScrollText, permission: 'settings:manage', path: 'settings/audit', keywords: 'activity history changes export security log' },
+  { key: 'automations', label: 'Automations', icon: Zap, permission: 'settings:manage', path: 'settings/automations', keywords: 'rules triggers workflow when then' },
   { key: 'help', label: 'Help', icon: HelpCircle, permission: null, path: 'help', keywords: 'support center' },
 ];
 

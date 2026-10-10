@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import Task, {
   ITask,
+  MAX_CHECKLIST_ITEMS,
+  MAX_CHECKLIST_TEXT,
   MAX_LABELS,
   MAX_LABEL_LENGTH,
   MAX_STORY_POINTS,
@@ -19,6 +21,13 @@ import { diffFields, recordActivity } from '../utils/activity.js';
 import { notifyTaskEvents } from '../utils/notify.js';
 import { ensureTaskNumbers, reserveTaskNumbers } from '../utils/taskNumbers.js';
 import {
+  describeRecurrence,
+  nextOccurrenceDates,
+  normalizeRecurrence,
+  recurrenceProblem,
+  type Recurrence,
+} from '../utils/recurrence.js';
+import {
   buildTaskFilter,
   buildTaskSort,
   normalizeLabels,
@@ -29,7 +38,7 @@ import {
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
   'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
-  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent', 'epic',
+  'labels', 'assignees', 'type', 'storyPoints', 'sprint', 'parent', 'epic', 'checklist', 'recurrence',
 ] as const;
 
 // People shown on tasks: never expose email, password hashes or tokens
@@ -54,9 +63,56 @@ export const populateTasks = <T>(tasks: T): Promise<T> =>
   Task.populate(tasks as never, POPULATE_PATHS) as unknown as Promise<T>;
 
 // ================================================================
+// Checklist
+// ================================================================
+interface ChecklistInput {
+  _id?: string;
+  text: string;
+  done: boolean;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Why a request value is not a valid checklist, or null when it is one. */
+export const checklistProblem = (value: unknown): string | null => {
+  if (!Array.isArray(value)) return 'Checklist must be a list';
+  if (value.length > MAX_CHECKLIST_ITEMS) return `A checklist can have at most ${MAX_CHECKLIST_ITEMS} items`;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isRecord(item)) return 'Checklist items must be objects';
+    if (typeof item.text !== 'string' || item.text.trim().length === 0) return 'Checklist items need text';
+    if (item.text.trim().length > MAX_CHECKLIST_TEXT) return `Checklist items can be at most ${MAX_CHECKLIST_TEXT} characters`;
+    if (item.done !== undefined && typeof item.done !== 'boolean') return 'Checklist item "done" must be true or false';
+    if (item._id !== undefined) {
+      if (typeof item._id !== 'string' || !mongoose.isValidObjectId(item._id)) return 'Invalid checklist item id';
+      if (seen.has(item._id)) return 'Checklist item ids must be unique';
+      seen.add(item._id);
+    }
+  }
+  return null;
+};
+
+/** Trimmed items with only the known keys (call `checklistProblem` first). Items without an id get one on save. */
+export const normalizeChecklist = (value: unknown): ChecklistInput[] =>
+  (Array.isArray(value) ? value : []).map(item => ({
+    ...(item._id ? { _id: String(item._id) } : {}),
+    text: String(item.text).trim(),
+    done: item.done === true,
+  }));
+
+const validatorFrom = (problem: (value: unknown) => string | null) => (value: unknown) => {
+  const message = problem(value);
+  if (message) throw new Error(message);
+  return true;
+};
+
+// ================================================================
 // Validation
 // ================================================================
 const optionalFieldRules = [
+  body('checklist').optional().custom(validatorFrom(checklistProblem)),
+  body('recurrence').optional({ values: 'null' }).custom(validatorFrom(recurrenceProblem)),
   body('description').optional().isString().isLength({ max: 2000 }).withMessage('Description is too long'),
   body('project').optional().isString().isLength({ max: 60 }).withMessage('Project name is too long'),
   body('status').optional().isIn(TASK_STATUSES).withMessage('Invalid status'),
@@ -111,6 +167,13 @@ const assertDateOrder = (startDate?: Date | null, deadline?: Date) => {
   if (startDate && deadline && startDate.getTime() > deadline.getTime()) {
     throw new TaskRuleError('Start date must be on or before the deadline');
   }
+};
+
+/** Only top-level work items can repeat: a subtask follows its parent and an epic is a container. */
+const assertCanRecur = (recurrence: Recurrence | null | undefined, task: { parent?: unknown; type?: string }) => {
+  if (!recurrence) return;
+  if (task.parent) throw new TaskRuleError('Subtasks cannot repeat');
+  if (task.type === 'epic') throw new TaskRuleError('Epics cannot repeat');
 };
 
 const assertValidDependencies = async (
@@ -259,6 +322,12 @@ export const reconcileSprint = async (
   if (task.project !== project?.name) task.set('sprint', null);
 };
 
+/** "3/5" for a non-empty checklist snapshot, undefined otherwise. */
+const checklistProgress = (items: unknown): string | undefined => {
+  if (!Array.isArray(items) || items.length === 0) return undefined;
+  return `${items.filter(item => item?.done).length}/${items.length}`;
+};
+
 /** Audit entries for the difference between two task snapshots (shared by single and bulk updates). */
 export const describeTaskChanges = (before: Record<string, unknown>, after: Record<string, unknown>) => {
   const changes = diffFields(before, after, AUDITED_FIELDS);
@@ -271,6 +340,12 @@ export const describeTaskChanges = (before: Record<string, unknown>, after: Reco
   if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
     changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
   }
+  const progressBefore = checklistProgress(before.checklist);
+  const progressAfter = checklistProgress(after.checklist);
+  if (progressBefore !== progressAfter) changes.push({ field: 'checklist', from: progressBefore, to: progressAfter });
+  const repeatBefore = describeRecurrence(before.recurrence as Recurrence | null | undefined);
+  const repeatAfter = describeRecurrence(after.recurrence as Recurrence | null | undefined);
+  if (repeatBefore !== repeatAfter) changes.push({ field: 'recurrence', from: repeatBefore, to: repeatAfter });
   if (before.description !== after.description) changes.push({ field: 'description' });
   return changes;
 };
@@ -333,6 +408,8 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     const dependencies = normalizeIds(req.body.dependencies);
     const assignees = normalizeIds(req.body.assignees);
     const labels = normalizeLabels(req.body.labels);
+    const checklist = normalizeChecklist(req.body.checklist ?? []);
+    const recurrence = normalizeRecurrence(req.body.recurrence ?? null);
 
     const start = startDate ? new Date(startDate) : undefined;
     const due = new Date(deadline);
@@ -356,6 +433,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       { epicGiven: req.body.epic !== undefined, parentEpic },
     );
     project = link.project;
+    assertCanRecur(recurrence, { parent: parentId, type: type ?? 'task' });
 
     const number = await reserveTaskNumbers(workspaceId);
     const task = await Task.create({
@@ -376,6 +454,10 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       dependencies,
       assignees,
       labels,
+      checklist,
+      recurrence,
+      // Whoever creates a task follows it
+      watchers: req.user ? [req.user._id] : [],
       owner: req.user?._id,
       workspace: workspace._id,
     });
@@ -425,6 +507,10 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
         task.set('assignees', assignees);
       } else if (field === 'labels') {
         task.set('labels', normalizeLabels(value));
+      } else if (field === 'checklist') {
+        task.set('checklist', normalizeChecklist(value));
+      } else if (field === 'recurrence') {
+        task.set('recurrence', normalizeRecurrence(value));
       } else if (field === 'startDate') {
         task.set('startDate', value ? new Date(value) : undefined);
       } else if (field === 'deadline') {
@@ -443,6 +529,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     }
 
     assertDateOrder(task.startDate, task.deadline);
+    assertCanRecur(task.recurrence, task);
     await reconcileSprint(task as unknown as ITask, workspace._id as mongoose.Types.ObjectId, {
       sprint: 'sprint' in req.body,
       project: 'project' in req.body,
@@ -471,6 +558,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       assignees: before.assignees as mongoose.Types.ObjectId[] | undefined,
       status: before.status as string | undefined,
     });
+    if (before.status !== 'completed' && task.status === 'completed') await spawnNextOccurrence(req, task);
 
     // Subtasks follow their parent between projects and sprints
     if ('sprint' in req.body || 'project' in req.body || 'epic' in req.body || task.project !== before.project) {
@@ -536,3 +624,187 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
     handleError(res, error, 'deleteTask');
   }
 };
+
+// ================================================================
+// Copies: duplicate and recurring tasks
+// ================================================================
+
+/** A task id from the URL as an ObjectId, or null when it is not one (never a raw request value in a query). */
+const castTaskId = (value: unknown): mongoose.Types.ObjectId | null =>
+  typeof value === 'string' && mongoose.isValidObjectId(value) ? new mongoose.Types.ObjectId(value) : null;
+
+/** The sprint a copy may join: the source's sprint unless it is gone or completed (then the backlog). */
+const reusableSprint = async (workspaceId: mongoose.Types.ObjectId, sprint: unknown) => {
+  if (!sprint) return null;
+  const sprintId = new mongoose.Types.ObjectId(String(sprint));
+  const open = await Sprint.exists({ _id: sprintId, workspace: workspaceId, status: { $ne: 'completed' } });
+  return open ? sprintId : null;
+};
+
+/** Content a copy takes over: no comments, attachments, links, dependencies or watchers; checklist items start undone. */
+const copiedFields = (source: ITask) => {
+  const plain = source.toObject() as unknown as ITask;
+  return {
+    title: plain.title,
+    description: plain.description,
+    priority: plain.priority,
+    type: plain.type,
+    storyPoints: plain.storyPoints ?? null,
+    project: plain.project,
+    parent: plain.parent ?? null,
+    epic: plain.epic ?? null,
+    labels: [...(plain.labels ?? [])],
+    assignees: [...(plain.assignees ?? [])],
+    checklist: (plain.checklist ?? []).map(item => ({ text: item.text, done: false })),
+    recurrence: plain.parent ? null : plain.recurrence ?? null,
+    status: 'pending' as const,
+  };
+};
+
+const uniqueIds = (ids: unknown[]): mongoose.Types.ObjectId[] =>
+  normalizeIds(ids).map(id => new mongoose.Types.ObjectId(id));
+
+/**
+ * Creates the next occurrence of a recurring task that was just completed and moves the repeat rule to
+ * it (the completed task stops repeating, so reopening and completing it again does not add another).
+ * The copy keeps the owner and the followers; dates shift from the old due date or from the completion day.
+ */
+export const spawnNextOccurrence = async (req: Request, source: ITask): Promise<ITask | null> => {
+  const recurrence = normalizeRecurrence(source.recurrence);
+  if (!recurrence || source.parent) return null;
+  try {
+    const workspaceId = workspaceOf(req)._id as mongoose.Types.ObjectId;
+    const dates = nextOccurrenceDates(
+      { startDate: source.startDate, deadline: source.deadline },
+      recurrence,
+      source.completedAt ?? new Date(),
+    );
+    const next = await Task.create({
+      ...copiedFields(source),
+      number: await reserveTaskNumbers(workspaceId),
+      sprint: await reusableSprint(workspaceId, source.sprint),
+      startDate: dates.startDate,
+      deadline: dates.deadline,
+      watchers: uniqueIds([...source.watchers, ...(req.user ? [req.user._id] : [])]),
+      owner: source.owner,
+      workspace: workspaceId,
+    });
+    await Task.updateOne({ _id: source._id }, { $set: { recurrence: null } });
+    source.set('recurrence', null);
+
+    await recordActivity(req, {
+      action: 'task.created',
+      summary: next.title,
+      task: next._id as mongoose.Types.ObjectId,
+      changes: [{ field: 'recurrence', to: describeRecurrence(recurrence) }],
+    });
+    await notifyTaskEvents(req, next);
+    return next;
+  } catch (error) {
+    // The completion itself succeeded; a failed repeat must not turn it into an error
+    console.error('spawnNextOccurrence error:', (error as Error).message);
+    return null;
+  }
+};
+
+// ================================================================
+// @desc    Copy a task (optionally with its direct subtasks) as a new pending task
+// @route   POST /api/workspaces/:slug/tasks/:id/duplicate   body: { includeSubtasks?: boolean }
+// ================================================================
+export const validateDuplicateTask = [
+  body('includeSubtasks').optional().isBoolean({ strict: true }).withMessage('includeSubtasks must be true or false'),
+];
+
+export const duplicateTask = async (req: Request, res: Response): Promise<void> => {
+  if (hasValidationErrors(req, res)) return;
+
+  try {
+    const workspaceId = workspaceOf(req)._id as mongoose.Types.ObjectId;
+    const sourceId = castTaskId(req.params.id);
+    const source = sourceId ? await Task.findOne({ _id: sourceId, workspace: workspaceId }) : null;
+    if (!source) {
+      res.status(404).json({ message: 'Task not found' });
+      return;
+    }
+
+    const subtasks = req.body?.includeSubtasks === true && !source.parent
+      ? await Task.find({ workspace: workspaceId, parent: source._id }).sort({ position: 1, _id: 1 })
+      : [];
+    const first = await reserveTaskNumbers(workspaceId, 1 + subtasks.length);
+    const owner = req.user?._id;
+    const sprint = await reusableSprint(workspaceId, source.sprint);
+
+    const copy = await Task.create({
+      ...copiedFields(source),
+      title: `Copy of ${source.title}`.slice(0, 140),
+      number: first,
+      sprint,
+      startDate: source.startDate,
+      deadline: source.deadline,
+      watchers: owner ? [owner] : [],
+      owner,
+      workspace: workspaceId,
+    });
+
+    const copiedSubtasks: ITask[] = [];
+    for (const [index, sub] of subtasks.entries()) {
+      copiedSubtasks.push(await Task.create({
+        ...copiedFields(sub),
+        number: first + 1 + index,
+        parent: copy._id,
+        project: copy.project,
+        epic: copy.epic ?? null,
+        sprint,
+        startDate: sub.startDate,
+        deadline: sub.deadline,
+        watchers: owner ? [owner] : [],
+        owner,
+        workspace: workspaceId,
+      }));
+    }
+
+    await recordActivity(req, {
+      action: 'task.duplicated',
+      summary: copy.title,
+      task: copy._id as mongoose.Types.ObjectId,
+      changes: [
+        { field: 'source', from: source.title },
+        ...(copiedSubtasks.length > 0 ? [{ field: 'subtasks', to: String(copiedSubtasks.length) }] : []),
+      ],
+    });
+    await notifyTaskEvents(req, copy);
+
+    const [populatedCopy, populatedSubtasks] = await Promise.all([populateTasks(copy), populateTasks(copiedSubtasks)]);
+    res.status(201).json({ ...populatedCopy.toObject(), subtasks: populatedSubtasks.map(sub => sub.toObject()) });
+  } catch (error) {
+    handleError(res, error, 'duplicateTask');
+  }
+};
+
+// ================================================================
+// @desc    Follow / unfollow a task (the signed-in user only)
+// @route   POST|DELETE /api/workspaces/:slug/tasks/:id/watch   (tasks:read)
+// ================================================================
+const setWatching = (watching: boolean) => async (req: Request, res: Response): Promise<void> => {
+  try {
+    const taskId = castTaskId(req.params.id);
+    const userId = req.user?._id;
+    const task = taskId && userId
+      ? await Task.findOneAndUpdate(
+        { _id: taskId, workspace: workspaceOf(req)._id },
+        watching ? { $addToSet: { watchers: userId } } : { $pull: { watchers: userId } },
+        { returnDocument: 'after', projection: { watchers: 1 } },
+      ).lean()
+      : null;
+    if (!task) {
+      res.status(404).json({ message: 'Task not found' });
+      return;
+    }
+    res.status(200).json({ watchers: (task.watchers ?? []).map(String) });
+  } catch (error) {
+    handleError(res, error, watching ? 'watchTask' : 'unwatchTask');
+  }
+};
+
+export const watchTask = setWatching(true);
+export const unwatchTask = setWatching(false);

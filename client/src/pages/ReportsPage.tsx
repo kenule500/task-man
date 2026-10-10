@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import ActiveSprints from '@/components/dashboard/ActiveSprints';
 import { usePermissions } from '@/hooks/usePermissions';
 import { VelocityChart, averageVelocity, sprintVelocities, useProjects } from '@/features/projects';
 import { AlarmClock, CalendarClock, CheckSquare, ListTodo } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FlowReportPanel } from '@/features/flow';
 import { Alert, PageHeader, SectionHeader, SkeletonCards, StatCard, Surface, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import {
@@ -81,10 +83,18 @@ const ReportsPage = () => {
 
   const maxWeek = Math.max(1, ...report.completedPerWeek.map(week => week.count));
 
-  return (
-    <AppShell>
-      <PageHeader title="Reports" description="Task analytics for this workspace" />
+  const [searchParams, setSearchParams] = useSearchParams();
+  const canSeeFlow = can('projects:read') && Boolean(workspaceSlug);
+  const tab = canSeeFlow && searchParams.get('tab') === 'flow' ? 'flow' : 'overview';
+  const changeTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'flow') next.set('tab', 'flow');
+    else next.delete('tab');
+    setSearchParams(next, { replace: true });
+  };
 
+  const overview = (
+    <>
       {loading ? (
         <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
       ) : (
@@ -168,6 +178,25 @@ const ReportsPage = () => {
           </div>
         </>
       )}
+    </>
+  );
+
+  return (
+    <AppShell>
+      <PageHeader title="Reports" description="Task analytics for this workspace" />
+
+      {canSeeFlow ? (
+        <Tabs value={tab} onValueChange={changeTab} className="gap-5">
+          <TabsList aria-label="Report sections" className="w-full group-data-horizontal/tabs:h-11 sm:w-fit sm:group-data-horizontal/tabs:h-9">
+            <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
+            <TabsTrigger value="flow" className="px-4">Flow</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="space-y-5">{overview}</TabsContent>
+          <TabsContent value="flow">
+            <FlowReportPanel slug={workspaceSlug ?? ''} projects={projects} />
+          </TabsContent>
+        </Tabs>
+      ) : overview}
     </AppShell>
   );
 };

@@ -51,6 +51,13 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - **Planning**: Roadmap (epics and sprints on a zoomable timeline that fills the page), Workload (points and tasks
   per person per sprint), Sprint report (committed, added, removed, completed and carried-over work)
 
+- **Flow analytics** (Reports → Flow): cumulative flow diagram, cycle and lead time with p50/p85/p95, throughput
+  per week and aging work in progress judged against the team's own 85th percentile
+- **Automations** (Settings → Automations): "when … if … then …" rules such as "bugs start as high priority" or
+  "assign whoever starts it", with ready-made templates, run counts and every change in the audit log
+- Task **checklists**, **watchers** (follow a task to get its notifications), **duplicate** (optionally with subtasks)
+  and **recurring tasks** (every N days, weeks or months, from the due date or from completion)
+
 ### Developer workflow
 - **GitHub integration**: branches, pushes and pull requests that mention a task key (`WEB-12`) show up on the task;
   opening a PR starts the task, merging it completes it. Signed webhook, per workspace

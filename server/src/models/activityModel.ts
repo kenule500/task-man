@@ -8,6 +8,7 @@ export const ACTIVITY_ACTIONS = [
   'member.role_changed', 'member.removed', 'member.joined', 'member.left',
   'role.created', 'role.updated', 'role.deleted', 'task.comment_deleted', 'invitation.sent', 'invitation.cancelled',
   'workspace.updated', 'workspace.invite_code_regenerated', 'audit.exported', 'integration.updated',
+  'task.duplicated', 'automation.created', 'automation.updated', 'automation.deleted', 'automation.ran',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
