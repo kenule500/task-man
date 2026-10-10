@@ -508,7 +508,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
                 onSave={title => onUpdate(task._id, { title })}
                 readOnly={!canWrite}
                 onOpen={openTask({ task, onOpen, onEdit })}
-                className={cn('!whitespace-normal line-clamp-2 break-words py-2.5 font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through')}
+                className={cn('!whitespace-normal !overflow-visible break-words py-2 font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through')}
               />
             </div>
           </div>
