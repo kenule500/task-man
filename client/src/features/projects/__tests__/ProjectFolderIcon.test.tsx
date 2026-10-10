@@ -46,7 +46,7 @@ describe('ProjectFolderIcon', () => {
 
   it('falls back to a blue folder for unknown colors', () => {
     const { container } = render(<ProjectFolderIcon color="nope" icon="nope" />);
-    expect(container.querySelector('rect')).toHaveClass('text-blue-600');
+    expect(container.querySelector('rect')).toHaveClass('text-project-blue');
     expect(container.querySelector('svg.text-white')).toBeInTheDocument();
   });
 

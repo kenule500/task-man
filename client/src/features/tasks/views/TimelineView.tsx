@@ -169,7 +169,7 @@ const TimelineView = ({
                   className="flex h-full min-w-0 flex-1 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
                 >
                   <StatusDot status={task.status} />
-                  <span className={cn('truncate', task.status === 'completed' && 'text-slate-400 line-through')}>{task.title}</span>
+                  <span className={cn('truncate', task.status === 'completed' && 'text-slate-500 line-through')}>{task.title}</span>
                 </button>
                 <AssigneeStack users={task.assignees} max={2} className="ml-2 hidden sm:inline-flex" />
               </li>
@@ -198,7 +198,7 @@ const TimelineView = ({
                     key={index}
                     style={{ width: dayWidth }}
                     className={cn(
-                      'flex shrink-0 flex-col items-center justify-center text-[10px] leading-tight tabular-nums text-slate-400',
+                      'flex shrink-0 flex-col items-center justify-center text-[10px] leading-tight tabular-nums text-slate-500',
                       index === todayOffset && 'font-semibold text-primary',
                     )}
                   >

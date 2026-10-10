@@ -59,10 +59,10 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove }: Ta
 
   return (
     <section aria-label="Comments">
-      <SectionHeader title="Comments" count={comments.length} icon={<MessageSquare className="size-4 text-slate-400" aria-hidden />} className="mb-2" />
+      <SectionHeader title="Comments" count={comments.length} icon={<MessageSquare className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
 
       {comments.length === 0 ? (
-        <p className="text-sm text-slate-400">No comments yet.</p>
+        <p className="text-sm text-slate-500">No comments yet.</p>
       ) : (
         <ul className="space-y-4">
           {comments.map(comment => {
@@ -86,7 +86,7 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove }: Ta
                     aria-label="Delete comment"
                     disabled={removingId === comment._id}
                     onClick={() => void remove(comment)}
-                    className="size-10 shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                    className="size-10 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
                   >
                     <Trash2 />
                   </Button>
@@ -108,10 +108,10 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove }: Ta
             placeholder="Write a comment..."
             maxLength={MAX_COMMENT_LENGTH}
             rows={2}
-            className="min-h-16 rounded-lg border border-gray-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 sm:text-sm"
+            className="min-h-16 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:text-sm"
           />
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-400">Ctrl or Cmd + Enter to send</p>
+            <p className="text-xs text-slate-500">Ctrl or Cmd + Enter to send</p>
             <Button
               type="button"
               disabled={!trimmed || posting}

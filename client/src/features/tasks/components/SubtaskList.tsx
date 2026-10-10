@@ -50,15 +50,15 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
     <section aria-label="Subtasks">
       <SectionHeader
         title="Subtasks"
-        icon={<ListChecks className="size-4 text-slate-400" aria-hidden />}
+        icon={<ListChecks className="size-4 text-slate-500" aria-hidden />}
         action={<SubtaskProgress done={done} total={total} />}
         className="mb-2"
       />
 
       {total === 0 ? (
-        <p className="text-sm text-slate-400">No subtasks yet.</p>
+        <p className="text-sm text-slate-500">No subtasks yet.</p>
       ) : (
-        <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+        <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
           {subtasks.map(subtask => {
             const completed = subtask.status === 'completed';
             return (
@@ -94,7 +94,7 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
                     size="icon-sm"
                     aria-label={`Delete subtask ${subtask.title}`}
                     onClick={() => onDelete(subtask)}
-                    className="size-10 shrink-0 text-slate-400 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                    className="size-10 shrink-0 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
                   >
                     <Trash2 />
                   </Button>
@@ -114,13 +114,13 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
             placeholder="Add a subtask and press Enter"
             maxLength={140}
             disabled={adding}
-            className="h-11 rounded-lg border border-gray-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 sm:h-9 sm:text-sm"
+            className="h-11 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:h-9 sm:text-sm"
           />
           <Button
             type="submit"
             variant="outline"
             disabled={!trimmed || adding}
-            className="h-11 shrink-0 gap-1.5 border-gray-300 text-slate-700 sm:h-9"
+            className="h-11 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
           >
             <Plus className="size-4" aria-hidden /> Add
           </Button>

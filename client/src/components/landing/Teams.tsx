@@ -22,17 +22,17 @@ const STEPS = [
 ];
 
 const Teams = () => (
-  <section id="teams" aria-labelledby="teams-heading" className="scroll-mt-20 border-t border-gray-100 bg-white py-16 md:py-24">
+  <section id="teams" aria-labelledby="teams-heading" className="scroll-mt-20 border-t border-slate-100 bg-white py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <div className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-2 md:gap-12">
         <div>
           <p className="mb-6 inline-block rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
             Teams and roles
           </p>
-          <h2 id="teams-heading" className="mb-6 text-balance text-3xl font-bold leading-tight text-gray-900 md:text-4xl">
+          <h2 id="teams-heading" className="mb-6 text-balance text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
             Everyone sees what they need, and nothing more.
           </h2>
-          <p className="mb-6 text-lg text-gray-600">
+          <p className="mb-6 text-lg text-slate-600">
             Every workspace comes with five roles. Pages and actions a role does not allow are hidden, and the server
             enforces the same rules.
           </p>
@@ -50,13 +50,13 @@ const Teams = () => (
 
         <ul className="space-y-4">
           {STEPS.map(({ icon: Icon, title, desc }) => (
-            <li key={title} className="flex items-start gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+            <li key={title} className="flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
               <div aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary">
                 <Icon className="size-5" />
               </div>
               <div>
-                <h3 className="mb-1 font-bold text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-600">{desc}</p>
+                <h3 className="mb-1 font-bold text-slate-900">{title}</h3>
+                <p className="text-sm text-slate-600">{desc}</p>
               </div>
             </li>
           ))}

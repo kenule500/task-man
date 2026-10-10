@@ -64,7 +64,7 @@ const ToastCard = ({ item, onDismiss }: ToastCardProps) => {
         type="button"
         onClick={() => onDismiss(item.id)}
         aria-label="Dismiss notification"
-        className="-my-1 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-300"
+        className="-my-1 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-blue-300"
       >
         <X className="size-4" aria-hidden />
       </button>

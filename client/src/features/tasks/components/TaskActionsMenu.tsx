@@ -27,7 +27,7 @@ interface TaskActionsMenuProps {
 }
 
 /** 40px rows on touch, compact from `md`. */
-const ITEM_CLASS = 'min-h-10 text-slate-700 md:min-h-0';
+const ITEM_CLASS = 'min-h-11 text-slate-700 md:min-h-0';
 
 const TaskActionsMenu = ({
   task, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canEdit = true, canDelete = true, className,
@@ -42,7 +42,7 @@ const TaskActionsMenu = ({
             variant="ghost"
             size="icon-sm"
             aria-label={`Actions for ${task.title}`}
-            className={cn('size-10 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:size-7', className)}
+            className={cn('size-10 text-slate-500 hover:bg-slate-200 hover:text-slate-600 md:size-7', className)}
           />
         }
       >
@@ -56,7 +56,7 @@ const TaskActionsMenu = ({
               <DropdownMenuLabel>Move to</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={task.status} onValueChange={value => onMove(task, value as TaskStatus)}>
                 {TASK_STATUSES.map(status => (
-                  <DropdownMenuRadioItem key={status} value={status} className="min-h-10 text-slate-700 md:min-h-0">
+                  <DropdownMenuRadioItem key={status} value={status} className="min-h-11 text-slate-700 md:min-h-0">
                     <StatusDot status={status} />{STATUS_META[status].label}
                   </DropdownMenuRadioItem>
                 ))}
@@ -83,7 +83,7 @@ const TaskActionsMenu = ({
         {canDelete && (
           <>
             {(onOpen || canEdit) &&<DropdownMenuSeparator className="bg-slate-100" />}
-            <DropdownMenuItem variant="destructive" onClick={() => onDelete(task)} className="min-h-10 md:min-h-0">
+            <DropdownMenuItem variant="destructive" onClick={() => onDelete(task)} className="min-h-11 md:min-h-0">
               <Trash2 /> Delete
             </DropdownMenuItem>
           </>

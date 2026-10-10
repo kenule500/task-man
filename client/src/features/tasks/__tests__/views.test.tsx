@@ -111,7 +111,7 @@ describe('BoardView', () => {
       />,
     );
 
-    expect(screen.getByTestId('board-columns').className).toContain('snap-x');
+    expect(screen.getByTestId('board-columns').className).toContain('md:grid-cols-3');
     const columns = screen.getAllByRole('region');
     expect(columns.map(column => within(column).getByRole('heading').textContent)).toEqual([
       'Pending', 'In Progress', 'Completed',

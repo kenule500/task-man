@@ -27,13 +27,13 @@ const ConfirmActionDialog = ({
   open, onOpenChange, title, description, confirmLabel, busyLabel, busy = false, onConfirm,
 }: ConfirmActionDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent className="border border-gray-200 bg-white shadow-2xl">
+    <AlertDialogContent className="border border-slate-200 bg-white shadow-2xl">
       <AlertDialogHeader>
         <AlertDialogTitle className="text-base font-bold text-slate-900">{title}</AlertDialogTitle>
         <AlertDialogDescription className="text-sm text-slate-600">{description}</AlertDialogDescription>
       </AlertDialogHeader>
-      <AlertDialogFooter className="border-t border-gray-200 bg-gray-50">
-        <AlertDialogCancel className="border-gray-300 text-slate-700 hover:bg-gray-100">Cancel</AlertDialogCancel>
+      <AlertDialogFooter className="border-t border-slate-200 bg-slate-50">
+        <AlertDialogCancel className="border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</AlertDialogCancel>
         <AlertDialogAction onClick={onConfirm} disabled={busy} className="bg-red-600 text-white hover:bg-red-700">
           {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
         </AlertDialogAction>

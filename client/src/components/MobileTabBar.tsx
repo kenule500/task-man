@@ -43,7 +43,8 @@ const MobileTabBar = ({ slug }: MobileTabBarProps) => {
   if (!slug) return null;
 
   const allowed = (permission: string) => !loading && can(permission);
-  const isActive = (key: string) => pathname === `/${slug}/${key}`;
+  // Sub-pages (e.g. a project's page) keep their section's tab highlighted
+  const isActive = (key: string) => pathname === `/${slug}/${key}` || pathname.startsWith(`/${slug}/${key}/`);
   const base = `/${slug}`;
 
   return (

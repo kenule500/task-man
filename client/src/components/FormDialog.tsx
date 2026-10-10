@@ -38,12 +38,12 @@ const FormDialog = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
       className={cn(
-        'flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-gray-200 bg-white p-0 shadow-2xl',
+        'flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl',
         'sm:h-auto sm:max-h-[90dvh] sm:rounded-xl',
         size === 'md' ? 'sm:max-w-[560px]' : 'sm:max-w-[460px]',
       )}
     >
-      <div className="shrink-0 border-b border-gray-200 px-4 pb-4 pr-12 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pr-12 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
         <div className="flex items-start gap-3">
           <IconTile>{icon}</IconTile>
           <DialogHeader className="min-w-0 space-y-0 p-0">
@@ -63,12 +63,12 @@ const FormDialog = ({
           {children}
         </div>
 
-        <DialogFooter className="!m-0 flex shrink-0 flex-row justify-end gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-2 sm:px-6 sm:py-4 sm:pb-4 [&>button]:flex-1 sm:[&>button]:flex-none">
+        <DialogFooter className="!m-0 flex shrink-0 flex-row justify-end gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-2 sm:px-6 sm:py-4 sm:pb-4 [&>button]:flex-1 sm:[&>button]:flex-none">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-11 rounded-lg border-gray-300 text-sm font-medium text-slate-700 shadow-none hover:bg-gray-100 sm:h-10"
+            className="h-11 rounded-lg border-slate-300 text-sm font-medium text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
           >
             Cancel
           </Button>

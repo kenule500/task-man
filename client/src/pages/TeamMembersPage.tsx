@@ -218,7 +218,7 @@ const TeamMembersPage = () => {
   return (
     <>
       <PageHeader
-        title="Team members"
+        title="Team"
         description="Manage who has access to this workspace and their roles."
         actions={
           canManage && (

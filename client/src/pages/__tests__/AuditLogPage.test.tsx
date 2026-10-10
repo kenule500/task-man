@@ -213,7 +213,7 @@ describe('AuditLogPage', () => {
     granted = [];
     renderPage();
 
-    expect(screen.getByText('Owners and admins only')).toBeInTheDocument();
+    expect(screen.getByText('Only people who manage settings can see the audit log')).toBeInTheDocument();
     expect(audit.list).not.toHaveBeenCalled();
   });
 });

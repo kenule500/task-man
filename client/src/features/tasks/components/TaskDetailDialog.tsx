@@ -17,6 +17,7 @@ import { getSubtasks } from '../lib/subtasks';
 import type { Task, TaskPatch, TaskUser } from '../types';
 import SubtaskList from './SubtaskList';
 import TaskActivity from './TaskActivity';
+import DevCopyMenu from './DevCopyMenu';
 import TaskKey from './TaskKey';
 import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge } from './TaskBadges';
 import { LabelList } from './TaskChips';
@@ -104,8 +105,8 @@ const TaskDetailDialog = ({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-gray-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
-        <DialogHeader className="shrink-0 space-y-2 border-b border-gray-200 px-4 pt-5 pb-4 pr-12 sm:px-6 sm:pt-6">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
+        <DialogHeader className="shrink-0 space-y-2 border-b border-slate-200 px-4 pt-5 pb-4 pr-12 sm:px-6 sm:pt-6">
           {parent && actions.openTask && (
             <button
               type="button"
@@ -128,6 +129,7 @@ const TaskDetailDialog = ({
                 <Link2 className="size-3.5" aria-hidden /> Copy link
               </button>
             )}
+            <DevCopyMenu task={task} workspaceSlug={slug || undefined} />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <TaskTypeBadge type={task.type} />
@@ -146,7 +148,7 @@ const TaskDetailDialog = ({
           <TabsList
             variant="line"
             aria-label="Task sections"
-            className="w-full shrink-0 justify-start gap-1 border-b border-gray-200 px-3 group-data-horizontal/tabs:h-11 sm:px-5 sm:group-data-horizontal/tabs:h-10"
+            className="w-full shrink-0 justify-start gap-1 border-b border-slate-200 px-3 group-data-horizontal/tabs:h-11 sm:px-5 sm:group-data-horizontal/tabs:h-10"
           >
             {(['details', 'activity'] as const).map(value => (
               <TabsTrigger
@@ -163,7 +165,7 @@ const TaskDetailDialog = ({
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Detail label="Due date"><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></Detail>
             <Detail label="Start date">
-              {task.startDate ? formatDate(dateKeyOf(task.startDate)) : <span className="text-slate-400">Not set</span>}
+              {task.startDate ? formatDate(dateKeyOf(task.startDate)) : <span className="text-slate-500">Not set</span>}
             </Detail>
             <Detail label="Schedule">
               <span className={overdue ? 'font-medium text-red-600' : undefined}>
@@ -173,7 +175,7 @@ const TaskDetailDialog = ({
             {task.parent && (
               <Detail label="Parent task">
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <CornerDownRight className="size-3 shrink-0 text-slate-400" aria-hidden />
+                  <CornerDownRight className="size-3 shrink-0 text-slate-500" aria-hidden />
                   {parent && actions.openTask ? (
                     <button
                       type="button"
@@ -189,10 +191,10 @@ const TaskDetailDialog = ({
               </Detail>
             )}
             <Detail label="Sprint">
-              {sprintName ?? <span className="text-slate-400">{task.project ? 'Backlog' : 'None'}</span>}
+              {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
             </Detail>
             <Detail label="Labels">
-              {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-400">None</span>}
+              {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">None</span>}
             </Detail>
             <Detail label="Assignees">
               {task.assignees?.length ? (
@@ -204,20 +206,20 @@ const TaskDetailDialog = ({
                     </li>
                   ))}
                 </ul>
-              ) : <span className="text-slate-400">Nobody yet</span>}
+              ) : <span className="text-slate-500">Nobody yet</span>}
             </Detail>
             <Detail label="Depends on">
               {dependencies.length ? (
                 <ul className="space-y-1">
                   {dependencies.map(dep => (
                     <li key={dep._id} className="flex items-center gap-1.5">
-                      <Link2 className="size-3 shrink-0 text-slate-400" aria-hidden />
+                      <Link2 className="size-3 shrink-0 text-slate-500" aria-hidden />
                       <StatusDot status={dep.status} />
                       <span className="truncate" title={dep.title}>{dep.title}</span>
                     </li>
                   ))}
                 </ul>
-              ) : <span className="text-slate-400">Nothing</span>}
+              ) : <span className="text-slate-500">Nothing</span>}
             </Detail>
           </dl>
 
@@ -226,7 +228,7 @@ const TaskDetailDialog = ({
             {task.description ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{task.description}</p>
             ) : (
-              <p className="text-sm text-slate-400">No description.</p>
+              <p className="text-sm text-slate-500">No description.</p>
             )}
           </section>
 
@@ -265,7 +267,7 @@ const TaskDetailDialog = ({
           </TabsContent>
         </Tabs>
 
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
           <div>
             {canDelete && (
               <Button
@@ -284,7 +286,7 @@ const TaskDetailDialog = ({
                 type="button"
                 variant="outline"
                 onClick={() => onEdit(task)}
-                className="h-10 gap-1.5 border-gray-300 text-slate-700 sm:h-9"
+                className="h-10 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
               >
                 <Pencil className="size-4" aria-hidden /> Edit
               </Button>

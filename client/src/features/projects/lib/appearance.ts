@@ -16,17 +16,17 @@ export interface ProjectColorStyle {
   fillBack: string;
 }
 
-// Full class names so Tailwind can see them. 600 is only used where white text keeps 4.5:1;
-// orange, amber, emerald and teal need 700 for that.
+// Full class names so Tailwind can see them. Colors are theme tokens (index.css --color-project-*):
+// calm, deep tones on which white text keeps at least 5:1; -deep is the back panel.
 export const PROJECT_COLOR_STYLES: Record<ProjectColor, ProjectColorStyle> = {
-  blue: { label: 'Blue', body: 'bg-blue-600', back: 'bg-blue-800', tile: 'bg-blue-600', swatch: 'bg-blue-600', fill: 'text-blue-600', fillBack: 'text-blue-800' },
-  violet: { label: 'Violet', body: 'bg-violet-600', back: 'bg-violet-800', tile: 'bg-violet-600', swatch: 'bg-violet-600', fill: 'text-violet-600', fillBack: 'text-violet-800' },
-  rose: { label: 'Rose', body: 'bg-rose-600', back: 'bg-rose-800', tile: 'bg-rose-600', swatch: 'bg-rose-600', fill: 'text-rose-600', fillBack: 'text-rose-800' },
-  orange: { label: 'Orange', body: 'bg-orange-700', back: 'bg-orange-900', tile: 'bg-orange-700', swatch: 'bg-orange-600', fill: 'text-orange-700', fillBack: 'text-orange-900' },
-  amber: { label: 'Amber', body: 'bg-amber-700', back: 'bg-amber-900', tile: 'bg-amber-700', swatch: 'bg-amber-500', fill: 'text-amber-700', fillBack: 'text-amber-900' },
-  emerald: { label: 'Emerald', body: 'bg-emerald-700', back: 'bg-emerald-900', tile: 'bg-emerald-700', swatch: 'bg-emerald-600', fill: 'text-emerald-700', fillBack: 'text-emerald-900' },
-  teal: { label: 'Teal', body: 'bg-teal-700', back: 'bg-teal-900', tile: 'bg-teal-700', swatch: 'bg-teal-600', fill: 'text-teal-700', fillBack: 'text-teal-900' },
-  slate: { label: 'Slate', body: 'bg-slate-600', back: 'bg-slate-800', tile: 'bg-slate-600', swatch: 'bg-slate-600', fill: 'text-slate-600', fillBack: 'text-slate-800' },
+  blue: { label: 'Dusk blue', body: 'bg-project-blue', back: 'bg-project-blue-deep', tile: 'bg-project-blue', swatch: 'bg-project-blue', fill: 'text-project-blue', fillBack: 'text-project-blue-deep' },
+  violet: { label: 'Iris', body: 'bg-project-violet', back: 'bg-project-violet-deep', tile: 'bg-project-violet', swatch: 'bg-project-violet', fill: 'text-project-violet', fillBack: 'text-project-violet-deep' },
+  rose: { label: 'Berry', body: 'bg-project-rose', back: 'bg-project-rose-deep', tile: 'bg-project-rose', swatch: 'bg-project-rose', fill: 'text-project-rose', fillBack: 'text-project-rose-deep' },
+  orange: { label: 'Terracotta', body: 'bg-project-orange', back: 'bg-project-orange-deep', tile: 'bg-project-orange', swatch: 'bg-project-orange', fill: 'text-project-orange', fillBack: 'text-project-orange-deep' },
+  amber: { label: 'Ochre', body: 'bg-project-amber', back: 'bg-project-amber-deep', tile: 'bg-project-amber', swatch: 'bg-project-amber', fill: 'text-project-amber', fillBack: 'text-project-amber-deep' },
+  emerald: { label: 'Pine', body: 'bg-project-emerald', back: 'bg-project-emerald-deep', tile: 'bg-project-emerald', swatch: 'bg-project-emerald', fill: 'text-project-emerald', fillBack: 'text-project-emerald-deep' },
+  teal: { label: 'Lagoon', body: 'bg-project-teal', back: 'bg-project-teal-deep', tile: 'bg-project-teal', swatch: 'bg-project-teal', fill: 'text-project-teal', fillBack: 'text-project-teal-deep' },
+  slate: { label: 'Slate', body: 'bg-project-slate', back: 'bg-project-slate-deep', tile: 'bg-project-slate', swatch: 'bg-project-slate', fill: 'text-project-slate', fillBack: 'text-project-slate-deep' },
 };
 
 export const colorStyleOf = (color: string | undefined): ProjectColorStyle =>

@@ -24,7 +24,7 @@ interface ProjectFormDialogProps {
 
 type Errors = Partial<Record<'name' | 'key' | 'description', string>>;
 
-const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
+const fieldClass = 'h-11 sm:h-10 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 shadow-none';
 
 /**
  * Radio group made of native radios (arrow keys and grouping come for free); the visible chip
@@ -156,7 +156,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
           rows={3}
           aria-invalid={Boolean(errors.description)}
           aria-describedby={fieldMessageId('project-description')}
-          className="bg-white border border-gray-300 text-slate-900 shadow-none"
+          className="bg-white border border-slate-300 text-slate-900 shadow-none"
         />
       </Field>
 

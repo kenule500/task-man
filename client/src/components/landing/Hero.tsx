@@ -14,13 +14,13 @@ const Hero = () => {
 
       <h1
         id="hero-heading"
-        className="max-w-4xl text-balance text-4xl font-extrabold leading-tight tracking-tight text-gray-900 animate-fade-in-up motion-reduce:animate-none! animation-delay-100 sm:text-5xl md:text-7xl"
+        className="max-w-4xl text-balance text-4xl font-extrabold leading-tight tracking-tight text-slate-900 animate-fade-in-up motion-reduce:animate-none! animation-delay-100 sm:text-5xl md:text-7xl"
       >
         Manage your tasks with{' '}
         <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">clarity</span> and ease.
       </h1>
 
-      <p className="mt-6 max-w-2xl text-lg text-gray-600 animate-fade-in-up motion-reduce:animate-none! animation-delay-200 md:text-xl">
+      <p className="mt-6 max-w-2xl text-lg text-slate-600 animate-fade-in-up motion-reduce:animate-none! animation-delay-200 md:text-xl">
         See the same tasks as a list, a board, a calendar or a timeline. Invite your team and decide who can see and
         change what.
       </p>
@@ -34,14 +34,14 @@ const Hero = () => {
         </Link>
         <a
           href="#features"
-          className="rounded-xl border border-gray-300 bg-white px-8 py-3.5 text-lg font-semibold text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="rounded-xl border border-slate-300 bg-white px-8 py-3.5 text-lg font-semibold text-slate-800 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           See what is inside
         </a>
       </div>
 
       {!isLoggedIn && (
-        <p className="mt-4 text-sm text-gray-600 animate-fade-in-up motion-reduce:animate-none! animation-delay-300">
+        <p className="mt-4 text-sm text-slate-600 animate-fade-in-up motion-reduce:animate-none! animation-delay-300">
           No payment details needed. Works in any modern browser and installs like an app.
         </p>
       )}

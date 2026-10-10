@@ -16,17 +16,17 @@ describe('ProjectFormDialog appearance', () => {
     renderDialog();
     const folder = within(screen.getByTestId('project-preview')).getByTestId('project-folder-icon');
     expect(folder).toHaveClass('size-14');
-    expect(previewFill()).toHaveClass('text-violet-600');
+    expect(previewFill()).toHaveClass('text-project-violet');
   });
 
   it('updates the preview and the icon options when the color changes', async () => {
     renderDialog();
-    await userEvent.click(screen.getByRole('radio', { name: 'Teal' }));
-    expect(previewFill()).toHaveClass('text-teal-700');
+    await userEvent.click(screen.getByRole('radio', { name: 'Lagoon' }));
+    expect(previewFill()).toHaveClass('text-project-teal');
     const iconGroup = screen.getByRole('group', { name: 'Icon' });
     const options = within(iconGroup).getAllByTestId('project-folder-icon');
     expect(options).toHaveLength(8);
-    for (const option of options) expect(option.querySelector('rect')).toHaveClass('text-teal-700');
+    for (const option of options) expect(option.querySelector('rect')).toHaveClass('text-project-teal');
   });
 
   it('updates the preview glyph when another icon is picked', async () => {

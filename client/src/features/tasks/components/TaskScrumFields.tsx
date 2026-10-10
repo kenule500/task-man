@@ -11,7 +11,7 @@ interface TaskScrumFieldsProps {
   isSubtask?: boolean;
 }
 
-const selectClass = 'h-11 border-gray-300 sm:h-10';
+const selectClass = 'h-11 border-slate-300 sm:h-10';
 const labelClass = 'text-sm font-medium text-slate-700';
 
 /** Type, story points and sprint of a task, as used by the task form. */

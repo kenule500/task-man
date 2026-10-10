@@ -61,7 +61,7 @@ describe('SecurityPage signed-in devices', () => {
     expect(within(items[0]).getByText(/Signed in 1 min ago/)).toBeInTheDocument();
     expect(within(items[1]).getByText('Safari on iOS')).toBeInTheDocument();
     expect(screen.getAllByText('This device')).toHaveLength(1);
-    expect(screen.getByText(/Sessions expire after 1 hour/)).toBeInTheDocument();
+    expect(screen.getByText(/stay signed in for 7 days/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign out Safari on iOS' })).toBeInTheDocument();
   });
 

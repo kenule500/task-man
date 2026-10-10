@@ -45,7 +45,7 @@ const BarRow = ({ label, count, total, dot }: BarRowProps) => {
 
 const TaskList = ({ tasks, empty }: { tasks: Task[]; empty: string }) =>
   tasks.length === 0 ? (
-    <p className="text-sm text-slate-400">{empty}</p>
+    <p className="text-sm text-slate-500">{empty}</p>
   ) : (
     <ul className="divide-y divide-slate-100">
       {tasks.map(task => (
@@ -65,8 +65,9 @@ const TaskList = ({ tasks, empty }: { tasks: Task[]; empty: string }) =>
 
 const ReportsPage = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const { tasks, loading, error, clearError } = useTasks(workspaceSlug);
   const { can } = usePermissions();
+  // A role may see reports without reading tasks: then there is nothing task-based to load
+  const { tasks, loading, error, clearError } = useTasks(can('tasks:read') ? workspaceSlug : undefined);
   const { projects } = useProjects(can('projects:read') ? workspaceSlug : undefined);
 
   const report = useMemo(() => buildReport(tasks), [tasks]);
@@ -91,10 +92,10 @@ const ReportsPage = () => {
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total Tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-            <StatCard className="p-4 sm:p-5" title="Completion Rate" value={`${report.completionRate}%`} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
+            <StatCard className="p-4 sm:p-5" title="Total tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard className="p-4 sm:p-5" title="Completion rate" value={`${report.completionRate}%`} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
             <StatCard className="p-4 sm:p-5" title="Overdue" value={report.overdue.length} subtitle={report.overdue.length ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
-            <StatCard className="p-4 sm:p-5" title="Due This Week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard className="p-4 sm:p-5" title="Due this week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

@@ -146,7 +146,8 @@ const DashboardPage = () => {
   const [copyFailed, setCopyFailed] = useState(false);
 
   // ===== Task data (owned by the tasks module) =====
-  const { tasks, loading: tasksLoading, error: tasksError } = useTasks(workspaceSlug);
+  // Only roles that can read tasks load them (others still see the workspace and invite panels)
+  const { tasks, loading: tasksLoading, error: tasksError } = useTasks(can('tasks:read') ? workspaceSlug : undefined);
   const { projects } = useProjects(can('projects:read') ? workspaceSlug : undefined);
 
   // Fetch workspace info (member count, invite code)

@@ -98,7 +98,7 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
           onClick={() => { void loadMore(); }}
           disabled={loadingMore}
           aria-busy={loadingMore}
-          className="h-10 w-full border-gray-300 text-slate-700 sm:h-9 sm:w-auto"
+          className="h-10 w-full border-slate-300 text-slate-700 sm:h-9 sm:w-auto"
         >
           {loadingMore ? 'Loading…' : 'Load older'}
         </Button>

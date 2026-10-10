@@ -21,7 +21,7 @@ interface SprintFormDialogProps {
 
 type Errors = Partial<Record<'name' | 'goal' | 'startDate' | 'endDate', string>>;
 
-const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
+const fieldClass = 'h-11 sm:h-10 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 shadow-none';
 
 /** Plan or edit a sprint: name, goal and its start and end days. Mount with a `key` per sprint. */
 const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: SprintFormDialogProps) => {
@@ -100,7 +100,7 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
           rows={2}
           aria-invalid={Boolean(errors.goal)}
           aria-describedby={fieldMessageId('sprint-goal')}
-          className="bg-white border border-gray-300 text-slate-900 shadow-none"
+          className="bg-white border border-slate-300 text-slate-900 shadow-none"
         />
       </Field>
 

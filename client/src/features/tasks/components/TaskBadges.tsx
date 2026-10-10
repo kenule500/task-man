@@ -1,4 +1,6 @@
-import { BookOpen, Bug, CalendarDays, CheckSquare, FlaskConical, Link2, type LucideIcon } from 'lucide-react';
+import {
+  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import { formatDate, isOverdue } from '../lib/date';
@@ -14,12 +16,34 @@ export const StatusBadge = ({ status, className }: { status: TaskStatus; classNa
   </span>
 );
 
-export const PriorityIndicator = ({ priority, className }: { priority: TaskPriority; className?: string }) => (
-  <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium', PRIORITY_META[priority].text, className)}>
-    <span aria-hidden className={cn('size-1.5 rounded-full', PRIORITY_META[priority].dot)} />
-    {PRIORITY_META[priority].label}
-  </span>
-);
+/** Jira-style glyph per priority; every tone passes AA on white. */
+const PRIORITY_VISUALS: Record<TaskPriority, { icon: LucideIcon; text: string }> = {
+  high: { icon: ChevronsUp, text: 'text-red-600' },
+  medium: { icon: Equal, text: 'text-amber-700' },
+  low: { icon: ChevronDown, text: 'text-slate-500' },
+};
+
+interface PriorityIndicatorProps {
+  priority: TaskPriority;
+  /** Icon only (board cards); the label stays available to screen readers. */
+  iconOnly?: boolean;
+  className?: string;
+}
+
+export const PriorityIndicator = ({ priority, iconOnly = false, className }: PriorityIndicatorProps) => {
+  const { icon: Icon, text } = PRIORITY_VISUALS[priority];
+  const label = PRIORITY_META[priority].label;
+  return (
+    <span
+      className={cn('inline-flex items-center gap-1 text-xs font-medium', text, className)}
+      title={iconOnly ? `${label} priority` : undefined}
+    >
+      <Icon aria-hidden className="size-4 shrink-0" strokeWidth={2.25} />
+      <span className={cn(iconOnly && 'sr-only')}>{label}</span>
+      {iconOnly && <span className="sr-only"> priority</span>}
+    </span>
+  );
+};
 
 interface DueDateProps {
   deadline: string;
@@ -31,8 +55,8 @@ interface DueDateProps {
 export const DueDate = ({ deadline, completed = false, className }: DueDateProps) => {
   const overdue = isOverdue(deadline, completed);
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums', overdue ? 'font-medium text-red-600' : 'text-slate-500', className)}>
-      <CalendarDays className="size-3" aria-hidden />
+    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums', overdue ? 'font-medium text-red-700' : 'text-slate-500', className)}>
+      {overdue ? <CircleAlert className="size-3" aria-hidden /> : <CalendarDays className="size-3" aria-hidden />}
       {formatDate(deadline)}
       {overdue && <span className="sr-only"> (overdue)</span>}
     </span>
@@ -42,7 +66,7 @@ export const DueDate = ({ deadline, completed = false, className }: DueDateProps
 /** Number of prerequisites, hidden when there are none. */
 export const DependencyCount = ({ count, className }: { count: number; className?: string }) =>
   count > 0 ? (
-    <span className={cn('inline-flex shrink-0 items-center gap-1 text-xs text-slate-400', className)} title="Dependencies">
+    <span className={cn('inline-flex shrink-0 items-center gap-1 text-xs text-slate-500', className)} title="Dependencies">
       <Link2 className="size-3" aria-hidden />
       {count}
       <span className="sr-only">dependencies</span>

@@ -28,7 +28,7 @@ describe('HelpPage', () => {
     expect(screen.getByRole('searchbox', { name: /search help/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Projects & sprints/ })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'What is a workspace?' })).toBeInTheDocument();
-    expect(document.getElementById('shortcuts-heading')).toHaveTextContent('Keyboard shortcuts');
+    expect(document.getElementById('shortcuts-heading')).toHaveTextContent('Shortcut reference');
   });
 
   it('filters by the search text, announces the count and keeps ?q= in sync', async () => {

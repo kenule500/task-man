@@ -34,7 +34,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: 'invite-teammates',
         question: 'How do I invite teammates?',
         answer:
-          'Open Team members and invite people by email, choosing a role for each invitation. You can also share the invite code from the dashboard or Settings. Anyone who joins with the invite code starts as a Viewer.',
+          'Open Team and invite people by email, choosing a role for each invitation. You can also share the invite code from the dashboard or Settings. Anyone who joins with the invite code starts as a Viewer.',
       },
       {
         id: 'regenerate-invite',
@@ -177,7 +177,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
         id: 'session-expired',
         question: 'Why was I signed out?',
         answer:
-          'Sessions expire after a while. You are returned to the sign-in page with a notice. Your work is saved on the server.',
+          'You stay signed in for 7 days on each device. After that, or if you sign a device out from Security > Signed-in devices, you return to the sign-in page. Your work is saved on the server.',
       },
     ],
   },

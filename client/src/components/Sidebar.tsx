@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
-  BarChart3, HelpCircle, LogOut, ChevronsUpDown,
+  BarChart3, HelpCircle, LogOut, ChevronsUpDown, DoorOpen,
   Sparkles, Plus, Check, User, Settings, Search, type LucideIcon,
 } from 'lucide-react';
 
@@ -13,7 +13,8 @@ import {
   SidebarTrigger, SidebarInset, useSidebar,
 } from '@/components/ui/sidebar';
 
-import { UserAvatar } from '@/components/ds';
+import { UserAvatar, toast } from '@/components/ds';
+import ConfirmActionDialog from './ConfirmActionDialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -24,14 +25,15 @@ import CreateWorkspaceModal from './CreateWorkspaceModal';
 import CommandPalette from './CommandPalette';
 import MobileTabBar from './MobileTabBar';
 import { usePermissions } from '../hooks/usePermissions';
-import api from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
 import type { StoredUser } from '../utils/session';
 
 interface Workspace {
   _id: string;
   name: string;
   slug: string;
-  inviteCode: string;
+  /** Owner user id (the owner cannot leave). */
+  owner?: string;
 }
 
 interface SidebarProps {
@@ -48,8 +50,8 @@ const navMain = [
   { title: 'Dashboard', key: 'dashboard', icon: LayoutDashboard, permission: null },
   { title: 'Tasks', key: 'tasks', icon: CheckSquare, permission: 'tasks:read' },
   { title: 'Projects', key: 'projects', icon: FolderKanban, permission: 'projects:read' },
-  { title: 'Team Members', key: 'team', icon: Users, permission: 'users:read' },
-  { title: 'Calendar', key: 'calendar', icon: Calendar, permission: null },
+  { title: 'Team', key: 'team', icon: Users, permission: 'users:read' },
+  { title: 'Calendar', key: 'calendar', icon: Calendar, permission: 'tasks:read' },
   { title: 'Reports', key: 'reports', icon: BarChart3, permission: 'reports:read' },
 ];
 
@@ -57,7 +59,7 @@ const navGeneral = [
   // Workspace settings require settings:manage
   { title: 'Settings', key: 'settings', icon: Settings, permission: 'settings:manage' },
   // Help is always visible
-  { title: 'Help & Center', key: 'help', icon: HelpCircle, permission: null },
+  { title: 'Help center', key: 'help', icon: HelpCircle, permission: null },
 ];
 
 /** "⌘K" on Apple devices, "Ctrl K" elsewhere. */
@@ -151,6 +153,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
 
   const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Target slug for navigation
@@ -230,7 +234,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       >
         Skip to content
       </a>
-      <ShadcnSidebar collapsible="icon" className="border-r border-gray-300">
+      {/* A landmark, so the workspace switcher, menus and account controls are reachable by region */}
+      <ShadcnSidebar collapsible="icon" role="navigation" aria-label="Workspace" className="border-r border-slate-300">
         {/* ========== Workspace Switcher ========== */}
         <SidebarHeader className="pt-[max(0.5rem,env(safe-area-inset-top))]">
           <SidebarMenu>
@@ -278,6 +283,11 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                   <DropdownMenuItem onClick={() => setCreateWorkspaceOpen(true)} className={MENU_ITEM}>
                     <Plus aria-hidden /> Create workspace
                   </DropdownMenuItem>
+                  {activeWorkspace && activeWorkspace.owner !== user?._id && (
+                    <DropdownMenuItem variant="destructive" onClick={() => setLeaveOpen(true)} className={MENU_ITEM}>
+                      <DoorOpen aria-hidden /> Leave {activeWorkspace.name}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
@@ -347,7 +357,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
 
       {/* ========== Main Content ========== */}
       <SidebarInset>
-        <header className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center gap-2 border-b border-gray-300 bg-white pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
+        <header className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center gap-2 border-b border-slate-300 bg-white pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
           <SidebarTrigger className="-ml-2 size-10 md:-ml-1 md:size-8" />
           <Separator orientation="vertical" className="mr-2 !h-4" />
           <div className="flex min-w-0 items-center gap-2 text-sm">
@@ -361,7 +371,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
               </>
             )}
             {activeWorkspace && (
-              <span className="hidden truncate text-slate-400 sm:inline">
+              <span className="hidden truncate text-slate-500 sm:inline">
                 · {activeWorkspace.name}
               </span>
             )}
@@ -406,6 +416,32 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
           slug={targetSlug}
           can={can}
           permissionsLoading={permissionsLoading}
+        />
+      )}
+
+      {activeWorkspace && (
+        <ConfirmActionDialog
+          open={leaveOpen}
+          onOpenChange={setLeaveOpen}
+          title={`Leave ${activeWorkspace.name}?`}
+          description="You lose access to its tasks and projects and are unassigned from your tasks there. An admin can invite you again."
+          confirmLabel="Leave workspace"
+          busyLabel="Leaving..."
+          busy={leaving}
+          onConfirm={async () => {
+            setLeaving(true);
+            try {
+              await api.delete(`/workspaces/${encodeURIComponent(activeWorkspace.slug)}/members/me`);
+              setLeaveOpen(false);
+              toast.success(`You left ${activeWorkspace.name}`);
+              const next = workspaces.find(ws => ws._id !== activeWorkspace._id);
+              navigate(next ? `/${next.slug}/dashboard` : '/onboarding');
+            } catch (err) {
+              toast.error(getApiErrorMessage(err, 'Could not leave the workspace.'));
+            } finally {
+              setLeaving(false);
+            }
+          }}
         />
       )}
 

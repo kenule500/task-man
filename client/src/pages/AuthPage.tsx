@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import api from '../utils/api';
+import api, { getApiErrorMessage } from '../utils/api';
 import { saveSession } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +32,7 @@ const apiErrorMessage = (error: unknown): string => {
   if (data?.requiresVerification) {
     return 'Your email is not verified yet. Open the verification link we sent you, then sign in.';
   }
-  return data?.message || data?.errors?.[0]?.msg || 'We could not reach the server. Check your connection and try again.';
+  return getApiErrorMessage(error, 'Something went wrong. Please try again.');
 };
 
 const AuthScreen = ({ mode }: { mode: Mode }) => {

@@ -290,7 +290,8 @@ describe('TaskPage', () => {
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
 
     expect(table.queryByRole('button', { name: 'Alpha' })).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Task deleted');
+    // Several live regions exist (toasts, bulk bar); the toast is the one announcing the delete
+    expect(screen.getAllByRole('status').some(region => region.textContent?.includes('Task deleted'))).toBe(true);
     expect(api.remove).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
