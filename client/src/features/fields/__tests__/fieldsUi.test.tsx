@@ -79,7 +79,7 @@ describe('CustomFieldValue', () => {
     );
     expect(screen.getByText('Large')).toBeInTheDocument();
     expect(screen.getByText('Yes')).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /example\.com\/spec/ });
+    const link = screen.getByRole('link', { name: 'https://example.com/spec (opens in a new tab)' });
     expect(link).toHaveAttribute('href', 'https://example.com/spec');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
     expect(screen.getAllByRole('link')).toHaveLength(1);

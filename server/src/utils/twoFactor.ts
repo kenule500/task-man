@@ -96,46 +96,46 @@ export const verifySecondFactor = async (
 
   const clearFailures = { $set: { 'twoFactor.failedAttempts': 0 }, $unset: { 'twoFactor.lockedUntil': '' } };
 
-  if (typeof input.code === 'string' && input.code.trim()) {
-    let secret: string;
-    try {
-      secret = decryptSecret(secretEncrypted, secretContext(user));
-    } catch {
-      return { ok: false, reason: 'invalid' };
-    }
-    const step = verifyTotp(secret, input.code, { lastUsedStep: user.twoFactor.lastUsedStep });
-    if (step !== null) {
-      const claimed = await User.updateOne(
-        {
-          _id: user._id,
-          $or: [
-            { 'twoFactor.lastUsedStep': { $exists: false } },
-            { 'twoFactor.lastUsedStep': null },
-            { 'twoFactor.lastUsedStep': { $lt: step } },
-          ],
-        },
-        { ...clearFailures, $max: { 'twoFactor.lastUsedStep': step } },
-      );
-      if (claimed.modifiedCount === 1) return { ok: true, method: 'totp' };
-    }
-    await registerFailure(user);
-    return { ok: false, reason: 'invalid' };
+  // Both proofs are always checked, in order; each check rejects empty or malformed input by itself,
+  // so what the request contains never decides whether verification runs.
+  const code = typeof input.code === 'string' ? input.code : '';
+  const recoveryCode = typeof input.recoveryCode === 'string' ? input.recoveryCode : '';
+
+  let secret: string | null = null;
+  try {
+    secret = decryptSecret(secretEncrypted, secretContext(user));
+  } catch {
+    secret = null;
+  }
+  const step = secret === null ? null : verifyTotp(secret, code, { lastUsedStep: user.twoFactor.lastUsedStep });
+  if (step !== null) {
+    const claimed = await User.updateOne(
+      {
+        _id: user._id,
+        $or: [
+          { 'twoFactor.lastUsedStep': { $exists: false } },
+          { 'twoFactor.lastUsedStep': null },
+          { 'twoFactor.lastUsedStep': { $lt: step } },
+        ],
+      },
+      { ...clearFailures, $max: { 'twoFactor.lastUsedStep': step } },
+    );
+    if (claimed.modifiedCount === 1) return { ok: true, method: 'totp' };
   }
 
-  if (typeof input.recoveryCode === 'string' && input.recoveryCode.trim()) {
-    const hash = await findRecoveryCodeHash(input.recoveryCode, user.twoFactor.recoveryCodeHashes ?? []);
-    if (hash) {
-      const used = await User.updateOne(
-        { _id: user._id, 'twoFactor.recoveryCodeHashes': hash },
-        { $pull: { 'twoFactor.recoveryCodeHashes': hash }, ...clearFailures },
-      );
-      if (used.modifiedCount === 1) return { ok: true, method: 'recovery' };
-    }
-    await registerFailure(user);
-    return { ok: false, reason: 'invalid' };
+  // A 6-digit authenticator code is never a valid recovery code (8 characters), so this only matches real ones
+  const hash = await findRecoveryCodeHash(recoveryCode, user.twoFactor.recoveryCodeHashes ?? []);
+  if (hash) {
+    const used = await User.updateOne(
+      { _id: user._id, 'twoFactor.recoveryCodeHashes': hash },
+      { $pull: { 'twoFactor.recoveryCodeHashes': hash }, ...clearFailures },
+    );
+    if (used.modifiedCount === 1) return { ok: true, method: 'recovery' };
   }
 
-  return { ok: false, reason: 'missing' };
+  if (!code.trim() && !recoveryCode.trim()) return { ok: false, reason: 'missing' };
+  await registerFailure(user);
+  return { ok: false, reason: 'invalid' };
 };
 
 /** True when any workspace the user belongs to requires two-factor authentication. */

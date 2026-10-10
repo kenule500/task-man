@@ -1,5 +1,5 @@
 // RFC 4180 CSV reader: quoted fields, doubled quotes, newlines inside quotes, CRLF / LF / CR rows, a leading BOM.
-import { ImportParseError } from './types.js';
+import { ImportParseError, MAX_IMPORT_CONTENT } from './types.js';
 
 export type CsvDelimiter = ',' | ';' | '\t';
 
@@ -45,6 +45,8 @@ export const parseCsv = (input: string, delimiter: CsvDelimiter = detectDelimite
     rowHasQuoted = false;
   };
 
+  // Only a real string of bounded size is walked (request bodies are capped too)
+  if (typeof text !== 'string' || text.length > MAX_IMPORT_CONTENT + 1) throw new ImportParseError('The file is too large or not text');
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     if (quoted) {

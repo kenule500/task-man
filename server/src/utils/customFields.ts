@@ -154,8 +154,9 @@ export const planCustomValues = (defs: readonly FieldDef[], input: unknown, opti
     if (def.archived && raw !== null) return { ok: false, error: `${def.name}: this field is archived` };
     const result = coerceFieldValue(def, raw, options);
     if (!result.ok) return result;
-    if (result.value === null) plan.clear.push(key);
-    else plan.set[key] = result.value;
+    // Write under the stored definition's key (validated when the field was created), never the request's string
+    if (result.value === null) plan.clear.push(def.key);
+    else plan.set[def.key] = result.value;
   }
 
   if (options.mode === 'create') {
