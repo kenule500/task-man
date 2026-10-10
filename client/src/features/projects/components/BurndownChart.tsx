@@ -41,7 +41,7 @@ const BurndownChart = ({ burndown, title, today = new Date() }: BurndownChartPro
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={`${title}. ${summary}`}
-        className="h-auto w-full max-w-2xl text-slate-500"
+        className="h-auto w-full max-w-md text-slate-500"
       >
         {ticks.map(tick => (
           <g key={tick}>

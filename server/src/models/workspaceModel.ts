@@ -1,5 +1,10 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+// Work-in-progress limits per board column (null = no limit)
+export const WIP_STATUSES = ['pending', 'in-progress', 'completed'] as const;
+export const MAX_WIP_LIMIT = 999;
+export type WipLimits = Record<(typeof WIP_STATUSES)[number], number | null>;
+
 export interface IWorkspace extends Document {
   name: string;
   slug: string;
@@ -12,6 +17,7 @@ export interface IWorkspace extends Document {
   inviteCode: string;
   // Last task number handed out (task keys like WEB-12 use it)
   taskCounter: number;
+  boardSettings?: { wipLimits?: Partial<WipLimits> };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,9 +43,19 @@ const workspaceSchema: Schema = new Schema(
     ],
     inviteCode: { type: String, required: true, unique: true, index: true },
     taskCounter: { type: Number, default: 0, min: 0 },
+    boardSettings: {
+      wipLimits: {
+        pending: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
+        'in-progress': { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
+        completed: { type: Number, default: null, min: 1, max: MAX_WIP_LIMIT },
+      },
+    },
   },
   { timestamps: true }
 );
+
+// Every permission check and the workspace switcher look workspaces up by member
+workspaceSchema.index({ 'members.user': 1 });
 
 const Workspace = mongoose.model<IWorkspace>('Workspace', workspaceSchema);
 export default Workspace;

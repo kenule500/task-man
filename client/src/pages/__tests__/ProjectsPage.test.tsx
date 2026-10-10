@@ -146,12 +146,12 @@ describe('ProjectsPage', () => {
     projects.create.mockResolvedValue(makeProject({ _id: 'p-new', name: 'Design system refresh', key: 'DSR' }));
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'New project' }));
+    await userEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText(/^Name/), 'Design system refresh');
     expect(within(dialog).getByLabelText('Key')).toHaveValue('DSR');
 
-    await userEvent.click(within(dialog).getByLabelText('Rose'));
+    await userEvent.click(within(dialog).getByLabelText('Berry'));
     await userEvent.click(within(dialog).getByLabelText('Palette'));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create project' }));
 
@@ -163,7 +163,7 @@ describe('ProjectsPage', () => {
 
   it('validates the name and the key before saving', async () => {
     renderPage();
-    await userEvent.click(await screen.findByRole('button', { name: 'New project' }));
+    await userEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     const dialog = await screen.findByRole('dialog');
 
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create project' }));
@@ -180,7 +180,7 @@ describe('ProjectsPage', () => {
   it('shows the server message when saving fails', async () => {
     projects.create.mockRejectedValue({ response: { data: { message: 'A project with this name already exists' } } });
     renderPage();
-    await userEvent.click(await screen.findByRole('button', { name: 'New project' }));
+    await userEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText(/^Name/), 'Website');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Create project' }));

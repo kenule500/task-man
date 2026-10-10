@@ -36,13 +36,13 @@ const SettingsLayout = () => {
                 className={cn(
                   'flex min-h-10 shrink-0 snap-start items-center gap-2 rounded-xl p-3 text-left transition-colors lg:w-full lg:items-start lg:gap-3',
                   'focus-visible:outline-2 focus-visible:outline-primary',
-                  active ? 'bg-primary/10 text-primary' : 'text-slate-600 hover:bg-slate-100',
+                  active ? 'bg-primary/10 text-primary-hover' : 'text-slate-600 hover:bg-slate-100',
                 )}
               >
                 <Icon className={cn('size-4 shrink-0 lg:mt-0.5', active ? 'text-primary' : 'text-slate-500')} aria-hidden />
                 <div className="min-w-0">
                   <p className="whitespace-nowrap text-sm font-medium">{label}</p>
-                  <p className={cn('mt-0.5 hidden truncate text-xs lg:block', active ? 'text-primary/80' : 'text-slate-600')}>
+                  <p className={cn('mt-0.5 hidden truncate text-xs lg:block', active ? 'text-primary-hover' : 'text-slate-600')}>
                     {description}
                   </p>
                 </div>

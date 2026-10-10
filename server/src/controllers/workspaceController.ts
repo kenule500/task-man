@@ -4,9 +4,10 @@ import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import { findDefaultRole, roleRank } from '../utils/roleAccess.js';
 import { recordActivity } from '../utils/activity.js';
-import Workspace from '../models/workspaceModel.js';
+import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
+import { PERMISSIONS } from '../config/permissions.js';
 
 const generateInviteCode = (): string =>
   crypto.randomBytes(6).toString('hex').toUpperCase();
@@ -83,6 +84,16 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
   }
 };
 
+/** Permissions of a member in a workspace (the owner has every permission). */
+const permissionsOf = async (workspace: IWorkspace, userId: string): Promise<Set<string>> => {
+  const ownerId = String((workspace.owner as { _id?: unknown })?._id ?? workspace.owner);
+  if (ownerId === userId) return new Set(Object.keys(PERMISSIONS));
+  const member = workspace.members.find(m => String((m.user as { _id?: unknown })?._id ?? m.user) === userId);
+  const roleId = (member?.roleId as { _id?: unknown } | undefined)?._id ?? member?.roleId;
+  const role = roleId ? await Role.findById(roleId).select('permissions').lean() : null;
+  return new Set(role?.permissions ?? []);
+};
+
 // ================================================================
 // @desc    Get all workspaces for current user
 // @route   GET /api/workspaces
@@ -96,9 +107,10 @@ export const getMyWorkspaces = async (req: Request, res: Response): Promise<void
     }
 
     const objectId = new mongoose.Types.ObjectId(userId);
+    // Workspace switcher data only: no invite codes or member emails (those need users:* / settings:manage)
     const workspaces = await Workspace.find({ 'members.user': objectId })
-      .select('name slug inviteCode owner members createdAt')
-      .populate('members.user', 'name email')
+      .select('name slug owner members createdAt')
+      .populate('members.user', 'name')
       .populate('members.roleId', 'name description');
 
     res.status(200).json(workspaces);
@@ -142,7 +154,15 @@ export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(200).json(workspace);
+    // Member emails need users:read and the invite code needs users:write or settings:manage
+    const permissions = await permissionsOf(workspace, String(userId));
+    const body = workspace.toObject() as unknown as Record<string, unknown> & { members: { user?: { email?: string } }[] };
+    if (!permissions.has('users:read')) {
+      for (const member of body.members) if (member.user && typeof member.user === 'object') delete member.user.email;
+    }
+    if (!permissions.has('users:write') && !permissions.has('settings:manage')) delete body.inviteCode;
+
+    res.status(200).json(body);
   } catch (error) {
     console.error('getWorkspaceBySlug error:', error);
     res.status(500).json({ message: 'Server error' });

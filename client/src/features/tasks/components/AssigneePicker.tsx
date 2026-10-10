@@ -41,7 +41,7 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
       variant="outline"
       size="sm"
       onClick={() => toggle(currentUser._id, !isMeAssigned)}
-      className="h-9 gap-1.5 border-gray-300 text-slate-700"
+      className="h-9 gap-1.5 border-slate-300 text-slate-700"
     >
       <UserPlus className="size-3.5" aria-hidden /> {isMeAssigned ? 'Unassign me' : 'Assign to me'}
     </Button>
@@ -54,11 +54,11 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
       <fieldset className="space-y-2">
         <legend className="sr-only">Assignees</legend>
         {loading ? (
-          <p className="text-xs italic text-slate-400">Loading members...</p>
+          <p className="text-xs italic text-slate-500">Loading members...</p>
         ) : options.length === 0 ? (
-          <p className="text-xs italic text-slate-400">No members to assign yet.</p>
+          <p className="text-xs italic text-slate-500">No members to assign yet.</p>
         ) : (
-          <ul className="max-h-40 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200">
+          <ul className="max-h-40 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
             {options.map(id => {
               const user = directory.get(id);
               const name = user?.name ?? 'Former member';
@@ -84,18 +84,18 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
   return (
     <div className="space-y-2">
       {selected.length === 0 ? (
-        <p className="text-xs italic text-slate-400">Nobody is assigned yet.</p>
+        <p className="text-xs italic text-slate-500">Nobody is assigned yet.</p>
       ) : (
         <ul aria-label="Assignees" className="flex flex-wrap gap-2">
           {selected.map(user => (
-            <li key={user._id} className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white py-0.5 pr-2.5 pl-0.5 text-sm text-slate-700">
+            <li key={user._id} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pr-2.5 pl-0.5 text-sm text-slate-700">
               <UserAvatar name={user.name} src={user.avatarUrl || undefined} size="sm" className="size-6 text-[10px]" />
               {user.name}
             </li>
           ))}
         </ul>
       )}
-      <p className="text-xs text-slate-400">Ask an admin to assign other people.</p>
+      <p className="text-xs text-slate-500">Ask an admin to assign other people.</p>
       {assignMe}
     </div>
   );

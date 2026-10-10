@@ -39,7 +39,7 @@ export const alertVariants = cva('flex items-start gap-2.5 rounded-lg border p-3
       info: 'bg-blue-50 border-blue-100 text-blue-700',
       success: 'bg-emerald-50 border-emerald-100 text-emerald-700',
       warning: 'bg-amber-50 border-amber-100 text-amber-800',
-      error: 'bg-red-50 border-red-100 text-red-600',
+      error: 'bg-red-50 border-red-100 text-red-700',
     },
   },
   defaultVariants: { tone: 'info' },
@@ -49,11 +49,11 @@ export const alertVariants = cva('flex items-start gap-2.5 rounded-lg border p-3
 export const iconTileVariants = cva('flex shrink-0 items-center justify-center rounded-xl', {
   variants: {
     tone: {
-      primary: 'bg-primary/10 text-primary',
+      primary: 'bg-primary/10 text-primary-hover',
       neutral: 'bg-slate-100 text-slate-600',
       success: 'bg-emerald-50 text-emerald-600',
       warning: 'bg-amber-50 text-amber-600',
-      danger: 'bg-red-50 text-red-600',
+      danger: 'bg-red-50 text-red-700',
     },
     size: { sm: 'size-8 [&_svg]:size-4', md: 'size-10 [&_svg]:size-5', lg: 'size-14 [&_svg]:size-7' },
   },

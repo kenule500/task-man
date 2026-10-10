@@ -26,7 +26,7 @@ const Navbar = () => {
   }, [menuOpen]);
 
   return (
-    <header className="fixed top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
+    <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-lg"
@@ -39,7 +39,7 @@ const Navbar = () => {
           TaskMan
         </Link>
 
-        <ul className="hidden items-center gap-8 text-sm font-medium text-gray-700 md:flex">
+        <ul className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
           {NAV_LINKS.map(({ href, label }) => (
             <li key={href}>
               <a href={href} className="rounded transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
@@ -58,7 +58,7 @@ const Navbar = () => {
             <>
               <Link
                 to="/login"
-                className="hidden min-h-10 items-center rounded px-2 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-primary sm:inline-flex"
+                className="hidden min-h-10 items-center rounded px-2 text-sm font-medium text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary sm:inline-flex"
               >
                 Sign in
               </Link>
@@ -73,7 +73,7 @@ const Navbar = () => {
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen((open) => !open)}
-            className="flex size-11 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary md:hidden"
+            className="flex size-11 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary md:hidden"
           >
             {menuOpen ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
           </button>
@@ -81,14 +81,14 @@ const Navbar = () => {
       </nav>
 
       {menuOpen && (
-        <div id="mobile-menu" className="border-t border-gray-100 bg-white px-4 pb-4 pt-2 md:hidden">
+        <div id="mobile-menu" className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden">
           <ul className="flex flex-col">
             {NAV_LINKS.map(({ href, label }) => (
               <li key={href}>
                 <a
                   href={href}
                   onClick={() => setMenuOpen(false)}
-                  className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-gray-800 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-primary"
+                  className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary"
                 >
                   {label}
                 </a>
@@ -98,7 +98,7 @@ const Navbar = () => {
               <li>
                 <Link
                   to="/login"
-                  className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-gray-800 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-primary sm:hidden"
+                  className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary sm:hidden"
                 >
                   Sign in
                 </Link>

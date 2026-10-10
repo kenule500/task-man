@@ -39,7 +39,7 @@ const LabelInput = ({ value, onChange, suggestions = [], id, className }: LabelI
 
   return (
     <div className={cn('space-y-2', className)}>
-      <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2 py-1.5 focus-within:border-gray-400 sm:min-h-10">
+      <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-1.5 focus-within:border-slate-400 sm:min-h-10">
         {value.map(label => (
           <LabelChip key={label} label={label} onRemove={removed => onChange(value.filter(item => item !== removed))} />
         ))}
@@ -57,13 +57,13 @@ const LabelInput = ({ value, onChange, suggestions = [], id, className }: LabelI
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed sm:text-sm"
         />
       </div>
-      <p id={`${inputId}-hint`} className="text-xs text-slate-400">
+      <p id={`${inputId}-hint`} className="text-xs text-slate-500">
         {full ? `Maximum of ${MAX_LABELS} labels reached.` : 'Press Enter or comma to add, Backspace to remove.'}{' '}
         <span className="tabular-nums">{value.length}/{MAX_LABELS}</span>
       </p>
       {matches.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Label suggestions">
-          <span className="text-xs text-slate-400">Suggestions:</span>
+          <span className="text-xs text-slate-500">Suggestions:</span>
           {matches.map(label => (
             <button
               key={label}

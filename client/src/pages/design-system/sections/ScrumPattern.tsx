@@ -92,7 +92,7 @@ const BacklogRowsMock = () => (
 export const ScrumPatternSection = () => (
   <DocSection id="p-scrum" title="Scrum visuals" description="Projects hold sprints, sprints hold stories, stories hold tasks. These are the shapes and colors that make that hierarchy scannable.">
     <Specimen label="Project folder cards: a tab in the project color" bare>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <ul aria-label="Sample projects" className="grid list-none grid-cols-2 gap-4 p-0 lg:grid-cols-3">
         {SAMPLE_FOLDERS.map(({ project, summary }, index) => (
           <ProjectFolderCard
             key={project._id}
@@ -107,7 +107,7 @@ export const ScrumPatternSection = () => (
             onDelete={noop}
           />
         ))}
-      </div>
+      </ul>
     </Specimen>
     <div className="grid gap-4 lg:grid-cols-2">
       <Specimen label="Sprint card" bare><SprintCardMock /></Specimen>

@@ -68,7 +68,7 @@ const DesignSystemPage = () => {
       </header>
 
       {/* Phones and tablets: sections in a select instead of the side navigation */}
-      <div className="sticky top-0 z-(--z-sticky) border-b border-border bg-white/95 px-4 py-2 backdrop-blur sm:px-6 lg:hidden">
+      <nav aria-label="Jump to section" className="sticky top-0 z-(--z-sticky) border-b border-border bg-white/95 px-4 py-2 backdrop-blur sm:px-6 lg:hidden">
         <label htmlFor="ds-jump" className="sr-only">Jump to section</label>
         <select
           id="ds-jump"
@@ -83,7 +83,7 @@ const DesignSystemPage = () => {
             </optgroup>
           ))}
         </select>
-      </div>
+      </nav>
 
       <div className="mx-auto max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:py-10">
         <aside className="hidden lg:block">
@@ -104,7 +104,7 @@ const DesignSystemPage = () => {
                           className={cn(
                             'block rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-(--duration-fast) focus-visible:outline-2 focus-visible:outline-focus',
                             entry.id === active
-                              ? 'bg-primary/10 font-medium text-primary'
+                              ? 'bg-primary/10 font-medium text-primary-hover'
                               : 'text-text-body hover:bg-surface-sunken hover:text-text-strong',
                           )}
                         >

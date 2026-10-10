@@ -3,6 +3,7 @@ import { isWorkspaceOwner } from '../utils/workspaceHelpers.js';
 import Role from '../models/roleModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import { recordActivity } from '../utils/activity.js';
 import {
   sendServerError,
 } from '../utils/controllerHelpers.js';
@@ -115,6 +116,7 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
       workspaceId: workspace._id,
     });
 
+    await recordActivity(req, { action: 'role.created', summary: role.name, changes: [{ field: 'permissions', to: role.permissions.join(', ') }] });
     res.status(201).json(role);
   } catch (error) {
     sendServerError(res, 'createCustomRole', error);
@@ -179,7 +181,13 @@ export const updateCustomRole = async (req: Request, res: Response): Promise<voi
       role.permissions = permissions;
     }
 
+    const changes = [
+      ...(role.isModified('name') ? [{ field: 'name', to: role.name }] : []),
+      ...(role.isModified('description') ? [{ field: 'description' }] : []),
+      ...(role.isModified('permissions') ? [{ field: 'permissions', to: role.permissions.join(', ') }] : []),
+    ];
     await role.save();
+    if (changes.length > 0) await recordActivity(req, { action: 'role.updated', summary: role.name, changes });
     res.status(200).json(role);
   } catch (error) {
     sendServerError(res, 'updateCustomRole', error);
@@ -210,6 +218,7 @@ export const deleteCustomRole = async (req: Request, res: Response): Promise<voi
     }
 
     await Role.findByIdAndDelete(roleId);
+    await recordActivity(req, { action: 'role.deleted', summary: role.name });
     res.status(200).json({ message: 'Role deleted' });
   } catch (error) {
     sendServerError(res, 'deleteCustomRole', error);

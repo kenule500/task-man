@@ -128,7 +128,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
       <DialogContent
         showCloseButton={false}
         initialFocus={inputRef}
-        className="top-0 left-0 h-dvh max-w-none translate-x-0 translate-y-0 content-start gap-0 rounded-none p-0 sm:top-[12%] sm:left-1/2 sm:h-auto sm:max-h-[min(32rem,76dvh)] sm:max-w-xl sm:-translate-x-1/2 sm:rounded-xl"
+        className="top-0 left-0 flex h-dvh max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 sm:top-[12%] sm:left-1/2 sm:h-auto sm:max-h-[min(32rem,76dvh)] sm:max-w-xl sm:-translate-x-1/2 sm:rounded-xl"
       >
         <DialogTitle className="sr-only">Search</DialogTitle>
         <DialogDescription className="sr-only">
@@ -136,7 +136,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
         </DialogDescription>
 
         <div className="flex items-center gap-2 border-b border-slate-200 px-3 pt-[env(safe-area-inset-top)]">
-          <Search className="size-4 shrink-0 text-slate-400" aria-hidden />
+          <Search className="size-4 shrink-0 text-slate-500" aria-hidden />
           <input
             ref={inputRef}
             type="text"
@@ -178,7 +178,8 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
           ref={listRef}
           role="listbox"
           aria-label="Results"
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          // Results scroll inside the dialog with a visible scrollbar; the search field and footer stay put
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] [scrollbar-gutter:stable] [scrollbar-width:thin]"
         >
           {GROUPS.map(group => {
             const groupItems = results.filter(item => item.group === group);
@@ -213,7 +214,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
                         {item.project ? (
                           <ProjectFolderIcon size="sm" color={item.project.color} icon={item.project.icon} />
                         ) : Icon && (
-                          <Icon className={cn('size-4 shrink-0', isActive ? 'text-primary' : 'text-slate-400')} aria-hidden />
+                          <Icon className={cn('size-4 shrink-0', isActive ? 'text-primary' : 'text-slate-500')} aria-hidden />
                         )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{item.label}</span>

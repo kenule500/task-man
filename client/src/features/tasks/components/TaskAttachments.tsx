@@ -58,7 +58,7 @@ const Thumbnail = ({ attachment, load }: ThumbnailProps) => {
     };
   }, [attachment._id]);
 
-  if (!src) return <ImageIcon className="size-5 text-slate-400" aria-hidden />;
+  if (!src) return <ImageIcon className="size-5 text-slate-500" aria-hidden />;
   return <img src={src} alt={`Preview of ${attachment.originalName}`} className="size-full object-cover" />;
 };
 
@@ -145,10 +145,10 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
 
   return (
     <section aria-label="Attachments">
-      <SectionHeader title="Attachments" count={attachments.length} icon={<Paperclip className="size-4 text-slate-400" aria-hidden />} className="mb-2" />
+      <SectionHeader title="Attachments" count={attachments.length} icon={<Paperclip className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
 
       {attachments.length === 0 && uploads.length === 0 && (
-        <p className="mb-2 text-sm text-slate-400">No attachments yet.</p>
+        <p className="mb-2 text-sm text-slate-500">No attachments yet.</p>
       )}
 
       {attachments.length > 0 && (
@@ -162,7 +162,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
             const busy = busyId === attachment._id;
 
             return (
-              <li key={attachment._id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-2 sm:px-3">
+              <li key={attachment._id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2 sm:px-3">
                 <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100">
                   {isImageMimetype(attachment.mimetype)
                     ? <Thumbnail attachment={attachment} load={onDownload} />
@@ -193,7 +193,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
                     aria-label={`Delete ${attachment.originalName}`}
                     disabled={busy}
                     onClick={() => void remove(attachment)}
-                    className="size-10 text-slate-400 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                    className="size-10 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
                   >
                     <Trash2 />
                   </Button>
@@ -207,7 +207,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
       {uploads.length > 0 && (
         <ul className="mt-2 space-y-2" aria-label="Uploading">
           {uploads.map(entry => (
-            <li key={entry.key} className="rounded-lg border border-dashed border-gray-300 px-3 py-2">
+            <li key={entry.key} className="rounded-lg border border-dashed border-slate-300 px-3 py-2">
               <p className="truncate text-xs text-slate-600">Uploading {entry.name}</p>
               <ProgressBar value={entry.percent} label={`Uploading ${entry.name}`} showValue className="mt-1" />
             </li>
@@ -228,13 +228,13 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
           onDrop={handleDrop}
           className={cn(
             'mt-3 flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-4 text-center transition-colors sm:flex-row sm:justify-between sm:text-left',
-            dragging ? 'border-primary bg-blue-50/60' : 'border-gray-300 bg-slate-50/50',
+            dragging ? 'border-primary bg-blue-50/60' : 'border-slate-300 bg-slate-50/50',
           )}
         >
           <p className="text-xs text-slate-500">
             Drag files here or choose them. Up to {MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB each: images, PDF, Office, text, CSV or ZIP.
           </p>
-          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="h-10 shrink-0 gap-1.5 border-gray-300 text-slate-700 sm:h-9">
+          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="h-10 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-9">
             <Upload className="size-4" aria-hidden /> Upload file
           </Button>
           <input

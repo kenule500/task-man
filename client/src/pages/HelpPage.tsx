@@ -68,7 +68,7 @@ const FaqEntry = ({ item, terms, open, onToggle, showCategory }: FaqEntryProps) 
             )}
           </span>
           <ChevronDown
-            className={cn('mt-0.5 size-4 shrink-0 text-slate-400 motion-safe:transition-transform', open && 'rotate-180')}
+            className={cn('mt-0.5 size-4 shrink-0 text-slate-500 motion-safe:transition-transform', open && 'rotate-180')}
             aria-hidden
           />
         </button>
@@ -160,7 +160,7 @@ const HelpPage = () => {
             </label>
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-500"
                 aria-hidden
               />
               <Input
@@ -217,7 +217,7 @@ const HelpPage = () => {
                   )}
                 >
                   {chip.title}
-                  <span className={cn('tabular-nums', active ? 'text-white/80' : 'text-slate-500')}>{chip.count}</span>
+                  <span className={cn('tabular-nums', active ? 'text-white' : 'text-slate-500')}>{chip.count}</span>
                 </button>
               );
             })}
@@ -274,7 +274,7 @@ const HelpPage = () => {
         <Surface as="section" aria-labelledby="shortcuts-heading" className="sm:p-6">
           <SectionHeader
             icon={<Keyboard className="size-4" aria-hidden />}
-            title={<span id="shortcuts-heading">Keyboard shortcuts</span>}
+            title={<span id="shortcuts-heading">Shortcut reference</span>}
           />
           <p className="mb-3 text-xs text-slate-600">
             Shortcuts that need a single key work when you are not typing in a field.

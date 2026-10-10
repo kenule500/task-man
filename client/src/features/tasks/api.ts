@@ -1,5 +1,7 @@
 import api, { getApiErrorMessage } from '@/utils/api';
-import type { Task, TaskAttachment, TaskComment, TaskInput, TaskPatch } from './types';
+import type {
+  Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskPriority, TaskStatus, TaskType,
+} from './types';
 
 export { getApiErrorMessage };
 
@@ -44,6 +46,26 @@ export interface TaskActivityPage {
   nextBefore: string | null;
 }
 
+/** Change applied to several tasks at once (see PATCH /tasks/bulk). */
+export interface BulkTaskPatch {
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  type?: TaskType;
+  /** Sprint id, or null to take the tasks out of their sprint. */
+  sprint?: string | null;
+  /** User ids to add to / remove from the current assignees. */
+  assignees?: { add?: string[]; remove?: string[] };
+  /** Labels to add to / remove from the current labels. */
+  labels?: { add?: string[]; remove?: string[] };
+}
+
+export interface BulkDeleteResult {
+  /** Ids of the deleted tasks. */
+  deleted: string[];
+  /** Ids of the subtasks that went with them. */
+  subtasks: string[];
+}
+
 export const tasksApi = {
   list: async (workspaceSlug: string): Promise<Task[]> => {
     const { data } = await api.get(tasksUrl(workspaceSlug));
@@ -59,6 +81,19 @@ export const tasksApi = {
   },
   remove: async (workspaceSlug: string, id: string): Promise<void> => {
     await api.delete(taskUrl(workspaceSlug, id));
+  },
+  /** Applies one patch to up to 100 tasks; answers with the updated tasks. */
+  bulkUpdate: async (workspaceSlug: string, ids: string[], patch: BulkTaskPatch): Promise<Task[]> => {
+    const { data } = await api.patch(`${tasksUrl(workspaceSlug)}/bulk`, { ids, patch });
+    return Array.isArray(data?.tasks) ? data.tasks : [];
+  },
+  /** Deletes up to 100 tasks with their subtasks (not undoable). */
+  bulkDelete: async (workspaceSlug: string, ids: string[]): Promise<BulkDeleteResult> => {
+    const { data } = await api.post(`${tasksUrl(workspaceSlug)}/bulk-delete`, { ids });
+    return {
+      deleted: Array.isArray(data?.deleted) ? data.deleted : [],
+      subtasks: Array.isArray(data?.subtasks) ? data.subtasks : [],
+    };
   },
 
   /** History of one task, newest first. */

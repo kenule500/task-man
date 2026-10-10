@@ -51,8 +51,9 @@ const AuditLogPage = () => {
         <PageHeader title="Audit log" />
         <Surface className="mt-6">
           <EmptyState
+            headingLevel="h2"
             icon={<ShieldAlert />}
-            title="Owners and admins only"
+            title="Only people who manage settings can see the audit log"
             description="Ask an owner or admin of this workspace if you need to see the audit log."
           />
         </Surface>
@@ -106,6 +107,7 @@ const AuditLogPage = () => {
         ) : items.length === 0 ? (
           <Surface>
             <EmptyState
+            headingLevel="h2"
               icon={<ScrollText />}
               title={filtered ? 'No entries match these filters' : 'No entries yet'}
               description={filtered

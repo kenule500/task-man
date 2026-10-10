@@ -1,5 +1,5 @@
 import {
-  bearer, createTeam, createWorkspace, http, registerUser, startApp, stopApp, uniqueEmail, type TestUser,
+  bearer, createTask, createTeam, createWorkspace, http, joinAs, registerUser, startApp, stopApp, uniqueEmail, type TestUser,
 } from './harness.js';
 
 beforeAll(startApp);
@@ -77,7 +77,10 @@ describe('workspaces: create and list', () => {
     expect(mine.status).toBe(200);
     expect(mine.body.map((w: { slug: string }) => w.slug)).toEqual([team.workspace.slug]);
     expect(JSON.stringify(mine.body)).not.toMatch(/password|token/i);
-    expect(mine.body[0].members[0].user).toEqual(expect.objectContaining({ name: expect.any(String), email: expect.any(String) }));
+    // The switcher list carries names only: no member emails or invite codes
+    expect(mine.body[0].members[0].user).toEqual(expect.objectContaining({ name: expect.any(String) }));
+    expect(mine.body[0].members[0].user.email).toBeUndefined();
+    expect(mine.body[0].inviteCode).toBeUndefined();
 
     const none = await get(outsider, '/api/workspaces');
     expect(none.body.filter((w: { slug: string }) => w.slug === team.workspace.slug)).toHaveLength(0);
@@ -190,5 +193,38 @@ describe('workspaces: removing members', () => {
       .delete(`/api/workspaces/${team.workspace.slug}/members/${encodeURIComponent(uniqueEmail('x'))}`)
       .set(bearer(team.owner.token));
     expect(res.status).toBe(404);
+  });
+});
+
+describe('workspace details by permission', () => {
+  it('shows member emails and the invite code only to roles that manage people', async () => {
+    const asViewer = await get(team.viewer, `/api/workspaces/${team.workspace.slug}`);
+    expect(asViewer.status).toBe(200);
+    expect(asViewer.body.inviteCode).toBeUndefined();
+    expect(asViewer.body.members.every((m: { user: { email?: string } }) => m.user.email === undefined)).toBe(true);
+
+    const asOwner = await get(team.owner, `/api/workspaces/${team.workspace.slug}`);
+    expect(asOwner.body.inviteCode).toMatch(/^[A-F0-9]{12}$/);
+    expect(asOwner.body.members.some((m: { user: { email?: string } }) => typeof m.user.email === 'string')).toBe(true);
+  });
+});
+
+
+describe('leaving a workspace', () => {
+  it('lets a member leave (unassigning their tasks) but not the owner', async () => {
+    const leaver = await registerUser('Lena Leaver');
+    await joinAs(team.workspace, team.owner, leaver, 'Developer');
+    const task = await createTask(team.owner, team.workspace.slug, { title: 'Assigned to Lena', assignees: [leaver.id] });
+
+    const res = await http().delete(`/api/workspaces/${team.workspace.slug}/members/me`).set(bearer(leaver.token));
+    expect(res.status).toBe(200);
+    expect((await get(leaver, `/api/workspaces/${team.workspace.slug}`)).status).toBe(403);
+    const tasks = await get(team.owner, `/api/workspaces/${team.workspace.slug}/tasks`);
+    expect(tasks.body.find((t: { _id: string }) => t._id === task._id).assignees).toEqual([]);
+
+    const owner = await http().delete(`/api/workspaces/${team.workspace.slug}/members/me`).set(bearer(team.owner.token));
+    expect(owner.status).toBe(409);
+    const stranger = await http().delete(`/api/workspaces/${team.workspace.slug}/members/me`).set(bearer(leaver.token));
+    expect(stranger.status).toBe(404);
   });
 });

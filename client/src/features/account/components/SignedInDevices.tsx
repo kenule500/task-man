@@ -99,7 +99,7 @@ export const SignedInDevices = () => {
       )}
 
       <p className="mt-4 text-xs text-slate-600">
-        Sessions expire after 1 hour of inactivity of the access token. Changing your password signs out other devices.
+        You stay signed in for 7 days on each device unless you sign it out here. Changing your password signs out other devices.
       </p>
 
       <ConfirmActionDialog

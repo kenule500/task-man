@@ -61,7 +61,7 @@ const GetStartedChecklist = ({ steps, workspaceSlug }: GetStartedChecklistProps)
                 {done ? (
                   <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-hidden />
                 ) : (
-                  <Circle className="mt-0.5 size-5 shrink-0 text-slate-400" aria-hidden />
+                  <Circle className="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden />
                 )}
                 <div className="min-w-0">
                   <p className={cn('text-sm font-semibold', done ? 'text-slate-600' : 'text-slate-900')}>

@@ -24,7 +24,7 @@ const VelocityChart = ({ velocities, average }: VelocityChartProps) => {
 
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className="h-auto w-full max-w-2xl">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className="h-auto w-full max-w-lg">
         {[0, max / 2, max].map(tick => (
           <g key={tick}>
             <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-slate-200" strokeWidth={1} />

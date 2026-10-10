@@ -42,6 +42,8 @@ describe('task routes permissions', () => {
     ['put', '/:id', 'tasks:write'],
     ['patch', '/:id', 'tasks:write'],
     ['delete', '/:id', 'tasks:delete'],
+    ['patch', '/bulk', 'tasks:write'],
+    ['post', '/bulk-delete', 'tasks:delete'],
     ['post', '/:id/comments', 'tasks:write'],
     ['delete', '/:id/comments/:commentId', 'tasks:write'],
     ['post', '/:id/attachments', 'tasks:write'],
@@ -51,9 +53,15 @@ describe('task routes permissions', () => {
     expect(permissionFor(method, path)).toBe(permission);
   });
 
+  it('registers the bulk routes before the /:id routes', () => {
+    const index = (method: string, path: string) =>
+      stack.findIndex(l => l.route?.path === path && l.route.methods[method]);
+    expect(index('patch', '/bulk')).toBeLessThan(index('patch', '/:id'));
+  });
+
   it('guards every route with a permission before its handler', () => {
     const routes = stack.filter(l => l.route);
-    expect(routes.length).toBe(11);
+    expect(routes.length).toBe(13);
     for (const layer of routes) {
       expect(layer.route?.stack[0].handle.permission).toMatch(/^tasks:(read|write|delete)$/);
     }

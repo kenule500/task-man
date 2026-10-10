@@ -39,7 +39,7 @@ const ProjectChip = ({ name, project, showKey = false, link = true, className }:
         title={`Project: ${found.name}`}
         // Rows and cards around the chip open the task on click; the chip only navigates
         onClick={event => event.stopPropagation()}
-        className={cn(base, 'outline-none hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary', className)}
+        className={cn(base, 'min-h-6 outline-none hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary', className)}
       >
         {content}
       </Link>

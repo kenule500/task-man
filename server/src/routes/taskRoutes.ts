@@ -8,6 +8,12 @@ import {
   validateUpdateTask,
 } from '../controllers/taskController.js';
 import {
+  bulkDeleteTasks,
+  bulkUpdateTasks,
+  validateBulkDelete,
+  validateBulkUpdate,
+} from '../controllers/bulkTaskController.js';
+import {
   addComment,
   deleteAttachment,
   deleteComment,
@@ -28,6 +34,10 @@ router.use(protect);
 
 router.get('/', requirePermission('tasks:read'), getTasks);
 router.post('/', requirePermission('tasks:write'), validateCreateTask, createTask);
+// Bulk routes come before the /:id routes so "bulk" is not read as a task id
+router.patch('/bulk', requirePermission('tasks:write'), validateBulkUpdate, bulkUpdateTasks);
+router.post('/bulk-delete', requirePermission('tasks:delete'), validateBulkDelete, bulkDeleteTasks);
+
 router.put('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.patch('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
 router.delete('/:id', requirePermission('tasks:delete'), deleteTask);

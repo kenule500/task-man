@@ -37,10 +37,10 @@ const Features = () => (
   <section id="features" aria-labelledby="features-heading" className="scroll-mt-20 bg-background py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <div className="mb-12 text-center md:mb-16">
-        <h2 id="features-heading" className="mb-4 text-balance text-3xl font-bold text-gray-900 md:text-4xl">
+        <h2 id="features-heading" className="mb-4 text-balance text-3xl font-bold text-slate-900 md:text-4xl">
           Everything you need to stay organized
         </h2>
-        <p className="mx-auto max-w-2xl text-lg text-gray-600">
+        <p className="mx-auto max-w-2xl text-lg text-slate-600">
           A focused toolset for planning, tracking and sharing work, without the clutter.
         </p>
       </div>
@@ -49,13 +49,13 @@ const Features = () => (
         {FEATURES.map(({ icon: Icon, title, desc }) => (
           <li
             key={title}
-            className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md sm:p-8"
+            className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md sm:p-8"
           >
             <div aria-hidden className="mb-5 flex size-12 items-center justify-center rounded-xl bg-blue-50 text-primary">
               <Icon className="size-6" />
             </div>
-            <h3 className="mb-2 text-xl font-bold text-gray-900">{title}</h3>
-            <p className="text-gray-600">{desc}</p>
+            <h3 className="mb-2 text-xl font-bold text-slate-900">{title}</h3>
+            <p className="text-slate-600">{desc}</p>
           </li>
         ))}
       </ul>

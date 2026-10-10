@@ -41,10 +41,13 @@ const sessionSchema: Schema = new Schema({
   timestamps: true
 });
 
-// Access tokens live 1 hour (see authController); a day later MongoDB removes the session record (TTL index)
-export const SESSION_LIFETIME_MS = 60 * 60 * 1000;
-sessionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
+// Sign-ins last 7 days (JWT expiry in authController) and can be revoked at any time from Security;
+// a day after expiry MongoDB removes the session record (TTL index)
+export const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+sessionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 8 * 24 * 60 * 60 });
 sessionSchema.index({ user: 1, isValid: 1, createdAt: -1 });
+// Every authenticated request looks its session up by token hash
+sessionSchema.index({ token: 1 }, { unique: true });
 
 const Session = mongoose.model<ISession>('Session', sessionSchema);
 export default Session;

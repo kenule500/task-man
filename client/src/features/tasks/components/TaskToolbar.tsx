@@ -22,6 +22,8 @@ interface TaskToolbarProps {
   onChange: (filters: TaskFilters) => void;
   /** Task count per status, shown inside the status pills. */
   counts: Record<TaskStatus | 'all', number>;
+  /** Hides the status pills; the board's columns already are the statuses. Defaults to true. */
+  showStatus?: boolean;
   /** Sorting only makes sense for the list; other views order tasks themselves. */
   showSort?: boolean;
   /** Labels used in the workspace; the label filter is hidden when there are none. */
@@ -34,8 +36,8 @@ interface TaskToolbarProps {
   exportCount?: number;
 }
 
-/** Search, status pills, priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
+/** Search, status pills (not on the board), priority and sort controls shared by every view. */
+const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], canFilterMine = false, onExport, exportCount }: TaskToolbarProps) => {
   const labelOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All labels' },
     ...labels.map(label => ({ value: label, label })),
@@ -54,23 +56,25 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
   return (
     // Status pills on their own row; search and filters on the next one (no awkward wrapping)
     <div className="flex flex-col gap-3">
-      <FilterPills
-        className="min-w-0"
-        aria-label="Filter by status"
-        value={filters.status}
-        options={STATUS_FILTER_OPTIONS.map(option => ({ ...option, count: counts[option.value] }))}
-        onChange={status => onChange({ ...filters, status })}
-      />
+      {showStatus && (
+        <FilterPills
+          className="min-w-0"
+          aria-label="Filter by status"
+          value={filters.status}
+          options={STATUS_FILTER_OPTIONS.map(option => ({ ...option, count: counts[option.value] }))}
+          onChange={status => onChange({ ...filters, status })}
+        />
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="flex gap-2 sm:contents">
         <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden />
           <Input
             type="search"
             aria-label="Search tasks"
             placeholder="Search tasks..."
-            className="pl-9 h-10 bg-white border-slate-200 rounded-lg text-base sm:h-9 sm:text-sm"
+            className="pl-9 h-11 bg-white border-slate-200 rounded-lg text-base sm:h-9 sm:text-sm"
             value={filters.search}
             onChange={e => onChange({ ...filters, search: e.target.value })}
           />
@@ -81,7 +85,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
           aria-controls={filtersId}
           onClick={() => setShowFilters(open => !open)}
           className={cn(
-            'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary sm:hidden',
+            'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary sm:hidden',
             showFilters || activeFilterCount > 0 ? 'border-primary text-primary' : 'border-slate-200 bg-white text-slate-700',
           )}
         >
@@ -100,7 +104,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
             title={exportCount === undefined ? 'Export CSV' : `Export ${exportCount} ${exportCount === 1 ? 'task' : 'tasks'} as CSV`}
             disabled={exportCount === 0}
             onClick={onExport}
-            className="h-10 w-10 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:ml-auto sm:h-9 sm:w-auto sm:px-3"
+            className="h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:ml-auto sm:h-9 sm:w-auto sm:px-3"
           >
             <Download className="size-4" aria-hidden />
             <span className="hidden sm:inline">Export CSV</span>
@@ -114,7 +118,7 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
             aria-pressed={assignedToMe}
             onClick={() => onChange({ ...filters, assignedToMe: !assignedToMe })}
             className={cn(
-              'inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-primary sm:h-9',
+              'inline-flex h-11 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-primary sm:h-9',
               assignedToMe ? 'border-primary bg-primary text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
             )}
           >
@@ -124,37 +128,37 @@ const TaskToolbar = ({ filters, onChange, counts, showSort = true, labels = [], 
         {labels.length > 0 && (
           <OptionSelect
             aria-label="Filter by label"
-            icon={<Tag className="size-3.5 text-slate-400" aria-hidden />}
+            icon={<Tag className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.label ?? 'all'}
             options={labelOptions}
             onChange={label => onChange({ ...filters, label })}
-            className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
           />
         )}
         <OptionSelect
           aria-label="Filter by type"
-          icon={<Layers className="size-3.5 text-slate-400" aria-hidden />}
+          icon={<Layers className="size-3.5 text-slate-500" aria-hidden />}
           value={filters.type ?? 'all'}
           options={TYPE_FILTER_OPTIONS}
           onChange={type => onChange({ ...filters, type })}
-          className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
+          className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
         />
         <OptionSelect
           aria-label="Filter by priority"
-          icon={<Flag className="size-3.5 text-slate-400" aria-hidden />}
+          icon={<Flag className="size-3.5 text-slate-500" aria-hidden />}
           value={filters.priority}
           options={PRIORITY_FILTER_OPTIONS}
           onChange={priority => onChange({ ...filters, priority })}
-          className={cn('h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36', !showSort && 'col-span-2')}
+          className={cn('h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36', !showSort && 'col-span-2')}
         />
         {showSort && (
           <OptionSelect<TaskSort>
             aria-label="Sort tasks"
-            icon={<ArrowUpDown className="size-3.5 text-slate-400" aria-hidden />}
+            icon={<ArrowUpDown className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.sort}
             options={SORT_OPTIONS}
             onChange={sort => onChange({ ...filters, sort })}
-            className="h-10 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
           />
         )}
         </div>

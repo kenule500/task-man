@@ -7,10 +7,11 @@ import { markBoardTried } from '@/components/dashboard/getStarted';
 import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
 import {
   BoardView, ConfirmTaskDelete, CalendarView, DEFAULT_FILTERS, DELETE_UNDO_MS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
   TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
-  useTasks, useWorkspaceMembers,
+  tasksApi, useTasks, useWorkspaceMembers,
   type Task, type TaskDetailActions, type TaskFilters, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
@@ -31,6 +32,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const canWrite = can('tasks:write');
   const canDelete = can('tasks:delete');
   const canReadUsers = can('users:read');
+  const canManageBoard = can('settings:manage');
+  const boardControls = useBoardUrlState();
   const currentUser = useMemo(() => (user ? { _id: user._id, name: user.name } : null), [user]);
 
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
@@ -40,14 +43,15 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
 
   const {
     tasks, loading, error, clearError, createTask, updateTask, deleteTask, undoDelete,
-    addComment, removeComment, uploadAttachment, removeAttachment, downloadAttachment,
+    addComment, removeComment, uploadAttachment, removeAttachment, downloadAttachment, reload,
   } = useTasks(workspaceSlug);
   const { projects } = useProjects(workspaceSlug);
   const { byName } = useProjectDirectory();
-  const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, form.mode !== 'closed' && canReadUsers);
 
   const requestedView = searchParams.get('view') as TaskView | null;
   const view: TaskView = requestedView && TASK_VIEWS.includes(requestedView) ? requestedView : defaultView;
+  // Members feed the task form and the list's bulk "assign" action
+  const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, (form.mode !== 'closed' || view === 'list') && canReadUsers);
   const setView = (next: TaskView) => setSearchParams({ view: next }, { replace: true });
 
   // Deep links: `?new=1` opens the create dialog, `?task=<id>` opens that task. Each runs once, then leaves the URL.
@@ -92,9 +96,10 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   );
   // Lets the search find "WEB-12" and labels the CSV key column
   const projectKeyOf = useCallback((task: Task) => (task.project ? byName(task.project)?.key : undefined), [byName]);
+  // The board's columns are the statuses, so a status filter set in another view must not hide columns
   const visibleTasks = useMemo(
-    () => applyFilters(tasks, activeFilters, currentUser?._id, projectKeyOf),
-    [tasks, activeFilters, currentUser?._id, projectKeyOf],
+    () => applyFilters(tasks, view === 'board' ? { ...activeFilters, status: 'all' } : activeFilters, currentUser?._id, projectKeyOf),
+    [tasks, view, activeFilters, currentUser?._id, projectKeyOf],
   );
   const stats = useMemo(() => getTaskStats(tasks), [tasks]);
   const detailTask = detailId ? tasks.find(task => task._id === detailId) ?? null : null;
@@ -174,8 +179,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   return (
     <AppShell>
       <PageHeader
-        title="My Tasks"
-        description={canWrite ? 'Manage and track all your tasks' : 'Track all your tasks (read-only access)'}
+        title="Tasks"
+        description={canWrite ? 'All work in this workspace, as a list, board, calendar or timeline' : 'All work in this workspace (read-only access)'}
         actions={canWrite ? (
           <Button
             onClick={() => setForm({ mode: 'create' })}
@@ -196,8 +201,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
 
           {/* Phones go straight to the tasks; the dashboard has the same numbers */}
           <div className="hidden grid-cols-2 gap-3 sm:grid sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total Tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-            <StatCard className="p-4 sm:p-5" title="In Progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
             <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
             <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
           </div>
@@ -207,6 +212,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
             <TaskToolbar
               filters={activeFilters}
               onChange={setFilters}
+              showStatus={view !== 'board'}
               showSort={view === 'list'}
               labels={labels}
               canFilterMine={Boolean(currentUser)}
@@ -216,8 +222,28 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
             />
           </Surface>
 
-          {view === 'list' && <ListView {...viewProps} totalCount={tasks.length} allTasks={tasks} />}
-          {view === 'board' && <BoardView {...viewProps} />}
+          {view === 'list' && (
+            <ListView
+              {...viewProps}
+              totalCount={tasks.length}
+              allTasks={tasks}
+              projects={projects}
+              members={members}
+              // Bulk changes go straight to the server, then the list reloads (one request for many tasks)
+              onBulkUpdate={workspaceSlug ? async (ids, patch) => { await tasksApi.bulkUpdate(workspaceSlug, ids, patch); await reload(); } : undefined}
+              onBulkDelete={workspaceSlug ? async ids => { await tasksApi.bulkDelete(workspaceSlug, ids); await reload(); } : undefined}
+            />
+          )}
+          {view === 'board' && (
+            <BoardView
+              {...viewProps}
+              controls={boardControls}
+              allTasks={tasks}
+              currentUserId={currentUser?._id}
+              workspaceSlug={workspaceSlug}
+              canManageBoard={canManageBoard}
+            />
+          )}
           {view === 'calendar' && <CalendarView {...viewProps} />}
           {view === 'timeline' && <TimelineView {...viewProps} />}
         </>

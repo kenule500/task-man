@@ -3,14 +3,14 @@ const DashboardMockup = () => {
     { label: 'Dashboard', active: true },
     { label: 'Tasks', active: false },
     { label: 'Projects', active: false },
-    { label: 'Team Members', active: false },
+    { label: 'Team', active: false },
     { label: 'Calendar', active: false },
     { label: 'Reports', active: false },
   ];
 
   const sidebarGeneral = [
     { label: 'Settings' },
-    { label: 'Help & Center' },
+    { label: 'Help center' },
   ];
 
   const statCards = [
@@ -56,7 +56,7 @@ const DashboardMockup = () => {
               <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
             </div>
             <div className="flex-1 mx-4">
-              <div className="bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-400 text-center">
+              <div className="bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-500 text-center">
                 yourteam.taskman.app/tasks
               </div>
             </div>
@@ -70,17 +70,17 @@ const DashboardMockup = () => {
                 <div className="w-7 h-7 bg-primary rounded-lg flex items-center justify-center text-white text-xs font-bold">T</div>
                 <div>
                   <div className="font-bold text-slate-900 text-xs leading-tight">TaskMan</div>
-                  <div className="text-[9px] text-slate-400 leading-tight">Workspace</div>
+                  <div className="text-[9px] text-slate-500 leading-tight">Workspace</div>
                 </div>
               </div>
 
-              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Main Menu</div>
+              <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Main Menu</div>
               <div className="flex flex-col gap-0.5 mb-5">
                 {sidebarMain.map((item, i) => (
                   <div
                     key={i}
                     className={`flex items-center gap-3 px-3 py-1.5 rounded-lg text-[11px] font-medium ${
-                      item.active ? 'bg-primary/10 text-primary' : 'text-slate-500'
+                      item.active ? 'bg-primary/10 text-primary-hover' : 'text-slate-500'
                     }`}
                   >
                     <div className={`w-3 h-3 rounded ${item.active ? 'bg-primary' : 'bg-slate-300'}`}></div>
@@ -89,7 +89,7 @@ const DashboardMockup = () => {
                 ))}
               </div>
 
-              <div className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">General</div>
+              <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">General</div>
               <div className="flex flex-col gap-0.5 mb-5">
                 {sidebarGeneral.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-500">
@@ -106,9 +106,9 @@ const DashboardMockup = () => {
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold flex-shrink-0">A</div>
                   <div className="min-w-0 flex-1">
                     <div className="text-[10px] font-semibold text-slate-900 truncate">Ada Lovelace</div>
-                    <div className="text-[9px] text-slate-400 truncate">ada@example.com</div>
+                    <div className="text-[9px] text-slate-500 truncate">ada@example.com</div>
                   </div>
-                  <svg className="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                   </svg>
                 </div>
@@ -120,10 +120,10 @@ const DashboardMockup = () => {
               <div className="flex justify-between items-center mb-5">
                 <div>
                   <div className="text-lg font-bold text-slate-900">My Tasks</div>
-                  <div className="text-xs text-slate-400 mt-0.5">Manage and track all your tasks</div>
+                  <div className="text-xs text-slate-500 mt-0.5">Manage and track all your tasks</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="hidden sm:block bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-400 w-40">Search tasks...</div>
+                  <div className="hidden sm:block bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-500 w-40">Search tasks...</div>
                   <div className="bg-primary text-white rounded-lg px-3 py-1.5 text-xs font-medium">+ Add Task</div>
                 </div>
               </div>
@@ -174,7 +174,7 @@ const DashboardMockup = () => {
                 <div className="flex justify-between items-center px-4 py-2.5 bg-slate-50/50 border-t border-slate-100">
                   <div className="text-[9px] text-slate-500">Showing 7 of 12 tasks</div>
                   <div className="flex items-center gap-1">
-                    <div className="w-5 h-5 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-400 text-[10px]">‹</div>
+                    <div className="w-5 h-5 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-500 text-[10px]">‹</div>
                     <div className="w-5 h-5 rounded bg-primary text-white flex items-center justify-center text-[10px] font-medium">1</div>
                     <div className="w-5 h-5 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-600 text-[10px]">2</div>
                     <div className="w-5 h-5 rounded border border-slate-200 bg-white flex items-center justify-center text-slate-600 text-[10px]">›</div>
@@ -185,7 +185,7 @@ const DashboardMockup = () => {
           </div>
         </div>
       </div>
-      <figcaption className="mt-4 text-center text-xs text-gray-600">
+      <figcaption className="mt-4 text-center text-xs text-slate-600">
         Illustration with sample data.
       </figcaption>
     </figure>

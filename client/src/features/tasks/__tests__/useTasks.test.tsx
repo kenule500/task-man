@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { clearCache, getCached, tasksKey } from '@/lib/queryCache';
 import { tasksApi } from '../api';
 import { DELETE_UNDO_MS, useTasks } from '../hooks/useTasks';
 import { makeTask } from './fixtures';
@@ -28,6 +29,9 @@ const renderLoaded = async (tasks = [makeTask({ _id: 'a', title: 'A' }), makeTas
 };
 
 describe('useTasks', () => {
+  // The list cache is shared module state: every test starts cold
+  beforeEach(() => clearCache());
+
   it('loads the workspace tasks', async () => {
     const { result } = await renderLoaded();
     expect(api.list).toHaveBeenCalledWith('acme');
@@ -291,6 +295,74 @@ describe('useTasks', () => {
       await act(async () => { await result.current.uploadAttachment('a', file, { onProgress }); });
       expect(api.uploadAttachment).toHaveBeenCalledWith('acme', 'a', file, { onProgress });
       expect(result.current.tasks[0].attachments).toEqual([attachment]);
+    });
+  });
+
+  describe('caching', () => {
+    it('shows cached tasks at once without a loading state, then refreshes them', async () => {
+      await renderLoaded([makeTask({ _id: 'a', title: 'Cached' })]);
+      expect(getCached(tasksKey('acme'))).toHaveLength(1);
+
+      let resolveList: (tasks: ReturnType<typeof makeTask>[]) => void = () => {};
+      api.list.mockReturnValue(new Promise(resolve => { resolveList = resolve; }));
+      const { result } = renderHook(() => useTasks('acme'));
+      expect(result.current.loading).toBe(false);
+      expect(result.current.tasks[0].title).toBe('Cached');
+
+      await act(async () => { resolveList([makeTask({ _id: 'a', title: 'Fresh' })]); });
+      await waitFor(() => expect(result.current.tasks[0].title).toBe('Fresh'));
+      expect(getCached<unknown[]>(tasksKey('acme'))).toHaveLength(1);
+    });
+
+    it('keeps the cached tasks when the background refresh fails', async () => {
+      await renderLoaded([makeTask({ _id: 'a', title: 'Cached' })]);
+      api.list.mockRejectedValue(new Error('offline'));
+      const { result } = renderHook(() => useTasks('acme'));
+      await waitFor(() => expect(result.current.error).toBe('Failed to load tasks.'));
+      expect(result.current.tasks[0].title).toBe('Cached');
+    });
+
+    it('drops the cache when access is denied', async () => {
+      await renderLoaded();
+      api.list.mockRejectedValue({ response: { status: 403 } });
+      const { result } = renderHook(() => useTasks('acme'));
+      await waitFor(() => expect(result.current.tasks).toHaveLength(0));
+      expect(result.current.error).toMatch(/don't have access/);
+      expect(getCached(tasksKey('acme'))).toBeUndefined();
+    });
+
+    it('does not cache the empty fallback of a failed first load', async () => {
+      api.list.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => useTasks('fresh'));
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(getCached(tasksKey('fresh'))).toBeUndefined();
+    });
+
+    it('shares one request between components mounting together', async () => {
+      api.list.mockResolvedValue([makeTask({ _id: 'a' })]);
+      const first = renderHook(() => useTasks('acme'));
+      const second = renderHook(() => useTasks('acme'));
+      await waitFor(() => expect(first.result.current.loading).toBe(false));
+      await waitFor(() => expect(second.result.current.loading).toBe(false));
+      expect(api.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('writes a committed update back to the cache', async () => {
+      const { result } = await renderLoaded();
+      api.update.mockResolvedValue(makeTask({ _id: 'a', title: 'Saved' }));
+      await act(async () => { await result.current.updateTask('a', { title: 'Saved' }); });
+      await waitFor(() => expect(getCached<{ title: string }[]>(tasksKey('acme'))?.[0].title).toBe('Saved'));
+    });
+
+    it('does not let a late background refresh overwrite a local change', async () => {
+      await renderLoaded([makeTask({ _id: 'a', title: 'Cached' })]);
+      let resolveList: (tasks: ReturnType<typeof makeTask>[]) => void = () => {};
+      api.list.mockReturnValue(new Promise(resolve => { resolveList = resolve; }));
+      const { result } = renderHook(() => useTasks('acme'));
+      api.create.mockResolvedValue(makeTask({ _id: 'n', title: 'New' }));
+      await act(async () => { await result.current.createTask({ title: 'New' } as never); });
+      await act(async () => { resolveList([makeTask({ _id: 'a', title: 'Cached' })]); });
+      expect(result.current.tasks.map(task => task._id)).toEqual(['a', 'n']);
     });
   });
 });

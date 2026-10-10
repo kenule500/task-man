@@ -134,7 +134,15 @@ export const removeMember = async (req: Request, res: Response): Promise<void> =
     // Remove the workspace reference from the user
     const removedUser = await mongoose.model('User').findByIdAndUpdate(targetUserId, {
       $pull: { workspaces: workspace._id },
-    }).select('name').lean<{ name?: string }>();
+    }).select('name activeWorkspace').lean<{ name?: string; activeWorkspace?: mongoose.Types.ObjectId }>();
+    // A removed member no longer owns work here, and this workspace is no longer their default one
+    await mongoose.model('Task').updateMany(
+      { workspace: workspace._id, assignees: new mongoose.Types.ObjectId(targetUserId) },
+      { $pull: { assignees: new mongoose.Types.ObjectId(targetUserId) } },
+    );
+    if (removedUser?.activeWorkspace && String(removedUser.activeWorkspace) === String(workspace._id)) {
+      await mongoose.model('User').updateOne({ _id: targetUserId }, { $unset: { activeWorkspace: 1 } });
+    }
     await recordActivity(req, {
       action: 'member.removed', summary: removedUser?.name ?? targetUserId,
       changes: [{ field: 'role', from: memberRole?.name }],
@@ -143,6 +151,42 @@ export const removeMember = async (req: Request, res: Response): Promise<void> =
     res.status(200).json({ message: 'Member removed' });
   } catch (error) {
     console.error('removeMember error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+// ================================================================
+// @desc    Leave a workspace (any member except the owner)
+// @route   DELETE /api/workspaces/:slug/members/me
+// ================================================================
+export const leaveWorkspace = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = String(req.user?._id ?? '');
+    const workspace = await Workspace.findOne({ slug: String(req.params.slug) });
+    if (!workspace || !findMember(workspace, userId)) {
+      res.status(404).json({ message: 'Workspace not found' });
+      return;
+    }
+    if (isWorkspaceOwner(workspace, userId)) {
+      res.status(409).json({ message: "The owner can't leave their own workspace" });
+      return;
+    }
+
+    workspace.members = workspace.members.filter(m => m.user.toString() !== userId);
+    await workspace.save();
+
+    const memberId = new mongoose.Types.ObjectId(userId);
+    await mongoose.model('Task').updateMany({ workspace: workspace._id, assignees: memberId }, { $pull: { assignees: memberId } });
+    const user = await mongoose.model('User').findByIdAndUpdate(userId, { $pull: { workspaces: workspace._id } })
+      .select('name activeWorkspace').lean<{ name?: string; activeWorkspace?: mongoose.Types.ObjectId }>();
+    if (user?.activeWorkspace && String(user.activeWorkspace) === String(workspace._id)) {
+      await mongoose.model('User').updateOne({ _id: userId }, { $unset: { activeWorkspace: 1 } });
+    }
+
+    req.workspace = workspace;
+    await recordActivity(req, { action: 'member.left', summary: user?.name ?? userId });
+    res.status(200).json({ message: 'You left the workspace' });
+  } catch (error) {
+    console.error('leaveWorkspace error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

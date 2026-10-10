@@ -1,29 +1,38 @@
 import {
-  useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent,
+  useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type PointerEvent, type TouchEvent,
 } from 'react';
-import { ArrowRight, Check, MessageSquare, Paperclip, Plus, RotateCcw, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Check, Ellipsis, MessageSquare, Paperclip, Plus, RotateCcw, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { DependencyCount, DueDate, PriorityIndicator, StatusDot } from '../components/TaskBadges';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { DependencyCount, DueDate, PriorityIndicator, StatusDot, TaskTypeIcon } from '../components/TaskBadges';
+import BoardQuickFilters from '../components/BoardQuickFilters';
+import BoardSwimlanes from '../components/BoardSwimlanes';
 import MoveTaskSheet from '../components/MoveTaskSheet';
 import TaskActionsMenu from '../components/TaskActionsMenu';
 import { AssigneeStack, LabelList } from '../components/TaskChips';
 import TaskKey from '../components/TaskKey';
-import { PRIORITY_META, STATUS_META, TASK_STATUSES } from '../constants';
+import WipLimitsDialog from '../components/WipLimitsDialog';
+import { STATUS_META, TASK_STATUSES } from '../constants';
+import { useBoardSettings, useIsDesktop, type BoardUrlState } from '../hooks/useBoardSettings';
+import { applyQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
+import { stepColumn, swipeStep } from '../lib/columnSwipe';
 import { getDropPosition, groupByStatus, positionBetween } from '../lib/filters';
 import { BOARD_PAGE_SIZE, pageCount, paginate } from '../lib/pagination';
-import { closestColumnIndex, scrollBehavior } from '../lib/scroll';
+import { ALL_LANE_ID, groupIntoSwimlanes, laneIdOf, type Swimlane, type SwimlaneGroup } from '../lib/swimlanes';
+import { isOverWip, wipCountLabel } from '../lib/wip';
 import type { Task, TaskStatus } from '../types';
 import ProjectChip from '@/features/projects/components/ProjectChip';
 import type { TaskViewProps } from './types';
 
 interface DropTarget {
+  laneId: string;
   status: TaskStatus;
   /** Insertion index within the column (as currently rendered) */
   index: number;
 }
-
-const INITIAL_PAGES: Record<TaskStatus, number> = { pending: 1, 'in-progress': 1, completed: 1 };
 
 /** One-tap phone action per status: where the card goes next. */
 const QUICK_MOVE: Record<TaskStatus, { to: TaskStatus; verb: string; icon: LucideIcon }> = {
@@ -35,52 +44,119 @@ const QUICK_MOVE: Record<TaskStatus, { to: TaskStatus; verb: string; icon: Lucid
 const LONG_PRESS_MS = 500;
 /** Finger travel (px) that turns a press into a scroll or drag. */
 const LONG_PRESS_SLOP = 8;
+/** How long the "Moved to ..." chip stays. */
+const HINT_MS = 6000;
+const SLIDE_MS = 150;
 
-/** Kanban board: Pending > In Progress > Completed, with drag & drop between and within columns. */
-const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true }: TaskViewProps) => {
+const pageKey = (laneId: string, status: TaskStatus) => `${laneId}::${status}`;
+
+export interface BoardViewProps extends TaskViewProps {
+  /**
+   * Board UI state owned by the page (kept in the URL: ?col, ?qf, ?group). Any part left out
+   * falls back to local state, so the board also works on its own.
+   */
+  controls?: Partial<BoardUrlState>;
+  /** Every task of the workspace: dependencies and WIP counts must not depend on the page filters. Defaults to `tasks`. */
+  allTasks?: Task[];
+  /** Enables "My tasks"; without a user that quick filter is hidden. */
+  currentUserId?: string;
+  /** Workspace whose board settings (WIP limits) are loaded. */
+  workspaceSlug?: string;
+  /** Holds `settings:manage`: shows "Set WIP limits" in the column menu. */
+  canManageBoard?: boolean;
+}
+
+/**
+ * Kanban board: Pending > In Progress > Completed. Phones show one column at a time (segmented switcher,
+ * swipe, ?col= in the URL); from md the three columns sit side by side with drag & drop, optionally split into swimlanes.
+ */
+const BoardView = ({
+  tasks: incomingTasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true,
+  controls, allTasks, currentUserId, workspaceSlug, canManageBoard = false,
+}: BoardViewProps) => {
+  const isDesktop = useIsDesktop();
+
+  // Board UI state: the page's (URL backed) when given, local otherwise
+  const [localColumn, setLocalColumn] = useState<TaskStatus>(TASK_STATUSES[0]);
+  const [localQuickFilters, setLocalQuickFilters] = useState<QuickFilterKey[]>([]);
+  const [localGroupBy, setLocalGroupBy] = useState<SwimlaneGroup>('none');
+  const activeColumn = controls?.column ?? localColumn;
+  const setActiveColumn = controls?.setColumn ?? setLocalColumn;
+  const quickFilters = controls?.quickFilters ?? localQuickFilters;
+  const setQuickFilters = controls?.setQuickFilters ?? setLocalQuickFilters;
+  const groupBy = controls?.groupBy ?? localGroupBy;
+  const setGroupBy = controls?.setGroupBy ?? setLocalGroupBy;
+  const laneMode = groupBy !== 'none' && isDesktop;
+
+  const tasks = useMemo(
+    () => applyQuickFilters(incomingTasks, quickFilters, { currentUserId, allTasks: allTasks ?? incomingTasks }),
+    [incomingTasks, quickFilters, currentUserId, allTasks],
+  );
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
+  const lanes = useMemo<Swimlane[]>(
+    () => (laneMode ? groupIntoSwimlanes(tasks, groupBy) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
+    [laneMode, groupBy, tasks],
+  );
+  const laneColumns = useMemo(
+    () => new Map(lanes.map(lane => [lane.id, laneMode ? groupByStatus(lane.tasks) : columns])),
+    [lanes, laneMode, columns],
+  );
+
+  // WIP is about the whole column, whatever the page filters hide
+  const { limits, saveLimits } = useBoardSettings(workspaceSlug);
+  const wipCounts = useMemo(() => {
+    const all = groupByStatus(allTasks ?? incomingTasks);
+    return { pending: all.pending.length, 'in-progress': all['in-progress'].length, completed: all.completed.length };
+  }, [allTasks, incomingTasks]);
+  const [wipDialog, setWipDialog] = useState<TaskStatus | null>(null);
+
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggingLane, setDraggingLane] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
-  // Per-column pagination; resets whenever the set of tasks changes (filters, create, delete), not on moves.
+  // Per-cell pagination; resets whenever the set of tasks changes (filters, create, delete), not on moves.
   const taskSignature = useMemo(() => tasks.map(task => task._id).sort().join('|'), [tasks]);
-  const [pageState, setPageState] = useState({ signature: taskSignature, pages: INITIAL_PAGES });
-  const pages = pageState.signature === taskSignature ? pageState.pages : INITIAL_PAGES;
+  const [pageState, setPageState] = useState<{ signature: string; pages: Record<string, number> }>({ signature: taskSignature, pages: {} });
+  const pages = pageState.signature === taskSignature ? pageState.pages : {};
   const pendingFocus = useRef<string | null>(null);
 
-  // Mobile move sheet + screen reader announcement
+  // Mobile move sheet + "Moved to" announcement / hint chip
   const [sheetTaskId, setSheetTaskId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState('');
+  const [movedTo, setMovedTo] = useState<TaskStatus | null>(null);
   const announceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const announceMove = (status: TaskStatus) => {
     clearTimeout(announceTimer.current);
-    setAnnouncement(`Moved to ${STATUS_META[status].label}`);
-    announceTimer.current = setTimeout(() => setAnnouncement(''), 4000);
+    setMovedTo(status);
+    announceTimer.current = setTimeout(() => setMovedTo(null), HINT_MS);
   };
+  useEffect(() => () => clearTimeout(announceTimer.current), []);
 
-  const showMore = (status: TaskStatus, all = false) => {
-    const column = columns[status];
-    pendingFocus.current = column[paginate(column, pages[status]).shown]?._id ?? null;
-    const next = all ? pageCount(column.length) : pages[status] + 1;
-    setPageState({ signature: taskSignature, pages: { ...pages, [status]: next } });
+  const showMore = (laneId: string, status: TaskStatus, cell: Task[], all = false) => {
+    const current = pages[pageKey(laneId, status)] ?? 1;
+    pendingFocus.current = cell[paginate(cell, current).shown]?._id ?? null;
+    const next = all ? pageCount(cell.length) : current + 1;
+    setPageState({ signature: taskSignature, pages: { ...pages, [pageKey(laneId, status)]: next } });
   };
 
   const resetDrag = () => {
     setDraggingId(null);
+    setDraggingLane(null);
     setDropTarget(null);
   };
 
-  const handleDrop = (event: DragEvent, status: TaskStatus) => {
+  const handleDrop = (event: DragEvent, laneId: string, status: TaskStatus) => {
     event.preventDefault();
     if (!canWrite) return;
     const id = event.dataTransfer.getData('text/plain') || draggingId;
     const task = tasks.find(t => t._id === id);
-    const index = dropTarget?.status === status ? dropTarget.index : columns[status].length;
+    const cell = laneColumns.get(laneId)?.[status] ?? [];
+    const index = dropTarget?.laneId === laneId && dropTarget.status === status ? dropTarget.index : cell.length;
     resetDrag();
-    if (!task) return;
+    // A card only moves between the columns of its own lane
+    if (!task || laneIdOf(task, laneMode ? groupBy : 'none') !== laneId) return;
 
-    const position = getDropPosition(columns[status], task._id, index);
+    const position = getDropPosition(cell, task._id, index);
     if (task.status === status && position === null) return;
     void onUpdate(task._id, { status, ...(position !== null && { position }) });
     if (task.status !== status) announceMove(status);
@@ -98,14 +174,11 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
     setSheetOpen(true);
   };
 
-  // Phone status tabs: tapping scrolls the column in, scrolling updates the active tab.
+  // Phone status switcher
   const idPrefix = useId();
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Partial<Record<TaskStatus, HTMLElement | null>>>({});
   const tabRefs = useRef<Partial<Record<TaskStatus, HTMLButtonElement | null>>>({});
-  const programmaticScroll = useRef(false);
-  const unlockTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [activeStatus, setActiveStatus] = useState<TaskStatus>(TASK_STATUSES[0]);
   const columnId = (status: TaskStatus) => `${idPrefix}-column-${status}`;
   const sheetTask = tasks.find(task => task._id === sheetTaskId) ?? null;
 
@@ -114,33 +187,24 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
     const id = pendingFocus.current;
     if (!id) return;
     pendingFocus.current = null;
-    scrollerRef.current?.querySelector<HTMLElement>(`[data-task-id="${id}"] [data-card-title]`)?.focus();
+    boardRef.current?.querySelector<HTMLElement>(`[data-task-id="${id}"] [data-card-title]`)?.focus();
   }, [pageState]);
 
-  const selectTab = (status: TaskStatus) => {
-    setActiveStatus(status);
-    const scroller = scrollerRef.current;
-    const section = sectionRefs.current[status];
-    if (!scroller || !section) return;
-    const behavior = scrollBehavior();
-    if (behavior === 'smooth') {
-      // ignore scroll events while the smooth scroll runs, so the tab does not flicker
-      programmaticScroll.current = true;
-      clearTimeout(unlockTimer.current);
-      unlockTimer.current = setTimeout(() => { programmaticScroll.current = false; }, 700);
-    }
-    const delta = section.getBoundingClientRect().left - scroller.getBoundingClientRect().left;
-    scroller.scrollTo?.({ left: scroller.scrollLeft + delta, behavior });
-  };
-
-  const handleScroll = () => {
-    if (programmaticScroll.current) return;
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const lefts = TASK_STATUSES.map(status => sectionRefs.current[status]?.getBoundingClientRect().left ?? Infinity);
-    const next = TASK_STATUSES[closestColumnIndex(lefts, scroller.getBoundingClientRect().left)];
-    if (next !== activeStatus) setActiveStatus(next);
-  };
+  // Short slide + fade when the phone column changes (skipped for reduced motion)
+  const shownColumn = useRef(activeColumn);
+  useEffect(() => {
+    const previous = shownColumn.current;
+    if (previous === activeColumn) return;
+    shownColumn.current = activeColumn;
+    const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)')?.matches;
+    const section = sectionRefs.current[activeColumn];
+    if (isDesktop || reduced || !section || typeof section.animate !== 'function') return;
+    const direction = TASK_STATUSES.indexOf(activeColumn) > TASK_STATUSES.indexOf(previous) ? 1 : -1;
+    section.animate(
+      [{ opacity: 0, transform: `translateX(${direction * 24}px)` }, { opacity: 1, transform: 'translateX(0)' }],
+      { duration: SLIDE_MS, easing: 'ease-out' },
+    );
+  }, [activeColumn, isDesktop]);
 
   const handleTabKeyDown = (event: KeyboardEvent, status: TaskStatus) => {
     const index = TASK_STATUSES.indexOf(status);
@@ -152,189 +216,340 @@ const BoardView = ({ tasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWri
               : null;
     if (!target) return;
     event.preventDefault();
-    selectTab(target);
+    setActiveColumn(target);
     tabRefs.current[target]?.focus();
   };
 
-  return (
-    <>
-    {/* Phones and tablets: sticky status tabs (the columns scroll sideways below lg) */}
-    <div
-      role="tablist"
-      aria-label="Task status"
-      data-testid="board-tabs"
-      className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 mb-3 flex gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur lg:hidden"
-    >
-      {TASK_STATUSES.map(status => {
-        const active = status === activeStatus;
-        return (
-          <button
-            key={status}
-            ref={node => { tabRefs.current[status] = node; }}
-            type="button"
-            role="tab"
-            id={`${idPrefix}-tab-${status}`}
-            aria-selected={active}
-            aria-controls={columnId(status)}
-            tabIndex={active ? 0 : -1}
-            onClick={() => selectTab(status)}
-            onKeyDown={event => handleTabKeyDown(event, status)}
-            className={cn(
-              'flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors',
-              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary active:scale-[0.98]',
-              active ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
-            )}
-          >
-            <span className="truncate">{STATUS_META[status].label}</span>
-            <span
-              className={cn(
-                'rounded-md px-1.5 text-[11px] font-medium tabular-nums',
-                active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500',
-              )}
+  // Swipe left/right (touch only) moves between the columns; mostly vertical movements are scrolls
+  const swipeOrigin = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    swipeOrigin.current = isDesktop || event.touches.length !== 1 || !touch ? null : { x: touch.clientX, y: touch.clientY };
+  };
+  const handleTouchEnd = (event: TouchEvent) => {
+    const origin = swipeOrigin.current;
+    const touch = event.changedTouches[0];
+    swipeOrigin.current = null;
+    if (!origin || !touch) return;
+    const step = swipeStep(touch.clientX - origin.x, touch.clientY - origin.y);
+    if (step !== 0) setActiveColumn(stepColumn(TASK_STATUSES, activeColumn, step));
+  };
+
+  const renderHeader = (status: TaskStatus, className?: string) => (
+    <ColumnHeader
+      key={status}
+      status={status}
+      count={columns[status].length}
+      wipCount={wipCounts[status]}
+      limit={limits[status]}
+      canAdd={canWrite}
+      onAdd={() => onCreate({ status })}
+      canManage={canManageBoard && Boolean(workspaceSlug)}
+      onManage={() => setWipDialog(status)}
+      className={className}
+    />
+  );
+
+  const renderColumn = (lane: Swimlane, status: TaskStatus) => {
+    const column = laneColumns.get(lane.id)?.[status] ?? [];
+    const { visible, shown, total, hasMore, remaining } = paginate(column, pages[pageKey(lane.id, status)] ?? 1);
+    const isTarget = dropTarget?.laneId === lane.id && dropTarget.status === status;
+    // Swimlanes: a dragged card may only be dropped in the columns of its own lane
+    const accepts = draggingLane === null || draggingLane === lane.id;
+    const label = STATUS_META[status].label;
+
+    return (
+      <section
+        key={`${lane.id}-${status}`}
+        id={laneMode ? undefined : columnId(status)}
+        ref={laneMode ? undefined : (node => { sectionRefs.current[status] = node; })}
+        aria-label={laneMode ? `${label} column in ${lane.label}` : `${label} column`}
+        onDragOver={event => {
+          if (!accepts) return;
+          event.preventDefault();
+          if (!isTarget || dropTarget.index !== column.length) setDropTarget({ laneId: lane.id, status, index: column.length });
+        }}
+        onDragLeave={event => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null);
+        }}
+        onDrop={event => handleDrop(event, lane.id, status)}
+        className={cn(
+          'flex flex-col rounded-2xl border border-slate-100 bg-slate-50/70 transition-colors',
+          // Phones: one column at a time
+          !laneMode && status !== activeColumn && 'max-md:hidden',
+          isTarget && 'border-primary/30 bg-blue-50/40',
+        )}
+      >
+        {!laneMode && renderHeader(status)}
+
+        <ol className={cn('flex flex-col gap-2 px-2.5 pb-3 md:gap-2.5 md:px-3', laneMode ? 'min-h-16 pt-3' : 'min-h-32')}>
+          {visible.map((task, index) => (
+            <li
+              key={task._id}
+              data-task-id={task._id}
+              onDragOver={event => {
+                if (!accepts) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const { top, height } = event.currentTarget.getBoundingClientRect();
+                const nextIndex = event.clientY > top + height / 2 ? index + 1 : index;
+                if (!isTarget || dropTarget.index !== nextIndex) setDropTarget({ laneId: lane.id, status, index: nextIndex });
+              }}
             >
-              {columns[status].length}
-              <span className="sr-only"> tasks</span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
+              {isTarget && dropTarget.index === index && <DropIndicator />}
+              <BoardCard
+                task={task}
+                canWrite={canWrite}
+                canDelete={canDelete}
+                canDrag={canWrite && isDesktop}
+                dragging={draggingId === task._id}
+                onDragStart={event => {
+                  event.dataTransfer.setData('text/plain', task._id);
+                  event.dataTransfer.effectAllowed = 'move';
+                  setDraggingId(task._id);
+                  setDraggingLane(lane.id);
+                }}
+                onDragEnd={resetDrag}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onOpen={onOpen}
+                onMove={handleMove}
+                onOpenMoveSheet={openMoveSheet}
+              />
+            </li>
+          ))}
+          {isTarget && dropTarget.index >= visible.length && <DropIndicator />}
+          {column.length === 0 && !isTarget && (
+            <li className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-600">
+              {canWrite ? (
+                <>
+                  <span className="md:hidden">No tasks</span>
+                  <span className="max-md:hidden">Drop tasks here</span>
+                </>
+              ) : 'No tasks'}
+            </li>
+          )}
+        </ol>
 
-    <div
-      ref={scrollerRef}
-      data-testid="board-columns"
-      onScroll={handleScroll}
-      className="-mx-1 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-1 pb-3 md:gap-4 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0"
-    >
-      {TASK_STATUSES.map(status => {
-        const column = columns[status];
-        const { visible, shown, total, hasMore, remaining } = paginate(column, pages[status]);
-        const isTarget = dropTarget?.status === status;
-
-        return (
-          <section
-            key={status}
-            id={columnId(status)}
-            ref={node => { sectionRefs.current[status] = node; }}
-            aria-label={`${STATUS_META[status].label} column`}
-            onDragOver={event => {
-              event.preventDefault();
-              if (!isTarget || dropTarget.index !== column.length) setDropTarget({ status, index: column.length });
-            }}
-            onDragLeave={event => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTarget(null);
-            }}
-            onDrop={event => handleDrop(event, status)}
-            className={cn(
-              'flex w-[85vw] max-w-sm shrink-0 snap-start flex-col rounded-2xl border border-slate-100 bg-slate-50/70 transition-colors lg:w-auto lg:max-w-none lg:shrink',
-              isTarget && 'border-primary/30 bg-blue-50/40',
-            )}
-          >
-            <header className="flex items-center justify-between px-3 pt-1 pb-1 md:px-4 md:pt-4 md:pb-3">
-              <div className="flex items-center gap-2">
-                <StatusDot status={status} />
-                <h2 className="text-sm font-semibold text-slate-700">{STATUS_META[status].label}</h2>
-                <span className="rounded-md bg-white border border-slate-200 px-1.5 text-xs font-medium tabular-nums text-slate-500">
-                  {column.length}
-                </span>
-              </div>
-              {canWrite && (
+        {total > BOARD_PAGE_SIZE && (
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-3 md:px-4">
+            <p className="text-xs tabular-nums text-slate-600">Showing {shown} of {total}</p>
+            {hasMore && (
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
-                  size="icon-sm"
-                  aria-label={`Add task to ${STATUS_META[status].label}`}
-                  onClick={() => onCreate({ status })}
-                  className="size-11 text-slate-400 hover:bg-slate-200 hover:text-slate-700 md:size-7"
+                  size="sm"
+                  onClick={() => showMore(lane.id, status, column)}
+                  aria-label={`Show ${Math.min(BOARD_PAGE_SIZE, remaining)} more ${label} tasks`}
+                  className="min-h-11 px-3 text-xs font-semibold text-primary md:min-h-8"
                 >
-                  <Plus />
+                  Show {Math.min(BOARD_PAGE_SIZE, remaining)} more
                 </Button>
-              )}
-            </header>
-
-            <ol className="flex min-h-32 flex-col gap-2 px-2.5 pb-3 md:gap-2.5 md:px-3">
-              {visible.map((task, index) => (
-                <li
-                  key={task._id}
-                  data-task-id={task._id}
-                  onDragOver={event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const { top, height } = event.currentTarget.getBoundingClientRect();
-                    const nextIndex = event.clientY > top + height / 2 ? index + 1 : index;
-                    if (!isTarget || dropTarget.index !== nextIndex) setDropTarget({ status, index: nextIndex });
-                  }}
-                >
-                  {isTarget && dropTarget.index === index && <DropIndicator />}
-                  <BoardCard
-                    task={task}
-                    canWrite={canWrite}
-                    canDelete={canDelete}
-                    dragging={draggingId === task._id}
-                    onDragStart={event => {
-                      event.dataTransfer.setData('text/plain', task._id);
-                      event.dataTransfer.effectAllowed = 'move';
-                      setDraggingId(task._id);
-                    }}
-                    onDragEnd={resetDrag}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onOpen={onOpen}
-                    onMove={handleMove}
-                    onOpenMoveSheet={openMoveSheet}
-                  />
-                </li>
-              ))}
-              {isTarget && dropTarget.index >= visible.length && <DropIndicator />}
-              {column.length === 0 && !isTarget && (
-                <li className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-400">
-                  {canWrite ? 'Drop tasks here' : 'No tasks'}
-                </li>
-              )}
-            </ol>
-
-            {total > BOARD_PAGE_SIZE && (
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-3 md:px-4">
-                <p className="text-xs tabular-nums text-slate-500">Showing {shown} of {total}</p>
-                {hasMore && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => showMore(status)}
-                      aria-label={`Show ${Math.min(BOARD_PAGE_SIZE, remaining)} more ${STATUS_META[status].label} tasks`}
-                      className="min-h-11 px-3 text-xs font-semibold text-primary md:min-h-8"
-                    >
-                      Show {Math.min(BOARD_PAGE_SIZE, remaining)} more
-                    </Button>
-                    {remaining > BOARD_PAGE_SIZE && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={() => showMore(status, true)}
-                        aria-label={`Show all ${total} ${STATUS_META[status].label} tasks`}
-                        className="min-h-11 px-2 text-xs md:min-h-8"
-                      >
-                        Show all
-                      </Button>
-                    )}
-                  </div>
+                {remaining > BOARD_PAGE_SIZE && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => showMore(lane.id, status, column, true)}
+                    aria-label={`Show all ${total} ${label} tasks`}
+                    className="min-h-11 px-2 text-xs md:min-h-8"
+                  >
+                    Show all
+                  </Button>
                 )}
               </div>
             )}
-          </section>
-        );
-      })}
-    </div>
+          </div>
+        )}
+      </section>
+    );
+  };
 
-    <MoveTaskSheet
-      open={sheetOpen && canWrite}
-      onOpenChange={setSheetOpen}
-      task={sheetTask}
-      counts={{ pending: columns.pending.length, 'in-progress': columns['in-progress'].length, completed: columns.completed.length }}
-      onMove={handleMove}
-    />
-    <div role="status" aria-live="polite" className="sr-only">{announcement}</div>
-    </>
+  return (
+    <div ref={boardRef} className="min-w-0">
+      <BoardQuickFilters
+        active={quickFilters}
+        onChange={setQuickFilters}
+        canFilterMine={Boolean(currentUserId)}
+        groupBy={groupBy}
+        onGroupByChange={setGroupBy}
+        className="mb-2"
+      />
+
+      {/* Phones: segmented status switcher, sticky; the board shows the selected column only */}
+      {!laneMode && (
+        <div
+          role="tablist"
+          aria-label="Task status"
+          data-testid="board-tabs"
+          className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 mb-3 flex gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur md:hidden"
+        >
+          {TASK_STATUSES.map(status => {
+            const active = status === activeColumn;
+            return (
+              <button
+                key={status}
+                ref={node => { tabRefs.current[status] = node; }}
+                type="button"
+                role="tab"
+                id={`${idPrefix}-tab-${status}`}
+                aria-selected={active}
+                aria-controls={columnId(status)}
+                tabIndex={active ? 0 : -1}
+                onClick={() => setActiveColumn(status)}
+                onKeyDown={event => handleTabKeyDown(event, status)}
+                className={cn(
+                  'flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors',
+                  'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary active:scale-[0.98]',
+                  active ? 'bg-primary text-white shadow-sm' : 'text-slate-700 hover:bg-slate-100',
+                )}
+              >
+                <span className="truncate">{STATUS_META[status].label}</span>
+                <span
+                  className={cn(
+                    'rounded-md px-1.5 text-[11px] font-medium tabular-nums',
+                    active ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-600',
+                  )}
+                >
+                  {columns[status].length}
+                  <span className="sr-only"> tasks</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Announces every move; on phones it doubles as an inline "Moved to ... · View" chip */}
+      <div role="status" aria-live="polite" className={cn(movedTo ? 'mb-3 flex md:mb-0 md:sr-only' : 'sr-only')}>
+        {movedTo && (
+          <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-slate-800 pr-1 pl-4 text-xs font-medium text-white md:min-h-0">
+            <span>Moved to {STATUS_META[movedTo].label}</span>
+            {movedTo !== activeColumn && (
+              <button
+                type="button"
+                aria-label={`View ${STATUS_META[movedTo].label}`}
+                onClick={() => setActiveColumn(movedTo)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white md:hidden"
+              >
+                <span aria-hidden>·</span> View
+              </button>
+            )}
+          </span>
+        )}
+      </div>
+
+      {laneMode ? (
+        <BoardSwimlanes
+          lanes={lanes}
+          header={TASK_STATUSES.map(status => renderHeader(status, 'rounded-xl border border-slate-100 bg-slate-50/70 md:pt-2 md:pb-2'))}
+          renderCell={renderColumn}
+        />
+      ) : (
+        <div
+          data-testid="board-columns"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={() => { swipeOrigin.current = null; }}
+          className="md:grid md:grid-cols-3 md:items-start md:gap-4 lg:gap-5"
+        >
+          {TASK_STATUSES.map(status => renderColumn(lanes[0], status))}
+        </div>
+      )}
+
+      <MoveTaskSheet
+        open={sheetOpen && canWrite}
+        onOpenChange={setSheetOpen}
+        task={sheetTask}
+        counts={{ pending: columns.pending.length, 'in-progress': columns['in-progress'].length, completed: columns.completed.length }}
+        onMove={handleMove}
+      />
+      {wipDialog && (
+        <WipLimitsDialog limits={limits} focusStatus={wipDialog} onClose={() => setWipDialog(null)} onSave={saveLimits} />
+      )}
+    </div>
+  );
+};
+
+interface ColumnHeaderProps {
+  status: TaskStatus;
+  /** Cards shown in the column. */
+  count: number;
+  /** Cards in the whole column, whatever the filters hide; compared with the limit. */
+  wipCount: number;
+  limit: number | null;
+  canAdd: boolean;
+  onAdd: () => void;
+  canManage: boolean;
+  onManage: () => void;
+  className?: string;
+}
+
+/** Column title with its count; turns red with "5 / 4" when the (soft) WIP limit is exceeded. */
+const ColumnHeader = ({ status, count, wipCount, limit, canAdd, onAdd, canManage, onManage, className }: ColumnHeaderProps) => {
+  const over = isOverWip(wipCount, limit);
+  const label = STATUS_META[status].label;
+  return (
+    <header
+      className={cn(
+        'flex items-center justify-between gap-1 px-3 pt-1 pb-1 md:px-4 md:pt-4 md:pb-3',
+        over && 'rounded-t-2xl bg-red-50',
+        className,
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <StatusDot status={status} />
+        <h2 className="truncate text-sm font-semibold text-slate-700">{label}</h2>
+        <span
+          title={limit === null ? undefined : `WIP limit ${limit}`}
+          className={cn(
+            'rounded-md border bg-white px-1.5 text-xs font-medium tabular-nums',
+            over ? 'border-red-300 text-red-700' : 'border-slate-200 text-slate-600',
+          )}
+        >
+          {limit === null ? count : wipCountLabel(wipCount, limit)}
+        </span>
+        {over && (
+          <>
+            <TriangleAlert aria-hidden className="size-4 shrink-0 text-red-700" />
+            <span className="sr-only">over WIP limit</span>
+          </>
+        )}
+      </div>
+      <div className="flex items-center">
+        {canAdd && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Add task to ${label}`}
+            onClick={onAdd}
+            className="size-11 text-slate-600 hover:bg-slate-200 hover:text-slate-800 md:size-7"
+          >
+            <Plus />
+          </Button>
+        )}
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Options for ${label} column`}
+                  className="size-11 text-slate-600 hover:bg-slate-200 hover:text-slate-800 md:size-7"
+                />
+              }
+            >
+              <Ellipsis />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={onManage} className="min-h-11 text-slate-700 md:min-h-0">
+                Set WIP limits…
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </header>
   );
 };
 
@@ -343,6 +558,8 @@ const DropIndicator = () => <div aria-hidden className="my-1 h-0.5 rounded-full 
 interface BoardCardProps {
   task: Task;
   dragging: boolean;
+  /** Drag and drop is a desktop pointer feature; phones use the quick action, menu and sheet. */
+  canDrag: boolean;
   onDragStart: (event: DragEvent<HTMLElement>) => void;
   onDragEnd: () => void;
   onEdit: (task: Task) => void;
@@ -354,7 +571,7 @@ interface BoardCardProps {
   canDelete: boolean;
 }
 
-const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
+const BoardCard = ({ task, dragging, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
   const completed = task.status === 'completed';
   const quick = QUICK_MOVE[task.status];
   const QuickIcon = quick.icon;
@@ -388,7 +605,7 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
 
   return (
     <article
-      draggable={canWrite}
+      draggable={canDrag}
       onDragStart={event => {
         cancelPress();
         onDragStart(event);
@@ -406,16 +623,19 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
         event.stopPropagation();
       }}
       className={cn(
-        'group rounded-xl border border-t-[3px] border-slate-100 bg-white p-3 shadow-sm transition-shadow md:p-3.5 hover:shadow-md',
-        canWrite && 'cursor-grab active:cursor-grabbing max-md:select-none max-md:[-webkit-touch-callout:none]',
-        PRIORITY_META[task.priority].accent,
+        'group rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs transition-shadow md:p-3.5 hover:shadow-sm',
+        canWrite && 'max-md:select-none max-md:[-webkit-touch-callout:none]',
+        canDrag && 'cursor-grab active:cursor-grabbing',
+        completed && 'bg-slate-50',
         dragging && 'opacity-40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+        {/* Meta row: type (when not a plain task), key, priority icon */}
+        <div className="flex min-h-7 min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          {task.type && task.type !== 'task' && <TaskTypeIcon type={task.type} />}
           <TaskKey task={task} />
-          <PriorityIndicator priority={task.priority} />
+          <PriorityIndicator priority={task.priority} iconOnly className={completed ? 'text-slate-500' : undefined} />
         </div>
         <div data-no-longpress className="-mt-3 -mr-3.5 flex items-center gap-0.5 md:-mt-1 md:-mr-1.5">
           {canWrite && (
@@ -424,7 +644,7 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
               onClick={() => onMove(task, quick.to)}
               aria-label={`${quick.verb} ${task.title}: move to ${STATUS_META[quick.to].label}`}
               className={cn(
-                'inline-flex h-9 items-center gap-1 rounded-lg bg-slate-100 px-2.5 text-xs font-semibold text-slate-700 md:hidden',
+                'inline-flex h-11 items-center gap-1 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 md:hidden',
                 'hover:bg-slate-200 active:bg-slate-200 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
               )}
             >
@@ -452,7 +672,7 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
         onClick={() => (onOpen ?? onEdit)(task)}
         className={cn(
           'mt-1 block w-full text-left text-sm font-medium text-slate-900 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary rounded',
-          completed && 'text-slate-400 line-through',
+          completed && 'text-slate-500 line-through',
         )}
       >
         {task.title}
@@ -460,19 +680,19 @@ const BoardCard = ({ task, dragging, onDragStart, onDragEnd, onEdit, onDelete, o
       {/* Plain chip (no link): the card itself is draggable and opens the task */}
       {task.project && <ProjectChip name={task.project} link={false} className="mt-1.5 max-w-full" />}
       <LabelList labels={task.labels} max={4} className="mt-2" />
-      {task.description && <p className="mt-1 text-xs text-slate-400 line-clamp-2">{task.description}</p>}
+      {task.description && <p className="mt-1 text-xs text-slate-600 line-clamp-2">{task.description}</p>}
 
       <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 md:mt-3 md:pt-2.5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <DueDate deadline={task.deadline} completed={completed} />
           <DependencyCount count={task.dependencies.length} />
           {(task.comments?.length ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-400" title="Comments">
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Comments">
               <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only"> comments</span>
             </span>
           )}
           {(task.attachments?.length ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-400" title="Attachments">
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Attachments">
               <Paperclip className="size-3" aria-hidden />{task.attachments?.length}<span className="sr-only"> attachments</span>
             </span>
           )}

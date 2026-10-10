@@ -107,15 +107,17 @@ interface EmptyStateProps {
   icon?: ReactNode;
   action?: ReactNode;
   className?: string;
+  /** Heading level of the title; use 'h2' when the state sits directly under the page h1. */
+  headingLevel?: 'h2' | 'h3';
 }
 
 /** Explains why a list is empty and what to do next. */
-export const EmptyState = ({ title, description, icon, action, className }: EmptyStateProps) => (
+export const EmptyState = ({ title, description, icon, action, className, headingLevel: Heading = 'h3' }: EmptyStateProps) => (
   <div className={cn('px-4 py-16 text-center sm:py-20', className)}>
-    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-400 [&_svg]:size-8">
+    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-500 [&_svg]:size-8">
       {icon ?? <Info />}
     </div>
-    <h3 className="mb-1 text-lg font-semibold text-slate-700">{title}</h3>
+    <Heading className="mb-1 text-lg font-semibold text-slate-700">{title}</Heading>
     <p className="mx-auto max-w-md text-sm text-slate-500">{description}</p>
     {action && <div className="mt-5 flex justify-center">{action}</div>}
   </div>
@@ -130,7 +132,7 @@ interface SkeletonCardsProps {
 
 /** Placeholder cards shown while a page loads (prefer over spinners). */
 export const SkeletonCards = ({ count = 4, columns = 'md:grid-cols-2 lg:grid-cols-4', className }: SkeletonCardsProps) => (
-  <div aria-busy="true" aria-label="Loading" className={cn('grid grid-cols-1 gap-5', columns, className)}>
+  <div role="status" aria-busy="true" aria-label="Loading" className={cn('grid grid-cols-1 gap-5', columns, className)}>
     {Array.from({ length: count }, (_, index) => (
       <Surface key={index} className="space-y-3">
         <Skeleton className="h-4 w-24 bg-slate-200" />
@@ -205,7 +207,7 @@ export const UserAvatar = ({ name, src, size = 'md', className }: UserAvatarProp
   <Avatar className={cn(AVATAR_SIZES[size], className)}>
     {src && <AvatarImage src={src} alt="" />}
     {/* Inherit the font size set on the avatar (the primitive hard-codes text-sm) */}
-    <AvatarFallback className="bg-primary/10 font-semibold text-primary text-[length:inherit] leading-none">{getInitials(name)}</AvatarFallback>
+    <AvatarFallback className="bg-primary/10 font-semibold text-primary-hover text-[length:inherit] leading-none">{getInitials(name)}</AvatarFallback>
   </Avatar>
 );
 

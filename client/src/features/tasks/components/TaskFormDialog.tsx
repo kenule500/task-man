@@ -45,7 +45,7 @@ interface TaskFormDialogProps {
 
 const NO_PROJECTS: Project[] = [];
 
-const fieldClass = 'h-11 sm:h-10 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none';
+const fieldClass = 'h-11 sm:h-10 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 shadow-none';
 
 /**
  * Create / edit form shared by every task view.
@@ -109,8 +109,8 @@ const TaskFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-gray-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[560px] sm:rounded-xl">
-        <div className="shrink-0 px-4 pt-5 pb-4 pr-12 border-b border-gray-200 sm:px-6 sm:pt-6 sm:pb-5">
+      <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[560px] sm:rounded-xl">
+        <div className="shrink-0 px-4 pt-5 pb-4 pr-12 border-b border-slate-200 sm:px-6 sm:pt-6 sm:pb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
               <ListTodo className="w-5 h-5 text-primary" />
@@ -160,7 +160,7 @@ const TaskFormDialog = ({
                 value={values.description}
                 onChange={e => set('description', e.target.value)}
                 placeholder="Add more context (optional)"
-                className="min-h-24 sm:min-h-20 bg-white border border-gray-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-gray-400 focus-visible:ring-0 shadow-none"
+                className="min-h-24 sm:min-h-20 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 shadow-none"
                 maxLength={2000}
               />
             </div>
@@ -205,11 +205,11 @@ const TaskFormDialog = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="task-status" className="text-sm font-medium text-slate-700">Status</Label>
-                <StatusSelect id="task-status" value={values.status} onChange={value => set('status', value)} className="h-11 border-gray-300 sm:h-10" />
+                <StatusSelect id="task-status" value={values.status} onChange={value => set('status', value)} className="h-11 border-slate-300 sm:h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-priority" className="text-sm font-medium text-slate-700">Priority</Label>
-                <PrioritySelect id="task-priority" value={values.priority} onChange={value => set('priority', value)} className="h-11 border-gray-300 sm:h-10" />
+                <PrioritySelect id="task-priority" value={values.priority} onChange={value => set('priority', value)} className="h-11 border-slate-300 sm:h-10" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-start" className="text-sm font-medium text-slate-700">Start date</Label>
@@ -245,11 +245,11 @@ const TaskFormDialog = ({
 
             <fieldset className="space-y-1.5">
               <legend className="text-sm font-medium text-slate-700">Depends on</legend>
-              <p className="text-xs text-slate-400">This task starts after the selected tasks are done. Used by the timeline.</p>
+              <p className="text-xs text-slate-500">This task starts after the selected tasks are done. Used by the timeline.</p>
               {candidates.length === 0 ? (
-                <p className="text-xs text-slate-400 italic pt-1">No other tasks available yet.</p>
+                <p className="text-xs text-slate-500 italic pt-1">No other tasks available yet.</p>
               ) : (
-                <ul className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-gray-200 divide-y divide-gray-100">
+                <ul className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
                   {candidates.map(candidate => {
                     const checkboxId = `dep-${candidate._id}`;
                     return (
@@ -272,12 +272,12 @@ const TaskFormDialog = ({
             </fieldset>
           </div>
 
-          <DialogFooter className="!m-0 shrink-0 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-50 border-t border-gray-200 flex flex-row justify-end gap-2 sm:gap-2 sm:px-6 sm:py-4 sm:pb-4 [&>button]:flex-1 sm:[&>button]:flex-none">
+          <DialogFooter className="!m-0 shrink-0 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-200 flex flex-row justify-end gap-2 sm:gap-2 sm:px-6 sm:py-4 sm:pb-4 [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg h-10 border-gray-300 text-slate-700 hover:bg-gray-100 text-sm font-medium shadow-none"
+              className="rounded-lg h-10 border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-medium shadow-none"
             >
               Cancel
             </Button>

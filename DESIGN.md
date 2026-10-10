@@ -13,7 +13,7 @@ Defined in `client/src/index.css` (`@theme`). Use the semantic token or the list
 | Primary | `#2563EB` (`bg-primary`, hover `bg-primary-hover`) | Primary buttons, active pills, focus, today marker |
 | Page background | `bg-slate-50` | App canvas |
 | Surface | `bg-white` + `border-slate-100` + `shadow-sm` | Cards, tables, columns, toolbars |
-| Text | `text-slate-900` titles, `text-slate-700` body, `text-slate-500/400` meta | |
+| Text | `text-slate-900` titles, `text-slate-700` body, `text-slate-500` meta (slate-500 is tuned to #5b6b82 so it passes AA on slate-100 too); `slate-400` only for icons and borders, never text | |
 | Popover / muted / border / ring | shadcn tokens mapped to white / slate-100 / slate-200 / blue-300 | Base UI primitives |
 | Font | Inter (body); `tabular-nums` for dates and counts | |
 | Radius | `rounded-lg` controls, `rounded-xl` cards in lists, `rounded-2xl` page cards | |

@@ -5,6 +5,8 @@
 @custom-variant data-vertical (&[data-orientation="vertical"]);
 
 @theme {
+  /* Tailwind's slate-500 is 4.35:1 on slate-100 surfaces; this shade passes AA (4.95:1 there, 5.43:1 on white) */
+  --color-slate-500: #5b6b82;
   --color-primary: #2563EB;
   --color-primary-hover: #1D4ED8;
   --color-background: #F9FAFB;
@@ -22,7 +24,7 @@
   --color-secondary: #F1F5F9;
   --color-secondary-foreground: #0F172A;
   --color-muted: #F1F5F9;
-  --color-muted-foreground: #64748B;
+  --color-muted-foreground: #5B6B82;
   --color-accent: #F1F5F9;
   --color-accent-foreground: #0F172A;
   --color-destructive: #DC2626;
@@ -55,7 +57,7 @@
   --color-border-strong: #CBD5E1;
   --color-text-strong: #0F172A;
   --color-text-body: #334155;
-  --color-text-subtle: #64748B;
+  --color-text-subtle: #5B6B82;
   --color-text-faint: #94A3B8;
   --color-focus: #2563EB;
 
@@ -88,15 +90,24 @@
   --color-type-spike: #6D28D9;
   --color-type-spike-bg: #F5F3FF;
 
-  /* Project palette (folder cards, project dots) */
-  --color-project-blue: #2563EB;
-  --color-project-violet: #7C3AED;
-  --color-project-rose: #E11D48;
-  --color-project-orange: #EA580C;
-  --color-project-amber: #D97706;
-  --color-project-emerald: #059669;
-  --color-project-teal: #0D9488;
-  --color-project-slate: #475569;
+  /* Project palette (folder cards, icons, dots): calm, deep tones; white text on each passes AA (5.0–7.5:1).
+     -deep is the folder's back panel and tab. */
+  --color-project-blue: #3B5B9A;
+  --color-project-blue-deep: #2E4778;
+  --color-project-violet: #5E4B9C;
+  --color-project-violet-deep: #4A3B7C;
+  --color-project-rose: #9E4560;
+  --color-project-rose-deep: #7E354B;
+  --color-project-orange: #A9573A;
+  --color-project-orange-deep: #87452E;
+  --color-project-amber: #8A6A1F;
+  --color-project-amber-deep: #6E5418;
+  --color-project-emerald: #2F6F57;
+  --color-project-emerald-deep: #255946;
+  --color-project-teal: #2A6B78;
+  --color-project-teal-deep: #21555F;
+  --color-project-slate: #4A5568;
+  --color-project-slate-deep: #3A4353;
 
   /* Radius by job (Tailwind's rounded-lg/xl/2xl still work) */
   --radius-control: 0.5rem;

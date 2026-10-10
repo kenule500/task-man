@@ -61,7 +61,8 @@ interface DataTableProps {
 
 /** Plain table that scrolls inside its own box on narrow screens. */
 export const DataTable = ({ caption, columns, rows, className }: DataTableProps) => (
-  <div className={cn('overflow-x-auto rounded-xl border border-border bg-white', className)}>
+  // Focusable so keyboard users can scroll the table sideways
+  <div tabIndex={0} role="region" aria-label={caption} className={cn('overflow-x-auto rounded-xl border border-border bg-white outline-none focus-visible:outline-2 focus-visible:outline-focus', className)}>
     <table className="w-full min-w-[32rem] text-left text-sm">
       <caption className="sr-only">{caption}</caption>
       <thead className="bg-surface-sunken text-xs font-semibold uppercase tracking-wider text-text-subtle">

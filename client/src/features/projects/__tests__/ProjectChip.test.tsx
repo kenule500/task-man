@@ -27,7 +27,7 @@ describe('ProjectChip', () => {
     renderChip(<ProjectChip name="website" />);
     const link = screen.getByRole('link', { name: 'Website' });
     expect(link).toHaveAttribute('href', '/acme/projects/p-web');
-    expect(link.querySelector('rect')).toHaveClass('text-violet-600');
+    expect(link.querySelector('rect')).toHaveClass('text-project-violet');
   });
 
   it('shows the key in mono when asked', () => {
@@ -44,7 +44,7 @@ describe('ProjectChip', () => {
     const { container } = renderChip(<ProjectChip name="Legacy" showKey />);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
     expect(screen.getByText('Legacy')).toBeInTheDocument();
-    expect(container.querySelector('rect')).toHaveClass('text-slate-600');
+    expect(container.querySelector('rect')).toHaveClass('text-project-slate');
   });
 
   it('can render without a link inside another link', () => {

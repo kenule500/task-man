@@ -232,7 +232,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
                         aria-current={day.isToday ? 'date' : undefined}
                         className={cn(
                           'flex size-6 items-center justify-center rounded-full text-xs tabular-nums',
-                          day.isToday ? 'bg-primary font-semibold text-white' : day.inMonth ? 'text-slate-700' : 'text-slate-400',
+                          day.isToday ? 'bg-primary font-semibold text-white' : day.inMonth ? 'text-slate-700' : 'text-slate-500',
                         )}
                       >
                         {day.date.getDate()}
@@ -244,7 +244,7 @@ const CalendarView = ({ tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = tr
                         type="button"
                         aria-label={`Add task due ${day.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
                         onClick={() => onCreate({ deadline: day.key })}
-                        className="rounded p-0.5 text-slate-400 opacity-0 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 group-hover:opacity-100"
+                        className="rounded p-0.5 text-slate-500 opacity-0 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 group-hover:opacity-100"
                       >
                         <Plus className="size-3.5" />
                       </button>
@@ -347,7 +347,7 @@ const MonthCompact = ({ days, selectedKey, tasksByDay, onSelect }: MonthCompactP
               className={cn(
                 'mx-auto flex h-10 w-full max-w-10 flex-col items-center justify-center gap-0.5 rounded-lg text-sm tabular-nums transition-colors motion-reduce:transition-none',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
-                selected ? 'bg-primary font-semibold text-white shadow-sm' : day.inMonth ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-100',
+                selected ? 'bg-primary font-semibold text-white shadow-sm' : day.inMonth ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-500 hover:bg-slate-100',
                 day.isToday && 'ring-2 ring-primary/60 ring-offset-1',
               )}
             >
@@ -404,7 +404,7 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
                   'flex min-h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl text-xs transition-colors active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
                   selected ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
-                  !selected && day.date.getMonth() !== month.getMonth() && 'text-slate-400',
+                  !selected && day.date.getMonth() !== month.getMonth() && 'text-slate-500',
                   day.isToday && 'ring-2 ring-primary/60 ring-offset-1',
                 )}
               >
@@ -508,7 +508,7 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
     >
       <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', barClass)} />
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-sm font-semibold', completed && 'line-through opacity-70')}>{task.title}</span>
+        <span className={cn('block truncate text-sm font-semibold', completed && 'line-through')}>{task.title}</span>
         {task.project && <ProjectChip name={task.project} link={false} className="mt-0.5 max-w-full text-xs" />}
         {range && (
           <span className="mt-1.5 inline-flex items-center gap-1 text-xs tabular-nums opacity-80">
@@ -552,7 +552,7 @@ const UpcomingAgenda = ({ days, monthLabel, onOpen }: UpcomingAgendaProps) => {
             Upcoming this month
             <span className="ml-2 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-500">{total}</span>
           </span>
-          <ChevronDown aria-hidden className={cn('size-4 text-slate-400 transition-transform motion-reduce:transition-none', expanded && 'rotate-180')} />
+          <ChevronDown aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', expanded && 'rotate-180')} />
         </button>
       </h3>
 
@@ -598,7 +598,7 @@ const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void
       )}
     >
       <span aria-hidden className={cn('size-2 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
-      <span className={cn('min-w-0 flex-1 truncate', completed && 'line-through opacity-70')}>{task.title}</span>
+      <span className={cn('min-w-0 flex-1 truncate', completed && 'line-through')}>{task.title}</span>
       {task.labels?.slice(0, 2).map(label => <LabelChip key={label} label={label} className="max-w-20 shrink-0" />)}
       <span className="shrink-0 text-xs font-normal opacity-80">
         {STATUS_META[task.status].label}
@@ -631,7 +631,7 @@ const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: 
       )}
     >
       <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
-      <span className={cn('truncate', completed && 'line-through opacity-70')}>{task.title}</span>
+      <span className={cn('truncate', completed && 'line-through')}>{task.title}</span>
       {labels.length > 0 && (
         <span className="ml-auto flex shrink-0 items-center gap-0.5">
           {labels.slice(0, 3).map(label => (
