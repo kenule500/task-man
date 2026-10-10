@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Circle } from 'lucide-react';
-import { ProgressBar, SectionHeader, Surface } from '@/components/ds';
+import { ProgressBar, SectionHeader, Stepper, Surface, type StepperStep } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { markBoardTried, type ChecklistStep, type StepId } from './getStarted';
 
 interface GetStartedChecklistProps {
@@ -34,6 +32,28 @@ const COPY: Record<StepId, { title: string; description: string; action: string;
 /** Three-step onboarding card. Each step ticks from real workspace data (see getStarted.ts). */
 const GetStartedChecklist = ({ steps, workspaceSlug }: GetStartedChecklistProps) => {
   const doneCount = steps.filter((step) => step.done).length;
+  const firstOpen = steps.findIndex((step) => !step.done);
+  const stepperSteps: StepperStep[] = steps.map(({ id, done }) => {
+    const copy = COPY[id];
+    return {
+      id,
+      title: copy.title,
+      description: copy.description,
+      complete: done,
+      action: done ? undefined : (
+        <Link
+          to={copy.to(workspaceSlug)}
+          onClick={id === 'board' ? () => markBoardTried(workspaceSlug) : undefined}
+          className={buttonVariants({
+            variant: 'outline',
+            className: 'h-10 shrink-0 rounded-lg border-slate-300 px-4 text-sm text-slate-800 shadow-none hover:bg-slate-50 max-sm:w-full sm:h-9',
+          })}
+        >
+          {copy.action}
+        </Link>
+      ),
+    };
+  });
 
   return (
     <Surface as="section" aria-labelledby="get-started-heading" className="sm:p-6">
@@ -52,41 +72,7 @@ const GetStartedChecklist = ({ steps, workspaceSlug }: GetStartedChecklistProps)
         className="mb-4"
       />
 
-      <ol className="divide-y divide-slate-100">
-        {steps.map(({ id, done }) => {
-          const copy = COPY[id];
-          return (
-            <li key={id} className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <div className="flex min-w-0 items-start gap-3">
-                {done ? (
-                  <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" aria-hidden />
-                ) : (
-                  <Circle className="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden />
-                )}
-                <div className="min-w-0">
-                  <p className={cn('text-sm font-semibold', done ? 'text-slate-600' : 'text-slate-900')}>
-                    {copy.title}
-                    <span className="sr-only">{done ? ' (done)' : ' (not done yet)'}</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-600">{copy.description}</p>
-                </div>
-              </div>
-              {!done && (
-                <Link
-                  to={copy.to(workspaceSlug)}
-                  onClick={id === 'board' ? () => markBoardTried(workspaceSlug) : undefined}
-                  className={buttonVariants({
-                    variant: 'outline',
-                    className: 'h-10 shrink-0 rounded-lg border-slate-300 px-4 text-sm text-slate-800 shadow-none hover:bg-slate-50 max-sm:w-full sm:h-9',
-                  })}
-                >
-                  {copy.action}
-                </Link>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <Stepper steps={stepperSteps} current={firstOpen === -1 ? steps.length : firstOpen} orientation="vertical" label="Setup steps" />
     </Surface>
   );
 };

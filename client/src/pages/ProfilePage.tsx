@@ -153,7 +153,7 @@ const ProfilePage = () => {
   if (!user) {
     return (
       <Surface padding="lg" className="text-center">
-        <AlertCircle className="mx-auto mb-3 size-10 text-red-500" aria-hidden />
+        <AlertCircle className="mx-auto mb-3 size-10 text-danger-fg" aria-hidden />
         <p className="font-medium text-slate-700">Failed to load profile</p>
         <p className="mt-1 text-sm text-slate-600">Please refresh the page or log in again.</p>
       </Surface>

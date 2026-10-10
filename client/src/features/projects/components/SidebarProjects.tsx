@@ -114,7 +114,7 @@ const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
                   aria-controls={linksOpen ? linksId : undefined}
                   aria-label={`${linksOpen ? 'Hide' : 'Show'} ${project.name} links`}
                   onClick={() => setOpened(current => ({ ...current, [project._id]: !linksOpen }))}
-                  className="max-md:top-2.5 max-md:size-6"
+                  className="size-6 max-md:top-2.5"
                 >
                   <ChevronRight aria-hidden className={linksOpen ? 'rotate-90 transition-transform' : 'transition-transform'} />
                 </SidebarMenuAction>

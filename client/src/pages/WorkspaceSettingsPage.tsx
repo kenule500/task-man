@@ -105,7 +105,7 @@ const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) 
               variant="ghost"
               onClick={() => onDelete?.(role)}
               aria-label={`Delete role ${role.name}`}
-              className="size-10 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 md:size-8"
+              className="size-10 rounded-lg text-slate-500 hover:bg-danger-bg hover:text-danger-fg md:size-8"
             >
               <Trash2 aria-hidden />
             </Button>

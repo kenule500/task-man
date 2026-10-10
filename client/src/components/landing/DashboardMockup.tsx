@@ -31,15 +31,15 @@ const DashboardMockup = () => {
   ];
 
   const statusStyles: Record<string, string> = {
-    'Completed': 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    'Completed': 'bg-success-bg text-success-fg border-success-border',
     'In Progress': 'bg-blue-50 text-blue-700 border-blue-100',
     'Pending': 'bg-slate-100 text-slate-700 border-slate-200',
   };
 
   const priorityStyles: Record<string, string> = {
-    'High': 'text-red-600',
-    'Medium': 'text-amber-700',
-    'Low': 'text-emerald-700',
+    'High': 'text-danger-fg',
+    'Medium': 'text-warning-fg',
+    'Low': 'text-success-fg',
   };
 
   return (
@@ -51,9 +51,9 @@ const DashboardMockup = () => {
           {/* Browser Bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400"></div>
-              <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-              <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+              <div className="w-3 h-3 rounded-full bg-danger-dot"></div>
+              <div className="w-3 h-3 rounded-full bg-warning-dot"></div>
+              <div className="w-3 h-3 rounded-full bg-success-dot"></div>
             </div>
             <div className="flex-1 mx-4">
               <div className="bg-white rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-500 text-center">

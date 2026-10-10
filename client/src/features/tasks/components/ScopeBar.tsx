@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, ChevronRight, FileBarChart, Flag, Inbox, X } from 'lucide-react';
-import { Tag } from '@/components/ds';
+import { Banner, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
 // Deep imports: the projects index imports the tasks module back
 import ProjectFolderIcon from '@/features/projects/components/ProjectFolderIcon';
-import { describeDaysLeft, formatSprintRange, isSprintLate } from '@/features/projects/lib/sprintStats';
+import { daysUntilEnd, describeDaysLeft, formatSprintRange, isSprintLate } from '@/features/projects/lib/sprintStats';
 import type { Project } from '@/features/projects/types';
 import { hasScope, scopeProjectOf, scopeSprintOf } from '../lib/scope';
 import type { TaskFilters } from '../types';
@@ -24,6 +24,16 @@ const STATUS_TAG = {
   completed: { tone: 'success', label: 'Completed' },
 } as const;
 
+/** Days left at which the scope bar adds a "this sprint ends" banner. */
+const ENDING_SOON_DAYS = 3;
+
+/** "This sprint ends in 2 days.", "This sprint ends today." or "This sprint ended 1 day ago." */
+const describeEnding = (days: number): string => {
+  if (days === 0) return 'This sprint ends today.';
+  if (days > 0) return `This sprint ends in ${days} ${days === 1 ? 'day' : 'days'}.`;
+  return `This sprint ended ${-days} ${days === -1 ? 'day' : 'days'} ago.`;
+};
+
 const linkClass = 'inline-flex min-h-11 min-w-0 items-center gap-1.5 rounded-md px-1 text-sm font-semibold text-slate-900 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8';
 
 /**
@@ -38,8 +48,10 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
   const projectName = project?.name ?? (filters.project && filters.project !== 'all' ? filters.project : undefined);
   const wantsSprint = (filters.sprint ?? 'all') !== 'all';
   const full = projects.find(item => item._id === project?._id);
+  const daysLeft = sprint?.status === 'active' && sprint.endDate ? daysUntilEnd({ endDate: sprint.endDate }) : null;
 
   return (
+    <>
     <section
       aria-label="Scope"
       data-testid="scope-bar"
@@ -80,7 +92,7 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
                     </span>
                   )}
                   {sprint.status === 'active' && sprint.endDate && (
-                    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums text-slate-600', isSprintLate({ endDate: sprint.endDate, status: 'active' }) && 'font-semibold text-red-600')}>
+                    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums text-slate-600', isSprintLate({ endDate: sprint.endDate, status: 'active' }) && 'font-semibold text-danger-fg')}>
                       <Flag aria-hidden className="size-3.5" />
                       {describeDaysLeft({ endDate: sprint.endDate })}
                     </span>
@@ -122,6 +134,19 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
         </button>
       </div>
     </section>
+    {sprint && daysLeft !== null && daysLeft <= ENDING_SOON_DAYS && (
+      <Banner tone="warning" action={
+        <Link
+          to={`/${slug}/projects/${sprint.project}/sprints/${sprint._id}/report`}
+          className="inline-flex min-h-11 items-center rounded-md px-2 text-sm font-semibold underline outline-none focus-visible:outline-2 focus-visible:outline-focus md:min-h-8"
+        >
+          Review sprint<span className="sr-only"> {sprint.name}</span>
+        </Link>
+      }>
+        {describeEnding(daysLeft)} Finish or move open work.
+      </Banner>
+    )}
+    </>
   );
 };
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 import api from '../utils/api';
-import { Field, fieldMessageId } from '@/components/ds';
+import { Field, fieldMessageId, Spinner } from '@/components/ds';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import FormDialog from './FormDialog';
@@ -155,7 +155,7 @@ const RoleEditorModal = ({
       <div className="space-y-2">
         <p id="role-permissions-label" className="text-sm font-medium text-slate-700">Permissions</p>
         <div role="group" aria-labelledby="role-permissions-label" className="divide-y divide-slate-100 rounded-lg border border-slate-200 sm:max-h-[50dvh] sm:overflow-y-auto sm:overscroll-contain [scrollbar-width:thin]">
-          {!permissionsLoaded && <p className="p-4 text-sm text-slate-600">Loading permissions...</p>}
+          {!permissionsLoaded && <p className="flex items-center gap-2 p-4 text-sm text-slate-600"><Spinner decorative />Loading permissions...</p>}
           {Object.entries(permissionGroups).map(([group, perms]) => {
             const keys = perms.map((p) => p.key);
             const allSelected = keys.every((k) => permissions.includes(k));

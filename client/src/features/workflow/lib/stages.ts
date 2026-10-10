@@ -49,9 +49,9 @@ export const STAGE_COLOR_META: Record<StageColor, StageColorMeta> = {
   slate: { label: 'Slate', dot: 'bg-slate-400' },
   blue: { label: 'Blue', dot: 'bg-blue-600' },
   violet: { label: 'Violet', dot: 'bg-violet-500' },
-  amber: { label: 'Amber', dot: 'bg-amber-500' },
-  emerald: { label: 'Green', dot: 'bg-emerald-500' },
-  rose: { label: 'Rose', dot: 'bg-rose-500' },
+  amber: { label: 'Amber', dot: 'bg-warning-dot' },
+  emerald: { label: 'Green', dot: 'bg-success-dot' },
+  rose: { label: 'Rose', dot: 'bg-danger-dot' },
   cyan: { label: 'Cyan', dot: 'bg-cyan-500' },
 };
 

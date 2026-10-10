@@ -27,7 +27,49 @@ const token = (utility: string, hex: string, usage: string, role: ColorToken['ro
   role,
 });
 
+export const TONES = ['danger', 'success', 'warning', 'info'] as const;
+export type Tone = (typeof TONES)[number];
+export const TONE_PARTS = ['solid', 'solid-hover', 'dot', 'fg', 'bg', 'border'] as const;
+export type TonePart = (typeof TONE_PARTS)[number];
+
+/** What each part of a tone is for. */
+export const TONE_USAGE: Record<TonePart, string> = {
+  solid: 'Filled buttons and badges; white text on it passes AA',
+  'solid-hover': 'Hover and pressed state of -solid',
+  dot: 'Markers, bars and chart fills (3:1 on surfaces, never text)',
+  fg: 'Text and icons on a surface and on -bg (AA)',
+  bg: 'Soft background of chips, alerts and hover states',
+  border: 'Soft border of chips and alerts',
+};
+
+/** When to reach for each tone. */
+export const TONE_MEANING: Record<Tone, string> = {
+  danger: 'Errors, overdue, destructive actions, bugs, high priority',
+  success: 'Completed, saved, done, low priority, stories',
+  warning: 'Needs attention, offline, at risk, medium priority',
+  info: 'Neutral news, in progress, links, selected (the blue family)',
+};
+
+/** Light theme values; the dark values live in darkTokens.ts. Both mirror index.css. */
+export const TONE_LIGHT: Record<Tone, Record<TonePart, string>> = {
+  danger: { solid: '#B4493E', 'solid-hover': '#9A3B31', dot: '#C4574A', fg: '#A33A30', bg: '#FBF0EE', border: '#EBCDC8' },
+  success: { solid: '#2E7D5B', 'solid-hover': '#256A4B', dot: '#3A9170', fg: '#1F6B4A', bg: '#EDF6F1', border: '#C9E0D4' },
+  warning: { solid: '#946212', 'solid-hover': '#7D520E', dot: '#B8801A', fg: '#8A5B0F', bg: '#FBF3E1', border: '#EBD9AE' },
+  info: { solid: '#2563EB', 'solid-hover': '#1D4ED8', dot: '#3B82F6', fg: '#1D4ED8', bg: '#EFF6FF', border: '#DBEAFE' },
+};
+
+const toneTokens = (): ColorToken[] =>
+  TONES.flatMap(tone =>
+    TONE_PARTS.map(part => token(`${tone}-${part}`, TONE_LIGHT[tone][part], TONE_USAGE[part], part === 'fg' ? 'text' : 'fill')),
+  );
+
 export const COLOR_GROUPS: ColorGroup[] = [
+  {
+    id: 'tones',
+    title: 'Semantic tones',
+    description: 'Danger, success, warning and info: the only reds, greens, ochres and blues used for meaning. Calm hues with a solid, hover, dot, fg, bg and border part each, authored for light and dark. Raw red, green, emerald and rose utilities are not allowed.',
+    tokens: toneTokens(),
+  },
   {
     id: 'core',
     title: 'Core',
@@ -40,7 +82,7 @@ export const COLOR_GROUPS: ColorGroup[] = [
       token('foreground', '#0F172A', 'Default text of shadcn primitives', 'text'),
       token('muted-foreground', '#5B6B82', 'Secondary text of primitives', 'text'),
       token('border', '#E2E8F0', 'Default 1px borders and dividers'),
-      token('destructive', '#DC2626', 'Destructive actions and errors', 'text'),
+      token('destructive', '#B4493E', 'Destructive actions and errors', 'text'),
       token('ring', '#93C5FD', 'Focus ring of primitives (30% alpha halo)'),
     ],
   },
@@ -72,9 +114,9 @@ export const COLOR_GROUPS: ColorGroup[] = [
       token('status-in-progress', '#2563EB', 'Dot, progress fill, today marker'),
       token('status-in-progress-fg', '#1D4ED8', 'Text on status-in-progress-bg', 'text'),
       token('status-in-progress-bg', '#EFF6FF', 'Pill background'),
-      token('status-completed', '#10B981', 'Dot, completed progress'),
-      token('status-completed-fg', '#047857', 'Text on status-completed-bg', 'text'),
-      token('status-completed-bg', '#ECFDF5', 'Pill background'),
+      token('status-completed', '#3A9170', 'Dot, completed progress'),
+      token('status-completed-fg', '#1F6B4A', 'Text on status-completed-bg', 'text'),
+      token('status-completed-bg', '#EDF6F1', 'Pill background'),
     ],
   },
   {
@@ -82,25 +124,25 @@ export const COLOR_GROUPS: ColorGroup[] = [
     title: 'Priority',
     description: 'The marker color is for dots and card accents. Use the -text token for words.',
     tokens: [
-      token('priority-high', '#EF4444', 'Dot, card top accent'),
-      token('priority-high-text', '#DC2626', 'High priority label', 'text'),
-      token('priority-medium', '#F59E0B', 'Dot, card top accent'),
-      token('priority-medium-text', '#B45309', 'Medium priority label', 'text'),
-      token('priority-low', '#10B981', 'Dot, card top accent'),
-      token('priority-low-text', '#047857', 'Low priority label', 'text'),
+      token('priority-high', '#C4574A', 'Dot, card top accent'),
+      token('priority-high-text', '#A33A30', 'High priority label', 'text'),
+      token('priority-medium', '#B8801A', 'Dot, card top accent'),
+      token('priority-medium-text', '#8A5B0F', 'Medium priority label', 'text'),
+      token('priority-low', '#3A9170', 'Dot, card top accent'),
+      token('priority-low-text', '#1F6B4A', 'Low priority label', 'text'),
     ],
   },
   {
     id: 'types',
     title: 'Scrum work item types',
-    description: 'Story, task, bug and spike. The 700 shades keep AA contrast on white and on the soft background. Always shown with an icon and a name.',
+    description: 'Story, task, bug and spike. The label shades keep AA contrast on white and on the soft background. Always shown with an icon and a name.',
     tokens: [
-      token('type-story', '#047857', 'Story icon and label (emerald)', 'text'),
-      token('type-story-bg', '#ECFDF5', 'Story chip background'),
+      token('type-story', '#1F6B4A', 'Story icon and label (success green)', 'text'),
+      token('type-story-bg', '#EDF6F1', 'Story chip background'),
       token('type-task', '#1D4ED8', 'Task icon and label (blue)', 'text'),
       token('type-task-bg', '#EFF6FF', 'Task chip background'),
-      token('type-bug', '#B91C1C', 'Bug icon and label (red)', 'text'),
-      token('type-bug-bg', '#FEF2F2', 'Bug chip background'),
+      token('type-bug', '#A33A30', 'Bug icon and label (danger brick)', 'text'),
+      token('type-bug-bg', '#FBF0EE', 'Bug chip background'),
       token('type-spike', '#6D28D9', 'Spike icon and label (violet)', 'text'),
       token('type-spike-bg', '#F5F3FF', 'Spike chip background'),
     ],

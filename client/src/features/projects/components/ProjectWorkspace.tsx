@@ -305,7 +305,7 @@ const ProjectWorkspace = ({
           value={`${progress.totalTasks === 0 ? 0 : Math.round((progress.doneTasks / progress.totalTasks) * 100)}%`}
           subtitle={`${progress.doneTasks} of ${progress.totalTasks} done`}
           icon={<CheckSquare className="size-4" />}
-          colorClass="text-emerald-600"
+          colorClass="text-success-fg"
         />
         <StatCard
           className="p-4 sm:p-5"

@@ -34,13 +34,13 @@ describe('summarizeDay', () => {
     ];
     const { dots, overflow } = summarizeDay(tasks, TODAY);
     expect(dots.map(dot => dot.state)).toEqual(['pending', 'in-progress', 'completed']);
-    expect(dots.map(dot => dot.className)).toEqual(['bg-slate-400', 'bg-blue-600', 'bg-emerald-500']);
+    expect(dots.map(dot => dot.className)).toEqual(['bg-slate-400', 'bg-blue-600', 'bg-success-dot']);
     expect(overflow).toBe(0);
   });
 
-  it('shows overdue first in red-600', () => {
+  it('shows overdue first in the danger dot', () => {
     const { dots } = summarizeDay([makeTask({ status: 'completed', deadline: past }), makeTask({ status: 'pending', deadline: past })], TODAY);
-    expect(dots[0]).toEqual({ state: 'overdue', className: 'bg-red-600' });
+    expect(dots[0]).toEqual({ state: 'overdue', className: 'bg-danger-dot' });
     expect(dots[1].state).toBe('completed');
   });
 
@@ -79,7 +79,7 @@ describe('DOT_META', () => {
   it('reuses the status dot colors', () => {
     expect(DOT_META.pending.dot).toBe('bg-slate-400');
     expect(DOT_META['in-progress'].dot).toBe('bg-blue-600');
-    expect(DOT_META.completed.dot).toBe('bg-emerald-500');
-    expect(DOT_META.overdue.dot).toBe('bg-red-600');
+    expect(DOT_META.completed.dot).toBe('bg-success-dot');
+    expect(DOT_META.overdue.dot).toBe('bg-danger-dot');
   });
 });

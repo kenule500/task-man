@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Activity, CheckCircle2, Gauge, Hourglass, RefreshCw } from 'lucide-react';
-import { EmptyState, ErrorState, SegmentedControl, StatCard, Surface } from '@/components/ds';
+import { EmptyState, ErrorState, SegmentedControl, SkeletonChart, StatCard, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import SelectField from '@/features/planning/components/SelectField';
 import type { Project } from '@/features/projects';
 import { useFlowReport } from '../hooks/useFlowReport';
@@ -23,24 +22,7 @@ const TIME_OPTIONS = [
   { value: 'lead' as const, label: 'Lead time' },
 ];
 
-const FlowSkeleton = () => (
-  <div role="status" aria-busy="true" aria-label="Loading the flow report" className="space-y-5">
-    <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-      {[0, 1, 2, 3].map(index => (
-        <Surface key={index} className="space-y-3 p-4 sm:p-5">
-          <Skeleton className="h-4 w-24 bg-slate-200" />
-          <Skeleton className="h-8 w-14 bg-slate-200" />
-          <Skeleton className="h-3 w-32 bg-slate-200" />
-        </Surface>
-      ))}
-    </div>
-    <Surface className="space-y-3"><Skeleton className="h-4 w-40 bg-slate-200" /><Skeleton className="h-56 w-full bg-slate-200" /></Surface>
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <Surface className="space-y-3"><Skeleton className="h-4 w-32 bg-slate-200" /><Skeleton className="h-44 w-full bg-slate-200" /></Surface>
-      <Surface className="space-y-3"><Skeleton className="h-4 w-32 bg-slate-200" /><Skeleton className="h-44 w-full bg-slate-200" /></Surface>
-    </div>
-  </div>
-);
+const FlowSkeleton = () => <SkeletonChart label="Loading the flow report" height="h-72" />;
 
 const FlowBody = ({ report }: { report: FlowReport }) => {
   const [metric, setMetric] = useState<TimeMetric>('cycle');
@@ -52,10 +34,10 @@ const FlowBody = ({ report }: { report: FlowReport }) => {
   return (
     <div className="space-y-5">
       <section aria-label="Flow summary" className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-        <StatCard className="p-4 sm:p-5" title="Completed" value={totalThroughput(report)} subtitle={`in the last ${report.range.days} days`} icon={<CheckCircle2 className="size-4" />} colorClass="text-emerald-600" />
+        <StatCard className="p-4 sm:p-5" title="Completed" value={totalThroughput(report)} subtitle={`in the last ${report.range.days} days`} icon={<CheckCircle2 className="size-4" />} colorClass="text-success-fg" />
         <StatCard className="p-4 sm:p-5" title="Median cycle time" value={formatDays(report.cycleTime.p50)} subtitle={report.cycleTime.count === 0 ? 'No finished work yet' : `${report.cycleTime.count} tasks measured`} icon={<Gauge className="size-4" />} colorClass="text-blue-600" />
-        <StatCard className="p-4 sm:p-5" title="85th percentile" value={formatDays(report.cycleTime.p85)} subtitle="85% finish within this" icon={<Activity className="size-4" />} colorClass="text-amber-600" />
-        <StatCard className="p-4 sm:p-5" title="In progress now" value={report.aging.length} subtitle={p85 === null ? 'No baseline yet' : `${over} over the 85th percentile`} icon={<Hourglass className="size-4" />} colorClass={over > 0 ? 'text-red-600' : 'text-slate-600'} />
+        <StatCard className="p-4 sm:p-5" title="85th percentile" value={formatDays(report.cycleTime.p85)} subtitle="85% finish within this" icon={<Activity className="size-4" />} colorClass="text-warning-fg" />
+        <StatCard className="p-4 sm:p-5" title="In progress now" value={report.aging.length} subtitle={p85 === null ? 'No baseline yet' : `${over} over the 85th percentile`} icon={<Hourglass className="size-4" />} colorClass={over > 0 ? 'text-danger-fg' : 'text-slate-600'} />
       </section>
 
       <ChartCard

@@ -89,8 +89,7 @@ export default defineConfig({
         // Long-lived vendor chunks: they change far less often than app code, so returning visitors reuse them
         codeSplitting: {
           groups: [
-            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/, priority: 30 },
-          ],
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/, priority: 30 },          ],
         },
       },
     },

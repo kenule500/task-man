@@ -66,7 +66,7 @@ export const WebhookList = ({ hooks, now, busyId, onToggle, onEdit, onTest, onRo
               <Button type="button" variant="outline" disabled={busy} onClick={() => onRotate(hook)} className={ACTION}>
                 <RefreshCw aria-hidden />Rotate secret<span className="sr-only"> of {hook.name}</span>
               </Button>
-              <Button type="button" variant="ghost" onClick={() => onDelete(hook)} className={`${ACTION} text-red-700 hover:bg-red-50`}>
+              <Button type="button" variant="ghost" onClick={() => onDelete(hook)} className={`${ACTION} text-danger-fg hover:bg-danger-bg`}>
                 <Trash2 aria-hidden />Delete<span className="sr-only"> {hook.name}</span>
               </Button>
             </div>

@@ -37,9 +37,9 @@ interface TypeMeta {
 }
 
 export const TASK_TYPE_META: Record<TaskType, TypeMeta> = {
-  story: { label: 'Story', icon: BookOpen, color: 'text-emerald-600', bar: 'bg-emerald-500' },
+  story: { label: 'Story', icon: BookOpen, color: 'text-success-fg', bar: 'bg-success-dot' },
   task: { label: 'Task', icon: CheckSquare, color: 'text-blue-600', bar: 'bg-blue-500' },
-  bug: { label: 'Bug', icon: Bug, color: 'text-red-600', bar: 'bg-red-500' },
+  bug: { label: 'Bug', icon: Bug, color: 'text-danger-fg', bar: 'bg-danger-dot' },
   spike: { label: 'Spike', icon: FlaskConical, color: 'text-violet-600', bar: 'bg-violet-500' },
   epic: { label: 'Epic', icon: Zap, color: 'text-fuchsia-700', bar: 'bg-fuchsia-500' },
 };

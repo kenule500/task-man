@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Webhook as WebhookIcon } from 'lucide-react';
-import { EmptyState, ErrorState, SectionHeader, SkeletonCards, Surface, toast } from '@/components/ds';
+import { EmptyState, ErrorState, SectionHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Button } from '@/components/ui/button';
 import { verifySnippet } from '../lib/snippets';
@@ -133,7 +133,7 @@ export const WebhooksSection = ({
       </p>
 
       {loading ? (
-        <SkeletonCards count={2} columns="grid-cols-1" />
+        <SkeletonList label="Loading webhooks" rows={2} avatar={false} />
       ) : error ? (
         <ErrorState
           title="Could not load the webhooks"

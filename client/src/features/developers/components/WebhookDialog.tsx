@@ -60,7 +60,7 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
     >
       <form onSubmit={event => { void submit(event); }} noValidate className="flex min-h-0 flex-1 flex-col">
         <DialogBody>
-          {failure && <p role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{failure}</p>}
+          {failure && <p role="alert" className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-fg">{failure}</p>}
           <div className="grid gap-4">
             <Field label="Name" htmlFor={`${uid}-name`} required error={errors.name}>
               <Input
@@ -103,7 +103,7 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
               <span className="text-xs text-slate-600">including ones added later</span>
             </label>
             <CheckGroups groups={groups} selected={events} disabled={all} onChange={setEvents} />
-            {errors.events && <p role="alert" className="mt-2 text-xs text-red-600">{errors.events}</p>}
+            {errors.events && <p role="alert" className="mt-2 text-xs text-danger-fg">{errors.events}</p>}
           </div>
         </DialogBody>
         <DialogActions>

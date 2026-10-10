@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { UserPlus } from 'lucide-react';
-import { UserAvatar } from '@/components/ds';
+import { OptionCombobox, Spinner, UserAvatar, type ComboboxOption } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import type { WorkspaceMember } from '@/features/workspace';
 import type { TaskUser } from '../types';
 
@@ -48,35 +47,37 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
   );
 
   if (canListMembers) {
-    const options = [...members.map(member => member._id), ...value.filter(id => !members.some(member => member._id === id))];
+    // Members first, then assigned ids the member list no longer knows
+    const ids = [...members.map(member => member._id), ...value.filter(id => !members.some(member => member._id === id))];
+    const options: ComboboxOption[] = ids.map(id => {
+      const user = directory.get(id);
+      const name = user?.name ?? 'Former member';
+      return {
+        value: id,
+        label: name,
+        leading: <UserAvatar name={name} src={user?.avatarUrl || undefined} size="sm" className="size-6 text-[10px]" />,
+      };
+    });
 
     return (
-      <fieldset className="space-y-2">
-        <legend className="sr-only">Assignees</legend>
+      <div className="space-y-2">
         {loading ? (
-          <p className="text-xs italic text-slate-500">Loading members...</p>
+          <p className="flex items-center gap-2 text-xs italic text-slate-500"><Spinner size="xs" decorative /> Loading members...</p>
         ) : options.length === 0 ? (
           <p className="text-xs italic text-slate-500">No members to assign yet.</p>
         ) : (
-          <ul className="max-h-40 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
-            {options.map(id => {
-              const user = directory.get(id);
-              const name = user?.name ?? 'Former member';
-              const inputId = `assignee-${id}`;
-              return (
-                <li key={id} className="flex items-center gap-3 px-3 py-3 hover:bg-slate-50 sm:py-2">
-                  <Checkbox id={inputId} checked={value.includes(id)} onCheckedChange={checked => toggle(id, checked)} />
-                  <label htmlFor={inputId} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-sm text-slate-700">
-                    <UserAvatar name={name} src={user?.avatarUrl || undefined} size="sm" className="size-6 text-[10px]" />
-                    <span className="truncate">{name}</span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
+          <OptionCombobox
+            multiple
+            label="Assignees"
+            options={options}
+            value={value}
+            onValueChange={onChange}
+            placeholder={value.length === 0 ? 'Search people to assign' : 'Add another'}
+            emptyText="No one matches that name."
+          />
         )}
         {!isMeAssigned && assignMe}
-      </fieldset>
+      </div>
     );
   }
 

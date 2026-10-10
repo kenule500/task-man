@@ -107,13 +107,12 @@ describe('TaskRelations', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Link work' }));
     await userEvent.click(screen.getByRole('combobox', { name: 'Link type' }));
     await userEvent.click(await screen.findByRole('option', { name: 'Clones' }));
-    await userEvent.type(screen.getByRole('textbox', { name: 'Search tasks to link' }), 'foxtrot');
-    const results = screen.getByRole('list', { name: 'Tasks to link' });
-    expect(within(results).getAllByRole('button')).toHaveLength(1);
-    await userEvent.click(within(results).getByRole('button', { name: /Foxtrot free/ }));
+    await userEvent.type(screen.getByRole('combobox', { name: 'Search tasks to link' }), 'foxtrot');
+    expect(await screen.findAllByRole('option')).toHaveLength(1);
+    await userEvent.click(screen.getByRole('option', { name: /Foxtrot free/ }));
 
     expect(api.addRelation).toHaveBeenCalledWith('acme', 'a', 'clones', 'f');
-    await waitFor(() => expect(screen.queryByRole('list', { name: 'Tasks to link' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Search tasks to link' })).not.toBeInTheDocument());
     const cached = getCached<Task[]>(tasksKey('acme'))!;
     expect(cached.find(item => item._id === 'a')?.relations).toHaveLength(3);
     expect(cached.find(item => item._id === 'f')?.relations).toEqual([{ type: 'cloned_by', task: 'a' }]);
@@ -123,9 +122,9 @@ describe('TaskRelations', () => {
     const { task, tasks } = build();
     render(<TaskRelations task={task} tasks={tasks} canWrite workspaceSlug="acme" />);
     await userEvent.click(screen.getByRole('button', { name: 'Link work' }));
-    const results = screen.getByRole('list', { name: 'Tasks to link' });
-    expect(within(results).queryByText('Alpha')).not.toBeInTheDocument();
-    expect(within(results).getByText('Foxtrot free')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Search tasks to link' }));
+    expect(await screen.findByRole('option', { name: /Foxtrot free/ })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Alpha/ })).not.toBeInTheDocument();
   });
 
   it('removes a link and offers an undo', async () => {

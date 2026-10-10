@@ -99,7 +99,7 @@ const SprintCard = ({
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
               <Meta icon={<CalendarDays />}>{formatSprintRange(sprint)}</Meta>
               {sprint.status === 'active' && (
-                <Meta icon={<Flag />} className={cn(late && 'font-semibold text-red-600')}>{describeDaysLeft(sprint)}</Meta>
+                <Meta icon={<Flag />} className={cn(late && 'font-semibold text-danger-fg')}>{describeDaysLeft(sprint)}</Meta>
               )}
               {sprint.status === 'completed' && (
                 <Meta icon={<Flag />}>
@@ -150,7 +150,7 @@ const SprintCard = ({
                 <Pencil />
               </Button>
               {sprint.status === 'planned' && (
-                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(sprint)} aria-label={`Delete ${sprint.name}`} className={cn(iconButton, 'hover:bg-red-50 hover:text-red-600')}>
+                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(sprint)} aria-label={`Delete ${sprint.name}`} className={cn(iconButton, 'hover:bg-danger-bg hover:text-danger-fg')}>
                   <Trash2 />
                 </Button>
               )}

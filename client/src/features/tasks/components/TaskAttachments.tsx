@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import {
   Clapperboard, Download, File as FileIcon, FileArchive, FileSpreadsheet, FileText, Image as ImageIcon,
-  Loader2, Paperclip, Trash2, Upload,
+  Paperclip, Trash2, Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ProgressBar, SectionHeader, toast } from '@/components/ds';
+import { ProgressBar, SectionHeader, toast, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { getApiErrorMessage, type UploadOptions } from '../api';
 import { formatRelativeTime } from '../lib/date';
@@ -184,7 +184,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
                   onClick={() => void download(attachment)}
                   className="size-10 text-slate-500 hover:bg-slate-100 sm:size-8"
                 >
-                  {busy ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Download />}
+                  {busy ? <Spinner decorative /> : <Download />}
                 </Button>
                 {canWrite && (
                   <Button
@@ -193,7 +193,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
                     aria-label={`Delete ${attachment.originalName}`}
                     disabled={busy}
                     onClick={() => void remove(attachment)}
-                    className="size-10 text-slate-500 hover:bg-red-50 hover:text-red-600 sm:size-8"
+                    className="size-10 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
                   >
                     <Trash2 />
                   </Button>

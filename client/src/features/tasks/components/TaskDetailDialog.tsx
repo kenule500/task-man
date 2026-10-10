@@ -1,6 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Copy, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
-import { UserAvatar, toast } from '@/components/ds';
+import { DescriptionItem, DescriptionList, UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
 // Deep import: the projects index imports the tasks module back
 import ProjectChip from '@/features/projects/components/ProjectChip';
@@ -68,13 +68,6 @@ interface TaskDetailDialogProps {
   /** Workspace slug, for "Copy link"; defaults to the slug of the project directory. */
   workspaceSlug?: string;
 }
-
-const Detail = ({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) => (
-  <div className={wide ? 'col-span-2 min-w-0 sm:col-span-3' : 'min-w-0'}>
-    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-    <dd className="mt-1 text-sm text-slate-700">{children}</dd>
-  </div>
-);
 
 /**
  * Read view of a task with its comments and attachments. Opened by clicking a task title;
@@ -202,18 +195,18 @@ const TaskDetailDialog = ({
           </TabsList>
 
           <TabsContent value="details" keepMounted className="min-h-0 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Detail label="Due date"><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></Detail>
-            <Detail label="Start date">
+          <DescriptionList columns={3} className="gap-4">
+            <DescriptionItem label="Due date"><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></DescriptionItem>
+            <DescriptionItem label="Start date">
               {task.startDate ? formatDate(dateKeyOf(task.startDate)) : <span className="text-slate-500">Not set</span>}
-            </Detail>
-            <Detail label="Schedule">
-              <span className={overdue ? 'font-medium text-red-600' : undefined}>
+            </DescriptionItem>
+            <DescriptionItem label="Schedule">
+              <span className={overdue ? 'font-medium text-danger-fg' : undefined}>
                 {completed ? 'Completed' : overdue ? 'Overdue' : 'On track'}
               </span>
-            </Detail>
+            </DescriptionItem>
             {task.parent && (
-              <Detail label="Parent task">
+              <DescriptionItem label="Parent task">
                 <span className="inline-flex min-w-0 items-center gap-1.5">
                   <CornerDownRight className="size-3 shrink-0 text-slate-500" aria-hidden />
                   {parent && actions.openTask ? (
@@ -228,26 +221,26 @@ const TaskDetailDialog = ({
                     <span className="truncate">Subtask of {parent?.title ?? 'another task'}</span>
                   )}
                 </span>
-              </Detail>
+              </DescriptionItem>
             )}
             {!isEpic && (
-              <Detail label="Sprint">
+              <DescriptionItem label="Sprint">
                 {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
-              </Detail>
+              </DescriptionItem>
             )}
             {canRepeat(task) && (
-              <Detail label="Repeat" wide>
+              <DescriptionItem label="Repeat" wide>
                 <TaskRecurrenceField
                   value={task.recurrence}
                   canWrite={canEditFields}
                   onChange={recurrence => actions.updateTask!(taskId, { recurrence })}
                 />
-              </Detail>
+              </DescriptionItem>
             )}
-            <Detail label="Labels">
+            <DescriptionItem label="Labels">
               {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">None</span>}
-            </Detail>
-            <Detail label="Assignees">
+            </DescriptionItem>
+            <DescriptionItem label="Assignees">
               {task.assignees?.length ? (
                 <ul className="space-y-1">
                   {task.assignees.map((user: TaskUser) => (
@@ -258,8 +251,8 @@ const TaskDetailDialog = ({
                   ))}
                 </ul>
               ) : <span className="text-slate-500">Nobody yet</span>}
-            </Detail>
-            <Detail label="Depends on">
+            </DescriptionItem>
+            <DescriptionItem label="Depends on">
               {dependencies.length ? (
                 <ul className="space-y-1">
                   {dependencies.map(dep => (
@@ -271,8 +264,8 @@ const TaskDetailDialog = ({
                   ))}
                 </ul>
               ) : <span className="text-slate-500">Nothing</span>}
-            </Detail>
-          </dl>
+            </DescriptionItem>
+          </DescriptionList>
 
           <section aria-label="Description">
             <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Description</h3>
@@ -380,7 +373,7 @@ const TaskDetailDialog = ({
                 type="button"
                 variant="ghost"
                 onClick={() => onDelete(task)}
-                className="h-10 gap-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 sm:h-9"
+                className="h-10 gap-1.5 text-danger-fg hover:bg-danger-bg hover:text-danger-fg sm:h-9"
               >
                 <Trash2 className="size-4" aria-hidden /> {task.parent ? 'Delete subtask' : 'Delete task'}
               </Button>

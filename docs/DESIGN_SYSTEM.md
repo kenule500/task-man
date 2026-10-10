@@ -66,18 +66,31 @@ Legacy names still work: `background`, `surface`, `foreground`, `muted-foregroun
 |---|---|---|
 | Status | `status-pending`, `-fg`, `-bg` | `#94A3B8`, `#334155`, `#F1F5F9` |
 | | `status-in-progress`, `-fg`, `-bg` | `#2563EB`, `#1D4ED8`, `#EFF6FF` |
-| | `status-completed`, `-fg`, `-bg` | `#10B981`, `#047857`, `#ECFDF5` |
-| Priority | `priority-high` / `-text` | `#EF4444` marker / `#DC2626` text |
-| | `priority-medium` / `-text` | `#F59E0B` marker / `#B45309` text |
-| | `priority-low` / `-text` | `#10B981` marker / `#047857` text |
-| Task type | `type-story` / `-bg` (emerald) | `#047857` / `#ECFDF5` |
+| | `status-completed`, `-fg`, `-bg` | `#3A9170`, `#1F6B4A`, `#EDF6F1` |
+| Priority | `priority-high` / `-text` | `#C4574A` marker / `#A33A30` text |
+| | `priority-medium` / `-text` | `#B8801A` marker / `#8A5B0F` text |
+| | `priority-low` / `-text` | `#3A9170` marker / `#1F6B4A` text |
+| Task type | `type-story` / `-bg` (success green) | `#1F6B4A` / `#EDF6F1` |
 | | `type-task` / `-bg` (blue) | `#1D4ED8` / `#EFF6FF` |
-| | `type-bug` / `-bg` (red) | `#B91C1C` / `#FEF2F2` |
+| | `type-bug` / `-bg` (danger brick) | `#A33A30` / `#FBF0EE` |
 | | `type-spike` / `-bg` (violet) | `#6D28D9` / `#F5F3FF` |
 | Project palette | `project-blue` `violet` `rose` `orange` `amber` `emerald` `teal` `slate` | `#2563EB` `#7C3AED` `#E11D48` `#EA580C` `#D97706` `#059669` `#0D9488` `#475569` |
 
 Marker colors (priority dots, `status-*` dots) are for shapes. For words use the `-text` / `-fg` tokens, which pass AA.
-Overdue stays `red-600` plus a screen-reader "(overdue)". Never color alone.
+Overdue stays `danger-fg` plus a screen-reader "(overdue)". Never color alone.
+
+### Semantic tones
+
+`danger`, `success`, `warning` and `info` each have `-solid`, `-solid-hover`, `-dot`, `-fg`, `-bg` and `-border` (light in `@theme`, dark authored in `.dark`).
+They are the only reds, greens, ochres and blues for meaning; see DESIGN.md → Color and **Foundations → Color** in the guide for every hex and ratio.
+Raw `red`, `green`, `emerald`, `rose` and `amber` utilities are rejected by ESLint; those Tailwind scales are re-pointed at the tones as a safety net.
+
+| Tone | Light solid | Light fg on bg | Dark fg on bg | White on solid |
+|---|---|---|---|---|
+| `danger` | `#B4493E` | 5.87:1 | 8.62:1 | 5.30:1 |
+| `success` | `#2E7D5B` | 5.84:1 | 9.21:1 | 5.00:1 |
+| `warning` | `#946212` | 5.30:1 | 9.12:1 | 5.23:1 |
+| `info` | `#2563EB` | 6.16:1 | 8.45:1 | 5.17:1 |
 
 ### Dark mode
 
@@ -98,7 +111,7 @@ Light, Dark or System (default). `lib/theme.ts` (`initTheme`, `setThemePreferenc
 | `slate-900` / `text-strong` | `#0F172A` | `#F1F5F9` | Titles |
 | `text-primary` | `#2563EB` | `#60A5FA` | Solid `bg-primary` buttons keep `#2563EB` + white text |
 | `inverse` / `inverse-text` / `inverse-muted` / `inverse-border` | `#0F172A` `#FFFFFF` `#CBD5E1` `#1E293B` | `#1E293B` `#F8FAFC` `#CBD5E1` `#334155` | Toasts, code blocks, dark chips |
-| Tint ramps (red, emerald, amber, blue, violet) | `-50/-100/-200` light panels, `-600..-900` dark text | deep panels (for example red-50 `#2A151B`), light text (red-700 `#FCA5A5`) | Chips and alerts keep their class names |
+| Tint ramps (red, emerald, amber, blue, violet) | `-50/-100/-200` light panels, `-600..-900` dark text | deep panels (for example red-50 `#2B1816`), light text (red-700 `#F0A79E`) | Chips and alerts keep their class names |
 
 Rules: use tokens or the existing utilities (no raw hex, no `dark:` variants for covered colors); `text-white` on solid fills stays white (pinned in the
 `@layer utilities` block of `index.css`); surfaces that stay dark in both themes use `bg-inverse text-inverse-text`; borders keep separating cards because
@@ -152,9 +165,17 @@ changes · `beta` = new in v2, API may still change in a minor version.
 | `Timeline` + `ActivityItem` | Chronological activity list | beta | `actor`, `timestamp`, `timeLabel`, `icon` |
 | `Divider` | Rule, optionally labelled | stable | `label` |
 | `TooltipHint` | Tooltip around one focusable element | beta | `label`, `side` |
+| `SwitchField` | Switch with label and description (`ui/Switch` is the bare control) | stable | `label`, `description`, `checked`, `onCheckedChange`, `size` |
+| `SkeletonList` / `SkeletonBoard` / `SkeletonTable` / `SkeletonChart` / `SkeletonDetail` | Shaped loading placeholders | stable | `label`, `rows`, `columns`, `cards`, `bare` |
+| `Pagination` | Numbered or compact (cursor) page navigation | stable | `page`, `total`, `pageSize`, `compact`, `summary` |
+| `Stepper` | Ordered progress, horizontal or vertical | stable | `steps`, `current`, `orientation`, `label` |
+| `Banner` | Page-level notice with one action | stable | `tone`, `title`, `action`, `onDismiss` |
+| `OptionCombobox` | Searchable single/multiple select | beta | `options`, `value`, `multiple`, `label` |
+| `DescriptionList` + `DescriptionItem` | Label/value details (`<dl>`) | stable | `layout`, `columns`, `wide` |
+| `TagInput` | Free-text chip input with suggestions | stable | `value`, `onChange`, `suggestions`, `noun`, `max` |
 
 shadcn primitives in `@/components/ui` (all **stable**, documented in the guide): `Button`, `Input`, `Select`,
-`Checkbox`, `Tabs`, `Dialog`, `DropdownMenu`, `Tooltip`, `Avatar`, `Skeleton`; also `Textarea`, `AlertDialog`, `Sheet`, `Sidebar`.
+`Checkbox`, `Switch`, `Tabs`, `Dialog`, `DropdownMenu`, `Tooltip`, `Popover`, `HoverCard` (beta), `Combobox` (beta), `Avatar`, `Skeleton`; also `Textarea`, `AlertDialog`, `Sheet`, `Sidebar`.
 Shared dialogs next to the shell: `FormDialog` (full-screen on phones, sticky footer) and `ConfirmActionDialog` (destructive confirmations).
 
 Variants are `cva` recipes in `ds/variants.ts` (`surfaceVariants`, `tagVariants`, `alertVariants`, `iconTileVariants`,

@@ -42,6 +42,14 @@ describe('dark theme tokens', () => {
     expect(values).toEqual([...values].sort((a, b) => a - b));
   });
 
+  it('authors every semantic tone for dark with all six parts', () => {
+    for (const tone of ['danger', 'success', 'warning', 'info']) {
+      for (const part of ['solid', 'solid-hover', 'dot', 'fg', 'bg', 'border']) {
+        expect({ token: `${tone}-${part}`, declared: declared.has(`${tone}-${part}`) }).toEqual({ token: `${tone}-${part}`, declared: true });
+      }
+    }
+  });
+
   it('keeps every text pair at WCAG AA (4.5:1) and every icon or focus pair at 3:1', () => {
     const failing = DARK_PAIRS
       .filter(pair => pairRatio(pair) < pair.min)
@@ -49,11 +57,10 @@ describe('dark theme tokens', () => {
     expect(failing).toEqual([]);
   });
 
-  it('pins white text, the inverse surface, the solid destructive button and blue text in the exceptions layer', () => {
+  it('pins white text, the inverse surface and blue text in the exceptions layer', () => {
     for (const rule of [
       ':where(.dark) .text-white',
       ':where(.dark) .bg-slate-900',
-      ':where(.dark) .bg-red-600',
       ':where(.dark) .text-primary,',
     ]) {
       expect(css).toContain(rule);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { History, RotateCw } from 'lucide-react';
-import { EmptyState, ErrorState, SkeletonCards, Tag, toast } from '@/components/ds';
+import { EmptyState, ErrorState, SkeletonList, Tag, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
 import { eventLabel } from '../lib/catalog';
@@ -60,7 +60,7 @@ export const DeliveriesDialog = ({ webhook, load, redeliver, now, onClose }: Del
     >
       <DialogBody>
         {rows === null && !error ? (
-          <SkeletonCards count={3} columns="grid-cols-1" />
+          <SkeletonList label="Loading deliveries" rows={3} avatar={false} bare />
         ) : error ? (
           <ErrorState
             title="Could not load the deliveries"

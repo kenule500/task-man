@@ -116,14 +116,14 @@ export const StatCardDoc = () => (
       <div className="grid w-full grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard title="Total tasks" value={24} subtitle="5 pending" icon={<ListTodo />} colorClass="text-slate-600" />
         <StatCard title="In progress" value={7} subtitle="Being worked on" icon={<Clock />} colorClass="text-blue-600" />
-        <StatCard title="Completed" value={12} subtitle="50% of all tasks" icon={<CheckSquare />} colorClass="text-emerald-600" />
-        <StatCard title="Overdue" value={2} subtitle="Missed deadlines" icon={<Clock />} colorClass="text-red-600" />
+        <StatCard title="Completed" value={12} subtitle="50% of all tasks" icon={<CheckSquare />} colorClass="text-success-fg" />
+        <StatCard title="Overdue" value={2} subtitle="Missed deadlines" icon={<Clock />} colorClass="text-danger-fg" />
       </div>
     }
     a11y={['The icon is decorative (aria-hidden); the title carries the meaning.', 'Numbers use tabular-nums so rows do not jitter.']}
     doText="Show four or fewer cards and keep the subtitle factual."
     dontText="Use color alone to say “bad”. Overdue is red and also named."
-    code={`<StatCard title="Overdue" value={2} subtitle="Missed deadlines" icon={<Clock />} colorClass="text-red-600" />`}
+    code={`<StatCard title="Overdue" value={2} subtitle="Missed deadlines" icon={<Clock />} colorClass="text-danger-fg" />`}
     props={[
       { name: 'title', type: 'string', description: 'Label next to the icon.' },
       { name: 'value', type: 'ReactNode', description: 'The number.' },

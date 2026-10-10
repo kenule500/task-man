@@ -70,7 +70,7 @@ export const DarkModeSection = () => {
         <Prose>
           <p>
             Tailwind reads colors from CSS variables, so <code>.dark</code> in <code>index.css</code> re-points the slate ramp and the tint ramps. Every
-            <code>bg-white</code>, <code>bg-slate-50</code>, <code>text-slate-500</code> or <code>bg-red-50 text-red-700</code> already in the app switches
+            <code>bg-white</code>, <code>bg-slate-50</code>, <code>text-slate-500</code> or <code>bg-danger-bg text-danger-fg</code> already in the app switches
             with no change to the component. Elevation in dark mode is lightness: canvas, then card, then raised well.
           </p>
         </Prose>
@@ -108,9 +108,9 @@ export const DarkModeSection = () => {
         </Surface>
         <Prose>
           <p>
-            Light chips pair a <code>-50</code> or <code>-100</code> background with <code>-700</code> text. In dark mode the same classes give a deep, low-chroma panel
-            with a light <code>-700</code> text, so nothing needs a <code>dark:</code> variant. <code>-400</code> and <code>-500</code> stay the same: they are
-            marker fills (dots, bars), never text.
+            Light chips pair <code>-bg</code> with <code>-fg</code> text and <code>-border</code> (semantic tones: danger, success, warning, info). In dark mode the same classes give a deep,
+            low-chroma panel with a light <code>-fg</code> text, so nothing needs a <code>dark:</code> variant. <code>-dot</code> is the marker fill (dots, bars), never text, and
+            <code>-solid</code> keeps white text at AA in both themes.
           </p>
         </Prose>
       </div>
@@ -139,7 +139,7 @@ export const DarkModeSection = () => {
             <li>Use semantic tokens or the existing utilities. Do not write <code>dark:</code> variants for colors the ramp already covers, and never raw hex.</li>
             <li>
               A fixed color needs a fixed name. <code>text-white</code> on a solid fill (<code>bg-primary</code>, status dots, project folders) stays white;
-              solid fills use the <code>-500</code> or <code>-600</code> step and the primary blue. For a surface that stays dark in both themes (toast, code block,
+              solid fills use <code>-solid</code> (danger, success, warning, info) or the primary blue. For a surface that stays dark in both themes (toast, code block,
               dark chip) use <code>bg-inverse text-inverse-text</code>, not <code>bg-slate-900 text-white</code>.
             </li>
             <li>
@@ -152,7 +152,7 @@ export const DarkModeSection = () => {
           </ul>
         </Prose>
         <DoDont
-          doText={<>Use <code>bg-white</code>, <code>text-slate-700</code>, <code>bg-red-50 text-red-700</code>. They already have authored dark values.</>}
+          doText={<>Use <code>bg-white</code>, <code>text-slate-700</code>, <code>bg-danger-bg text-danger-fg</code>. They already have authored dark values.</>}
           dontText={<>Add <code>dark:bg-[#0f172a]</code> or <code>dark:text-gray-200</code> next to a utility the ramp covers. It drifts from the palette and from the contrast test.</>}
         />
         <Alert tone="info" title="Adding a color">

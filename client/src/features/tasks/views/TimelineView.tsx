@@ -125,9 +125,9 @@ const TimelineView = ({
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 border-b border-slate-100 md:px-6 md:py-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-slate-400" />Dependency</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 shrink-0 border-t-2 border-dashed border-red-500" />Starts before prerequisite is due</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 shrink-0 border-t-2 border-dashed border-danger-dot" />Starts before prerequisite is due</span>
           {conflicts > 0 && (
-            <span role="status" className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 font-medium text-red-600">
+            <span role="status" className="inline-flex items-center gap-1 rounded-md bg-danger-bg px-2 py-0.5 font-medium text-danger-fg">
               <AlertTriangle className="size-3.5" aria-hidden /> {conflicts} scheduling {conflicts === 1 ? 'conflict' : 'conflicts'}
             </span>
           )}
@@ -240,7 +240,7 @@ const TimelineView = ({
                     <path d="M0,0 L8,4 L0,8 z" fill="#94A3B8" />
                   </marker>
                   <marker id="gantt-arrow-conflict" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
-                    <path d="M0,0 L8,4 L0,8 z" fill="#EF4444" />
+                    <path d="M0,0 L8,4 L0,8 z" className="fill-danger-dot" />
                   </marker>
                 </defs>
                 {layout.links.map(link => {
@@ -252,7 +252,7 @@ const TimelineView = ({
                       key={`${link.fromId}-${link.toId}`}
                       d={getLinkPath(from, to, rowIndex.get(link.fromId)!, rowIndex.get(link.toId)!, dayWidth, ROW_HEIGHT)}
                       fill="none"
-                      stroke={link.conflict ? '#EF4444' : '#94A3B8'}
+                      className={link.conflict ? 'stroke-danger-dot' : 'stroke-slate-400'}
                       strokeWidth={1.5}
                       strokeDasharray={link.conflict ? '4 3' : undefined}
                       markerEnd={`url(#${link.conflict ? 'gantt-arrow-conflict' : 'gantt-arrow'})`}

@@ -4,7 +4,7 @@ import {
   contrastLevel, contrastRatio, formatRatio, hexToRgb, relativeLuminance,
 } from '../contrast';
 import {
-  ALL_COLOR_TOKENS, DURATIONS, EASINGS, ELEVATION_LEVELS, RADIUS_SCALE, Z_INDEX,
+  ALL_COLOR_TOKENS, DURATIONS, EASINGS, ELEVATION_LEVELS, RADIUS_SCALE, TONES, TONE_LIGHT, Z_INDEX,
 } from '../tokens';
 
 describe('contrast helpers', () => {
@@ -76,11 +76,28 @@ describe('documented tokens', () => {
   });
 
   it('text roles used for words pass AA on white', () => {
-    const wordTokens = ['text-strong', 'text-body', 'text-subtle', 'priority-high-text', 'priority-medium-text', 'priority-low-text', 'status-in-progress-fg', 'status-completed-fg'];
+    const wordTokens = ['text-strong', 'text-body', 'text-subtle', 'priority-high-text', 'priority-medium-text', 'priority-low-text', 'status-in-progress-fg', 'status-completed-fg', 'danger-fg', 'success-fg', 'warning-fg', 'info-fg'];
     for (const utility of wordTokens) {
       const color = ALL_COLOR_TOKENS.find(item => item.utility === utility);
       expect(color).toBeDefined();
       expect({ utility, ok: contrastRatio(color!.hex, '#FFFFFF') >= 4.5 }).toEqual({ utility, ok: true });
+    }
+  });
+
+  it('every semantic tone passes AA in the light theme', () => {
+    for (const tone of TONES) {
+      const t = TONE_LIGHT[tone];
+      const checks: [string, number, number][] = [
+        ['white on solid', contrastRatio('#FFFFFF', t.solid), 4.5],
+        ['white on solid-hover', contrastRatio('#FFFFFF', t['solid-hover']), 4.5],
+        ['fg on bg', contrastRatio(t.fg, t.bg), 4.5],
+        ['fg on white', contrastRatio(t.fg, '#FFFFFF'), 4.5],
+        ['fg on slate-100', contrastRatio(t.fg, '#F1F5F9'), 4.5],
+        ['dot on white (non-text)', contrastRatio(t.dot, '#FFFFFF'), 3],
+      ];
+      for (const [name, ratio, min] of checks) {
+        expect({ tone, name, ok: ratio >= min }).toEqual({ tone, name, ok: true });
+      }
     }
   });
 

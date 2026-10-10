@@ -136,7 +136,7 @@ const TaskFormDialog = ({
         <form onSubmit={handleSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:max-h-[60vh] sm:flex-none sm:px-6 sm:py-5">
             {submitError && (
-              <div role="alert" className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
+              <div role="alert" className="flex items-start gap-2 text-sm text-danger-fg bg-danger-bg border border-danger-border rounded-lg p-3">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>{submitError}</span>
               </div>
@@ -144,7 +144,7 @@ const TaskFormDialog = ({
 
             <div className="space-y-1.5">
               <Label htmlFor="task-title" className="text-sm font-medium text-slate-700">
-                Title <span className="text-red-500">*</span>
+                Title <span className="text-danger-fg">*</span>
               </Label>
               <Input
                 id="task-title"
@@ -157,7 +157,7 @@ const TaskFormDialog = ({
                 aria-describedby={errors.title ? 'task-title-error' : undefined}
                 autoFocus
               />
-              {errors.title && <p id="task-title-error" className="text-xs text-red-600">{errors.title}</p>}
+              {errors.title && <p id="task-title-error" className="text-xs text-danger-fg">{errors.title}</p>}
             </div>
 
             <div className="space-y-1.5">
@@ -240,11 +240,11 @@ const TaskFormDialog = ({
                   aria-invalid={Boolean(errors.startDate)}
                   aria-describedby={errors.startDate ? 'task-start-error' : undefined}
                 />
-                {errors.startDate && <p id="task-start-error" className="text-xs text-red-600">{errors.startDate}</p>}
+                {errors.startDate && <p id="task-start-error" className="text-xs text-danger-fg">{errors.startDate}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-deadline" className="text-sm font-medium text-slate-700">
-                  Due date <span className="text-red-500">*</span>
+                  Due date <span className="text-danger-fg">*</span>
                 </Label>
                 <Input
                   id="task-deadline"
@@ -256,7 +256,7 @@ const TaskFormDialog = ({
                   aria-invalid={Boolean(errors.deadline)}
                   aria-describedby={errors.deadline ? 'task-deadline-error' : undefined}
                 />
-                {errors.deadline && <p id="task-deadline-error" className="text-xs text-red-600">{errors.deadline}</p>}
+                {errors.deadline && <p id="task-deadline-error" className="text-xs text-danger-fg">{errors.deadline}</p>}
               </div>
             </div>
 

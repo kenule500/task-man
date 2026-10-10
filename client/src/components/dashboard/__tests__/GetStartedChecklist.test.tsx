@@ -25,7 +25,7 @@ describe('GetStartedChecklist', () => {
   it('ticks steps that real data already satisfies', () => {
     renderChecklist({ taskCount: 4, memberCount: 3, boardTried: false, canInvite: true });
     expect(screen.getByText('2 of 3 done')).toBeInTheDocument();
-    expect(screen.getByText('Create your first task')).toHaveTextContent('(done)');
+    expect(screen.getByText('Create your first task')).toHaveTextContent('completed');
     expect(screen.queryByRole('link', { name: 'Create task' })).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '67');
   });

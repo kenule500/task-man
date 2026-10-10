@@ -123,14 +123,14 @@ interface Check {
 }
 
 const subtle = formatRatio(contrastRatio('#64748B', '#FFFFFF'));
-const mediumMarker = formatRatio(contrastRatio('#D97706', '#FFFFFF'));
-const mediumText = formatRatio(contrastRatio('#B45309', '#FFFFFF'));
+const mediumMarker = formatRatio(contrastRatio('#B8801A', '#FFFFFF'));
+const mediumText = formatRatio(contrastRatio('#8A5B0F', '#FFFFFF'));
 const primaryOnWhite = formatRatio(contrastRatio('#2563EB', '#FFFFFF'));
 
 const CHECKS: Check[] = [
   { id: 'keyboard', title: 'Keyboard operable', criterion: '2.1.1', status: 'pass', how: 'Every control is a native element or a Base UI primitive. Drag interactions have a menu or arrow-key alternative. Ctrl/Cmd+K opens the command palette.' },
   { id: 'focus', title: 'Focus visible and not obscured', criterion: '2.4.7 · 2.4.11', status: 'pass', how: 'Focus rings (3px ring or 2px primary outline) on every interactive element.' },
-  { id: 'contrast', title: 'Contrast', criterion: '1.4.3 · 1.4.11', status: 'pass', how: `Text tokens pass: text-subtle ${subtle}, primary ${primaryOnWhite}, priority labels use amber-700 (${mediumText}) and emerald-700. Amber-500/600 (${mediumMarker}) is kept for dots and bars only, next to a text label.` },
+  { id: 'contrast', title: 'Contrast', criterion: '1.4.3 · 1.4.11', status: 'pass', how: `Text tokens pass: text-subtle ${subtle}, primary ${primaryOnWhite}, priority labels use the -fg tones (warning-fg ${mediumText}, danger-fg, success-fg). Marker colors such as warning-dot (${mediumMarker}) are kept for dots and bars only, next to a text label.` },
   { id: 'labels', title: 'Labels and instructions', criterion: '1.3.1 · 3.3.2', status: 'pass', how: 'Field pairs a visible label with hint or error via aria-describedby. Placeholders never replace labels.' },
   { id: 'landmarks', title: 'Landmarks and one h1', criterion: '1.3.1 · 2.4.1', status: 'pass', how: 'Each page has one h1 (PageHeader), a main landmark, labelled navs and a skip link on this guide.' },
   { id: 'motion', title: 'Reduced motion', criterion: '2.3.3', status: 'pass', how: 'A global prefers-reduced-motion rule collapses animations and transitions. No autoplay.' },
@@ -141,8 +141,8 @@ const CHECKS: Check[] = [
 ];
 
 const STATUS_META: Record<Status, { label: string; tone: 'success' | 'warning' | 'neutral'; icon: typeof CheckCircle2; className: string }> = {
-  pass: { label: 'Pass', tone: 'success', icon: CheckCircle2, className: 'text-emerald-600' },
-  partial: { label: 'Partial', tone: 'warning', icon: CircleAlert, className: 'text-amber-600' },
+  pass: { label: 'Pass', tone: 'success', icon: CheckCircle2, className: 'text-success-fg' },
+  partial: { label: 'Partial', tone: 'warning', icon: CircleAlert, className: 'text-warning-fg' },
   todo: { label: 'To audit', tone: 'neutral', icon: CircleDashed, className: 'text-text-subtle' },
 };
 

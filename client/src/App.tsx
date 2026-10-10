@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { PermissionProvider } from './context/PermissionProvider';
-import { SkeletonCards, Toaster } from './components/ds';
+import { PageLoader, SkeletonCards, Toaster, TopProgressBar } from './components/ds';
 import PermissionRoute from './components/PermissionRoute';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -54,18 +54,20 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
 const InboxPage = lazy(() => import('./pages/InboxPage'));
 
+// A page chunk that is slow to arrive shows the top progress bar (after 160ms) over skeleton cards;
+// the first load of a whole layout shows the branded full-page loader.
 const PageFallback = () => (
   <div className="mx-auto max-w-5xl p-6">
+    <TopProgressBar />
     <SkeletonCards count={3} columns="sm:grid-cols-3" />
   </div>
 );
 
 const ShellFallback = () => (
-  <div className="flex min-h-dvh items-center justify-center bg-slate-50 p-4">
-    <div className="w-full max-w-4xl">
-      <SkeletonCards count={3} columns="sm:grid-cols-3" />
-    </div>
-  </div>
+  <>
+    <TopProgressBar />
+    <PageLoader />
+  </>
 );
 
 /** Suspense boundary for one lazily loaded screen; layouts stay mounted while the page chunk arrives. */
@@ -299,8 +301,11 @@ function App() {
 
         {/* PWA components — must be inside the provider so they can use context */}
         <IdlePrefetch />
-        <OfflineBanner />
-        <PwaPrompt />
+        {/* Top banners stack instead of covering each other (offline + update available) */}
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex flex-col">
+          <OfflineBanner />
+          <PwaPrompt />
+        </div>
         <Toaster />
       </PermissionProvider>
     </Router>

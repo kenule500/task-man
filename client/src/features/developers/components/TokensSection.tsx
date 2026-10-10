@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyRound, Plus } from 'lucide-react';
-import { EmptyState, ErrorState, SectionHeader, SkeletonCards, Surface, toast } from '@/components/ds';
+import { EmptyState, ErrorState, SectionHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Button } from '@/components/ui/button';
 import { grantableScopes } from '../lib/catalog';
@@ -82,7 +82,7 @@ export const TokensSection = ({ slug, apiUrl, permissions, tokens, loading, erro
       </p>
 
       {loading ? (
-        <SkeletonCards count={2} columns="grid-cols-1" />
+        <SkeletonList label="Loading API tokens" rows={2} avatar={false} />
       ) : error ? (
         <ErrorState
           title="Could not load your API tokens"

@@ -146,7 +146,7 @@ const RolePermissionMatrix = ({
                       >
                         {allowed ? (
                           <>
-                            <Check className="mx-auto size-4 text-emerald-700" aria-hidden />
+                            <Check className="mx-auto size-4 text-success-fg" aria-hidden />
                             <span className="sr-only">Allowed</span>
                           </>
                         ) : (

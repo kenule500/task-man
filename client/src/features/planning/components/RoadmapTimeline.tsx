@@ -11,15 +11,15 @@ const LABEL_W = ROADMAP_LABEL_WIDTH;
 const ROW_H = 48;
 
 const FILL: Record<EpicHealth, string> = {
-  done: 'bg-emerald-500',
-  overdue: 'bg-red-600',
+  done: 'bg-success-dot',
+  overdue: 'bg-danger-dot',
   'in-progress': 'bg-primary',
   upcoming: 'bg-primary',
 };
 
 const TRACK: Record<EpicHealth, string> = {
-  done: 'border-emerald-600',
-  overdue: 'border-red-600',
+  done: 'border-success-solid',
+  overdue: 'border-danger-solid',
   'in-progress': 'border-slate-400',
   upcoming: 'border-dashed border-slate-400',
 };
@@ -27,7 +27,7 @@ const TRACK: Record<EpicHealth, string> = {
 const BAND: Record<SprintBand['status'], string> = {
   active: 'border-blue-200 bg-blue-50 text-blue-700',
   planned: 'border-slate-200 bg-slate-100 text-slate-700',
-  completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  completed: 'border-success-border bg-success-bg text-success-fg',
 };
 
 interface RoadmapTimelineProps {

@@ -133,7 +133,7 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
             title={lastOfGroup ? `Every group needs at least one stage` : undefined}
             disabled={lastOfGroup}
             onClick={onDelete}
-            className="size-11 text-red-700 hover:bg-red-50 sm:size-8"
+            className="size-11 text-danger-fg hover:bg-danger-bg sm:size-8"
           >
             <Trash2 aria-hidden />
           </Button>

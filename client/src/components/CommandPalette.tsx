@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { cn } from 'cn';
+import { Spinner } from '@/components/ds';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { ProjectFolderIcon, projectsApi, type Project } from '@/features/projects';
 import { StatusBadge, tasksApi, type Task } from '@/features/tasks';
@@ -235,7 +236,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
             </li>
           )}
           {loadingTasks && (
-            <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500">Loading tasks…</li>
+            <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500"><Spinner decorative size="xs" className="mr-1.5 align-middle" />Loading tasks…</li>
           )}
           {loaded?.failed && tasksReady && (
             <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500">

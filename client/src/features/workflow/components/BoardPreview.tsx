@@ -4,7 +4,7 @@ import type { WorkflowStage } from '../types';
 
 /** The board as it will look: one column header per stage, in order, scrolling sideways when wide. */
 export const BoardPreview = ({ stages, className }: { stages: readonly WorkflowStage[]; className?: string }) => (
-  <div className={cn('overflow-x-auto pb-1', className)}>
+  <div tabIndex={0} role="region" aria-label="Board preview, scrolls sideways" className={cn('overflow-x-auto rounded-lg pb-1 focus-visible:outline-2 focus-visible:outline-primary', className)}>
     <ol
       aria-label="Board columns"
       className="grid gap-2"

@@ -4,12 +4,11 @@ import { ChevronDown, Clock, Mail, Shield, Trash2, UserPlus, Users, X, Check } f
 import InviteMemberModal from '../components/InviteMemberModal';
 import ConfirmActionDialog from '../components/ConfirmActionDialog';
 import { usePermissions } from '../hooks/usePermissions';
-import { Alert, EmptyState, IconTile, PageHeader, Surface, Tag, UserAvatar } from '@/components/ds';
+import { Alert, EmptyState, IconTile, PageHeader, SkeletonList, Surface, Tag, UserAvatar } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
 import api, { getApiErrorMessage } from '../utils/api';
 
 interface Member {
@@ -104,20 +103,6 @@ const RoleControl = ({ member, roles, editable, saving, onChange }: RoleControlP
     </DropdownMenu>
   );
 };
-
-const MembersSkeleton = () => (
-  <ul aria-busy="true" aria-label="Loading members" className="divide-y divide-slate-100">
-    {[1, 2, 3].map((i) => (
-      <li key={i} className="flex items-center gap-3 px-4 py-4 sm:px-6">
-        <Skeleton className="size-9 rounded-full bg-slate-200" />
-        <div className="space-y-2">
-          <Skeleton className="h-3.5 w-40 bg-slate-200" />
-          <Skeleton className="h-3 w-56 max-w-full bg-slate-200" />
-        </div>
-      </li>
-    ))}
-  </ul>
-);
 
 const TeamMembersPage = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -244,7 +229,7 @@ const TeamMembersPage = () => {
         </div>
 
         {loading ? (
-          <MembersSkeleton />
+          <SkeletonList bare label="Loading members" rows={3} trailing={false} />
         ) : members.length === 0 ? (
           <EmptyState
             icon={<Users />}
@@ -298,7 +283,7 @@ const TeamMembersPage = () => {
                         variant="ghost"
                         onClick={() => setPendingConfirm({ kind: 'member', id: member.user._id, name: member.user.name })}
                         aria-label={`Remove ${member.user.name} from this workspace`}
-                        className="size-10 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 md:size-8"
+                        className="size-10 rounded-lg text-slate-500 hover:bg-danger-bg hover:text-danger-fg md:size-8"
                       >
                         <Trash2 aria-hidden />
                       </Button>
@@ -316,7 +301,7 @@ const TeamMembersPage = () => {
       {canViewInvitations && invitations.length > 0 && (
         <Surface as="section" aria-labelledby="invitations-heading" padding="none" className="overflow-hidden">
           <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
-            <Clock className="size-4 text-amber-600" aria-hidden />
+            <Clock className="size-4 text-warning-fg" aria-hidden />
             <h2 id="invitations-heading" className="text-sm font-semibold text-slate-800">
               Pending invitations <span className="font-normal tabular-nums text-slate-600">({invitations.length})</span>
             </h2>
@@ -341,7 +326,7 @@ const TeamMembersPage = () => {
                     variant="ghost"
                     onClick={() => setPendingConfirm({ kind: 'invitation', id: inv._id, email: inv.email })}
                     aria-label={`Cancel invitation for ${inv.email}`}
-                    className="size-10 shrink-0 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 md:size-8"
+                    className="size-10 shrink-0 rounded-lg text-slate-500 hover:bg-danger-bg hover:text-danger-fg md:size-8"
                   >
                     <X aria-hidden />
                   </Button>

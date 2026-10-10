@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Alert, EmptyState, Field, PageHeader, SectionHeader, SegmentedControl, SkeletonCards, Surface, fieldMessageId } from '@/components/ds';
+import { Alert, EmptyState, Field, PageHeader, SectionHeader, SegmentedControl, SkeletonList, Surface, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import { usePermissions } from '@/hooks/usePermissions';
 import SelectField from '@/features/planning/components/SelectField';
@@ -95,7 +95,7 @@ const WorkloadPage = () => {
       />
 
       {loading ? (
-        <SkeletonCards count={3} columns="sm:grid-cols-3" />
+        <SkeletonList label="Loading workload" rows={4} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={tasksError ? clearError : undefined}>{error}</Alert>}
@@ -159,7 +159,7 @@ const WorkloadPage = () => {
                 />
               </Field>
             </div>
-            {rangeInvalid && <p role="alert" className="mt-3 text-sm text-red-700">The start date must be on or before the end date.</p>}
+            {rangeInvalid && <p role="alert" className="mt-3 text-sm text-danger-fg">The start date must be on or before the end date.</p>}
           </Surface>
 
           {workload === null ? (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, BookmarkPlus, Check, ChevronDown, Settings2 } from 'lucide-react';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
-import { toast } from '@/components/ds';
+import { Spinner, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -101,7 +101,7 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-slate-100" />
 
-          {loading && <p role="status" className="px-2 py-2 text-xs text-slate-600">Loading views…</p>}
+          {loading && <p role="status" className="flex items-center gap-2 px-2 py-2 text-xs text-slate-600"><Spinner decorative size="xs" />Loading views…</p>}
           {failed && <p role="status" className="px-2 py-2 text-xs text-slate-600">We could not load your saved views.</p>}
           {!loading && !failed && views.length === 0 && (
             <p className="px-2 py-2 text-xs text-slate-600">No saved views yet. Set the filters you want, then save them here.</p>

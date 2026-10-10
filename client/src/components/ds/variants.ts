@@ -20,10 +20,10 @@ export const tagVariants = cva(
     variants: {
       tone: {
         neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-        primary: 'bg-blue-50 text-blue-700 border-blue-100',
-        success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-        warning: 'bg-amber-50 text-amber-700 border-amber-100',
-        danger: 'bg-red-50 text-red-700 border-red-100',
+        primary: 'bg-info-bg text-info-fg border-info-border',
+        success: 'bg-success-bg text-success-fg border-success-border',
+        warning: 'bg-warning-bg text-warning-fg border-warning-border',
+        danger: 'bg-danger-bg text-danger-fg border-danger-border',
         dark: 'bg-inverse text-inverse-text border-inverse',
       },
       size: { sm: 'px-1.5 py-0.5 text-[11px]', md: 'px-2.5 py-1 text-xs' },
@@ -36,10 +36,10 @@ export const tagVariants = cva(
 export const alertVariants = cva('flex items-start gap-2.5 rounded-lg border p-3 text-sm', {
   variants: {
     tone: {
-      info: 'bg-blue-50 border-blue-100 text-blue-700',
-      success: 'bg-emerald-50 border-emerald-100 text-emerald-700',
-      warning: 'bg-amber-50 border-amber-100 text-amber-800',
-      error: 'bg-red-50 border-red-100 text-red-700',
+      info: 'bg-info-bg border-info-border text-info-fg',
+      success: 'bg-success-bg border-success-border text-success-fg',
+      warning: 'bg-warning-bg border-warning-border text-warning-fg',
+      error: 'bg-danger-bg border-danger-border text-danger-fg',
     },
   },
   defaultVariants: { tone: 'info' },
@@ -51,9 +51,9 @@ export const iconTileVariants = cva('flex shrink-0 items-center justify-center r
     tone: {
       primary: 'bg-primary/10 text-primary-hover',
       neutral: 'bg-slate-100 text-slate-600',
-      success: 'bg-emerald-50 text-emerald-600',
-      warning: 'bg-amber-50 text-amber-600',
-      danger: 'bg-red-50 text-red-700',
+      success: 'bg-success-bg text-success-fg',
+      warning: 'bg-warning-bg text-warning-fg',
+      danger: 'bg-danger-bg text-danger-fg',
     },
     size: { sm: 'size-8 [&_svg]:size-4', md: 'size-10 [&_svg]:size-5', lg: 'size-14 [&_svg]:size-7' },
   },
@@ -150,3 +150,111 @@ export const getInitials = (name: string): string => {
 
 /** Id of a Field's hint/error message, for the control's `aria-describedby`. */
 export const fieldMessageId = (fieldId: string): string => `${fieldId}-message`;
+
+// ---------------------------------------------------------------------------
+// Switch, popovers, banner, stepper, pagination, description list
+// ---------------------------------------------------------------------------
+
+/** On/off switch track. The `before` pseudo-element enlarges the touch target beyond the track. */
+export const switchVariants = cva(
+  'peer relative inline-flex shrink-0 cursor-pointer items-center rounded-full bg-slate-500 outline-none transition-colors duration-(--duration-fast) before:absolute before:content-[""] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus data-checked:bg-primary data-disabled:cursor-not-allowed data-disabled:opacity-60 motion-reduce:transition-none',
+  {
+    variants: {
+      size: {
+        sm: 'h-5 w-9 before:-inset-2.5',
+        md: 'h-6 w-11 before:-inset-2',
+      },
+    },
+    defaultVariants: { size: 'md' },
+  },
+);
+
+/** Moving knob of a switch. */
+export const switchThumbVariants = cva(
+  'pointer-events-none block rounded-full bg-white shadow-sm transition-transform duration-(--duration-fast) ease-standard motion-reduce:transition-none',
+  {
+    variants: {
+      size: {
+        sm: 'size-4 translate-x-0.5 data-checked:translate-x-[1.125rem]',
+        md: 'size-5 translate-x-0.5 data-checked:translate-x-[1.375rem]',
+      },
+    },
+    defaultVariants: { size: 'md' },
+  },
+);
+
+/** Floating panel shared by Popover, HoverCard and Combobox. Width is a step, content decides the rest. */
+export const floatingPanelVariants = cva(
+  'z-50 max-w-(--available-width) origin-(--transform-origin) rounded-lg bg-popover text-popover-foreground shadow-floating ring-1 ring-foreground/10 outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+  {
+    variants: {
+      width: { auto: 'w-max', sm: 'w-56', md: 'w-72', lg: 'w-96' },
+      padding: { none: '', sm: 'p-2', md: 'p-3.5' },
+    },
+    defaultVariants: { width: 'md', padding: 'md' },
+  },
+);
+
+/** Page-level banner layout. The tone colors come from `alertVariants`, so both stay in step. */
+export const bannerVariants = cva('flex w-full items-start gap-3 border-b px-4 py-2.5 text-sm sm:items-center', {
+  variants: {
+    sticky: { true: 'sticky top-0 z-(--z-sticky)', false: '' },
+    rounded: { true: 'rounded-lg border', false: 'rounded-none border-x-0 border-t-0' },
+  },
+  defaultVariants: { sticky: false, rounded: true },
+});
+
+/** Numbered marker of a stepper step. */
+export const stepperMarkerVariants = cva(
+  'flex shrink-0 items-center justify-center rounded-full border-2 font-semibold tabular-nums transition-colors duration-(--duration-base) motion-reduce:transition-none',
+  {
+    variants: {
+      state: {
+        complete: 'border-primary bg-primary text-white',
+        current: 'border-primary bg-white text-primary',
+        upcoming: 'border-slate-300 bg-white text-slate-500',
+      },
+      size: { sm: 'size-6 text-xs', md: 'size-8 text-sm' },
+    },
+    defaultVariants: { state: 'upcoming', size: 'md' },
+  },
+);
+
+/** Page button of a pagination bar. */
+export const paginationButtonVariants = cva(
+  'inline-flex min-w-9 items-center justify-center gap-1 rounded-md px-2 text-sm font-medium tabular-nums outline-none transition-colors duration-(--duration-fast) focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      current: {
+        true: 'bg-primary text-white',
+        false: 'text-text-body hover:bg-slate-100',
+      },
+      size: { sm: 'h-9 md:h-8', md: 'h-10 md:h-9' },
+    },
+    defaultVariants: { current: false, size: 'md' },
+  },
+);
+
+/** Term/description grid of the DescriptionList. */
+export const descriptionListVariants = cva('text-sm', {
+  variants: {
+    layout: {
+      stacked: 'grid gap-x-6 gap-y-4',
+      inline: 'grid grid-cols-[minmax(6rem,max-content)_1fr] gap-x-4 gap-y-3',
+    },
+    columns: { 1: '', 2: '', 3: '' },
+  },
+  compoundVariants: [
+    { layout: 'stacked', columns: 2, class: 'sm:grid-cols-2' },
+    { layout: 'stacked', columns: 3, class: 'grid-cols-2 sm:grid-cols-3' },
+    { layout: 'inline', columns: 2, class: 'sm:grid-cols-[repeat(2,minmax(6rem,max-content)_1fr)]' },
+  ],
+  defaultVariants: { layout: 'stacked', columns: 1 },
+});
+
+export type SwitchVariants = VariantProps<typeof switchVariants>;
+export type FloatingPanelVariants = VariantProps<typeof floatingPanelVariants>;
+export type BannerVariants = VariantProps<typeof bannerVariants>;
+export type StepperMarkerVariants = VariantProps<typeof stepperMarkerVariants>;
+export type PaginationButtonVariants = VariantProps<typeof paginationButtonVariants>;
+export type DescriptionListVariants = VariantProps<typeof descriptionListVariants>;

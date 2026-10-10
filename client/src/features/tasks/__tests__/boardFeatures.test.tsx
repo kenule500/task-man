@@ -181,7 +181,7 @@ describe('BoardView WIP limits', () => {
     render(<BoardView tasks={pending(5)} {...handlers()} workspaceSlug="acme" />);
 
     await waitFor(() => expect(within(header('Pending')).getByText('5 / 4')).toBeInTheDocument());
-    expect(header('Pending').className).toContain('bg-red-50');
+    expect(header('Pending').className).toContain('bg-danger-bg');
     expect(within(header('Pending')).getByText('over WIP limit')).toHaveClass('sr-only');
     expect(within(header('In Progress')).queryByText('over WIP limit')).not.toBeInTheDocument();
     expect(mockedApi.get).toHaveBeenCalledWith('/workspaces/acme/board-settings');

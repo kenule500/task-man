@@ -62,6 +62,26 @@ describe('ScopeBar', () => {
     expect(screen.getByText('No sprint is running')).toBeInTheDocument();
   });
 
+  it('warns in a banner when the active sprint is about to end, and not before', () => {
+    const key = (offsetDays: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() + offsetDays);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}T00:00:00.000Z`;
+    };
+    const ending = { ...active, endDate: key(2) };
+    const { unmount } = render(
+      <MemoryRouter>
+        <ScopeBar slug="acme" filters={{ project: 'Web', sprint: 'active' }} projects={[{ ...web, sprints: [ending] }]} onClear={jest.fn()} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(/This sprint ends in 2 days./);
+    expect(screen.getByRole('link', { name: 'Review sprint Sprint 2' })).toHaveAttribute('href', '/acme/projects/p1/sprints/s2/report');
+    unmount();
+
+    renderBar({ project: 'Web', sprint: 'active' });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('clears the scope with the x button', async () => {
     const onClear = renderBar({ project: 'Web', sprint: 'active' });
     await userEvent.click(screen.getByRole('button', { name: 'Clear project and sprint scope' }));

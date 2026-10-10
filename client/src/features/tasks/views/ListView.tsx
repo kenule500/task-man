@@ -7,7 +7,7 @@ import type { Project } from '@/features/projects';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { EmptyState, toast } from '@/components/ds';
+import { CheckBurst, EmptyState, toast } from '@/components/ds';
 import { getApiErrorMessage, type BulkTaskPatch } from '../api';
 import BulkActionBar from '../components/BulkActionBar';
 import {
@@ -309,7 +309,16 @@ const DetailsButton = ({ task, onOpen, onEdit, className }: Pick<ListRowProps, '
 );
 
 /** Round "done" button, visually distinct from the square selection checkbox. */
-const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; completed: boolean; canWrite: boolean; onUpdate: ListRowProps['onUpdate'] }) => (
+const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; completed: boolean; canWrite: boolean; onUpdate: ListRowProps['onUpdate'] }) => {
+  // Marking a task done plays a one-shot check burst (state adjusted while rendering, no effect)
+  const [wasCompleted, setWasCompleted] = useState(completed);
+  const [burst, setBurst] = useState(0);
+  if (wasCompleted !== completed) {
+    setWasCompleted(completed);
+    if (completed) setBurst(count => count + 1);
+  }
+
+  return (
   <button
     type="button"
     aria-pressed={completed}
@@ -317,14 +326,18 @@ const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; compl
     onClick={() => onUpdate(task._id, { status: completed ? 'pending' : 'completed' })}
     aria-label={completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
     className={cn(
-      'flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors md:size-8',
-      'hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:hover:text-slate-400',
-      completed && 'text-emerald-600',
+      'relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors md:size-8',
+      'hover:text-success-fg focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:hover:text-slate-400',
+      completed && 'text-success-fg',
     )}
   >
-    {completed ? <CircleCheck className="size-5" aria-hidden /> : <Circle className="size-5" aria-hidden />}
+    {burst > 0 && completed && <CheckBurst key={burst} />}
+    {completed
+      ? <CircleCheck className={cn('size-5', burst > 0 && 'motion-safe:animate-tm-pop')} aria-hidden />
+      : <Circle className="size-5" aria-hidden />}
   </button>
-);
+  );
+};
 
 const SelectCheckbox = ({ task, selection }: Pick<ListRowProps, 'task'> & { selection: NonNullable<ListRowProps['selection']> }) => (
   <Checkbox
@@ -379,7 +392,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
       </div>
 
       <div role="cell" className="flex items-center">
-        <AssigneeStack users={task.assignees} />
+        <AssigneeStack users={task.assignees} preview />
         {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-500" aria-label="Unassigned">—</span>}
       </div>
 
@@ -413,7 +426,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
           min={task.startDate ? dateKeyOf(task.startDate) : undefined}
           onSave={deadline => onUpdate(task._id, { deadline })}
           readOnly={!canWrite}
-          className={overdue ? 'font-medium text-red-600' : 'text-slate-500'}
+          className={overdue ? 'font-medium text-danger-fg' : 'text-slate-500'}
         />
       </div>
 
@@ -568,7 +581,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             min={task.startDate ? dateKeyOf(task.startDate) : undefined}
             onSave={deadline => onUpdate(task._id, { deadline })}
             readOnly={!canWrite}
-            className={cn(canWrite && 'h-10 border border-slate-200 px-2.5', overdue ? 'font-medium text-red-600' : 'text-slate-500')}
+            className={cn(canWrite && 'h-10 border border-slate-200 px-2.5', overdue ? 'font-medium text-danger-fg' : 'text-slate-500')}
           />
         </div>
       </div>

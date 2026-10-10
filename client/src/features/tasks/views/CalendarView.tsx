@@ -506,7 +506,7 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
         'relative flex min-h-16 w-full items-stretch gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-3 text-left',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.99] motion-reduce:active:scale-100',
         STATUS_META[task.status].surface,
-        overdue && 'border-red-200 bg-red-50 text-red-700',
+        overdue && 'border-danger-border bg-danger-bg text-danger-fg',
       )}
     >
       <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', barClass)} />
@@ -597,7 +597,7 @@ const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void
       className={cn(
         'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium',
         STATUS_META[task.status].surface,
-        overdue && 'border-red-200 bg-red-50 text-red-700',
+        overdue && 'border-danger-border bg-danger-bg text-danger-fg',
       )}
     >
       <span aria-hidden className={cn('size-2 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
@@ -630,7 +630,7 @@ const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: 
         'flex w-full items-center gap-1.5 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium',
         draggable && 'cursor-grab active:cursor-grabbing',
         STATUS_META[task.status].surface,
-        overdue && 'border-red-200 bg-red-50 text-red-700',
+        overdue && 'border-danger-border bg-danger-bg text-danger-fg',
       )}
     >
       <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />

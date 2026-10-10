@@ -49,7 +49,7 @@ const PushDeviceSettings = () => {
         )}
 
         {state === 'off' && <p className="text-slate-700">Push is off on this device.</p>}
-        {state === 'on' && <p className="font-medium text-emerald-800">Push is on for this device.</p>}
+        {state === 'on' && <p className="font-medium text-success-fg">Push is on for this device.</p>}
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}

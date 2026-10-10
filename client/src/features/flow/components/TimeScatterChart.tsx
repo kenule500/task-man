@@ -41,7 +41,7 @@ const TimeScatterChart = ({ name, stats, range }: TimeScatterChartProps) => {
   const labels = labelIndexes(5, 5).map(step => new Date(start + (step / 4) * (span - DAY_MS)).toISOString().slice(0, 10));
   const lines = [
     { key: 'p50', label: 'p50', value: stats.p50, dash: '2 4', className: 'stroke-slate-600' },
-    { key: 'p85', label: 'p85', value: stats.p85, dash: '6 4', className: 'stroke-amber-600' },
+    { key: 'p85', label: 'p85', value: stats.p85, dash: '6 4', className: 'stroke-warning-solid' },
   ];
   const activePoint = active === null ? null : points[active];
 
@@ -106,7 +106,7 @@ const TimeScatterChart = ({ name, stats, range }: TimeScatterChartProps) => {
         items={[
           { label: 'Completed task', swatch: <span aria-hidden className="inline-block size-2.5 rounded-full bg-blue-600" /> },
           { label: 'Median (p50)', swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-slate-600" strokeWidth={2} strokeDasharray="2 4" /></svg>, value: formatDays(stats.p50) },
-          { label: '85th percentile (p85)', swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-amber-600" strokeWidth={2} strokeDasharray="6 4" /></svg>, value: formatDays(stats.p85) },
+          { label: '85th percentile (p85)', swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-warning-solid" strokeWidth={2} strokeDasharray="6 4" /></svg>, value: formatDays(stats.p85) },
         ]}
       />
 

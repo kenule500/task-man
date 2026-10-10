@@ -22,7 +22,7 @@ const CapacityBar = ({ row, capacity, showCapacity = true }: CapacityBarProps) =
       className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100"
     >
       <div className="flex h-full">
-        <span className="h-full bg-emerald-500" style={{ width: width(row.points.completed) }} />
+        <span className="h-full bg-success-dot" style={{ width: width(row.points.completed) }} />
         <span className="h-full bg-primary" style={{ width: width(row.points['in-progress']) }} />
         <span className="h-full bg-slate-400" style={{ width: width(row.points.pending) }} />
       </div>

@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert, Field, fieldMessageId } from '@/components/ds';
+import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { useFormValidation } from '@/components/auth/useFormValidation';
 import { validateEmail } from '@/components/auth/validation';
-import { ArrowLeft, Loader2, Mail } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 
 const validators = { email: (value: string) => validateEmail(value) };
 
@@ -96,7 +96,7 @@ const ForgotPasswordPage = () => {
         <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-primary text-base text-white hover:bg-primary-hover">
           {loading ? (
             <>
-              <Loader2 className="size-4 motion-safe:animate-spin" aria-hidden /> Sending...
+              <Spinner decorative /> Sending...
             </>
           ) : (
             'Send reset link'

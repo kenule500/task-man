@@ -44,8 +44,8 @@ export const StatusBadge = ({ status, stage, className }: StatusBadgeProps) => {
 
 /** Jira-style glyph per priority; every tone passes AA on white. */
 const PRIORITY_VISUALS: Record<TaskPriority, { icon: LucideIcon; text: string }> = {
-  high: { icon: ChevronsUp, text: 'text-red-600' },
-  medium: { icon: Equal, text: 'text-amber-700' },
+  high: { icon: ChevronsUp, text: 'text-danger-fg' },
+  medium: { icon: Equal, text: 'text-warning-fg' },
   low: { icon: ChevronDown, text: 'text-slate-500' },
 };
 
@@ -81,7 +81,7 @@ interface DueDateProps {
 export const DueDate = ({ deadline, completed = false, className }: DueDateProps) => {
   const overdue = isOverdue(deadline, completed);
   return (
-    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums', overdue ? 'font-medium text-red-700' : 'text-slate-500', className)}>
+    <span className={cn('inline-flex items-center gap-1 text-xs tabular-nums', overdue ? 'font-medium text-danger-fg' : 'text-slate-500', className)}>
       {overdue ? <CircleAlert className="size-3" aria-hidden /> : <CalendarDays className="size-3" aria-hidden />}
       {formatDate(deadline)}
       {overdue && <span className="sr-only"> (overdue)</span>}
@@ -169,7 +169,7 @@ export const SubtaskProgress = ({ done, total, className }: SubtaskProgressProps
     >
       <ListTree className="size-3" aria-hidden />
       <span aria-hidden className="h-1.5 w-8 overflow-hidden rounded-full bg-slate-200">
-        <span className={cn('block h-full rounded-full', done === total ? 'bg-emerald-500' : 'bg-primary')} style={{ width: `${percent}%` }} />
+        <span className={cn('block h-full rounded-full', done === total ? 'bg-success-dot' : 'bg-primary')} style={{ width: `${percent}%` }} />
       </span>
       <span aria-hidden>{done}/{total}</span>
       <span className="sr-only">{done} of {total} subtasks done</span>
@@ -183,7 +183,7 @@ export const ChecklistBadge = ({ items, className }: { items?: readonly Checklis
   if (total === 0) return null;
   return (
     <span
-      className={cn('inline-flex shrink-0 items-center gap-1 text-xs tabular-nums', done === total ? 'text-emerald-700' : 'text-slate-500', className)}
+      className={cn('inline-flex shrink-0 items-center gap-1 text-xs tabular-nums', done === total ? 'text-success-fg' : 'text-slate-500', className)}
       title="Checklist"
     >
       <ListChecks className="size-3" aria-hidden />

@@ -30,7 +30,7 @@ const Progress = ({ items }: { items: ChecklistItem[] }) => {
     <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-slate-500 tabular-nums">
       <span aria-hidden className="h-1.5 w-8 overflow-hidden rounded-full bg-slate-200">
         <span
-          className={cn('block h-full rounded-full', done === total ? 'bg-emerald-500' : 'bg-primary')}
+          className={cn('block h-full rounded-full', done === total ? 'bg-success-dot' : 'bg-primary')}
           style={{ width: `${Math.round((done / total) * 100)}%` }}
         />
       </span>
@@ -188,7 +188,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
                     size="icon-sm"
                     aria-label={`Delete checklist item "${item.text}"`}
                     onClick={() => { void apply(removeChecklistItem(items, item._id), 'Could not delete the item.'); }}
-                    className={cn(ICON_BUTTON, 'hover:bg-red-50 hover:text-red-600')}
+                    className={cn(ICON_BUTTON, 'hover:bg-danger-bg hover:text-danger-fg')}
                   >
                     <Trash2 />
                   </Button>

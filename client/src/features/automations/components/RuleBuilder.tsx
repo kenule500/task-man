@@ -87,7 +87,7 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
           onChange={next => onChange(next === CHOOSE_MEMBER ? '' : next)}
           className={SELECT}
         />
-        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-danger-fg">{error}</p>}
       </div>
     );
   }
@@ -105,7 +105,7 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
           aria-describedby={describedBy}
           className="min-h-20 bg-white text-base sm:text-sm"
         />
-        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-danger-fg">{error}</p>}
       </div>
     );
   }
@@ -123,7 +123,7 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
           aria-describedby={describedBy}
           className={CONTROL}
         />
-        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p id={fieldMessageId(id)} className="mt-1 text-xs text-danger-fg">{error}</p>}
       </div>
     );
   }
@@ -212,7 +212,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
 
         <form onSubmit={submit} noValidate className="flex min-h-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-4 sm:max-h-[60vh] sm:flex-none sm:px-6 sm:py-5">
-            {failure && <p role="alert" className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{failure}</p>}
+            {failure && <p role="alert" className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-fg">{failure}</p>}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" htmlFor={`${uid}-name`} required error={errors?.name}>
@@ -344,7 +344,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                   <Plus aria-hidden />Add action
                 </Button>
               </div>
-              {errors?.form && <p role="alert" className="text-sm text-red-700">{errors.form}</p>}
+              {errors?.form && <p role="alert" className="text-sm text-danger-fg">{errors.form}</p>}
               <ul className="space-y-3">
                 {draft.actions.map((row, index) => {
                   const kind = actionValueKind(row.type);

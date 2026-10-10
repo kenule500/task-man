@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, Plus, ShieldAlert } from 'lucide-react';
 import {
-  Alert, EmptyState, ErrorState, PageHeader, SectionHeader, SkeletonCards, Surface, toast,
+  Alert, EmptyState, ErrorState, PageHeader, SectionHeader, SkeletonList, Surface, toast,
 } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
@@ -160,7 +160,7 @@ const WorkflowSettingsPage = () => {
       />
 
       {!loaded && !checked ? (
-        <SkeletonCards count={3} columns="grid-cols-1" />
+        <SkeletonList label="Loading workflow" rows={3} avatar={false} />
       ) : !loaded ? (
         <Surface>
           <ErrorState

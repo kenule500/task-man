@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Plus, ShieldAlert, Zap } from 'lucide-react';
-import { EmptyState, ErrorState, PageHeader, SkeletonCards, Surface, toast } from '@/components/ds';
+import { EmptyState, ErrorState, PageHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -123,7 +123,7 @@ const AutomationsPage = () => {
       />
 
       {loading ? (
-        <SkeletonCards count={3} columns="grid-cols-1" />
+        <SkeletonList label="Loading automations" rows={3} avatar={false} />
       ) : error ? (
         <Surface>
           <ErrorState
