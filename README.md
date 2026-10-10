@@ -43,15 +43,19 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - Product backlog per project; plan, start and complete sprints (unfinished work moves to the backlog or the next sprint)
 - Sprint burndown, velocity history, one active sprint per project
 - Scrum roles: Product Owner, Scrum Master, Developer, Team Member, Viewer
-- Task keys like `WEB-12` (search by key, copy key or link)
+- Task keys like `WEB-12` (search by key, copy key or link); copy a git branch name, commit message or markdown link
+- Board: quick filters (my tasks, bugs, due this week, blocked, unassigned), swimlanes by assignee/project/type,
+  soft WIP limits per column; bulk edit in the list (status, priority, assignee, sprint, labels, delete)
 
 ### Enterprise
 - **Audit log** (Settings → Audit log): who did what, when and from where, for tasks, projects, sprints, members,
   invitations and settings; filters, cursor pagination, CSV export; kept 365 days
 - **Task activity** tab: field-by-field history of every task
-- **Signed-in devices**: list sessions, sign out one device or all others
+- **Signed-in devices**: list sessions (7-day sign-in), sign out one device or all others; leave a workspace
 - **Permission matrix**: roles × permissions overview with sticky headers
 - CSV export of the task list; request ids on every response; health check reports the database
+- Fast: route-level code splitting (sign-in loads ~174 kB gzip), cached data shown instantly and refreshed in the
+  background, offline read cache in the PWA, HTTP revalidation with ETags
 - Security CI: CodeQL, Dependabot, `pnpm audit --prod` gate; SonarQube config (`sonar-project.properties`); see [SECURITY.md](SECURITY.md)
 
 ### Role-Based Access Control (RBAC)
@@ -64,7 +68,8 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 ### Progressive Web App
 - Installable (Chrome/Edge "Install app", iOS Safari "Add to Home Screen")
 - Mobile bottom navigation with a quick "New task" button
-- Board on phones: one-tap "Start → / Done ✓", "Move to…" sheet (long-press or ⋯ menu), per-column pagination
+- Board on phones: one column at a time with a sticky status switcher and swipe; one-tap "Start → / Done ✓",
+  "Move to…" sheet (long-press or ⋯ menu), per-column pagination
 - Calendar on phones: week strip or month grid with color-coded status dots and a legend
 - Offline app shell via `vite-plugin-pwa` + Workbox
 - Update toast when a new version is deployed
@@ -112,7 +117,8 @@ All endpoints are under `/api` and need `Authorization: Bearer <token>` except a
 | Health | `GET /api/health` |
 | Auth | `POST /api/auth/signup` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/verify-email/:token` · `POST /api/auth/forgot-password` · `POST /api/auth/reset-password/:token` |
 | Tasks (active workspace) | `GET /api/tasks` · `POST /api/tasks` · `PUT/PATCH /api/tasks/:id` · `DELETE /api/tasks/:id` |
-| Tasks (any of your workspaces) | same routes under `/api/workspaces/:slug/tasks`, plus `/:id/comments` and `/:id/attachments` |
+| Tasks (any of your workspaces) | same routes under `/api/workspaces/:slug/tasks`, plus `/:id/comments`, `/:id/attachments`, `PATCH /bulk`, `POST /bulk-delete` |
+| Board settings | `GET/PUT /api/workspaces/:slug/board-settings` (WIP limits) · `DELETE /api/workspaces/:slug/members/me` (leave) |
 | Projects and sprints | `GET/POST /api/workspaces/:slug/projects` · `PATCH/DELETE …/projects/:id` · `POST …/projects/:id/sprints` · `PATCH/DELETE …/sprints/:sprintId` · `POST …/sprints/:sprintId/start` · `POST …/sprints/:sprintId/complete` |
 | Activity and audit | `GET /api/workspaces/:slug/tasks/:id/activity` · `GET /api/workspaces/:slug/activity?area=&actor=&before=&format=csv` |
 | Sessions | `GET /api/profile/sessions` · `DELETE /api/profile/sessions/:id` · `POST /api/profile/sessions/revoke-others` |
@@ -157,7 +163,8 @@ https://taskman-mauve.vercel.app after each release (desktop and a 375 px phone 
 ## Known limitations
 
 - Email delivery needs `RESEND_API_KEY` (or SMTP) in the host settings; until then sign-ups are auto-verified.
-- The session token is kept in `localStorage` (an HttpOnly cookie is planned now that the app is same-origin).
+- The session token is kept in `localStorage` (an HttpOnly cookie is planned now that the app is same-origin);
+  sign-ins last 7 days and can be revoked per device.
 - No real-time updates between teammates yet: reload to see others' changes.
 - Offline mode is read-only (the app shell and last data are cached; edits need a connection).
 - Deleting a task asks for confirmation and can still be undone for 6 seconds.

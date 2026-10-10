@@ -447,7 +447,8 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
   return (
     <li
       data-testid="list-card"
-      aria-selected={selection ? selection.selected : undefined}
+      // The checkbox announces selection; list items cannot carry aria-selected
+      data-selected={selection?.selected ? "" : undefined}
       className={cn('group flex items-start gap-3 px-4 py-3', depth === 1 && 'pl-9', selection?.selected && 'bg-primary/5')}
     >
       {selection && (
