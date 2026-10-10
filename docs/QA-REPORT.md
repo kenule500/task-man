@@ -42,7 +42,7 @@ nothing is merged unless all of them pass.
 | Notifications, web push, @mentions | yes | yes | inbox, bell |
 | Audit log | formatting | filters, CSV export | audit page |
 | Command palette, shortcuts, help | yes | n/a | palette finds a task |
-| Wiki pages | rendering, outline | CRUD, conflicts (409), versions, nesting, search, mentions | create, conflict, safe rendering (no script), task links |
+| Wiki pages | rendering, outline | CRUD, conflicts (409), versions, nesting, search, mentions | create, conflict, safe rendering (no script), task links; viewed at 320, 375, 768, 1280 and 1440 px in light and dark |
 | Live updates and presence | poller timing, merge | cursor paging, reset, permissions, presence | a second browser sees an edit without reload; "Also viewing" |
 | Single sign-on (Google, Microsoft) | ID token checks with a test key | fake provider: new/linked user, state, nonce, audience, open redirect, 2FA | buttons hidden when not configured |
 | List columns, custom-field and release filters | columns, filters, preferences | saved-view whitelist, project rename keeps field scopes | columns menu adds a field column; filters in the URL and saved views |
@@ -93,6 +93,8 @@ Result on the final build: 40/40, 16/16 and 9/9, no page errors in the console.
 | Live updates | Polling every 10 s would use most of the general API rate limit for a team behind one IP | The change feed and presence have their own, larger limit |
 | Wiki | Heading levels skipped (page h1, then an h3 in the empty tree; Markdown # rendered as h1 under the h2 title) | Content headings start at h3; the tree empty state is an h2 |
 | Test stub | A one-argument IntersectionObserver stub made CodeQL flag the real two-argument call | The stub has the browser signature |
+| Wiki checklists | Text and links inside a checklist item were spread apart by a flex gap ("( WEB-8 )") | Checklist items flow inline |
+| Single sign-on | Request parameters decided whether the code exchange ran (CodeQL) | The code is always exchanged; the provider rejects a missing one |
 
 ## Re-running the checks
 

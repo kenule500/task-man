@@ -39,10 +39,11 @@ const components: MarkdownProps['components'] = {
   ),
   ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
   li: ({ children, className }) => (
-    <li className={cn('leading-7', className?.includes('task-list-item') && 'flex items-start gap-2')}>{children}</li>
+    // Inline flow (not flex): text, links and code inside a checklist item keep their normal spacing
+    <li className={cn('leading-7', className?.includes('task-list-item') && 'list-none')}>{children}</li>
   ),
   input: ({ checked, type }) => (type === 'checkbox'
-    ? <input type="checkbox" checked={Boolean(checked)} disabled readOnly aria-label={checked ? 'Done' : 'Not done'} className="mt-2 size-4 shrink-0 accent-primary" />
+    ? <input type="checkbox" checked={Boolean(checked)} disabled readOnly aria-label={checked ? 'Done' : 'Not done'} className="mr-2 inline-block size-4 align-[-0.15em] accent-primary" />
     : null),
   blockquote: ({ children }) => (
     <blockquote className="my-3 border-l-4 border-border-strong bg-surface-sunken py-1 pl-4 text-text-body [&>p]:my-1">{children}</blockquote>
