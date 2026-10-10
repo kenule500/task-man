@@ -1,3 +1,4 @@
+process.env.JWT_SECRET ??= 'test-secret-for-api-token-digests-0123456789abcdef0123456789';
 import {
   API_TOKEN_PREFIX, expiryFromDays, generateApiToken, hashApiToken, isApiTokenFormat, isTokenUsable, scopesWithinPermissions,
 } from '../utils/apiTokens.js';

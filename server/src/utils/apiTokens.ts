@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { PERMISSIONS, PermissionKey } from '../config/permissions.js';
-import { hashToken } from './tokens.js';
 
 export const API_TOKEN_PREFIX = 'tm_';
 export const API_TOKEN_RANDOM_LENGTH = 40;
@@ -32,17 +31,31 @@ export interface GeneratedApiToken {
   token: string;
   /** Display prefix, e.g. "aB3dE5fG" */
   prefix: string;
-  /** SHA-256 hex digest to persist */
+  /** HMAC-SHA256 hex digest to persist */
   hash: string;
 }
 
 export const generateApiToken = (): GeneratedApiToken => {
   const random = randomBase62(API_TOKEN_RANDOM_LENGTH);
   const token = `${API_TOKEN_PREFIX}${random}`;
-  return { token, prefix: random.slice(0, API_TOKEN_DISPLAY_LENGTH), hash: hashToken(token) };
+  return { token, prefix: random.slice(0, API_TOKEN_DISPLAY_LENGTH), hash: hashApiToken(token) };
 };
 
-export const hashApiToken = (token: string): string => hashToken(token);
+/**
+ * Server key for token digests: API_TOKEN_PEPPER when set, else the JWT secret (both are validated at boot).
+ * Rotating it signs every API token out, like rotating JWT_SECRET signs everyone out.
+ */
+const tokenKey = (): string => {
+  const key = process.env.API_TOKEN_PEPPER || process.env.JWT_SECRET;
+  if (!key) throw new Error('JWT_SECRET is required to hash API tokens');
+  return key;
+};
+
+/**
+ * Keyed digest (HMAC-SHA256) of a token. Tokens carry 238 bits of randomness, so a slow password hash is not
+ * needed; the key means a copy of the database alone cannot be used to check guessed tokens.
+ */
+export const hashApiToken = (token: string): string => crypto.createHmac('sha256', tokenKey()).update(token).digest('hex');
 
 /** True when the string looks like one of our tokens (cheap check before touching the database). */
 export const isApiTokenFormat = (value: string): boolean => TOKEN_FORMAT.test(value);

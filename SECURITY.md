@@ -28,7 +28,7 @@ We acknowledge reports within 3 working days.
 - **Format and storage.** A token is `tm_` plus 40 random base62 characters (from `crypto.randomBytes`, no modulo bias). Only its
   SHA-256 hash is stored (unique index, never selected by default); the plain value is returned once, in the create response.
   The list shows the first 8 characters after `tm_` so people can tell tokens apart.
-- **Use.** `Authorization: Bearer tm_...` is looked up by hash. Revoked and expired tokens get `401`. Expiry is at most one year.
+- **Use.** `Authorization: Bearer tm_...` is looked up by its digest. Revoked and expired tokens get `401`. Expiry is at most one year.
   `lastUsedAt` is written at most once a minute.
 - **Scopes.** A token carries permission keys (`tasks:read`, ...) chosen at creation, and only keys its creator holds themselves.
   At request time `requirePermission` checks the token's workspace (another workspace gives `403`), the scope, and the
