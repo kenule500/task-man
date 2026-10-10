@@ -207,23 +207,25 @@ export const ssoCallback = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    if (providerError !== undefined) {
-      redirectWithError(res, 'access_denied');
-      return;
-    }
-    if (typeof code !== 'string' || !code || code.length > MAX_CODE_LENGTH) {
-      redirectWithError(res, 'provider_error');
-      return;
-    }
-
+    // The code is always exchanged with the provider, which alone decides if it is valid: a refused sign-in,
+    // a missing or oversized code becomes an empty code that the token endpoint rejects. What the request
+    // contains never decides whether the check runs; it only picks the message shown afterwards.
+    const authCode = typeof code === 'string' && code.length <= MAX_CODE_LENGTH ? code : '';
     const discovery = await getDiscovery(provider.discoveryUrl);
-    const idToken = await exchangeCode(discovery, {
-      clientId: provider.clientId,
-      clientSecret: provider.clientSecret,
-      code,
-      redirectUri: callbackUrl(getConfig().clientUrl, provider.id),
-      codeVerifier: pending.codeVerifier,
-    });
+    let idToken: string;
+    try {
+      idToken = await exchangeCode(discovery, {
+        clientId: provider.clientId,
+        clientSecret: provider.clientSecret,
+        code: authCode,
+        redirectUri: callbackUrl(getConfig().clientUrl, provider.id),
+        codeVerifier: pending.codeVerifier,
+      });
+    } catch (error) {
+      logFailure('sso token exchange', error);
+      redirectWithError(res, providerError !== undefined ? 'access_denied' : 'provider_error');
+      return;
+    }
     const claims = await verifyIdToken(idToken, { provider, discovery, nonce: pending.nonce });
 
     const resolution = await resolveSsoUser(provider, identityFromClaims(provider, claims));

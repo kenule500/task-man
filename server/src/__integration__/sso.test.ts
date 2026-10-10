@@ -403,6 +403,12 @@ describe('sso: callback validation', () => {
 
     const failing = await startFlow();
     expectError(outcome(await finish(failing, googleClaims(uniqueEmail('x')), { failExchange: true })), 'provider_error');
+
+    // No code at all: the empty code is still sent to the provider, which refuses it, so nobody is signed in
+    const missing = await startFlow();
+    const missingRes = await http().get('/api/auth/sso/google/callback').query({ state: missing.state });
+    expectError(outcome(missingRes), 'provider_error');
+    expect(missingRes.headers.location).not.toContain('token=');
   });
 
   it('sends the client secret and PKCE verifier only to the token endpoint', async () => {
