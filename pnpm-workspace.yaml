@@ -12,3 +12,10 @@ allowBuilds:
 overrides:
   source-map-js: '>=1.2.2'
   '@modelcontextprotocol/sdk': '>=1.31.0'
+
+# Hoist type packages to the root so the Vercel function compiler (which does not follow pnpm symlinks)
+# can resolve transitive types: @types/express-serve-static-core, and mongodb/bson behind mongoose
+publicHoistPattern:
+  - "@types/*"
+  - mongodb
+  - bson
