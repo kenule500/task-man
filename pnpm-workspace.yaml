@@ -7,11 +7,13 @@ allowBuilds:
   '@parcel/watcher': false
   unrs-resolver: false
 # Security: pin patched versions of transitive dependencies flagged by `pnpm audit`.
-# braces (<=3.0.3) and sprintf-js (<=1.1.3) have no patched release yet; both are
-# dev-only (shadcn CLI / jest) and never shipped to the browser or the API.
+# braces and sprintf-js have no patched release; they are avoided instead: the unused
+# shadcn CLI and nodemon were removed, and Jest's coverage config loader uses js-yaml 4
+# (only `load` is called, which v4 supports), whose argparse no longer needs sprintf-js.
 overrides:
   source-map-js: '>=1.2.2'
   '@modelcontextprotocol/sdk': '>=1.31.0'
+  '@istanbuljs/load-nyc-config>js-yaml': ^4.1.0
 
 # Hoist type packages to the root so the Vercel function compiler (which does not follow pnpm symlinks)
 # can resolve transitive types: @types/express-serve-static-core, and mongodb/bson behind mongoose
