@@ -15,6 +15,8 @@ export interface SprintScopeTask {
   inSprintNow: boolean;
   /** Moves into (`in`) and out of (`out`) this sprint recorded in the activity log, oldest first. */
   events: Membership[];
+  /** Moved out when the sprint was completed (carried over): it was part of the sprint at its end. */
+  carriedAtEnd?: boolean;
 }
 
 export interface SprintScopeResult {
@@ -33,11 +35,11 @@ export interface SprintScopeResult {
  */
 export const classifySprintScope = (task: SprintScopeTask, startedAt?: number): SprintScopeResult => {
   const { events } = task;
-  const everIn = task.inSprintNow || events.length > 0;
+  const everIn = task.inSprintNow || Boolean(task.carriedAtEnd) || events.length > 0;
   if (!everIn) return { committed: false, added: false, removed: false, inAtEnd: false };
 
   const last = events.at(-1);
-  const silentlyMoved = !task.inSprintNow && last?.kind === 'in';
+  const silentlyMoved = !task.inSprintNow && (last?.kind === 'in' || Boolean(task.carriedAtEnd));
   const inAtEnd = task.inSprintNow || silentlyMoved;
 
   let inAtStart: boolean;
@@ -121,11 +123,19 @@ export const getSprintReport = async (req: Request, res: Response): Promise<void
     }).sort({ createdAt: 1, _id: 1 }).select('task changes createdAt').lean();
 
     const eventsByTask = new Map<string, Membership[]>();
+    // Completing the sprint logs a move out for each unfinished task: that is a carry-over, not a removal
+    const completedAtMs = sprint.status === 'completed' ? sprint.completedAt?.getTime() : undefined;
+    const carried = new Set<string>();
     for (const move of moves) {
       const key = String(move.task);
       const list = eventsByTask.get(key) ?? [];
       for (const change of move.changes) {
         if (change.field !== 'sprint') continue;
+        const atCompletion = completedAtMs !== undefined && move.createdAt.getTime() >= completedAtMs - 1000;
+        if (change.from === sprintObjectId && atCompletion) {
+          carried.add(key);
+          continue;
+        }
         if (change.from === sprintObjectId) list.push({ at: move.createdAt.getTime(), kind: 'out' });
         if (change.to === sprintObjectId) list.push({ at: move.createdAt.getTime(), kind: 'in' });
       }
@@ -153,6 +163,7 @@ export const getSprintReport = async (req: Request, res: Response): Promise<void
         createdAt: task.createdAt,
         inSprintNow: String(task.sprint ?? '') === sprintObjectId,
         events: eventsByTask.get(String(task._id)) ?? [],
+        carriedAtEnd: carried.has(String(task._id)),
       }, startedAt);
       const item = toItem(task);
       if (scope.committed) buckets.committed.push(item);

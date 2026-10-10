@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils';
 import { ProjectFolderIcon } from '@/features/projects';
+import { ROADMAP_LABEL_WIDTH } from '../lib/roadmap';
 import {
   HEALTH_LABEL, describeEpic, formatSpan, placeSpan,
   type EpicHealth, type RoadmapAxis, type RoadmapEpic, type RoadmapGroup, type SprintBand,
 } from '../lib/roadmap';
 
 /** Width of the sticky name column. */
-const LABEL_W = 224;
+const LABEL_W = ROADMAP_LABEL_WIDTH;
 const ROW_H = 48;
 
 const FILL: Record<EpicHealth, string> = {

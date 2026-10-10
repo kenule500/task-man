@@ -150,8 +150,10 @@ const endOfMonth = (date: Date): Date => new Date(date.getFullYear(), date.getMo
  * The visible time range for some spans (and today), snapped to whole months or weeks,
  * with a header tick per month or per week. Always at least about a quarter wide.
  */
-export const buildAxis = (spans: DateSpan[], zoom: RoadmapZoom, today: Date = new Date()): RoadmapAxis => {
-  const dayPx = DAY_PX[zoom];
+/** Width of the epic-name column of the desktop timeline (px). */
+export const ROADMAP_LABEL_WIDTH = 224;
+
+export const buildAxis = (spans: DateSpan[], zoom: RoadmapZoom, today: Date = new Date(), minWidth = 0): RoadmapAxis => {
   const keys = [toDateKey(today), ...spans.flatMap(span => [span.start, span.end])].map(dateKeyOf).sort();
   const first = parseDateKey(keys[0]);
   const last = parseDateKey(keys[keys.length - 1]);
@@ -171,6 +173,8 @@ export const buildAxis = (spans: DateSpan[], zoom: RoadmapZoom, today: Date = ne
   }
 
   const days = diffInDays(start, end) + 1;
+  // Days widen to fill the available width (never narrower than the zoom's default)
+  const dayPx = Math.max(DAY_PX[zoom], minWidth > 0 ? minWidth / days : 0);
   const ticks: AxisTick[] = [];
   if (zoom === 'months') {
     for (let cursor = start; cursor <= end; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)) {

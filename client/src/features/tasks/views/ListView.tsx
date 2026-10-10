@@ -522,7 +522,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             className="-mr-2 shrink-0"
           />
         </div>
-        <TaskMeta task={task} className="pl-2 -mt-1.5" progress={progress} orphanOf={orphanOf} />
+        <TaskMeta task={task} className="pl-2" progress={progress} orphanOf={orphanOf} />
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {canWrite ? (
