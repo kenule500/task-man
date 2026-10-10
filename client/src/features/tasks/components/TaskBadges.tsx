@@ -1,10 +1,12 @@
 import {
-  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, Zap, type LucideIcon,
+  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, ListChecks, Repeat, Zap, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
+import { checklistProgress } from '../lib/checklist';
 import { formatDate, isOverdue } from '../lib/date';
-import type { TaskPriority, TaskStatus, TaskType } from '../types';
+import { describeRecurrence, shortRecurrence } from '../lib/recurrence';
+import type { ChecklistItem, TaskPriority, TaskRecurrence, TaskStatus, TaskType } from '../types';
 
 export const StatusDot = ({ status, className }: { status: TaskStatus; className?: string }) => (
   <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-full', STATUS_META[status].dot, className)} />
@@ -139,3 +141,31 @@ export const SubtaskProgress = ({ done, total, className }: SubtaskProgressProps
     </span>
   );
 };
+
+/** ListChecks icon with "3/5"; hidden while the checklist is empty. */
+export const ChecklistBadge = ({ items, className }: { items?: readonly ChecklistItem[] | null; className?: string }) => {
+  const { done, total } = checklistProgress(items);
+  if (total === 0) return null;
+  return (
+    <span
+      className={cn('inline-flex shrink-0 items-center gap-1 text-xs tabular-nums', done === total ? 'text-emerald-700' : 'text-slate-500', className)}
+      title="Checklist"
+    >
+      <ListChecks className="size-3" aria-hidden />
+      <span aria-hidden>{done}/{total}</span>
+      <span className="sr-only">{done} of {total} checklist items done</span>
+    </span>
+  );
+};
+
+/** Repeat icon for tasks that recur; the rule is in the tooltip and read out to screen readers. */
+export const RepeatBadge = ({ recurrence, className }: { recurrence?: TaskRecurrence | null; className?: string }) =>
+  recurrence ? (
+    <span
+      className={cn('inline-flex shrink-0 items-center gap-1 text-xs text-slate-500', className)}
+      title={describeRecurrence(recurrence)}
+    >
+      <Repeat className="size-3" aria-hidden />
+      <span className="sr-only">Repeats {shortRecurrence(recurrence)}</span>
+    </span>
+  ) : null;

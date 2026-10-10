@@ -64,21 +64,23 @@ const VelocityChart = ({ velocities, average }: VelocityChartProps) => {
           Average of the last 3 sprints: {average} points
         </figcaption>
       )}
-      <table className="sr-only">
-        <caption>Story points completed per sprint</caption>
-        <thead>
-          <tr><th scope="col">Sprint</th><th scope="col">Dates</th><th scope="col">Points</th></tr>
-        </thead>
-        <tbody>
-          {velocities.map(item => (
-            <tr key={item.sprint._id}>
-              <th scope="row">{item.sprint.name}</th>
-              <td>{formatSprintRange(item.sprint)}</td>
-              <td>{item.points}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>Story points completed per sprint</caption>
+          <thead>
+            <tr><th scope="col">Sprint</th><th scope="col">Dates</th><th scope="col">Points</th></tr>
+          </thead>
+          <tbody>
+            {velocities.map(item => (
+              <tr key={item.sprint._id}>
+                <th scope="row">{item.sprint.name}</th>
+                <td>{formatSprintRange(item.sprint)}</td>
+                <td>{item.points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 };

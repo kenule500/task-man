@@ -1,11 +1,14 @@
-import { Eye, MoreHorizontal, MoveRight, Pencil, Trash2 } from 'lucide-react';
+import { Copy, Eye, MoreHorizontal, MoveRight, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getApiErrorMessage } from '../api';
 import { STATUS_META, TASK_STATUSES } from '../constants';
+import { useTaskExtras } from '../hooks/useTaskExtras';
 import type { Task, TaskStatus } from '../types';
 import { StatusDot } from './TaskBadges';
 
@@ -23,6 +26,12 @@ interface TaskActionsMenuProps {
   onMove?: (task: Task, status: TaskStatus) => void;
   /** When provided (with `onMove`), adds a "Move to…" item below `md` that opens the move sheet. */
   onOpenMoveSheet?: (task: Task) => void;
+  /** Called with the copy after "Duplicate" succeeded (the lists refresh by themselves). Needs `canEdit`. */
+  onDuplicated?: (copy: Task) => void;
+  /** Direct subtasks of the task; "Duplicate" copies them too when there are any. */
+  subtaskCount?: number;
+  /** Workspace slug for "Duplicate"; defaults to the slug of the project directory. */
+  workspaceSlug?: string;
   className?: string;
 }
 
@@ -30,8 +39,21 @@ interface TaskActionsMenuProps {
 const ITEM_CLASS = 'min-h-11 text-slate-700 md:min-h-0';
 
 const TaskActionsMenu = ({
-  task, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, canEdit = true, canDelete = true, className,
+  task, onEdit, onDelete, onOpen, onMove, onOpenMoveSheet, onDuplicated, subtaskCount = 0, workspaceSlug, canEdit = true, canDelete = true, className,
 }: TaskActionsMenuProps) => {
+  const extras = useTaskExtras(workspaceSlug);
+  const canDuplicate = canEdit && extras.enabled;
+
+  const duplicate = async () => {
+    try {
+      const copy = await extras.duplicateTask(task, subtaskCount > 0);
+      toast.success(`Created "${copy.title}"`);
+      onDuplicated?.(copy);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not duplicate the task.'));
+    }
+  };
+
   if (!onOpen && !canEdit && !canDelete) return null;
 
   return (
@@ -78,6 +100,11 @@ const TaskActionsMenu = ({
         {canEdit && (
           <DropdownMenuItem onClick={() => onEdit(task)} className={ITEM_CLASS}>
             <Pencil /> Edit
+          </DropdownMenuItem>
+        )}
+        {canDuplicate && (
+          <DropdownMenuItem onClick={() => { void duplicate(); }} className={ITEM_CLASS}>
+            <Copy /> Duplicate
           </DropdownMenuItem>
         )}
         {canDelete && (

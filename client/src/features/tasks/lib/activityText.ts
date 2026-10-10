@@ -73,6 +73,11 @@ export const describeChange = ({ field, from, to }: TaskActivityChange, { sprint
       if (after < before) return `removed ${before - after} ${before - after === 1 ? 'assignee' : 'assignees'}`;
       return 'changed the assignees';
     }
+    case 'checklist':
+      return b ? `updated the checklist (${b} done)` : 'cleared the checklist';
+    case 'recurrence':
+      if (a && b) return `changed the repeat from ${a} to ${b}`;
+      return b ? `set the task to repeat ${b}` : 'stopped the task from repeating';
     case 'description':
       return 'edited the description';
     case 'parent':
@@ -87,7 +92,16 @@ export const describeActivity = (entry: TaskActivityEntry, options: ActivityText
   const file = entry.changes.find(change => change.field === 'file');
   switch (entry.action) {
     case 'task.created':
-      return { headline: entry.changes.some(change => change.field === 'parent') ? 'created this subtask' : 'created this task', details: [] };
+      return {
+        headline: entry.changes.some(change => change.field === 'parent')
+          ? 'created this subtask'
+          : entry.changes.some(change => change.field === 'recurrence') ? 'created this task as the next repeat' : 'created this task',
+        details: [],
+      };
+    case 'task.duplicated': {
+      const source = entry.changes.find(change => change.field === 'source')?.from;
+      return { headline: source ? `duplicated "${source}"` : 'duplicated a task', details: [] };
+    }
     case 'task.deleted': {
       const count = Number(entry.changes.find(change => change.field === 'subtasks')?.from ?? 0);
       return {

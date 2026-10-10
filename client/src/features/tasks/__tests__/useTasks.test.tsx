@@ -78,6 +78,32 @@ describe('useTasks', () => {
     expect(result.current.error).toBe('This dependency would create a cycle');
   });
 
+  it('reloads the list when completing a repeating task, so its next occurrence appears', async () => {
+    const repeating = makeTask({ _id: 'r', status: 'pending', recurrence: { every: 1, unit: 'week', basis: 'due' } });
+    const { result } = await renderLoaded([repeating]);
+    const next = makeTask({ _id: 'r2', title: 'Next occurrence' });
+    api.update.mockResolvedValue({ ...repeating, status: 'completed', recurrence: null });
+    api.list.mockClear();
+    api.list.mockResolvedValue([{ ...repeating, status: 'completed', recurrence: null }, next]);
+
+    await act(async () => {
+      await result.current.updateTask('r', { status: 'completed' });
+    });
+    await waitFor(() => expect(result.current.tasks.map(task => task._id)).toEqual(['r', 'r2']));
+    expect(api.list).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reload for other updates of a repeating task', async () => {
+    const repeating = makeTask({ _id: 'r', recurrence: { every: 1, unit: 'week', basis: 'due' } });
+    const { result } = await renderLoaded([repeating]);
+    api.update.mockResolvedValue({ ...repeating, title: 'Renamed' });
+    api.list.mockClear();
+    await act(async () => {
+      await result.current.updateTask('r', { title: 'Renamed' });
+    });
+    expect(api.list).not.toHaveBeenCalled();
+  });
+
   it('maps assignee ids to known users while an update is in flight', async () => {
     const ada = { _id: 'u1', name: 'Ada' };
     const { result } = await renderLoaded([makeTask({ _id: 'a', assignees: [ada] }), makeTask({ _id: 'b' })]);

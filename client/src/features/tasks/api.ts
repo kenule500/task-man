@@ -23,7 +23,7 @@ export interface UploadOptions {
 
 export type TaskActivityAction =
   | 'task.created' | 'task.updated' | 'task.deleted' | 'task.commented'
-  | 'task.attachment_added' | 'task.attachment_removed';
+  | 'task.attachment_added' | 'task.attachment_removed' | 'task.duplicated';
 
 export interface TaskActivityChange {
   field: string;
@@ -66,6 +66,12 @@ export interface BulkDeleteResult {
   subtasks: string[];
 }
 
+/** A duplicated task with the copies of its subtasks (when they were requested). */
+export interface DuplicateResult {
+  task: Task;
+  subtasks: Task[];
+}
+
 export const tasksApi = {
   list: async (workspaceSlug: string): Promise<Task[]> => {
     const { data } = await api.get(tasksUrl(workspaceSlug));
@@ -81,6 +87,18 @@ export const tasksApi = {
   },
   remove: async (workspaceSlug: string, id: string): Promise<void> => {
     await api.delete(taskUrl(workspaceSlug, id));
+  },
+  /** Copies a task as a new pending task, optionally with its direct subtasks. */
+  duplicate: async (workspaceSlug: string, id: string, includeSubtasks = false): Promise<DuplicateResult> => {
+    const { data } = await api.post(`${taskUrl(workspaceSlug, id)}/duplicate`, { includeSubtasks });
+    const { subtasks, ...task } = data ?? {};
+    return { task: task as Task, subtasks: Array.isArray(subtasks) ? subtasks : [] };
+  },
+  /** Follows (`true`) or unfollows (`false`) the task as the signed-in user; answers with the watcher ids. */
+  setWatching: async (workspaceSlug: string, id: string, watching: boolean): Promise<string[]> => {
+    const url = `${taskUrl(workspaceSlug, id)}/watch`;
+    const { data } = watching ? await api.post(url) : await api.delete(url);
+    return Array.isArray(data?.watchers) ? data.watchers : [];
   },
   /** Applies one patch to up to 100 tasks; answers with the updated tasks. */
   bulkUpdate: async (workspaceSlug: string, ids: string[], patch: BulkTaskPatch): Promise<Task[]> => {

@@ -11,7 +11,7 @@ import { EmptyState, toast } from '@/components/ds';
 import { getApiErrorMessage, type BulkTaskPatch } from '../api';
 import BulkActionBar from '../components/BulkActionBar';
 import {
-  DependencyCount, PriorityIndicator, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon,
+  ChecklistBadge, DependencyCount, PriorityIndicator, RepeatBadge, StatusBadge, StoryPoints, SubtaskProgress, TaskTypeIcon,
 } from '../components/TaskBadges';
 import { InlineDate, InlineText } from '../components/InlineEdit';
 import TaskActionsMenu from '../components/TaskActionsMenu';
@@ -419,6 +419,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
           onOpen={onOpen}
           canEdit={canWrite}
           canDelete={canDelete}
+          subtaskCount={progress?.total}
           className={hoverReveal}
         />
       </div>
@@ -469,6 +470,8 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf }:
     <LabelList labels={task.labels} />
     {task.description && <p className="min-w-0 flex-1 basis-24 text-xs text-slate-500 line-clamp-1">{task.description}</p>}
     <DependencyCount count={task.dependencies.length} />
+    <ChecklistBadge items={task.checklist} />
+    <RepeatBadge recurrence={task.recurrence} />
     <ActivityCounts task={task} />
     {showAssignees && <AssigneeStack users={task.assignees} className="ml-auto" />}
   </div>
@@ -519,6 +522,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             onOpen={onOpen}
             canEdit={canWrite}
             canDelete={canDelete}
+            subtaskCount={progress?.total}
             className="-mr-2 shrink-0"
           />
         </div>

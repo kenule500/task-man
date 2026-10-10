@@ -29,6 +29,32 @@ export interface TaskAttachment {
   uploadedAt?: string;
 }
 
+/** One item of a task's checklist. */
+export interface ChecklistItem {
+  _id: string;
+  text: string;
+  done: boolean;
+}
+
+/** Checklist item as sent to the API. */
+export interface ChecklistInput {
+  _id?: string;
+  text: string;
+  done?: boolean;
+}
+
+export type RecurrenceUnit = 'day' | 'week' | 'month';
+export type RecurrenceBasis = 'due' | 'completion';
+
+/** Repeat rule: completing the task creates the next occurrence. */
+export interface TaskRecurrence {
+  /** 1 to 365 */
+  every: number;
+  unit: RecurrenceUnit;
+  /** 'due': next dates follow the old due date; 'completion': they follow the day it was completed. */
+  basis: RecurrenceBasis;
+}
+
 export interface Task {
   _id: string;
   /** Sequential number in the workspace; shown as a key like "WEB-12" (see lib/taskKey.ts). */
@@ -59,6 +85,12 @@ export interface Task {
   labels?: string[];
   /** Populated in responses; send ids (`TaskInput.assignees`) when writing. */
   assignees?: TaskUser[];
+  /** Items to tick off inside the task, in display order. */
+  checklist?: ChecklistItem[];
+  /** User ids of the people following the task. */
+  watchers?: string[];
+  /** Repeat rule of a top-level task; null/unset = does not repeat. */
+  recurrence?: TaskRecurrence | null;
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
   /** Pull requests, commits and branches that mention the task key (GitHub integration). */
@@ -89,6 +121,9 @@ export interface TaskInput {
   labels?: string[];
   /** User ids. */
   assignees?: string[];
+  /** Whole checklist; items keep their `_id` (new ones may omit it or bring a fresh 24-hex id). */
+  checklist?: ChecklistInput[];
+  recurrence?: TaskRecurrence | null;
 }
 
 export type TaskPatch = Partial<TaskInput>;

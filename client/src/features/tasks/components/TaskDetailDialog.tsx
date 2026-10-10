@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
+import { ArrowLeft, Copy, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
 import { UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
 // Deep import: the projects index imports the tasks module back
@@ -10,11 +10,14 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { UploadOptions } from '../api';
+import { getApiErrorMessage, type UploadOptions } from '../api';
 import { TASK_TYPE_META } from '../constants';
+import { useTaskExtras } from '../hooks/useTaskExtras';
+import { toChecklistInput } from '../lib/checklist';
 import { dateKeyOf, formatDate, isOverdue } from '../lib/date';
 import { describeEpicProgress, epicProgress, itemsOfEpic } from '../lib/epics';
 import { copyToClipboard, taskLink } from '../lib/taskKey';
+import { canRepeat } from '../lib/recurrence';
 import { getSubtasks } from '../lib/subtasks';
 import type { Task, TaskPatch, TaskUser } from '../types';
 import SubtaskList from './SubtaskList';
@@ -24,8 +27,11 @@ import TaskKey from './TaskKey';
 import { DueDate, PriorityIndicator, StatusBadge, StatusDot, StoryPoints, TaskTypeBadge, TaskTypeIcon } from './TaskBadges';
 import { LabelList } from './TaskChips';
 import TaskAttachments from './TaskAttachments';
+import TaskChecklist from './TaskChecklist';
 import TaskComments from './TaskComments';
 import TaskDevelopment from './TaskDevelopment';
+import TaskRecurrenceField from './TaskRecurrenceField';
+import TaskWatchToggle from './TaskWatchToggle';
 
 /** Everything the dialog can do to a task besides editing its fields. */
 export interface TaskDetailActions {
@@ -62,8 +68,8 @@ interface TaskDetailDialogProps {
   workspaceSlug?: string;
 }
 
-const Detail = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="min-w-0">
+const Detail = ({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) => (
+  <div className={wide ? 'col-span-2 min-w-0 sm:col-span-3' : 'min-w-0'}>
     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
     <dd className="mt-1 text-sm text-slate-700">{children}</dd>
   </div>
@@ -79,6 +85,8 @@ const TaskDetailDialog = ({
   const [tab, setTab] = useState<'details' | 'activity'>('details');
   const directory = useProjectDirectory();
   const slug = workspaceSlug ?? directory.slug;
+  const extras = useTaskExtras(slug);
+  const [duplicating, setDuplicating] = useState(false);
   // Names for ids we only know by reference (attachment uploaders)
   const userNames = useMemo(() => {
     const names = new Map<string, string>();
@@ -110,6 +118,23 @@ const TaskDetailDialog = ({
     else toast.error('Could not copy the link.');
   };
 
+  const canEditFields = canWrite && Boolean(actions.updateTask);
+
+  /** Copies the task (with its subtasks, if any) and shows the copy. */
+  const duplicate = async () => {
+    if (duplicating) return;
+    setDuplicating(true);
+    try {
+      const copy = await extras.duplicateTask(task, subtasks.length > 0);
+      toast.success(subtasks.length > 0 ? `Created "${copy.title}" with ${subtasks.length} ${subtasks.length === 1 ? 'subtask' : 'subtasks'}` : `Created "${copy.title}"`);
+      actions.openTask?.(copy);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not duplicate the task.'));
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
@@ -137,6 +162,7 @@ const TaskDetailDialog = ({
               </button>
             )}
             <DevCopyMenu task={task} workspaceSlug={slug || undefined} />
+            <TaskWatchToggle task={task} currentUserId={currentUser?._id} workspaceSlug={slug || undefined} className="ml-auto" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <TaskTypeBadge type={task.type} />
@@ -219,6 +245,15 @@ const TaskDetailDialog = ({
                 {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
               </Detail>
             )}
+            {canRepeat(task) && (
+              <Detail label="Repeat" wide>
+                <TaskRecurrenceField
+                  value={task.recurrence}
+                  canWrite={canEditFields}
+                  onChange={recurrence => actions.updateTask!(taskId, { recurrence })}
+                />
+              </Detail>
+            )}
             <Detail label="Labels">
               {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">None</span>}
             </Detail>
@@ -257,6 +292,12 @@ const TaskDetailDialog = ({
               <p className="text-sm text-slate-500">No description.</p>
             )}
           </section>
+
+          <TaskChecklist
+            items={task.checklist ?? []}
+            canWrite={canEditFields}
+            onChange={items => actions.updateTask!(taskId, { checklist: toChecklistInput(items) })}
+          />
 
           {epicStats && (
             <section aria-label="Items in this epic">
@@ -329,8 +370,19 @@ const TaskDetailDialog = ({
           </TabsContent>
         </Tabs>
 
-        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
-          <div>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {canWrite && extras.enabled && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { void duplicate(); }}
+                disabled={duplicating}
+                className="h-10 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
+              >
+                <Copy className="size-4" aria-hidden /> Duplicate
+              </Button>
+            )}
             {canDelete && (
               <Button
                 type="button"
