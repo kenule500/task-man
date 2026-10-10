@@ -100,13 +100,13 @@ Vercel ── static web app (client/dist)
 
 | Suite | Command | Tests |
 |---|---|---|
-| Server unit tests | `pnpm --filter server test` | 128 |
-| Server **integration** tests on a real MongoDB | `pnpm --filter server test:integration` | 202 |
-| Client unit/component tests | `pnpm --filter client test` | 413 |
+| Server unit tests | `pnpm --filter server test` | 133 |
+| Server **integration** tests on a real MongoDB | `pnpm --filter server test:integration` | 211 |
+| Client unit/component tests | `pnpm --filter client test` | 613 |
 | Coverage reports | `pnpm --filter server test:coverage` · `pnpm --filter client test:coverage` | — |
 | Type checks / lint / build | `pnpm --filter client typecheck && pnpm --filter client lint && pnpm --filter client build` | — |
 
-All of them run in **GitHub Actions** on every pull request (the integration suite against a MongoDB 7 service container).
+All of them run in **GitHub Actions** on every pull request (the integration suite against a MongoDB 7 service container), together with CodeQL and a production dependency audit.
 The integration suite found 12 real bugs before release; browser end-to-end testing found 3 more — all fixed.
 
 ## 7. Run it locally
