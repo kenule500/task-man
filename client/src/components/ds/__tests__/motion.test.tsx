@@ -27,7 +27,12 @@ const mockMedia = ({ reduce = false, fine = true } = {}) => {
 /** IntersectionObserver that reports every observed element as visible right away. */
 class VisibleObserver {
   private readonly callback: IntersectionObserverCallback;
-  constructor(callback: IntersectionObserverCallback) { this.callback = callback; }
+  readonly options?: IntersectionObserverInit;
+  // Same signature as the browser's constructor
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    this.callback = callback;
+    this.options = options;
+  }
   observe(target: Element) {
     this.callback([{ isIntersecting: true, target } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
   }

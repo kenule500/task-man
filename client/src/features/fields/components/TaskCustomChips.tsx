@@ -8,18 +8,23 @@ interface TaskCustomChipsProps {
   task: { project?: string; custom?: CustomValues; assignees?: { _id: string; name: string }[] };
   /** Most chips shown; the rest are summed up as "+N". */
   max?: number;
+  /** Field keys left out (a table column already shows them). */
+  exclude?: readonly string[];
   className?: string;
 }
 
 /** Small "Field: value" chips of a task for lists and cards. Renders nothing when no field has a value. */
-const TaskCustomChips = ({ task, max = 3, className }: TaskCustomChipsProps) => {
+const TaskCustomChips = ({ task, max = 3, exclude, className }: TaskCustomChipsProps) => {
   const { active } = useCustomFields();
+  const excluded = exclude?.join('|') ?? '';
   const custom = task.custom;
 
   const chips = useMemo(() => {
     if (!custom) return [];
     const known = new Map((task.assignees ?? []).map(user => [user._id, user.name]));
+    const hidden = new Set(excluded ? excluded.split('|') : []);
     return fieldsForProject(active, task.project)
+      .filter(field => !hidden.has(field.key))
       .filter(field => !isEmptyValue(custom[field.key]) && !(field.type === 'checkbox' && custom[field.key] !== true))
       // A person we cannot name is not worth a chip
       .filter(field => field.type !== 'user' || known.has(String(custom[field.key])))
@@ -28,7 +33,7 @@ const TaskCustomChips = ({ task, max = 3, className }: TaskCustomChipsProps) => 
         name: field.name,
         text: field.type === 'checkbox' ? '' : valueText(field, custom[field.key], { userName: id => known.get(id) }),
       }));
-  }, [active, custom, task.project, task.assignees]);
+  }, [active, custom, task.project, task.assignees, excluded]);
 
   if (chips.length === 0) return null;
   const shown = chips.slice(0, max);

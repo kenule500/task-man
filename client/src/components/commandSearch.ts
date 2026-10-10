@@ -1,5 +1,5 @@
 import {
-  BarChart3, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
+  BarChart3, BookOpen, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
   Gauge, Inbox, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Upload, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 import { FAQ_CATEGORIES } from '@/content/faq';
@@ -55,6 +55,7 @@ const PAGES: PageDef[] = [
   { key: 'roadmap', label: 'Roadmap', icon: Milestone, permission: 'projects:read', path: 'roadmap', keywords: 'epics milestones' },
   { key: 'workload', label: 'Workload', icon: Gauge, permission: 'projects:read', path: 'workload', keywords: 'capacity people assignee points' },
   { key: 'timesheet', label: 'Timesheet', icon: Timer, permission: 'tasks:read', path: 'timesheet', keywords: 'time tracking hours logged timer week' },
+  { key: 'wiki', label: 'Wiki', icon: BookOpen, permission: 'tasks:read', path: 'wiki', keywords: 'pages docs documentation notes guides knowledge' },
   { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports:read', path: 'reports', keywords: 'analytics stats' },
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },

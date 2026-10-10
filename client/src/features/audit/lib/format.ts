@@ -1,5 +1,5 @@
 import {
-  CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
+  BookOpen, CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
   MessageSquareX, Package, Paperclip, Pencil, Play, Plus, Rocket, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
   UserPlus, Webhook, Zap, type LucideIcon,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ export const AREA_LABELS: Record<AuditArea, string> = {
   release: 'Releases',
   field: 'Custom fields',
   import: 'Imports',
+  page: 'Wiki pages',
 };
 
 export const ACTION_META: Record<string, ActionMeta> = {
@@ -82,6 +83,9 @@ export const ACTION_META: Record<string, ActionMeta> = {
   'field.updated': { label: 'Custom field updated', icon: Settings, tone: 'primary' },
   'field.deleted': { label: 'Custom field removed', icon: Settings, tone: 'danger' },
   'import.completed': { label: 'Import completed', icon: Download, tone: 'success' },
+  'page.created': { label: 'Page created', icon: BookOpen, tone: 'success' },
+  'page.updated': { label: 'Page updated', icon: BookOpen, tone: 'primary' },
+  'page.deleted': { label: 'Page deleted', icon: BookOpen, tone: 'danger' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

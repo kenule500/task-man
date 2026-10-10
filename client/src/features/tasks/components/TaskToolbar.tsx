@@ -1,9 +1,12 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ArrowUpDown, Download, Flag, FolderKanban, Layers, Search, SlidersHorizontal, Tag, Timer, UserCheck, Zap } from 'lucide-react';
+import { ArrowUpDown, Download, Flag, FolderKanban, Layers, ListFilter, Rocket, Search, SlidersHorizontal, Tag, Timer, UserCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/features/projects/types';
+import type { CustomField } from '@/features/fields/types';
+import { canAddCustomFilter, filterOptions, filterableFields, withCustomFilter } from '@/features/fields/lib/fieldFilters';
+import type { Release } from '@/features/releases/types';
 import { PRIORITY_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS, TASK_TYPE_OPTIONS, type SelectOption } from '../constants';
 import { findScopeProject, orderSprints, scopeProjectOf } from '../lib/scope';
 import type { Task, TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } from '../types';
@@ -42,10 +45,16 @@ interface TaskToolbarProps {
   projects?: Project[];
   /** Slot for the saved-views menu, placed beside the export button. */
   viewsMenu?: ReactNode;
+  /** Workspace releases; the release picker shows when a single project is selected and it has some. */
+  releases?: Release[];
+  /** Active custom fields; select, multi-select, checkbox and person fields get a filter. */
+  customFields?: CustomField[];
+  /** Workspace members, for the options of person field filters. */
+  members?: { _id: string; name: string }[];
 }
 
 /** Search, status pills (not on the board), priority and sort controls shared by every view. */
-const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, projects = [], onExport, exportCount, viewsMenu }: TaskToolbarProps) => {
+const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, projects = [], onExport, exportCount, viewsMenu, releases = [], customFields = [], members = [] }: TaskToolbarProps) => {
   const epicOptions: SelectOption<string>[] = [
     { value: 'all', label: 'All epics' },
     { value: 'none', label: 'No epic' },
@@ -77,6 +86,19 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
     ...(chosenSprint !== 'all' && chosenSprint !== 'active' && chosenSprint !== 'backlog' && !scopeProject.sprints.some(sprint => sprint._id === chosenSprint)
       ? [{ value: chosenSprint, label: 'Unknown sprint' }] : []),
   ] : [];
+  // Release picker: the scope project's releases (archived ones only when chosen)
+  const chosenRelease = filters.release ?? 'all';
+  const projectReleases = scopeProject
+    ? releases.filter(release => release.project === scopeProject._id && (release.status !== 'archived' || release._id === chosenRelease))
+    : [];
+  const releaseOptions: SelectOption<string>[] = scopeProject && projectReleases.length > 0 ? [
+    { value: 'all', label: 'All releases' },
+    { value: 'none', label: 'No release' },
+    ...projectReleases.map(release => ({ value: release._id, label: release.status === 'released' ? `${release.name} (released)` : release.name })),
+    ...(chosenRelease !== 'all' && chosenRelease !== 'none' && !projectReleases.some(release => release._id === chosenRelease)
+      ? [{ value: chosenRelease, label: 'Unknown release' }] : []),
+  ] : [];
+  const fieldFilters = filterableFields(customFields, chosenProject);
   const assignedToMe = Boolean(filters.assignedToMe);
   // Phones show search + a "Filters" toggle; the other controls fold away until asked for
   const [showFilters, setShowFilters] = useState(false);
@@ -85,6 +107,8 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
     assignedToMe,
     chosenProject !== 'all',
     chosenSprint !== 'all',
+    chosenRelease !== 'all',
+    Object.keys(filters.custom ?? {}).length > 0,
     (filters.label ?? 'all') !== 'all',
     (filters.type ?? 'all') !== 'all',
     (filters.epic ?? 'all') !== 'all',
@@ -158,7 +182,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             value={chosenProject}
             options={projectOptions}
             // A sprint belongs to one project: changing the project clears it
-            onChange={project => onChange({ ...filters, project, sprint: 'all' })}
+            onChange={project => onChange({ ...filters, project, sprint: 'all', release: 'all' })}
             className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
           />
         )}
@@ -170,6 +194,16 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             options={sprintOptions}
             // Picking a sprint of a project found only by its sprint id also pins the project
             onChange={sprint => onChange({ ...filters, sprint, project: chosenProject === 'all' ? scopeProject.name : chosenProject })}
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
+          />
+        )}
+        {releaseOptions.length > 0 && (
+          <OptionSelect
+            aria-label="Filter by release"
+            icon={<Rocket className="size-3.5 text-slate-500" aria-hidden />}
+            value={chosenRelease}
+            options={releaseOptions}
+            onChange={release => onChange({ ...filters, release })}
             className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
           />
         )}
@@ -214,6 +248,18 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36"
           />
         )}
+        {fieldFilters.map(field => (
+          <OptionSelect
+            key={field.key}
+            aria-label={`Filter by ${field.name}`}
+            icon={<ListFilter className="size-3.5 text-slate-500" aria-hidden />}
+            value={filters.custom?.[field.key] ?? 'all'}
+            options={filterOptions(field, members, filters.custom?.[field.key])}
+            disabled={!canAddCustomFilter(filters.custom, field.key)}
+            onChange={value => onChange({ ...filters, custom: withCustomFilter(filters.custom, field.key, value) })}
+            className="h-11 min-w-0 sm:h-9 sm:w-auto sm:min-w-36 sm:max-w-56"
+          />
+        ))}
         <OptionSelect
           aria-label="Filter by priority"
           icon={<Flag className="size-3.5 text-slate-500" aria-hidden />}

@@ -10,6 +10,9 @@ import Project, {
 } from '../models/projectModel.js';
 import Sprint, { MAX_SPRINT_GOAL, MAX_SPRINT_NAME } from '../models/sprintModel.js';
 import Task from '../models/taskModel.js';
+import Page from '../models/pageModel.js';
+import PageVersion from '../models/pageVersionModel.js';
+import CustomField from '../models/customFieldModel.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
 import { TaskRuleError, handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
@@ -212,6 +215,17 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
         { $set: { project: project.name } },
         { collation: CASE_INSENSITIVE },
       );
+      await Page.updateMany(
+        { workspace: project.workspace, project: previousName },
+        { $set: { project: project.name } },
+        { collation: CASE_INSENSITIVE },
+      );
+      // Custom fields scoped to the old name follow the rename (the matched array element is replaced)
+      await CustomField.updateMany(
+        { workspace: project.workspace, projects: previousName },
+        { $set: { 'projects.$[renamed]': project.name } },
+        { arrayFilters: [{ renamed: previousName }] },
+      );
     }
 
     const changes = diffFields(before, project.toObject() as unknown as Record<string, unknown>, ['name', 'key', 'color', 'icon', 'archived']);
@@ -240,6 +254,12 @@ export const deleteProject = async (req: Request, res: Response): Promise<void> 
       { collation: CASE_INSENSITIVE },
     );
     await Sprint.deleteMany({ project: project._id });
+    // The project's wiki goes with it (its pages are only reachable through the project)
+    const pageIds = (await Page.find({ workspace: project.workspace, project: project.name }).collation(CASE_INSENSITIVE).select('_id').lean()).map(row => row._id);
+    if (pageIds.length > 0) {
+      await PageVersion.deleteMany({ page: { $in: pageIds } });
+      await Page.deleteMany({ _id: { $in: pageIds } });
+    }
     await project.deleteOne();
 
     await recordActivity(req, { action: 'project.deleted', summary: project.name, project: project._id as mongoose.Types.ObjectId });

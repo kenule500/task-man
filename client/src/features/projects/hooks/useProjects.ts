@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { fetchCached, getCached, projectsKey, setCached, subscribe } from '@/lib/queryCache';
 import { getApiErrorMessage } from '@/utils/api';
+import { useLiveRefresh } from '@/features/live/hooks/useLiveRefresh';
 import { projectsApi } from '../api';
 import type { MoveOpenTo, Project, ProjectInput, ProjectPatch, Sprint, SprintInput, SprintPatch } from '../types';
 
@@ -74,6 +75,10 @@ export const useProjects = (workspaceSlug: string | undefined) => {
   }, [workspaceSlug, setProjects]);
 
   const reload = useCallback(() => load(true), [load]);
+
+  // Teammates changed projects or sprints (live feed): refetch once, debounced; local edits in flight win
+  const refreshFromLive = useCallback(() => load(false), [load]);
+  useLiveRefresh(workspaceSlug, 'projects', refreshFromLive);
 
   useEffect(() => {
     // Loading data on mount / slug change is the purpose of this effect

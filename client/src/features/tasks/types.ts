@@ -176,6 +176,10 @@ export interface TaskFilters {
   project?: string;
   /** Only this sprint: an id, `'active'` (the project's running sprint) or `'backlog'` (no sprint); `'all'` or unset = any. */
   sprint?: string;
+  /** Only tasks shipping in this release id (`'none'` = in no release; `'all'` or unset = any). */
+  release?: string;
+  /** Custom field filters by field key: an option id, user id, `true`/`false` or `'none'` (no value). Unset = any. */
+  custom?: Record<string, string>;
 }
 
 /** Max labels per task (mirrors the server). */

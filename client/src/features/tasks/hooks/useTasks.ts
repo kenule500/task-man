@@ -4,6 +4,7 @@ import { cachedWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import type { WorkflowStage } from '@/features/workflow/types';
 import { mergeCustom } from '@/features/fields/lib/fields';
 import { TIME_CHANGED_EVENT } from '@/features/time/timerStore';
+import { useLiveRefresh } from '@/features/live/hooks/useLiveRefresh';
 import { getApiErrorMessage, getApiErrorStatus, isTaskPayload, tasksApi, type UploadOptions } from '../api';
 import type { Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskUser } from '../types';
 
@@ -220,6 +221,23 @@ export const useTasks = (workspaceSlug: string | undefined) => {
       setError(getApiErrorMessage(err, 'Failed to load tasks.'));
     }
   }, [workspaceSlug, setTasks]);
+
+  // Teammates changed tasks (live feed): reload the list once, debounced. Never over this user's unsaved optimistic edits.
+  const refreshFromLive = useCallback(async (): Promise<boolean> => {
+    if (!workspaceSlug) return false;
+    if (busyRef.current > 0) return true;
+    const changesAtStart = changesRef.current;
+    try {
+      const list = await fetchCached(tasksKey(workspaceSlug), () => tasksApi.list(workspaceSlug));
+      if (busyRef.current > 0 || changesRef.current !== changesAtStart) return true;
+      cacheableRef.current = true;
+      rawSetTasks(list);
+    } catch {
+      // The next change or poll tries again
+    }
+    return false;
+  }, [workspaceSlug]);
+  useLiveRefresh(workspaceSlug, 'tasks', refreshFromLive);
 
   // Logged time is kept by the server (timer stop, manual entry, delete): refresh so the badges follow
   useEffect(() => {

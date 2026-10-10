@@ -70,10 +70,11 @@ describe('SecurityPage signed-in devices', () => {
   });
 
   it('shows an error with retry', async () => {
-    // Only the first devices request fails (the two-factor card loads its own status)
+    // Only the first devices request fails (the two-factor and sign-in method cards load their own data)
     let failed = false;
     mockedApi.get.mockImplementation(async (url: string) => {
       if (url === '/profile/2fa') return { data: { enabled: false, enabledAt: null, recoveryCodesRemaining: 0 } };
+      if (url === '/profile/sso') return { data: { methods: [], hasPassword: true, available: [] } };
       if (!failed) {
         failed = true;
         throw new Error('boom');

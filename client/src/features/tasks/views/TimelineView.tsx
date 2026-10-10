@@ -10,6 +10,7 @@ import { diffInDays, formatDate, isWeekend, startOfDay } from '../lib/date';
 import {
   buildTimeline, getLinkPath, getStartKey, groupDaysByMonth, resizeTask, shiftTask, type TimelineRow,
 } from '../lib/schedule';
+import { useLiveHold } from '@/features/live/hooks/useLiveHold';
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
 
@@ -45,6 +46,8 @@ const TimelineView = ({
 }: Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'>) => {
   const [zoom, setZoom] = useState<Zoom>(getInitialZoom);
   const [drag, setDrag] = useState<DragState | null>(null);
+  // A refetch in the middle of a bar drag would move the bars under the pointer
+  useLiveHold(drag !== null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const suppressClickRef = useRef(false);
 

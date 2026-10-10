@@ -52,6 +52,10 @@ export interface IUser extends Document {
     lockedUntil?: Date;
   };
 
+  // Single sign-on (OpenID Connect): linked provider accounts. `ssoOnly` means the password is a random value nobody knows.
+  sso?: { provider: 'google' | 'microsoft'; subject: string; email?: string; linkedAt: Date }[];
+  ssoOnly?: boolean;
+
   matchPassword(enteredPassword: string): Promise<boolean>;
 }
 
@@ -105,6 +109,18 @@ const userSchema: Schema = new Schema({
     failedAttempts: { type: Number, default: 0 },
     lockedUntil: { type: Date },
   },
+
+  // Single sign-on
+  sso: {
+    type: [new Schema({
+      provider: { type: String, enum: ['google', 'microsoft'], required: true },
+      subject: { type: String, required: true, maxlength: 255 },
+      email: { type: String, maxlength: 254 },
+      linkedAt: { type: Date, default: Date.now },
+    }, { _id: false })],
+    default: undefined,
+  },
+  ssoOnly: { type: Boolean, default: false },
 }, {
   timestamps: true,
   // Defence in depth: serialized users never carry the password hash or token hashes
@@ -113,6 +129,8 @@ const userSchema: Schema = new Schema({
       delete ret.password;
       delete ret.verificationToken;
       delete ret.resetPasswordToken;
+      delete ret.sso;
+      delete ret.ssoOnly;
       // Only whether 2FA is on and since when; never secrets, hashes or counters
       const twoFactor = ret.twoFactor as { enabled?: boolean; enabledAt?: Date } | undefined;
       if (twoFactor) ret.twoFactor = { enabled: Boolean(twoFactor.enabled), enabledAt: twoFactor.enabledAt };
@@ -120,6 +138,12 @@ const userSchema: Schema = new Schema({
     },
   },
 });
+
+// A provider account belongs to one user; documents without links are not indexed
+userSchema.index(
+  { 'sso.provider': 1, 'sso.subject': 1 },
+  { unique: true, partialFilterExpression: { 'sso.provider': { $exists: true } } },
+);
 
 userSchema.pre('save', async function () {
   const user = this as unknown as IUser;

@@ -35,11 +35,13 @@ const ReportsPage = lazy(loaders.reports);
 const RoadmapPage = lazy(loaders.roadmap);
 const WorkloadPage = lazy(loaders.workload);
 const TimesheetPage = lazy(() => import('./pages/TimesheetPage'));
+const WikiPage = lazy(() => import('./pages/WikiPage'));
 const SprintReportPage = lazy(() => import('./pages/SprintReportPage'));
 const ReleasePage = lazy(() => import('./pages/ReleasePage'));
 const TeamMembersPage = lazy(loaders.team);
 const HelpPage = lazy(loaders.help);
 const DesignSystemPage = lazy(loaders.designSystem);
+const SsoCompletePage = lazy(() => import('./pages/SsoCompletePage'));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -128,6 +130,7 @@ function App() {
             />
             <Route path="/login" element={<AuthPage />} />
             <Route path="/signup" element={<AuthPage />} />
+            <Route path="/sso/complete" element={<Lazy><SsoCompletePage /></Lazy>} />
             <Route path="/verify-email/:token" element={<Lazy><VerifyEmailPage /></Lazy>} />
             <Route path="/forgot-password" element={<Lazy><ForgotPasswordPage /></Lazy>} />
             <Route path="/reset-password/:token" element={<Lazy><ResetPasswordPage /></Lazy>} />
@@ -224,6 +227,24 @@ function App() {
                 element={
                   <PermissionRoute permission="tasks:read">
                     <Lazy><TimesheetPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Wiki (workspace pages, or a project's with ?project=): requires tasks:read; the chunk holds the Markdown renderer */}
+              <Route
+                path="/:workspaceSlug/wiki"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><WikiPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/:workspaceSlug/wiki/:pageId"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><WikiPage /></Lazy>
                   </PermissionRoute>
                 }
               />

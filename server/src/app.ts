@@ -15,6 +15,7 @@ import invitationRoutes from './routes/invitationRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import integrationRoutes from './routes/integrationRoutes.js';
+import ssoRoutes from './routes/ssoRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 import { registerFlowTracking } from './utils/flow/register.js';
 import { registerAutomations } from './utils/automation/register.js';
@@ -80,6 +81,8 @@ app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOr
 app.use('/api/integrations/github', express.raw({ type: 'application/json', limit: '1mb' }));
 // Import files are text up to 2 MB (a little more once JSON-escaped), so that path gets a larger parser first
 app.use('/api/workspaces/:slug/import', express.json({ limit: '3mb' }));
+// A wiki page is up to 100,000 characters of Markdown (more once JSON-escaped)
+app.use('/api/workspaces/:slug/pages', express.json({ limit: '400kb' }));
 app.use(express.json({ limit: '100kb' }));
 
 // ============================================================
@@ -98,9 +101,22 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// The live-update feed and presence heartbeats poll on a timer; they get their own budget so a team
+// behind one IP address does not use up the general API limit (one open tab: ~135 calls per 15 minutes)
+const isLivePoll = (req: Request) => /^\/api\/workspaces\/[^/]+\/changes(\/presence)?\/?$/.test(req.originalUrl.split('?')[0]);
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: config.rateLimitMax,
+  message: limitMessage,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: isLivePoll,
+});
+
+const liveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Math.max(config.rateLimitMax * 4, 2000),
   message: limitMessage,
   standardHeaders: true,
   legacyHeaders: false,
@@ -121,6 +137,7 @@ app.use(
     '/api/workspaces/join', '/api/invitations', '/api/profile/password', '/api/auth/login/2fa', '/api/profile/2fa'],
   (req, res, next) => (req.method === 'GET' ? next() : sensitiveLimiter(req, res, next)),
 );
+app.use('/api', (req, res, next) => (isLivePoll(req) ? liveLimiter(req, res, next) : next()));
 app.use('/api', apiLimiter);
 
 // ============================================================
@@ -152,6 +169,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // ============================================================
 // 6. Mount routers
 // ============================================================
+app.use('/api/auth/sso', ssoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/workspaces', workspaceRoutes);

@@ -77,6 +77,22 @@ describe('projects', () => {
     expect(tasks.body.find((t: { _id: string }) => t._id === task._id).project).toBe('New Name');
   });
 
+  it('renaming a project keeps the scope of its custom fields', async () => {
+    const project = await createProject({ name: 'Scoped Before' });
+    const fieldsUrl = `/api/workspaces/${slug}/fields`;
+    const scoped = await owner().post(fieldsUrl, { name: 'Scope check', type: 'text', projects: ['Scoped Before', 'Elsewhere'] });
+    expect(scoped.status).toBe(201);
+    const everywhere = await owner().post(fieldsUrl, { name: 'Scope everywhere', type: 'text' });
+    expect(everywhere.status).toBe(201);
+
+    expect((await owner().patch(`${projectsUrl()}/${project._id}`, { name: 'Scoped After' })).status).toBe(200);
+
+    const fields = await owner().get(fieldsUrl);
+    const byId = (id: string) => fields.body.find((field: { _id: string }) => field._id === id);
+    expect(byId(scoped.body._id).projects).toEqual(['Scoped After', 'Elsewhere']);
+    expect(byId(everywhere.body._id).projects).toEqual([]);
+  });
+
   it('deleting a project keeps its tasks without project or sprint', async () => {
     const project = await createProject();
     const sprint = await createSprint(project._id);

@@ -13,6 +13,8 @@ import {
   type Task, type TaskDetailActions, type TaskInput,
 } from '@/features/tasks';
 import { ReleasesTab, useReleases } from '@/features/releases';
+// Deep import: the wiki index also exports Markdown helpers, which belong to the lazy wiki page
+import ProjectWikiTab from '@/features/wiki/components/ProjectWikiTab';
 import type { MoveOpenTo, Project, Sprint } from '../types';
 import { groupProjectTasks, projectTasks } from '../lib/grouping';
 import { workProgress } from '../lib/sprintStats';
@@ -44,7 +46,7 @@ interface ProjectWorkspaceProps {
   onEditSprint: (sprint: Sprint) => void;
 }
 
-const TABS = ['sprints', 'backlog', 'epics', 'releases', 'overview'] as const;
+const TABS = ['sprints', 'backlog', 'epics', 'releases', 'wiki', 'overview'] as const;
 type TabValue = (typeof TABS)[number];
 
 const MOVE_PLACEHOLDER = '';
@@ -334,6 +336,7 @@ const ProjectWorkspace = ({
           <TabsTrigger value="backlog" className="px-4">Backlog <span className="tabular-nums text-slate-600">{groups.backlog.length}</span></TabsTrigger>
           <TabsTrigger value="epics" className="px-4">Epics <span className="tabular-nums text-slate-600">{epics.length}</span></TabsTrigger>
           <TabsTrigger value="releases" className="px-4">Releases <span className="tabular-nums text-slate-600">{releaseCount}</span></TabsTrigger>
+          <TabsTrigger value="wiki" className="px-4">Wiki</TabsTrigger>
           <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
         </TabsList>
 
@@ -462,6 +465,10 @@ const ProjectWorkspace = ({
 
         <TabsContent value="releases">
           <ReleasesTab workspaceSlug={workspaceSlug} projectId={project._id} canManage={canManage} onTasksChanged={onTasksChanged} />
+        </TabsContent>
+
+        <TabsContent value="wiki">
+          <ProjectWikiTab workspaceSlug={workspaceSlug} projectName={project.name} canWrite={canWriteTasks} />
         </TabsContent>
 
         <TabsContent value="overview">

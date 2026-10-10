@@ -40,6 +40,8 @@ import timeRoutes from './timeRoutes.js';
 import releaseRoutes from './releaseRoutes.js';
 import fieldRoutes from './fieldRoutes.js';
 import importRoutes from './importRoutes.js';
+import pageRoutes from './pageRoutes.js';
+import changeRoutes from './changeRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -244,6 +246,10 @@ router.use('/:slug/time', timeRoutes);
 router.use('/:slug/releases', releaseRoutes);
 router.use('/:slug/fields', fieldRoutes);
 router.use('/:slug/import', importRoutes);
+
+// Wiki pages and the live-update feed
+router.use('/:slug/pages', pageRoutes);
+router.use('/:slug/changes', changeRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);

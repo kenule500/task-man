@@ -73,6 +73,13 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
   fields per workspace or project, edited in the task dialog, required on create when needed, filterable by API
 - **Import** (Settings → Import): Trello JSON, Jira CSV or any CSV, with a mapping step for statuses, people and types
 - **Two-factor sign-in**: authenticator apps (TOTP) with one-time recovery codes; workspaces can require it
+- **Single sign-on**: "Continue with Google / Microsoft" (OpenID Connect with PKCE), off until configured
+- **Wiki** (sidebar → Wiki, or the project's Wiki tab): nested Markdown pages per workspace or project, live preview,
+  task keys become links, version history with restore, edit conflicts detected
+- **Live updates**: changes by teammates appear without reloading (a light change feed, no websockets needed), with an
+  "Also viewing" indicator on tasks
+- **List columns and filters**: choose list columns (including custom fields), filter by custom fields and releases,
+  and save those filters in views
 
 ### Developer workflow
 - **API tokens** (Settings → Developers): personal `tm_…` tokens limited to one workspace and to chosen scopes,
@@ -211,6 +218,36 @@ An owner or admin turns it on in the GitHub card of Workspace settings, which sh
 Settings > Webhooks > Add webhook, paste both, choose `application/json`, and select the **Pull requests**,
 **Pushes** and **Branch or tag creation** events. Deliveries without a valid `X-Hub-Signature-256` are rejected.
 Mention task keys in branch names, PR titles or commit messages (`feature/WEB-12-login`, `Fix WEB-12`).
+
+### Optional: Sign in with Google and Microsoft
+
+Single sign-on uses OpenID Connect (authorization code with PKCE). Each provider is off until its client id **and** secret are
+set; the sign-in and sign-up pages then show a `Continue with ...` button for it. Nothing else changes for people who use a password.
+
+| Variable | Meaning |
+|---|---|
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth client of Google |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | App registration of Microsoft (Entra ID) |
+| `MICROSOFT_TENANT` | `common` (default: work, school and personal accounts), `organizations`, `consumers`, or one tenant id or domain |
+| `API_PUBLIC_URL` | Only when the API is not served at `<CLIENT_URL>/api` (development: `http://localhost:5000/api`) |
+
+The **callback (redirect) URL** to register is `https://<host>/api/auth/sso/<provider>/callback`, with `google` or `microsoft` as
+the provider (locally `http://localhost:5000/api/auth/sso/google/callback`).
+
+**Google.** In the Google Cloud console open APIs & Services > Credentials > Create credentials > OAuth client ID, type
+*Web application*. Add the callback URL under *Authorised redirect URIs*, then copy the client id and secret. On the OAuth
+consent screen the default scopes (`openid`, `email`, `profile`) are enough.
+
+**Microsoft.** In the Entra admin center open App registrations > New registration. Pick the account types that match
+`MICROSOFT_TENANT`, choose the platform *Web* and add the callback URL as the redirect URI. Under Certificates & secrets create a client
+secret and copy its **value** (not the secret id). Under Token configuration add the optional claim `xms_edov` to the **ID token** if
+people from several organizations should sign in (see the email rule below).
+
+**Which email addresses are trusted.** A first sign-in matches or creates the account by email, so the provider must vouch for it.
+Google: `email_verified` must be true. Microsoft: `email` (else `preferred_username` when it is an address) is used for personal Microsoft
+accounts, when `MICROSOFT_TENANT` names a single organization, or when the `xms_edov` claim says the domain owner verified it. Otherwise
+the sign-in is refused, because Entra lets a tenant set any address on its own users. After the first sign-in the stable provider id
+identifies the person, and a method can be removed under Settings > Security.
 
 ## Branching and releases
 

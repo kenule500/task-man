@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomFields } from '@/features/fields/hooks/useCustomFields';
+import { filterableFields } from '@/features/fields/lib/fieldFilters';
+import { useReleases } from '@/features/releases';
 import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
 import ScopeBar from '@/features/tasks/components/ScopeBar';
 import { ViewsMenu, useUrlFilters } from '@/features/views';
 import {
-  BoardView, ConfirmTaskDelete, CalendarView, DELETE_UNDO_MS, FILTER_PARAMS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
+  BoardView, ConfirmTaskDelete, CalendarView, DELETE_UNDO_MS, ListView, TASK_VIEWS, TaskDetailDialog, TaskFormDialog,
   TaskToolbar, TimelineView, ViewSwitcher, applyFilters, collectLabels, dateKeyOf, downloadCsv, getTaskStats, tasksCsvFilename, tasksToCsv,
-  tasksApi, useTasks, useWorkspaceMembers, epicsOf, hasScope, matchesFilters, resolveScopeFilters, scopeProjectOf, scopeSprintOf,
+  tasksApi, useTasks, useWorkspaceMembers, epicsOf, hasScope, isFilterParam, matchesFilters, resolveScopeFilters, scopeProjectOf, scopeSprintOf,
   type Task, type TaskDetailActions, type TaskFormValues, type TaskView,
 } from '@/features/tasks';
 
@@ -39,7 +41,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const boardControls = useBoardUrlState();
   const currentUser = useMemo(() => (user ? { _id: user._id, name: user.name } : null), [user]);
 
-  // Filters live in the URL (?q=&status=&priority=&type=&label=&epic=&project=&sprint=&assignedToMe=&sort=) so any view is shareable by link
+  // Filters live in the URL (?q=&status=&priority=&type=&label=&epic=&project=&sprint=&release=&cf.<key>=&assignedToMe=&sort=) so any view is shareable by link
   const [filters, setFilters] = useUrlFilters();
   const [form, setForm] = useState<FormState>({ mode: 'closed' });
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -51,19 +53,21 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   } = useTasks(workspaceSlug);
   const { projects } = useProjects(workspaceSlug);
   const { byName } = useProjectDirectory();
-  const { active: customFields } = useCustomFields(workspaceSlug);
+  const { releases } = useReleases(workspaceSlug, (filters.project ?? 'all') !== 'all' || (filters.sprint ?? 'all') !== 'all');
+  const { active: customFields, loaded: customFieldsLoaded } = useCustomFields(workspaceSlug);
 
   const requestedView = searchParams.get('view') as TaskView | null;
   const view: TaskView = requestedView && TASK_VIEWS.includes(requestedView) ? requestedView : defaultView;
-  // Members feed the task form and the list's bulk "assign" action
-  const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, (form.mode !== 'closed' || view === 'list') && canReadUsers);
+  // Person fields list their filter choices from the members too
+  const hasPersonField = customFields.some(field => field.type === 'user');
+  // Members feed the task form, the list's bulk "assign" action and person field filters
+  const { members, loading: membersLoading } = useWorkspaceMembers(workspaceSlug, (form.mode !== 'closed' || view === 'list' || hasPersonField) && canReadUsers);
   // Switching layout keeps the filters (they apply to every view) and drops the rest (open task, board state)
   const setView = (next: TaskView) =>
     setSearchParams(prev => {
       const params = new URLSearchParams({ view: next });
-      for (const name of FILTER_PARAMS) {
-        const value = prev.get(name);
-        if (value !== null) params.set(name, value);
+      for (const [name, value] of prev) {
+        if (isFilterParam(name)) params.set(name, value);
       }
       return params;
     }, { replace: true });
@@ -104,12 +108,20 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   const epics = useMemo(() => epicsOf(tasks), [tasks]);
   // A label or epic filter whose target no longer exists would hide everything: fall back to "all"
   const activeFilters = useMemo(() => {
+    // Filters on a custom field that was archived or does not apply to the project would hide tasks with no way to undo it
+    const knownKeys = new Set(filterableFields(customFields, filters.project).map(field => field.key));
+    const customGone = customFieldsLoaded && Object.keys(filters.custom ?? {}).some(key => !knownKeys.has(key));
     const labelGone = Boolean(filters.label && filters.label !== 'all' && !labels.some(label => label.toLowerCase() === filters.label?.toLowerCase()));
     const epicGone = Boolean(filters.epic && filters.epic !== 'all' && filters.epic !== 'none' && !epics.some(epic => epic._id === filters.epic));
-    return labelGone || epicGone
-      ? { ...filters, ...(labelGone && { label: 'all' }), ...(epicGone && { epic: 'all' }) }
+    return labelGone || epicGone || customGone
+      ? {
+        ...filters,
+        ...(labelGone && { label: 'all' }),
+        ...(epicGone && { epic: 'all' }),
+        ...(customGone && { custom: Object.fromEntries(Object.entries(filters.custom ?? {}).filter(([key]) => knownKeys.has(key))) }),
+      }
       : filters;
-  }, [filters, labels, epics]);
+  }, [filters, labels, epics, customFields, customFieldsLoaded]);
   // Lets the search find "WEB-12" and labels the CSV key column
   const projectKeyOf = useCallback((task: Task) => (task.project ? byName(task.project)?.key : undefined), [byName]);
   // `sprint=active` becomes the running sprint's id; the same filters drive every view
@@ -258,6 +270,9 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
               labels={labels}
               epics={epics}
               projects={projects}
+              releases={releases}
+              customFields={customFields}
+              members={members}
               canFilterMine={Boolean(currentUser)}
               onExport={exportCsv}
               exportCount={visibleTasks.length}
