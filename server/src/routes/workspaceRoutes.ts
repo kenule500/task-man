@@ -19,6 +19,7 @@ import {
 import {
   changeMemberRole,
   removeMember,
+  leaveWorkspace,
 } from '../controllers/memberController.js';
 import {
   listWorkspaceRoles,
@@ -29,6 +30,11 @@ import {
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
 import { getWorkspaceActivity } from '../controllers/activityController.js';
+import {
+  getBoardSettings,
+  updateBoardSettings,
+  validateBoardSettings,
+} from '../controllers/boardSettingsController.js';
 import taskRoutes from './taskRoutes.js';
 import projectRoutes from './projectRoutes.js';
 
@@ -76,6 +82,18 @@ router.post(
 );
 
 // ============================================================
+// Board settings (WIP limits): read with tasks:read, change with settings:manage
+// ============================================================
+router.get('/:slug/board-settings', protect, requirePermission('tasks:read'), getBoardSettings);
+router.put(
+  '/:slug/board-settings',
+  protect,
+  requirePermission('settings:manage'),
+  validateBoardSettings,
+  updateBoardSettings
+);
+
+// ============================================================
 // Invitations (scoped to workspace)
 // ============================================================
 router.post(
@@ -107,6 +125,8 @@ router.put(
   requirePermission('users:write'),
   changeMemberRole
 );
+// Leaving needs no permission beyond membership (checked in the controller); must come before :userId
+router.delete('/:slug/members/me', protect, leaveWorkspace);
 router.delete(
   '/:slug/members/:userId',
   protect,

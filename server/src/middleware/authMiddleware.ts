@@ -3,6 +3,8 @@ import { Request, Response, NextFunction } from 'express';
 import User from '../models/userModel.js';
 import Session from '../models/sessionModel.js';
 import { getConfig } from '../config/env.js';
+
+const ACTIVITY_WRITE_INTERVAL_MS = 5 * 60 * 1000;
 import { getBearerToken, hashToken } from '../utils/tokens.js';
 
 interface JwtPayload {
@@ -29,9 +31,10 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
       return;
     }
 
-    // 3. Update the lastLoggedIn timestamp (optional, but good for tracking)
-    session.lastLoggedIn = new Date();
-    await session.save();
+    // 3. Record activity for "Signed-in devices", at most every 5 minutes (not a write per request)
+    if (Date.now() - session.lastLoggedIn.getTime() > ACTIVITY_WRITE_INTERVAL_MS) {
+      await Session.updateOne({ _id: session._id }, { $set: { lastLoggedIn: new Date() } });
+    }
 
     // 4. Attach user to request
     const user = await User.findById(decoded.id).select('-password');

@@ -5,7 +5,8 @@ export const ACTIVITY_ACTIONS = [
   'task.created', 'task.updated', 'task.deleted', 'task.commented', 'task.attachment_added', 'task.attachment_removed',
   'project.created', 'project.updated', 'project.deleted',
   'sprint.created', 'sprint.updated', 'sprint.started', 'sprint.completed', 'sprint.deleted',
-  'member.role_changed', 'member.removed', 'member.joined', 'invitation.sent', 'invitation.cancelled',
+  'member.role_changed', 'member.removed', 'member.joined', 'member.left',
+  'role.created', 'role.updated', 'role.deleted', 'task.comment_deleted', 'invitation.sent', 'invitation.cancelled',
   'workspace.updated', 'workspace.invite_code_regenerated', 'audit.exported',
 ] as const;
 
@@ -58,6 +59,8 @@ const activitySchema = new Schema<IActivity>({
 
 activitySchema.index({ workspace: 1, createdAt: -1 });
 activitySchema.index({ workspace: 1, task: 1, createdAt: -1 });
+activitySchema.index({ workspace: 1, actor: 1, createdAt: -1 });
+activitySchema.index({ workspace: 1, action: 1, createdAt: -1 });
 activitySchema.index({ createdAt: 1 }, { expireAfterSeconds: ACTIVITY_RETENTION_DAYS * 24 * 60 * 60 });
 
 const Activity = mongoose.model<IActivity>('Activity', activitySchema);

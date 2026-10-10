@@ -71,7 +71,8 @@ app.use(express.json({ limit: '100kb' }));
 //    Strict on auth, roomier for the app API where board, calendar
 //    and timeline drag interactions issue many small updates
 // ============================================================
-const limitMessage = 'Too many requests from this IP, please try again later.';
+// JSON like every other API error, so the client can show it
+const limitMessage = { message: 'Too many attempts. Please wait a few minutes and try again.' };
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -107,9 +108,22 @@ app.use(
 app.use('/api', apiLimiter);
 
 // ============================================================
-// 4. Health check
+// 4. HTTP caching
+//    Responses are per-user: private, and the browser must revalidate every time.
+//    Express's default weak ETag turns an unchanged list into a cheap 304.
+// ============================================================
+app.set('etag', 'weak');
+app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'private, no-cache');
+  next();
+});
+
+// ============================================================
+// 5. Health check
 // ============================================================
 app.get('/api/health', (_req: Request, res: Response) => {
+  // Liveness must never come from a cache
+  res.setHeader('Cache-Control', 'no-store');
   res.status(200).json({
     status: 'OK',
     message: 'Server is running',
@@ -120,7 +134,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 // ============================================================
-// 5. Mount routers
+// 6. Mount routers
 // ============================================================
 app.use('/api/auth', authRoutes);
 app.use('/api/invitations', invitationRoutes);

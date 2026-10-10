@@ -130,6 +130,9 @@ taskSchema.index({ workspace: 1, labels: 1 });
 taskSchema.index({ workspace: 1, sprint: 1 });
 taskSchema.index({ workspace: 1, number: 1 }, { unique: true, partialFilterExpression: { number: { $type: 'number' } } });
 taskSchema.index({ workspace: 1, parent: 1 });
+taskSchema.index({ workspace: 1, status: 1 });
+taskSchema.index({ workspace: 1, project: 1 });
+taskSchema.index({ workspace: 1, dependencies: 1 });
 
 // Keep completedAt in sync with the status so reports can rely on it
 taskSchema.pre('save', function () {

@@ -118,6 +118,8 @@ export const deleteComment = async (req: Request, res: Response): Promise<void> 
     }
 
     await Task.updateOne({ _id: task._id }, { $pull: { comments: { _id: comment._id } } });
+    const deletedFrom = await auditLookup(() => Task.findById(task._id).select('title').lean());
+    await recordActivity(req, { action: 'task.comment_deleted', summary: deletedFrom?.title ?? '', task: String(task._id) });
     res.status(200).json({ message: 'Comment deleted', id: String(comment._id) });
   } catch (error) {
     handleError(res, error, 'deleteComment');

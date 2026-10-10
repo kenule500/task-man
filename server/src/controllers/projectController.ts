@@ -361,7 +361,7 @@ export const completeSprint = async (req: Request, res: Response): Promise<void>
     }
 
     // Velocity counts finished top-level items (subtask points are part of their parent's estimate)
-    const done = await Task.find({ sprint: sprint._id, status: 'completed', parent: null }).select('storyPoints').lean();
+    const done = await Task.find({ workspace: sprint.workspace, sprint: sprint._id, status: 'completed', parent: null }).select('storyPoints').lean();
     const completedPoints = done.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0);
 
     const completed = await Sprint.findOneAndUpdate(
@@ -372,7 +372,7 @@ export const completeSprint = async (req: Request, res: Response): Promise<void>
     if (!completed) throw new ConflictError('This sprint was changed by someone else');
 
     const moved = await Task.updateMany(
-      { sprint: sprint._id, status: { $ne: 'completed' } },
+      { workspace: sprint.workspace, sprint: sprint._id, status: { $ne: 'completed' } },
       { $set: { sprint: target } },
     );
     await recordActivity(req, {
@@ -397,7 +397,7 @@ export const deleteSprint = async (req: Request, res: Response): Promise<void> =
     const sprint = await findSprint(req);
     if (!sprint) return notFound(res, 'Sprint');
 
-    await Task.updateMany({ sprint: sprint._id }, { $set: { sprint: null } });
+    await Task.updateMany({ workspace: sprint.workspace, sprint: sprint._id }, { $set: { sprint: null } });
     await sprint.deleteOne();
 
     await recordActivity(req, { action: 'sprint.deleted', summary: sprint.name, project: sprint.project, sprint: sprint._id as mongoose.Types.ObjectId });

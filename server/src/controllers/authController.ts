@@ -63,7 +63,8 @@ const isDevAutoVerify = (): boolean => process.env.DEV_AUTO_VERIFY === 'true';
 
 // jti makes every token unique, so each login gets its own revocable session
 const generateToken = (id: string): string => {
-  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h', jwtid: crypto.randomUUID() });
+  // Long enough to stay signed in for a working week; every session is revocable server-side
+  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '7d', jwtid: crypto.randomUUID() });
 };
 
 /** Build an absolute URL to a frontend path (e.g. /verify-email/abc123). */

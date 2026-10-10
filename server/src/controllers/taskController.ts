@@ -136,7 +136,7 @@ const assertValidDependencies = async (
   }
 };
 
-const assertValidAssignees = (workspace: IWorkspace, assignees: string[]) => {
+export const assertValidAssignees = (workspace: IWorkspace, assignees: string[]) => {
   if (assignees.some(id => !mongoose.isValidObjectId(id))) {
     throw new TaskRuleError('Invalid assignee id');
   }
@@ -147,7 +147,7 @@ const assertValidAssignees = (workspace: IWorkspace, assignees: string[]) => {
 };
 
 /** The sprint must belong to the workspace and still be open; returns it with its project's name. */
-const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprintId: string) => {
+export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprintId: string) => {
   const sprint = await Sprint.findOne({ _id: sprintId, workspace: workspaceId });
   if (!sprint) throw new TaskRuleError('Sprint not found in this workspace');
   if (sprint.status === 'completed') throw new TaskRuleError('This sprint is completed');
@@ -172,7 +172,7 @@ const findValidParent = async (workspaceId: mongoose.Types.ObjectId, taskId: str
  * Keeps project and sprint consistent: a task in a sprint belongs to the sprint's project.
  * Choosing a sprint moves the task to its project; changing the project leaves the sprint.
  */
-const reconcileSprint = async (
+export const reconcileSprint = async (
   task: ITask,
   workspaceId: mongoose.Types.ObjectId,
   changed: { sprint: boolean; project: boolean },
@@ -187,9 +187,31 @@ const reconcileSprint = async (
   if (task.project !== project?.name) task.set('sprint', null);
 };
 
+/** Audit entries for the difference between two task snapshots (shared by single and bulk updates). */
+export const describeTaskChanges = (before: Record<string, unknown>, after: Record<string, unknown>) => {
+  const changes = diffFields(before, after, AUDITED_FIELDS);
+  if (String(before.sprint ?? '') !== String(after.sprint ?? '')) {
+    changes.push({ field: 'sprint', from: before.sprint ? String(before.sprint) : undefined, to: after.sprint ? String(after.sprint) : undefined });
+  }
+  if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
+    changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
+  }
+  if (before.description !== after.description) changes.push({ field: 'description' });
+  return changes;
+};
+
 export const handleError = (res: Response, error: unknown, context: string) => {
   if (error instanceof TaskRuleError) {
     res.status(400).json({ message: error.message });
+    return;
+  }
+  // Schema rules and malformed ids are the caller's mistake; a duplicate key is a conflict
+  if (error instanceof mongoose.Error.ValidationError || error instanceof mongoose.Error.CastError) {
+    res.status(400).json({ message: error instanceof mongoose.Error.ValidationError ? Object.values(error.errors)[0]?.message ?? 'Invalid data' : 'Invalid id' });
+    return;
+  }
+  if ((error as { code?: number } | null)?.code === 11000) {
+    res.status(409).json({ message: 'This change conflicts with existing data. Reload and try again.' });
     return;
   }
   console.error(`${context} error:`, error);
@@ -339,14 +361,7 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
     await task.save();
 
     const after = task.toObject() as unknown as Record<string, unknown>;
-    const changes = diffFields(before, after, AUDITED_FIELDS);
-    if (String(before.sprint ?? '') !== String(after.sprint ?? '')) {
-      changes.push({ field: 'sprint', from: before.sprint ? String(before.sprint) : undefined, to: after.sprint ? String(after.sprint) : undefined });
-    }
-    if (String(before.assignees ?? '') !== String(after.assignees ?? '')) {
-      changes.push({ field: 'assignees', from: String((before.assignees as unknown[] | undefined)?.length ?? 0), to: String((after.assignees as unknown[] | undefined)?.length ?? 0) });
-    }
-    if (before.description !== after.description) changes.push({ field: 'description' });
+    const changes = describeTaskChanges(before, after);
     if (changes.length > 0) {
       await recordActivity(req, { action: 'task.updated', summary: task.title, task: task._id as mongoose.Types.ObjectId, changes });
     }
@@ -363,6 +378,22 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
   } catch (error) {
     handleError(res, error, 'updateTask');
   }
+};
+
+type RemovedTask = { _id: mongoose.Types.ObjectId; attachments?: { fileId: mongoose.Types.ObjectId }[] };
+
+/**
+ * After tasks (and their subtasks) were deleted: detach them from tasks that depended on them and
+ * remove their GridFS attachments. Shared by single and bulk delete.
+ */
+export const cleanUpRemovedTasks = async (workspaceId: mongoose.Types.ObjectId, removed: RemovedTask[]) => {
+  const removedIds = removed.map(item => item._id);
+  await Task.updateMany(
+    { workspace: workspaceId, dependencies: { $in: removedIds } },
+    { $pull: { dependencies: { $in: removedIds } } },
+  );
+  // Attachments live in GridFS, so they are removed explicitly
+  await deleteFiles(removed.flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 };
 
 // ================================================================
@@ -384,14 +415,7 @@ export const deleteTask = async (req: Request, res: Response): Promise<void> => 
 
     const subtasks = await Task.find({ workspace: workspace._id, parent: task._id }).select('attachments').lean();
     if (subtasks.length > 0) await Task.deleteMany({ _id: { $in: subtasks.map(sub => sub._id) } });
-    const removedIds = [task._id, ...subtasks.map(sub => sub._id)];
-
-    await Task.updateMany(
-      { workspace: workspace._id, dependencies: { $in: removedIds } },
-      { $pull: { dependencies: { $in: removedIds } } },
-    );
-    // Attachments live in GridFS, so they are removed explicitly
-    await deleteFiles([task, ...subtasks].flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
+    await cleanUpRemovedTasks(workspace._id as mongoose.Types.ObjectId, [task, ...subtasks]);
 
     await recordActivity(req, {
       action: 'task.deleted',
