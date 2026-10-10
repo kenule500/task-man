@@ -10,7 +10,10 @@ jest.mock('@/utils/api', () => ({
   default: { get: jest.fn(), put: jest.fn(), post: jest.fn(), delete: jest.fn() },
   getApiErrorMessage: (_err: unknown, fallback: string) => fallback,
 }));
-jest.mock('@/utils/session', () => ({ clearSession: jest.fn() }));
+jest.mock('@/utils/session', () => ({
+  clearSession: jest.fn(),
+  getStoredUser: () => ({ _id: 'u1', name: 'Ada', email: 'ada@example.com' }),
+}));
 
 const mockedApi = api as jest.Mocked<typeof api>;
 
@@ -44,6 +47,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockedApi.get.mockImplementation(async (url: string) => {
     if (url === '/profile/sessions') return { data: sessions() };
+    if (url === '/profile/2fa') return { data: { enabled: false, enabledAt: null, recoveryCodesRemaining: 0 } };
     throw new Error(`unexpected ${url}`);
   });
   mockedApi.delete.mockResolvedValue({ data: {} });
@@ -66,7 +70,16 @@ describe('SecurityPage signed-in devices', () => {
   });
 
   it('shows an error with retry', async () => {
-    mockedApi.get.mockRejectedValueOnce(new Error('boom'));
+    // Only the first devices request fails (the two-factor card loads its own status)
+    let failed = false;
+    mockedApi.get.mockImplementation(async (url: string) => {
+      if (url === '/profile/2fa') return { data: { enabled: false, enabledAt: null, recoveryCodesRemaining: 0 } };
+      if (!failed) {
+        failed = true;
+        throw new Error('boom');
+      }
+      return { data: sessions() };
+    });
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load your signed-in devices.');
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));

@@ -12,6 +12,7 @@ import {
   useTasks, useWorkspaceMembers,
   type Task, type TaskDetailActions, type TaskInput,
 } from '@/features/tasks';
+import { ReleasesTab, useReleases } from '@/features/releases';
 import type { MoveOpenTo, Project, Sprint } from '../types';
 import { groupProjectTasks, projectTasks } from '../lib/grouping';
 import { workProgress } from '../lib/sprintStats';
@@ -43,7 +44,7 @@ interface ProjectWorkspaceProps {
   onEditSprint: (sprint: Sprint) => void;
 }
 
-const TABS = ['sprints', 'backlog', 'epics', 'overview'] as const;
+const TABS = ['sprints', 'backlog', 'epics', 'releases', 'overview'] as const;
 type TabValue = (typeof TABS)[number];
 
 const MOVE_PLACEHOLDER = '';
@@ -93,6 +94,8 @@ const ProjectWorkspace = ({
   const progress = useMemo(() => workProgress(own), [own]);
   const epics = useMemo(() => epicsOf(own), [own]);
   const velocity = useMemo(() => averageVelocity(project.sprints), [project.sprints]);
+  const { releases } = useReleases(workspaceSlug);
+  const releaseCount = releases.filter(item => item.project === project._id && item.status !== 'archived').length;
   const detailTask = detailId ? tasks.find(task => task._id === detailId) ?? null : null;
 
   const active = project.sprints.filter(sprint => sprint.status === 'active');
@@ -330,6 +333,7 @@ const ProjectWorkspace = ({
           <TabsTrigger value="sprints" className="px-4">Sprints <span className="tabular-nums text-slate-600">{project.sprints.length}</span></TabsTrigger>
           <TabsTrigger value="backlog" className="px-4">Backlog <span className="tabular-nums text-slate-600">{groups.backlog.length}</span></TabsTrigger>
           <TabsTrigger value="epics" className="px-4">Epics <span className="tabular-nums text-slate-600">{epics.length}</span></TabsTrigger>
+          <TabsTrigger value="releases" className="px-4">Releases <span className="tabular-nums text-slate-600">{releaseCount}</span></TabsTrigger>
           <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
         </TabsList>
 
@@ -454,6 +458,10 @@ const ProjectWorkspace = ({
               }}
             />
           </Surface>
+        </TabsContent>
+
+        <TabsContent value="releases">
+          <ReleasesTab workspaceSlug={workspaceSlug} projectId={project._id} canManage={canManage} onTasksChanged={onTasksChanged} />
         </TabsContent>
 
         <TabsContent value="overview">

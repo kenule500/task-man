@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Link, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import KeyboardShortcuts from './KeyboardShortcuts';
+import TwoFactorRequiredGate from './TwoFactorRequiredGate';
 import Sidebar from './Sidebar';
 import { InsideWorkspaceShellContext } from './shellContext';
 import { EmptyState, SkeletonCards } from '@/components/ds';
@@ -67,6 +68,7 @@ const WorkspaceLayout = () => {
     // The project directory wraps the sidebar too, so its Projects list and the pages share one fetch
     <ProjectsProvider slug={workspaceSlug}>
       {workspaceSlug && <KeyboardShortcuts slug={workspaceSlug} />}
+      <TwoFactorRequiredGate />
       <Sidebar user={user} onLogout={handleLogout}>
         <InsideWorkspaceShellContext.Provider value>
           <div className="w-full space-y-6">

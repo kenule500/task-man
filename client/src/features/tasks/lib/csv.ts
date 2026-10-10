@@ -2,6 +2,8 @@ import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import type { Task } from '../types';
 import { dateKeyOf, toDateKey } from './date';
 import { taskKey } from './taskKey';
+import { valueText } from '@/features/fields/lib/fields';
+import type { CustomField } from '@/features/fields/types';
 
 /** Lets Excel read the file as UTF-8. */
 export const CSV_BOM = '﻿';
@@ -30,6 +32,10 @@ export interface TaskCsvLookups {
   projectKeyOf?: (task: Task) => string | undefined;
   /** Sprint name for a sprint id; blank when unknown. */
   sprintName?: (sprintId: string) => string | undefined;
+  /** Custom fields to add as columns after the built-in ones (archived fields are left out). */
+  customFields?: readonly CustomField[];
+  /** Name of a user id, for person fields. */
+  userName?: (userId: string) => string | undefined;
 }
 
 const localDay = (iso: string | undefined): string => {
@@ -40,7 +46,8 @@ const localDay = (iso: string | undefined): string => {
 
 /** Spreadsheet rows (header first) for `tasks`. `allTasks` resolves each parent's key. */
 export const taskCsvRows = (tasks: Task[], allTasks: Task[] = tasks, lookups: TaskCsvLookups = {}): string[][] => {
-  const { projectKeyOf, sprintName } = lookups;
+  const { projectKeyOf, sprintName, userName } = lookups;
+  const customFields = (lookups.customFields ?? []).filter(field => !field.archived);
   const keyOf = (task: Task) => taskKey(task, projectKeyOf?.(task));
   const byId = new Map(allTasks.map(task => [task._id, task]));
 
@@ -61,9 +68,10 @@ export const taskCsvRows = (tasks: Task[], allTasks: Task[] = tasks, lookups: Ta
       task.deadline ? dateKeyOf(task.deadline) : '',
       localDay(task.completedAt),
       parent ? keyOf(parent) : '',
+      ...customFields.map(field => valueText(field, task.custom?.[field.key], { userName })),
     ];
   });
-  return [[...TASK_CSV_HEADER], ...rows];
+  return [[...TASK_CSV_HEADER, ...customFields.map(field => field.name)], ...rows];
 };
 
 /** The whole CSV document for a list of tasks. */

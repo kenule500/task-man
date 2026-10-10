@@ -7,6 +7,7 @@ import { markBoardTried } from '@/components/dashboard/getStarted';
 import { Button } from '@/components/ui/button';
 import { useProjectDirectory, useProjects } from '@/features/projects';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCustomFields } from '@/features/fields/hooks/useCustomFields';
 import { useBoardUrlState } from '@/features/tasks/hooks/useBoardSettings';
 import ScopeBar from '@/features/tasks/components/ScopeBar';
 import { ViewsMenu, useUrlFilters } from '@/features/views';
@@ -50,6 +51,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   } = useTasks(workspaceSlug);
   const { projects } = useProjects(workspaceSlug);
   const { byName } = useProjectDirectory();
+  const { active: customFields } = useCustomFields(workspaceSlug);
 
   const requestedView = searchParams.get('view') as TaskView | null;
   const view: TaskView = requestedView && TASK_VIEWS.includes(requestedView) ? requestedView : defaultView;
@@ -166,6 +168,9 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
     const csv = tasksToCsv(visibleTasks, tasks, {
       projectKeyOf,
       sprintName: id => sprints.find(sprint => sprint._id === id)?.name,
+      customFields,
+      userName: id => members.find(member => member._id === id)?.name
+        ?? tasks.flatMap(task => task.assignees ?? []).find(person => person._id === id)?.name,
     });
     downloadCsv(tasksCsvFilename(workspaceSlug ?? ''), csv);
     toast.success(`Exported ${visibleTasks.length} ${visibleTasks.length === 1 ? 'task' : 'tasks'}`);

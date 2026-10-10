@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown, DoorOpen,
-  Sparkles, Plus, Check, User, Settings, Search, Milestone, Gauge, type LucideIcon,
+  Sparkles, Plus, Check, User, Settings, Search, Milestone, Gauge, Timer, type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -25,6 +25,7 @@ import CreateWorkspaceModal from './CreateWorkspaceModal';
 import CommandPalette from './CommandPalette';
 import MobileTabBar from './MobileTabBar';
 import { NotificationBell } from '@/features/notifications';
+import TimerPill from '@/features/time/components/TimerPill';
 import ThemeToggle from '@/components/ThemeToggle';
 import { loadThemeFromAccount } from '@/lib/themeApi';
 import { usePermissions } from '../hooks/usePermissions';
@@ -55,6 +56,7 @@ const navMain = [
   { title: 'Projects', key: 'projects', icon: FolderKanban, permission: 'projects:read' },
   { title: 'Roadmap', key: 'roadmap', icon: Milestone, permission: 'projects:read' },
   { title: 'Workload', key: 'workload', icon: Gauge, permission: 'projects:read' },
+  { title: 'Timesheet', key: 'timesheet', icon: Timer, permission: 'tasks:read' },
   { title: 'Team', key: 'team', icon: Users, permission: 'users:read' },
   { title: 'Calendar', key: 'calendar', icon: Calendar, permission: 'tasks:read' },
   { title: 'Reports', key: 'reports', icon: BarChart3, permission: 'reports:read' },
@@ -409,6 +411,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
                   {shortcutLabel()}
                 </kbd>
               </button>
+              <TimerPill slug={targetSlug} />
               <ThemeToggle />
               <NotificationBell slug={targetSlug} />
             </div>

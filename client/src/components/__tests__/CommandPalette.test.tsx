@@ -97,7 +97,7 @@ describe('searchCommands', () => {
 
   it('lists pages and the most recent tasks for an empty query', () => {
     const results = searchCommands('', items);
-    expect(results.filter(item => item.group === 'Pages')).toHaveLength(15);
+    expect(results.filter(item => item.group === 'Pages')).toHaveLength(17);
     expect(results.filter(item => item.group === 'Tasks').map(item => item.label)).toEqual([
       'Fix login bug', 'Plan sprint', 'Write launch email',
     ]);
@@ -133,7 +133,7 @@ describe('searchCommands', () => {
   it('hides pages and results the user has no permission for', () => {
     const limited = buildCommandItems('acme', (permission: string) => permission === 'tasks:read', tasks);
     const labels = searchCommands('', limited).filter(item => item.group === 'Pages').map(item => item.label);
-    expect(labels).toEqual(['Dashboard', 'Tasks', 'Board', 'Calendar', 'Timeline', 'Developers', 'Help']);
+    expect(labels).toEqual(['Dashboard', 'Tasks', 'Board', 'Calendar', 'Timeline', 'Timesheet', 'Developers', 'Help']);
     expect(searchCommands('website', limited).some(item => item.group === 'Projects')).toBe(false);
     expect(searchCommands('login', buildCommandItems('acme', () => false, tasks))).toEqual([]);
   });

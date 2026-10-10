@@ -57,6 +57,8 @@ export interface BulkTaskPatch {
   assignees?: { add?: string[]; remove?: string[] };
   /** Labels to add to / remove from the current labels. */
   labels?: { add?: string[]; remove?: string[] };
+  /** Custom field values by key, applied to every task; `null` clears one. */
+  custom?: Record<string, string | number | boolean | string[] | null>;
 }
 
 export interface BulkDeleteResult {

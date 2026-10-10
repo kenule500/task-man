@@ -65,6 +65,14 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
   a scope bar with the sprint goal, dates and days left, "Open board" on every sprint, project shortcuts in the sidebar
 - **Linked work**: relates to, duplicates, clones, blocks / is blocked by, shown on both tasks; convert a task into a
   subtask or promote a subtask; breadcrumb (project › epic › parent) in the task dialog
+- **Time tracking**: estimates, a start/stop timer (one running per person, shown in the header), manual entries,
+  logged vs estimate on cards, and a weekly **Timesheet** with CSV export
+- **Releases** (project → Releases tab): versions with progress, a "Release" action that moves unfinished work,
+  generated release notes (features, fixes, tasks) and release milestones on the roadmap
+- **Custom fields** (Settings → Custom fields): text, number, date, select, multi-select, checkbox, URL and person
+  fields per workspace or project, edited in the task dialog, required on create when needed, filterable by API
+- **Import** (Settings → Import): Trello JSON, Jira CSV or any CSV, with a mapping step for statuses, people and types
+- **Two-factor sign-in**: authenticator apps (TOTP) with one-time recovery codes; workspaces can require it
 
 ### Developer workflow
 - **API tokens** (Settings → Developers): personal `tm_…` tokens limited to one workspace and to chosen scopes,

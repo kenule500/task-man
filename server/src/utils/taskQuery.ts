@@ -16,7 +16,33 @@ export interface TaskListQuery {
   sort: TaskSort;
   from?: Date;
   to?: Date;
+  // Custom field filters (?cf.<key>=<value>): field key -> value text, or 'none' for tasks without a value
+  custom?: Record<string, string>;
 }
+
+export const MAX_CUSTOM_FILTERS = 5;
+const CUSTOM_FILTER_KEY = /^cf\.([a-z][a-z0-9_]{0,29})$/;
+
+/** The `cf.<key>=<value>` pairs of a query string (at most 5, plain text values only). */
+const parseCustomFilters = (query: Record<string, unknown>): Record<string, string> | undefined => {
+  const filters: Record<string, string> = {};
+  for (const name of Object.keys(query)) {
+    const key = CUSTOM_FILTER_KEY.exec(name)?.[1];
+    const value = query[name];
+    if (!key || typeof value !== 'string' || value === '' || Object.keys(filters).length >= MAX_CUSTOM_FILTERS) continue;
+    filters[key] = value.slice(0, 100);
+  }
+  return Object.keys(filters).length > 0 ? filters : undefined;
+};
+
+/** Values a stored custom value may have for a filter text (numbers and checkboxes are stored typed). */
+const customFilterMatch = (value: string): unknown => {
+  if (value === 'none') return { $in: [null] };
+  const candidates: (string | number | boolean)[] = [value];
+  if (value.trim() !== '' && Number.isFinite(Number(value))) candidates.push(Number(value));
+  if (value === 'true' || value === 'false') candidates.push(value === 'true');
+  return { $in: candidates };
+};
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -76,6 +102,7 @@ export const parseTaskListQuery = (query: Record<string, unknown>): TaskListQuer
     sort,
     from: parseDate(query.from),
     to: parseDate(query.to),
+    custom: parseCustomFilters(query),
   };
 };
 
@@ -100,6 +127,11 @@ export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery, curr
       // "me" without a user, never widen the result set
       filter.assignees = { $in: [] };
     }
+  }
+
+  // The key was matched against a slug pattern when parsed, so it cannot form another path or operator
+  for (const [key, value] of Object.entries(query.custom ?? {})) {
+    if (CUSTOM_FILTER_KEY.test(`cf.${key}`)) filter[`custom.${key}`] = customFilterMatch(value);
   }
 
   if (query.search) {

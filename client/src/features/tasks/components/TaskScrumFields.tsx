@@ -1,12 +1,13 @@
 import type { Project } from '@/features/projects';
 import { Label } from '@/components/ui/label';
+import TaskReleaseField from '@/features/releases/components/TaskReleaseField';
 import { epicFitsProject, epicOptionsFor, findProjectByName, NO_EPIC_VALUE, type TaskFormValues } from '../lib/taskForm';
 import type { Task } from '../types';
 import { OptionSelect, SprintSelect, StoryPointsSelect, TypeSelect } from './TaskSelects';
 
 interface TaskScrumFieldsProps {
-  values: Pick<TaskFormValues, 'type' | 'storyPoints' | 'sprint' | 'project' | 'epic'>;
-  onChange: <K extends 'type' | 'storyPoints' | 'sprint' | 'epic' | 'project'>(key: K, value: TaskFormValues[K]) => void;
+  values: Pick<TaskFormValues, 'type' | 'storyPoints' | 'sprint' | 'project' | 'epic'> & { release?: string };
+  onChange: <K extends 'type' | 'storyPoints' | 'sprint' | 'epic' | 'project' | 'release'>(key: K, value: TaskFormValues[K]) => void;
   projects: Project[];
   /** Epics of the workspace; the epic field is hidden when there are none. */
   epics?: Task[];
@@ -33,6 +34,7 @@ const TaskScrumFields = ({ values, onChange, projects, epics = [], isSubtask = f
     if (type === 'epic') {
       onChange('epic', '');
       onChange('sprint', '');
+      onChange('release', '');
     }
   };
 
@@ -92,6 +94,15 @@ const TaskScrumFields = ({ values, onChange, projects, epics = [], isSubtask = f
           />
           {sprintHint && <p id={sprintHintId} className="text-xs text-slate-500">{sprintHint}</p>}
         </div>
+      )}
+      {!isEpic && (
+        <TaskReleaseField
+          project={values.project}
+          projects={projects}
+          value={values.release ?? ''}
+          onChange={value => onChange('release', value)}
+          isSubtask={isSubtask}
+        />
       )}
     </div>
   );

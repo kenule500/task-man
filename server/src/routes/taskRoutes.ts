@@ -32,6 +32,14 @@ import {
   validateAddRelation,
   validateMoveTask,
 } from '../controllers/taskRelationController.js';
+import {
+  addTimeEntry,
+  deleteTimeEntry,
+  getTaskTime,
+  startTimer,
+  stopTimer,
+  validateTimeEntry,
+} from '../controllers/timeController.js';
 import { getTaskActivity } from '../controllers/activityController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
@@ -65,6 +73,13 @@ router.post('/:id/move', requirePermission('tasks:write'), validateMoveTask, mov
 
 // History of field changes, comments and files
 router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);
+
+// Time tracking: entries, manual logging, one running timer per user (delete: author or settings:manage)
+router.get('/:id/time', requirePermission('tasks:read'), getTaskTime);
+router.post('/:id/time', requirePermission('tasks:write'), validateTimeEntry, addTimeEntry);
+router.post('/:id/timer/start', requirePermission('tasks:write'), startTimer);
+router.post('/:id/timer/stop', requirePermission('tasks:write'), stopTimer);
+router.delete('/:id/time/:entryId', requirePermission('tasks:write'), deleteTimeEntry);
 
 // Comments (delete: author or settings:manage, checked in the controller)
 router.post('/:id/comments', requirePermission('tasks:write'), validateComment, addComment);

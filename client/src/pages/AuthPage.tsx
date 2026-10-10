@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../utils/api';
-import { saveSession } from '../utils/session';
+import { saveSession, type StoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
+import { TwoFactorStep, type SecondFactorInput } from '@/components/auth/TwoFactorStep';
 import PasswordField from '@/components/auth/PasswordField';
 import { useFormValidation } from '@/components/auth/useFormValidation';
 import {
@@ -43,6 +44,8 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Set when the password was right and the account asks for a second step
+  const [challenge, setChallenge] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get('expired') === '1';
@@ -58,6 +61,53 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   const setField = (name: keyof typeof formData) => (value: string) =>
     setFormData((current) => ({ ...current, [name]: value }));
 
+  /** Stores the session and routes by onboarding and workspace state. */
+  const finishLogin = (data: StoredUser & { token: string }) => {
+    saveSession(data.token, data);
+
+    // Handle pending invite from the /accept-invite flow
+    const pendingInviteToken = sessionStorage.getItem('pendingInviteToken');
+    if (pendingInviteToken) {
+      sessionStorage.removeItem('pendingInviteToken');
+      navigate(`/accept-invite/${pendingInviteToken}`);
+      return;
+    }
+
+    // Handle pending invite code from the /join/:code page
+    const pendingInvite = sessionStorage.getItem('pendingInvite');
+    if (pendingInvite) {
+      sessionStorage.removeItem('pendingInvite');
+      navigate(`/join/${pendingInvite}`);
+      return;
+    }
+
+    // Route based on onboarding + workspace state
+    if (!data.onboardingComplete) {
+      navigate('/onboarding');
+    } else if (data.activeWorkspaceSlug) {
+      navigate(`/${data.activeWorkspaceSlug}/dashboard`);
+    } else {
+      // Edge case: onboarding marked complete but no workspace — send to onboarding
+      navigate('/onboarding');
+    }
+  };
+
+  const handleSecondFactor = async (input: SecondFactorInput) => {
+    setError('');
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/login/2fa', { challenge, ...input });
+      finishLogin(response.data);
+    } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } }).response?.data?.code;
+      // An expired or used-up challenge cannot be retried: start again from the password
+      if (code === 'CHALLENGE_EXPIRED' || code === 'CHALLENGE_LOCKED') setChallenge(null);
+      setError(apiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -71,33 +121,11 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
 
       if (isLogin) {
         // ===== LOGIN FLOW =====
-        saveSession(response.data.token, response.data);
-
-        // Handle pending invite from the /accept-invite flow
-        const pendingInviteToken = sessionStorage.getItem('pendingInviteToken');
-        if (pendingInviteToken) {
-          sessionStorage.removeItem('pendingInviteToken');
-          navigate(`/accept-invite/${pendingInviteToken}`);
+        if (response.data.twoFactorRequired && typeof response.data.challenge === 'string') {
+          setChallenge(response.data.challenge);
           return;
         }
-
-        // Handle pending invite code from the /join/:code page
-        const pendingInvite = sessionStorage.getItem('pendingInvite');
-        if (pendingInvite) {
-          sessionStorage.removeItem('pendingInvite');
-          navigate(`/join/${pendingInvite}`);
-          return;
-        }
-
-        // Route based on onboarding + workspace state
-        if (!response.data.onboardingComplete) {
-          navigate('/onboarding');
-        } else if (response.data.activeWorkspaceSlug) {
-          navigate(`/${response.data.activeWorkspaceSlug}/dashboard`);
-        } else {
-          // Edge case: onboarding marked complete but no workspace — send to onboarding
-          navigate('/onboarding');
-        }
+        finishLogin(response.data);
       } else {
         // ===== SIGNUP FLOW =====
         setAccountReady(response.data?.requiresVerification === false);
@@ -109,6 +137,26 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
       setLoading(false);
     }
   };
+
+  // ============================================================
+  // Second step: authenticator code or recovery code
+  // ============================================================
+  if (challenge) {
+    return (
+      <AuthPageShell>
+        <TwoFactorStep
+          email={formData.email.trim()}
+          loading={loading}
+          error={error}
+          onSubmit={(input) => void handleSecondFactor(input)}
+          onBack={() => {
+            setChallenge(null);
+            setError('');
+          }}
+        />
+      </AuthPageShell>
+    );
+  }
 
   // ============================================================
   // "Check Your Email" screen after successful signup

@@ -1,11 +1,12 @@
 import {
-  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Equal, FlaskConical, Link2, ListChecks, ListTree, Repeat, Waypoints, Zap, type LucideIcon,
+  BookOpen, Bug, CalendarDays, CheckSquare, ChevronDown, ChevronsUp, CircleAlert, Clock, Equal, FlaskConical, Link2, ListChecks, ListTree, Repeat, Waypoints, Zap, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import { STAGE_COLOR_META, resolveStage } from '@/features/workflow/lib/stages';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import { checklistProgress } from '../lib/checklist';
+import { describeDuration, formatDuration } from '@/features/time/lib/duration';
 import { formatDate, isOverdue } from '../lib/date';
 import { describeRecurrence, shortRecurrence } from '../lib/recurrence';
 import type { ChecklistItem, TaskPriority, TaskRecurrence, TaskStatus, TaskType } from '../types';
@@ -189,6 +190,30 @@ export const ChecklistBadge = ({ items, className }: { items?: readonly Checklis
       <ListChecks className="size-3" aria-hidden />
       <span aria-hidden>{done}/{total}</span>
       <span className="sr-only">{done} of {total} checklist items done</span>
+    </span>
+  );
+};
+
+/**
+ * Logged time against the estimate ("1h 30m / 2h"), hidden while a task has neither. Over the estimate it turns warning
+ * and says so to screen readers.
+ */
+export const TimeBadge = ({ logged, estimate, className }: { logged?: number | null; estimate?: number | null; className?: string }) => {
+  const spent = logged ?? 0;
+  if (spent <= 0 && !estimate) return null;
+  const over = Boolean(estimate) && spent > (estimate ?? 0);
+  const text = estimate ? (spent > 0 ? `${formatDuration(spent)} / ${formatDuration(estimate)}` : `Est. ${formatDuration(estimate)}`) : formatDuration(spent);
+  const spoken = estimate
+    ? `${describeDuration(spent)} logged of ${describeDuration(estimate)} estimated${over ? ', over the estimate' : ''}`
+    : `${describeDuration(spent)} logged`;
+  return (
+    <span
+      className={cn('inline-flex shrink-0 items-center gap-1 text-xs tabular-nums', over ? 'font-medium text-warning-fg' : 'text-slate-500', className)}
+      title={spoken}
+    >
+      <Clock className="size-3" aria-hidden />
+      <span aria-hidden>{text}</span>
+      <span className="sr-only">{spoken}</span>
     </span>
   );
 };

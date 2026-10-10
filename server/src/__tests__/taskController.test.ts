@@ -13,6 +13,9 @@ import {
 
 jest.mock('../utils/notify.js', () => ({ notifyTaskEvents: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../utils/gridfs.js', () => ({ deleteFiles: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../utils/customFieldsDb.js', () => ({
+  planRequestCustom: jest.fn().mockResolvedValue({ ok: true, plan: { set: {}, clear: [] }, defs: [] }),
+}));
 jest.mock('../utils/taskNumbers.js', () => ({
   reserveTaskNumbers: jest.fn().mockResolvedValue(1),
   ensureTaskNumbers: jest.fn().mockResolvedValue(undefined),
@@ -22,6 +25,7 @@ jest.mock('../utils/activity.js', () => ({
   recordActivity: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../models/timeEntryModel.js', () => ({ __esModule: true, default: { deleteMany: jest.fn().mockResolvedValue({}) } }));
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
   TASK_STATUSES: ['pending', 'in-progress', 'completed'],

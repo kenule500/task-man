@@ -2,6 +2,7 @@ import type { TaskActivityChange, TaskActivityEntry } from '../api';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import type { TaskPriority, TaskStatus, TaskType } from '../types';
 import { dateKeyOf, formatDate } from './date';
+import { formatDuration } from '@/features/time/lib/duration';
 
 export interface ActivityTextOptions {
   /** Names a sprint id; unknown ids read as "a sprint". */
@@ -46,6 +47,14 @@ export const describeChange = ({ field, from, to }: TaskActivityChange, { sprint
       if (after !== undefined) return `estimated this at ${pointsLabel(after)}`;
       return 'cleared the story points';
     }
+    case 'estimateMinutes': {
+      const minutesOf = (value?: string) => (value !== undefined && value !== '' && !Number.isNaN(Number(value)) ? Number(value) : undefined);
+      const before = minutesOf(from);
+      const after = minutesOf(to);
+      if (before !== undefined && after !== undefined) return `changed the estimate from ${formatDuration(before)} to ${formatDuration(after)}`;
+      if (after !== undefined) return `estimated this at ${formatDuration(after)}`;
+      return 'cleared the estimate';
+    }
     case 'project':
       if (a && b) return `moved this from project ${a} to ${b}`;
       if (b) return `moved this to project ${b}`;
@@ -66,6 +75,8 @@ export const describeChange = ({ field, from, to }: TaskActivityChange, { sprint
       if (!from) return toName ? `moved this to ${toName}` : 'moved this to a sprint';
       return fromName && toName ? `moved this from ${fromName} to ${toName}` : 'changed the sprint';
     }
+    case 'release':
+      return to ? 'assigned this to a release' : 'removed this from its release';
     case 'assignees': {
       const before = Number(from ?? 0);
       const after = Number(to ?? 0);

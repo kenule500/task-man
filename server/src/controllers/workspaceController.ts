@@ -262,7 +262,9 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
 // Validation
 // ================================================================
 export const validateUpdateWorkspace = [
+  // The name is required unless the request only changes the security policy
   body('name')
+    .if((_value, { req }) => typeof req.body?.require2fa !== 'boolean' || req.body?.name !== undefined)
     .isString()
     .withMessage('Workspace name is required')
     .trim()
@@ -270,6 +272,7 @@ export const validateUpdateWorkspace = [
     .withMessage('Workspace name is required')
     .isLength({ max: 60 })
     .withMessage('Workspace name must be 60 characters or fewer'),
+  body('require2fa').optional().isBoolean({ strict: true }).withMessage('require2fa must be true or false'),
 ];
 
 // ================================================================
@@ -339,10 +342,30 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
   try {
     const workspace = req.workspace!;
     const previousName = workspace.name;
-    workspace.name = req.body.name;
+    const wasRequired = Boolean(workspace.security?.require2fa);
+    const wantsRequired: boolean | undefined = typeof req.body.require2fa === 'boolean' ? req.body.require2fa : undefined;
+
+    // Whoever turns the policy on must already be protected, or they would lock themselves out
+    if (wantsRequired === true && !wasRequired && !req.user?.twoFactor?.enabled) {
+      res.status(400).json({
+        message: 'Turn on two-factor authentication for your own account before requiring it for the workspace.',
+        code: 'OWN_TWO_FACTOR_REQUIRED',
+      });
+      return;
+    }
+
+    if (req.body.name !== undefined) workspace.name = req.body.name;
+    if (wantsRequired !== undefined) workspace.set('security.require2fa', wantsRequired);
     await workspace.save();
     if (previousName !== workspace.name) {
       await recordActivity(req, { action: 'workspace.updated', summary: workspace.name, changes: [{ field: 'name', from: previousName, to: workspace.name }] });
+    }
+    if (wantsRequired !== undefined && wantsRequired !== wasRequired) {
+      await recordActivity(req, {
+        action: 'workspace.updated',
+        summary: workspace.name,
+        changes: [{ field: 'require2fa', from: wasRequired ? 'on' : 'off', to: wantsRequired ? 'on' : 'off' }],
+      });
     }
     res.status(200).json(workspace);
   } catch (error) {

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction 
 import { fetchCached, getCached, invalidate, setCached, subscribe, tasksKey } from '@/lib/queryCache';
 import { cachedWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import type { WorkflowStage } from '@/features/workflow/types';
+import { mergeCustom } from '@/features/fields/lib/fields';
+import { TIME_CHANGED_EVENT } from '@/features/time/timerStore';
 import { getApiErrorMessage, getApiErrorStatus, isTaskPayload, tasksApi, type UploadOptions } from '../api';
 import type { Task, TaskAttachment, TaskComment, TaskInput, TaskPatch, TaskUser } from '../types';
 
@@ -12,8 +14,9 @@ const UNKNOWN_USER = 'Member';
 
 /** Applies a patch locally the way the server will store it (assignee ids become users). */
 const applyPatch = (task: Task, patch: TaskPatch, directory: Map<string, TaskUser>, stages?: WorkflowStage[]): Task => {
-  const { assignees, ...rest } = patch;
+  const { assignees, custom, ...rest } = patch;
   const next = { ...task, ...rest } as Task;
+  if (custom) next.custom = mergeCustom(task.custom, custom);
   // A stage carries its status group with it
   const stage = patch.stage ? stages?.find(item => item.key === patch.stage) : undefined;
   if (stage) next.status = stage.group;
@@ -217,6 +220,13 @@ export const useTasks = (workspaceSlug: string | undefined) => {
       setError(getApiErrorMessage(err, 'Failed to load tasks.'));
     }
   }, [workspaceSlug, setTasks]);
+
+  // Logged time is kept by the server (timer stop, manual entry, delete): refresh so the badges follow
+  useEffect(() => {
+    const onTimeChanged = () => { void reload(); };
+    window.addEventListener(TIME_CHANGED_EVENT, onTimeChanged);
+    return () => window.removeEventListener(TIME_CHANGED_EVENT, onTimeChanged);
+  }, [reload]);
 
   /** Creates a task (or a subtask when `input.parent` is set); throws so forms can show the server's validation message. */
   const createTask = useCallback(async (input: TaskInput): Promise<Task | null> => {

@@ -34,7 +34,9 @@ const ProjectDetailPage = lazy(loaders.projectDetail);
 const ReportsPage = lazy(loaders.reports);
 const RoadmapPage = lazy(loaders.roadmap);
 const WorkloadPage = lazy(loaders.workload);
+const TimesheetPage = lazy(() => import('./pages/TimesheetPage'));
 const SprintReportPage = lazy(() => import('./pages/SprintReportPage'));
+const ReleasePage = lazy(() => import('./pages/ReleasePage'));
 const TeamMembersPage = lazy(loaders.team);
 const HelpPage = lazy(loaders.help);
 const DesignSystemPage = lazy(loaders.designSystem);
@@ -45,10 +47,12 @@ const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const JoinWorkspacePage = lazy(() => import('./pages/JoinWorkspacePage'));
 const AcceptInvitePage = lazy(() => import('./pages/AcceptInvitePage'));
 const WorkspaceSettingsPage = lazy(() => import('./pages/WorkspaceSettingsPage'));
+const ImportPage = lazy(() => import('./pages/ImportPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const AutomationsPage = lazy(() => import('./pages/AutomationsPage'));
 const WorkflowSettingsPage = lazy(() => import('./pages/WorkflowSettingsPage'));
 const DevelopersPage = lazy(() => import('./pages/DevelopersPage'));
+const CustomFieldsPage = lazy(() => import('./pages/CustomFieldsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const SecurityPage = lazy(() => import('./pages/SecurityPage'));
@@ -184,6 +188,16 @@ function App() {
                 }
               />
 
+              {/* Release (version): requires projects:read */}
+              <Route
+                path="/:workspaceSlug/projects/:projectId/releases/:releaseId"
+                element={
+                  <PermissionRoute permission="projects:read">
+                    <Lazy><ReleasePage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
               {/* Roadmap (epics over time): requires projects:read */}
               <Route
                 path="/:workspaceSlug/roadmap"
@@ -200,6 +214,16 @@ function App() {
                 element={
                   <PermissionRoute permission="projects:read">
                     <Lazy><WorkloadPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Timesheet (logged time per task and day): requires tasks:read */}
+              <Route
+                path="/:workspaceSlug/timesheet"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><TimesheetPage /></Lazy>
                   </PermissionRoute>
                 }
               />
@@ -270,6 +294,26 @@ function App() {
                 element={
                   <PermissionRoute permission="settings:manage">
                     <Lazy><WorkflowSettingsPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Custom fields on tasks: requires settings:manage */}
+              <Route
+                path="/:workspaceSlug/settings/fields"
+                element={
+                  <PermissionRoute permission="settings:manage">
+                    <Lazy><CustomFieldsPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Import from Trello, Jira or CSV: requires tasks:write (new projects and sprints also need projects:write) */}
+              <Route
+                path="/:workspaceSlug/settings/import"
+                element={
+                  <PermissionRoute permission="tasks:write">
+                    <Lazy><ImportPage /></Lazy>
                   </PermissionRoute>
                 }
               />

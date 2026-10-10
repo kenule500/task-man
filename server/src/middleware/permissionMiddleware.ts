@@ -62,6 +62,15 @@ export const requirePermission = (permission: PermissionKey) => {
         return;
       }
 
+      // Workspace policy: members need two-factor authentication (setting it up uses account routes, which stay open)
+      if (workspace.security?.require2fa && !req.user?.twoFactor?.enabled) {
+        res.status(403).json({
+          message: 'This workspace requires two-factor authentication. Turn it on in Settings, Security to continue.',
+          code: 'TWO_FACTOR_REQUIRED',
+        });
+        return;
+      }
+
       if (!role.permissions.includes(permission)) {
         res.status(403).json({ message: 'You do not have permission to do this' });
         return;

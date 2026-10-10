@@ -5,11 +5,12 @@ import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, PageHeader, SegmentedControl, SkeletonTable, Surface } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/usePermissions';
-import { ROADMAP_LABEL_WIDTH, sprintBands as bandsOf, buildAxis, buildRoadmap, type RoadmapEpic, type RoadmapZoom } from '@/features/planning/lib/roadmap';
+import { ROADMAP_LABEL_WIDTH, releaseMarkers, sprintBands as bandsOf, buildAxis, buildRoadmap, type ReleaseMarker, type RoadmapEpic, type RoadmapZoom } from '@/features/planning/lib/roadmap';
 import RoadmapList from '@/features/planning/components/RoadmapList';
 import RoadmapTimeline from '@/features/planning/components/RoadmapTimeline';
 import SelectField from '@/features/planning/components/SelectField';
 import { useProjects } from '@/features/projects';
+import { useReleases } from '@/features/releases';
 import { dateKeyOf, useTasks } from '@/features/tasks';
 
 const ZOOM_OPTIONS = [
@@ -24,6 +25,7 @@ const Legend = () => (
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-success-solid bg-success-dot" /> Done</li>
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-danger-solid bg-danger-dot" /> Overdue</li>
     <li className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-0.5 bg-primary" /> Today</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rotate-45 bg-primary" /> Release</li>
   </ul>
 );
 
@@ -34,6 +36,7 @@ const RoadmapPage = () => {
   const { can } = usePermissions();
   const { tasks, loading: tasksLoading, error: tasksError, clearError } = useTasks(can('tasks:read') ? workspaceSlug : undefined);
   const { projects, loading: projectsLoading, error: projectsError } = useProjects(workspaceSlug);
+  const { releases } = useReleases(workspaceSlug);
 
   const [projectId, setProjectId] = useState('all');
   const [zoom, setZoom] = useState<RoadmapZoom>('months');
@@ -57,15 +60,23 @@ const RoadmapPage = () => {
     ? openProjects.find(project => project._id === projectId)
     : openProjects.length === 1 ? openProjects[0] : undefined;
 
+  // Release milestones sit with the sprint bands: one project at a time
+  const projectReleases = useMemo(
+    () => (bandProject ? releases.filter(release => release.project === bandProject._id && release.status !== 'archived' && release.releaseDate) : []),
+    [releases, bandProject],
+  );
+
   const model = useMemo(() => {
     const spans = [
       ...groups.flatMap(group => group.epics),
+      ...projectReleases.map(release => ({ start: dateKeyOf(release.releaseDate as string), end: dateKeyOf(release.releaseDate as string) })),
       ...(bandProject?.sprints.map(sprint => ({ start: dateKeyOf(sprint.startDate), end: dateKeyOf(sprint.endDate) })) ?? []),
     ];
     const axis = buildAxis(spans, zoom, new Date(), Math.max(0, timelineWidth - ROADMAP_LABEL_WIDTH - 2));
-    return { axis, bands: bandProject ? bandsOf(bandProject.sprints, axis) : [] };
-  }, [groups, bandProject, zoom, timelineWidth]);
+    return { axis, bands: bandProject ? bandsOf(bandProject.sprints, axis) : [], markers: releaseMarkers(projectReleases, axis) };
+  }, [groups, bandProject, projectReleases, zoom, timelineWidth]);
 
+  const openMarker = (marker: ReleaseMarker) => navigate(`/${workspaceSlug}/projects/${bandProject?._id ?? ''}/releases/${encodeURIComponent(marker.id)}`);
   const openEpic = (epic: RoadmapEpic) => navigate(`/${workspaceSlug}/tasks?task=${encodeURIComponent(epic.id)}`);
   const epicCount = groups.reduce((sum, group) => sum + group.epics.length, 0);
   const error = tasksError || projectsError;
@@ -126,7 +137,7 @@ const RoadmapPage = () => {
                 <p className="hidden text-xs text-slate-600 md:block">Choose a project to see its sprints above the timeline.</p>
               )}
               <div ref={timelineBox}>
-                <RoadmapTimeline groups={groups} axis={model.axis} bands={model.bands} onOpen={openEpic} />
+                <RoadmapTimeline groups={groups} axis={model.axis} bands={model.bands} markers={model.markers} onOpen={openEpic} onOpenMarker={openMarker} />
               </div>
               <RoadmapList groups={groups} slug={workspaceSlug} />
             </>
