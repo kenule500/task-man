@@ -84,7 +84,8 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
   try {
     const workspace = workspaceOf(req);
     const workspaceId = workspace._id as mongoose.Types.ObjectId;
-    const ids = normalizeIds(req.body.ids);
+    // Validated ids, cast to ObjectIds so no request value reaches a query as-is
+    const ids = normalizeIds(req.body.ids).filter(id => mongoose.isValidObjectId(id)).map(id => new mongoose.Types.ObjectId(id));
     const patch: Patch = req.body.patch ?? {};
 
     if (!PATCH_KEYS.some(key => key in patch)) {
@@ -174,7 +175,8 @@ export const bulkDeleteTasks = async (req: Request, res: Response): Promise<void
 
   try {
     const workspaceId = workspaceOf(req)._id as mongoose.Types.ObjectId;
-    const ids = normalizeIds(req.body.ids);
+    // Validated ids, cast to ObjectIds so no request value reaches a query as-is
+    const ids = normalizeIds(req.body.ids).filter(id => mongoose.isValidObjectId(id)).map(id => new mongoose.Types.ObjectId(id));
 
     const tasks = await Task.find({ _id: { $in: ids }, workspace: workspaceId });
     if (tasks.length === 0) {

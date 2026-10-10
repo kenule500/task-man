@@ -147,8 +147,10 @@ export const assertValidAssignees = (workspace: IWorkspace, assignees: string[])
 };
 
 /** The sprint must belong to the workspace and still be open; returns it with its project's name. */
-export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprintId: string) => {
-  const sprint = await Sprint.findOne({ _id: sprintId, workspace: workspaceId });
+export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprintId: unknown) => {
+  // Only a plain id string reaches the query (never an operator object from the request body)
+  if (typeof sprintId !== 'string' || !mongoose.isValidObjectId(sprintId)) throw new TaskRuleError('Invalid sprint');
+  const sprint = await Sprint.findOne({ _id: new mongoose.Types.ObjectId(sprintId), workspace: workspaceId });
   if (!sprint) throw new TaskRuleError('Sprint not found in this workspace');
   if (sprint.status === 'completed') throw new TaskRuleError('This sprint is completed');
   const project = await Project.findOne({ _id: sprint.project, workspace: workspaceId }).select('name').lean();
@@ -158,8 +160,9 @@ export const findOpenSprint = async (workspaceId: mongoose.Types.ObjectId, sprin
 
 /** Subtasks are one level deep: the parent must be a top-level task of the workspace. */
 const findValidParent = async (workspaceId: mongoose.Types.ObjectId, taskId: string | null, parentId: string) => {
+  if (typeof parentId !== 'string' || !mongoose.isValidObjectId(parentId)) throw new TaskRuleError('Invalid parent task');
   if (taskId && parentId === taskId) throw new TaskRuleError('A task cannot be its own parent');
-  const parent = await Task.findOne({ _id: parentId, workspace: workspaceId }).select('parent project sprint').lean();
+  const parent = await Task.findOne({ _id: new mongoose.Types.ObjectId(parentId), workspace: workspaceId }).select('parent project sprint').lean();
   if (!parent) throw new TaskRuleError('Parent task not found in this workspace');
   if (parent.parent) throw new TaskRuleError('Subtasks cannot have subtasks');
   if (taskId && await Task.exists({ workspace: workspaceId, parent: taskId })) {
