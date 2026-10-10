@@ -4,6 +4,7 @@
 import mongoose from 'mongoose';
 import Project from '../models/projectModel.js';
 import Sprint from '../models/sprintModel.js';
+import StatusTransition from '../models/statusTransitionModel.js';
 import Task from '../models/taskModel.js';
 
 type Id = mongoose.Types.ObjectId;
@@ -32,6 +33,7 @@ export const removeScrumDemo = async (workspace: Id, suffix = '') => {
   await Sprint.deleteMany({ workspace, project: { $in: projects.map(project => project._id) } });
   await Project.deleteMany({ _id: { $in: projects.map(project => project._id) } });
   await Task.deleteMany({ workspace, project: { $in: names } });
+  await StatusTransition.deleteMany({ workspace, project: { $in: names } });
 };
 
 export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = '' }: ScrumDemoOptions) => {
@@ -161,8 +163,8 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
     status: 'pending', priority: 'medium', startDate: day(8), deadline: day(12), labels: ['qa'], assignees: [scrum] });
   await create({ title: 'Release checklist and launch', type: 'task', storyPoints: 2, sprint: webNext._id, epic: launchEpic._id, project: webName,
     status: 'pending', priority: 'high', startDate: day(18), deadline: day(20), labels: ['release'], assignees: [lead] });
-  await create({ title: 'Recurring tasks', type: 'story', storyPoints: 8, project: webName, status: 'pending', priority: 'low',
-    deadline: day(30), labels: ['backlog'], description: 'Repeat a task every day, week or month.' });
+  await create({ title: 'Time tracking', type: 'story', storyPoints: 8, project: webName, status: 'pending', priority: 'low',
+    deadline: day(30), labels: ['backlog'], description: 'Start and stop a timer on a task; compare logged time with the estimate.' });
   await create({ title: 'Export tasks to CSV', type: 'story', storyPoints: 3, project: webName, status: 'pending', priority: 'medium',
     deadline: day(28), description: 'Download the filtered list as a spreadsheet.' });
   await create({ title: 'Due date reminder emails', type: 'story', storyPoints: null, project: webName, status: 'pending',
@@ -186,5 +188,37 @@ export const seedScrumDemo = async ({ workspace, owner, people = [], suffix = ''
   await create({ title: 'Roles and permissions explained', type: 'task', project: docsName, status: 'pending', priority: 'low',
     deadline: day(12), labels: ['docs'], assignees: [scrum] });
 
+  await backfillFlowHistory(workspace, [webName, marketingName, docsName]);
   return Task.countDocuments({ workspace, project: { $in: [webName, marketingName, docsName] } });
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Gives the demo a believable past for the flow report: each work item is created a few days before it
+ * starts, moves to in progress on its start date and is completed when it was finished.
+ */
+const backfillFlowHistory = async (workspace: Id, projects: string[]) => {
+  const now = Date.now();
+  const tasks = await Task.find({ workspace, project: { $in: projects }, parent: null, type: { $ne: 'epic' } })
+    .select('status project sprint type startDate deadline completedAt owner').lean();
+  const transitions: Record<string, unknown>[] = [];
+  for (const [index, task] of tasks.entries()) {
+    const planned = (task.startDate ?? new Date(task.deadline.getTime() - 5 * DAY_MS)).getTime();
+    // Spread creation over the past weeks; never in the future
+    const created = Math.min(planned - (2 + (index % 4)) * DAY_MS, now - (1 + (index % 6)) * DAY_MS);
+    const base = { workspace, task: task._id, project: task.project ?? '', sprint: task.sprint ?? null, type: task.type, actor: task.owner };
+    transitions.push({ ...base, from: null, to: 'pending', at: new Date(created) });
+    if (task.status === 'pending') continue;
+    const started = Math.min(Math.max(planned, created + DAY_MS / 2), now - DAY_MS / 4);
+    transitions.push({ ...base, from: 'pending', to: 'in-progress', at: new Date(started) });
+    if (task.status !== 'completed') continue;
+    const finished = Math.min(Math.max(task.completedAt?.getTime() ?? task.deadline.getTime(), started + DAY_MS / 2), now);
+    transitions.push({ ...base, from: 'in-progress', to: 'completed', at: new Date(finished) });
+    await Task.updateOne({ _id: task._id }, { $set: { completedAt: new Date(finished) } });
+  }
+  // Backdate creation without touching updatedAt
+  await Promise.all(transitions.filter(item => item.from === null).map(item =>
+    Task.collection.updateOne({ _id: item.task as Id }, { $set: { createdAt: item.at as Date } })));
+  await StatusTransition.insertMany(transitions);
 };
