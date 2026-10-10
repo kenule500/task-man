@@ -13,6 +13,7 @@ import activeTaskRoutes from './routes/activeTaskRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import roleRoutes from './routes/roleRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 
 // ============================================================
@@ -143,5 +144,6 @@ app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/tasks', activeTaskRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 export default app;

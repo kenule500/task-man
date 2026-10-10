@@ -122,3 +122,22 @@ describe('buildTaskSort', () => {
     expect(buildTaskSort(sort)).toEqual(expected);
   });
 });
+
+describe('epic query', () => {
+  const epicId = new Types.ObjectId().toString();
+
+  it('accepts an epic id or "none" and ignores anything else', () => {
+    expect(parseTaskListQuery({ epic: ` ${epicId} ` }).epic).toBe(epicId);
+    expect(parseTaskListQuery({ epic: 'none' }).epic).toBe('none');
+    expect(parseTaskListQuery({ epic: 'abc' }).epic).toBeUndefined();
+    expect(parseTaskListQuery({ epic: { $ne: '' } }).epic).toBeUndefined();
+  });
+
+  it('filters by a real ObjectId, or by items without epic', () => {
+    const byEpic = buildTaskFilter('ws1', { sort: 'createdAt', epic: epicId });
+    expect(byEpic.epic).toBeInstanceOf(Types.ObjectId);
+    expect(String(byEpic.epic)).toBe(epicId);
+    expect(buildTaskFilter('ws1', { sort: 'createdAt', epic: 'none' }).epic).toBeNull();
+    expect('epic' in buildTaskFilter('ws1', { sort: 'createdAt' })).toBe(false);
+  });
+});

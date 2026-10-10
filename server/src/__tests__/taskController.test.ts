@@ -11,6 +11,7 @@ import {
   validateUpdateTask,
 } from '../controllers/taskController.js';
 
+jest.mock('../utils/notify.js', () => ({ notifyTaskEvents: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../utils/gridfs.js', () => ({ deleteFiles: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../utils/taskNumbers.js', () => ({
   reserveTaskNumbers: jest.fn().mockResolvedValue(1),
@@ -28,7 +29,7 @@ jest.mock('../models/taskModel.js', () => ({
   MAX_LABELS: 10,
   MAX_LABEL_LENGTH: 40,
   MAX_STORY_POINTS: 100,
-  TASK_TYPES: ['story', 'task', 'bug', 'spike'],
+  TASK_TYPES: ['story', 'task', 'bug', 'spike', 'epic'],
   default: {
     populate: jest.fn(async (docs: unknown) => docs),
     aggregate: jest.fn(),

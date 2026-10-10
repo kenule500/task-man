@@ -6,10 +6,12 @@ import { recordActivity } from '../utils/activity.js';
 import { normalizeIds } from '../utils/taskGraph.js';
 import { normalizeLabels } from '../utils/taskQuery.js';
 import {
+  assertEpicTypeChange,
   assertValidAssignees,
   cleanUpRemovedTasks,
   describeTaskChanges,
   findOpenSprint,
+  findValidEpic,
   handleError,
   hasValidationErrors,
   populateTasks,
@@ -42,6 +44,7 @@ export const validateBulkUpdate = [
   body('patch.priority').optional().isIn(TASK_PRIORITIES).withMessage('Invalid priority'),
   body('patch.type').optional().isIn(TASK_TYPES).withMessage('Invalid type'),
   body('patch.sprint').optional({ values: 'null' }).isMongoId().withMessage('Invalid sprint'),
+  body('patch.epic').optional({ values: 'null' }).isMongoId().withMessage('Invalid epic'),
   ...addRemoveRules('assignees'),
   body(['patch.assignees.add.*', 'patch.assignees.remove.*']).isMongoId().withMessage('Invalid assignee id'),
   ...addRemoveRules('labels'),
@@ -56,13 +59,14 @@ export const validateBulkDelete = [
   idListItems('ids'),
 ];
 
-const PATCH_KEYS = ['status', 'priority', 'type', 'sprint', 'assignees', 'labels'] as const;
+const PATCH_KEYS = ['status', 'priority', 'type', 'sprint', 'epic', 'assignees', 'labels'] as const;
 
 type Patch = {
   status?: string;
   priority?: string;
   type?: string;
   sprint?: string | null;
+  epic?: string | null;
   assignees?: { add?: unknown; remove?: unknown };
   labels?: { add?: unknown; remove?: unknown };
 };
@@ -75,7 +79,7 @@ const removeLabels = (labels: string[], remove: string[]): string[] => {
 // ================================================================
 // @desc    Change the same fields on up to 100 tasks at once
 // @route   PATCH /api/workspaces/:slug/tasks/bulk
-// @body    { ids, patch: { status?, priority?, type?, sprint?, assignees?: {add,remove}, labels?: {add,remove} } }
+// @body    { ids, patch: { status?, priority?, type?, sprint?, epic?, assignees?: {add,remove}, labels?: {add,remove} } }
 // All tasks are checked before any is saved, so a rule violation changes nothing.
 // ================================================================
 export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void> => {
@@ -102,10 +106,21 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
     // Resolve the sprint once; moving into it also moves the tasks to its project
     const sprintProject = patch.sprint ? (await findOpenSprint(workspaceId, patch.sprint)).projectName : null;
 
+    // Resolve the epic once; items join it only when they belong to its project
+    const epic = patch.epic ? await findValidEpic(workspaceId, patch.epic, null) : null;
+
     const tasks = await Task.find({ _id: { $in: ids }, workspace: workspaceId });
     if (tasks.length === 0) {
       res.status(404).json({ message: 'Tasks not found' });
       return;
+    }
+
+    // Projects of the epics the tasks already belong to (a sprint move changes the task's project)
+    const epicProjects = new Map<string, string>();
+    if (sprintProject !== null) {
+      const epicIds = tasks.flatMap(task => (task.epic ? [task.epic] : []));
+      const linked = epicIds.length > 0 ? await Task.find({ _id: { $in: epicIds }, workspace: workspaceId }).select('project').lean() : [];
+      for (const item of linked) epicProjects.set(String(item._id), item.project ?? '');
     }
 
     const changed: { task: (typeof tasks)[number]; before: Record<string, unknown> }[] = [];
@@ -114,11 +129,36 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
 
       if (patch.status !== undefined) task.set('status', patch.status);
       if (patch.priority !== undefined) task.set('priority', patch.priority);
-      if (patch.type !== undefined) task.set('type', patch.type);
+      if (patch.type !== undefined) {
+        await assertEpicTypeChange(workspaceId, task._id, task.type, patch.type);
+        task.set('type', patch.type);
+        // An epic is a container: it cannot be a subtask or sit in an epic
+        if (patch.type === 'epic') {
+          if (task.parent) throw new TaskRuleError(`"${task.title}" is a subtask and cannot become an epic`);
+          if (!('epic' in patch)) task.set('epic', null);
+        }
+      }
 
       if ('sprint' in patch) {
+        if (patch.sprint && task.type === 'epic') throw new TaskRuleError('Epics cannot be planned in a sprint');
         task.set('sprint', patch.sprint ?? null);
-        if (sprintProject !== null) task.set('project', sprintProject);
+        if (sprintProject !== null) {
+          task.set('project', sprintProject);
+          const epicProject = task.epic ? epicProjects.get(String(task.epic)) : undefined;
+          if (epicProject !== undefined && epicProject !== sprintProject) {
+            throw new TaskRuleError(`"${task.title}" belongs to an epic of another project`);
+          }
+        }
+      }
+
+      if ('epic' in patch) {
+        if (task.type === 'epic') throw new TaskRuleError(`"${task.title}" is an epic and cannot belong to an epic`);
+        if (task.parent) throw new TaskRuleError(`"${task.title}" is a subtask and inherits the epic of its parent`);
+        if (epic) {
+          if (task.project && task.project !== epic.project) throw new TaskRuleError(`"${task.title}" belongs to another project than the epic`);
+          if (!task.project) task.set('project', epic.project);
+        }
+        task.set('epic', epic ? epic._id : null);
       }
 
       if (assigneesToAdd.length > 0 || assigneesToRemove.length > 0) {
@@ -149,12 +189,12 @@ export const bulkUpdateTasks = async (req: Request, res: Response): Promise<void
       }
     }
 
-    // Subtasks follow their parent between projects and sprints
-    if ('sprint' in patch) {
+    // Subtasks follow their parent between projects, sprints and epics
+    if ('sprint' in patch || 'epic' in patch) {
       for (const { task } of changed) {
         await Task.updateMany(
           { workspace: workspaceId, parent: task._id },
-          { $set: { project: task.project, sprint: task.sprint ?? null } },
+          { $set: { project: task.project, sprint: task.sprint ?? null, ...('epic' in patch && { epic: task.epic ?? null }) } },
         );
       }
     }

@@ -2,8 +2,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export const TASK_STATUSES = ['pending', 'in-progress', 'completed'] as const;
 export const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
-// Scrum work item types
-export const TASK_TYPES = ['story', 'task', 'bug', 'spike'] as const;
+// Scrum work item types; an 'epic' is a container that groups other items of its project
+export const TASK_TYPES = ['story', 'task', 'bug', 'spike', 'epic'] as const;
 
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
@@ -20,6 +20,8 @@ export interface ITaskComment {
   _id: mongoose.Types.ObjectId;
   author: mongoose.Types.ObjectId;
   text: string;
+  // Workspace members tagged with @Name in the text
+  mentions?: mongoose.Types.ObjectId[];
   createdAt: Date;
 }
 
@@ -50,6 +52,8 @@ export interface ITask extends Document {
   sprint?: mongoose.Types.ObjectId | null;
   // Parent task when this is a subtask (one level deep)
   parent?: mongoose.Types.ObjectId | null;
+  // Epic (a task of type 'epic') this item belongs to; never set on epics themselves
+  epic?: mongoose.Types.ObjectId | null;
   startDate?: Date;
   deadline: Date;
   // Manual ordering inside a board column (lower comes first)
@@ -71,6 +75,7 @@ export interface ITask extends Document {
 const commentSchema = new Schema<ITaskComment>({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   text: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_COMMENT_LENGTH },
+  mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -94,6 +99,7 @@ const taskSchema: Schema = new Schema({
   project: { type: String, default: '', trim: true, maxlength: 60 },
   sprint: { type: mongoose.Schema.Types.ObjectId, ref: 'Sprint', default: null },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
+  epic: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
   startDate: { type: Date },
   deadline: { type: Date, required: true },
   position: { type: Number, default: () => Date.now() },
@@ -130,6 +136,7 @@ taskSchema.index({ workspace: 1, labels: 1 });
 taskSchema.index({ workspace: 1, sprint: 1 });
 taskSchema.index({ workspace: 1, number: 1 }, { unique: true, partialFilterExpression: { number: { $type: 'number' } } });
 taskSchema.index({ workspace: 1, parent: 1 });
+taskSchema.index({ workspace: 1, epic: 1 });
 taskSchema.index({ workspace: 1, status: 1 });
 taskSchema.index({ workspace: 1, project: 1 });
 taskSchema.index({ workspace: 1, dependencies: 1 });

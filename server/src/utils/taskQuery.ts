@@ -11,6 +11,8 @@ export interface TaskListQuery {
   // 'me' (the requesting user) or a validated user id
   assignee?: string;
   label?: string;
+  // Epic id, or 'none' for items outside any epic
+  epic?: string;
   sort: TaskSort;
   from?: Date;
   to?: Date;
@@ -61,12 +63,16 @@ export const parseTaskListQuery = (query: Record<string, unknown>): TaskListQuer
   const assignee =
     assigneeRaw === 'me' || /^[a-f\d]{24}$/i.test(assigneeRaw) ? assigneeRaw : undefined;
 
+  const epicRaw = typeof query.epic === 'string' ? query.epic.trim() : '';
+  const epic = epicRaw === 'none' || /^[a-f\d]{24}$/i.test(epicRaw) ? epicRaw : undefined;
+
   return {
     status,
     search: search || undefined,
     project: project || undefined,
     assignee,
     label: label || undefined,
+    epic,
     sort,
     from: parseDate(query.from),
     to: parseDate(query.to),
@@ -81,6 +87,9 @@ export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery, curr
   if (query.project) filter.project = query.project;
 
   if (query.label) filter.labels = query.label;
+
+  // Aggregation pipelines do not cast, so build a real ObjectId here
+  if (query.epic) filter.epic = query.epic === 'none' ? null : new mongoose.Types.ObjectId(query.epic);
 
   if (query.assignee) {
     const id = query.assignee === 'me' ? currentUserId : query.assignee;
