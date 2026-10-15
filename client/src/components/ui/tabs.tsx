@@ -72,7 +72,8 @@ function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel
       data-slot="tabs-content"
-      className={cn("flex-1 text-sm outline-none", className)}
+      // No exit animation: a kept-mounted panel hides as soon as it starts leaving (it would otherwise wait for a frame)
+      className={cn("flex-1 text-sm outline-none data-[ending-style]:hidden", className)}
       {...props}
     />
   )

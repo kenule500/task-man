@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { TASK_STATUSES, TaskStatus } from '../models/taskModel.js';
 
 export const TASK_SORTS = ['createdAt', 'deadline', 'priority', 'position'] as const;
@@ -7,10 +8,41 @@ export interface TaskListQuery {
   status?: TaskStatus;
   search?: string;
   project?: string;
+  // 'me' (the requesting user) or a validated user id
+  assignee?: string;
+  label?: string;
+  // Epic id, or 'none' for items outside any epic
+  epic?: string;
   sort: TaskSort;
   from?: Date;
   to?: Date;
+  // Custom field filters (?cf.<key>=<value>): field key -> value text, or 'none' for tasks without a value
+  custom?: Record<string, string>;
 }
+
+export const MAX_CUSTOM_FILTERS = 5;
+const CUSTOM_FILTER_KEY = /^cf\.([a-z][a-z0-9_]{0,29})$/;
+
+/** The `cf.<key>=<value>` pairs of a query string (at most 5, plain text values only). */
+const parseCustomFilters = (query: Record<string, unknown>): Record<string, string> | undefined => {
+  const filters: Record<string, string> = {};
+  for (const name of Object.keys(query)) {
+    const key = CUSTOM_FILTER_KEY.exec(name)?.[1];
+    const value = query[name];
+    if (!key || typeof value !== 'string' || value === '' || Object.keys(filters).length >= MAX_CUSTOM_FILTERS) continue;
+    filters[key] = value.slice(0, 100);
+  }
+  return Object.keys(filters).length > 0 ? filters : undefined;
+};
+
+/** Values a stored custom value may have for a filter text (numbers and checkboxes are stored typed). */
+const customFilterMatch = (value: string): unknown => {
+  if (value === 'none') return { $in: [null] };
+  const candidates: (string | number | boolean)[] = [value];
+  if (value.trim() !== '' && Number.isFinite(Number(value))) candidates.push(Number(value));
+  if (value === 'true' || value === 'false') candidates.push(value === 'true');
+  return { $in: candidates };
+};
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -18,6 +50,28 @@ const parseDate = (value: unknown): Date | undefined => {
   if (typeof value !== 'string' || !value) return undefined;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+/** Task number in a search like "WEB-12", "#12" or "12"; null when the search is not a key. */
+export const taskNumberFromSearch = (search: string): number | null => {
+  const match = /^(?:[a-z0-9]{2,6}-|#)?(\d{1,9})$/i.exec(search.trim());
+  return match ? Number(match[1]) : null;
+};
+
+/** Trims labels, drops blanks and case-insensitive duplicates while preserving order. */
+export const normalizeLabels = (labels: unknown): string[] => {
+  if (!Array.isArray(labels)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of labels) {
+    if (typeof raw !== 'string') continue;
+    const label = raw.trim().replace(/\s+/g, ' ');
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) continue;
+    seen.add(key);
+    result.push(label);
+  }
+  return result;
 };
 
 /** Turns untrusted query-string values into a typed, safe list query. */
@@ -30,26 +84,63 @@ export const parseTaskListQuery = (query: Record<string, unknown>): TaskListQuer
 
   const project = typeof query.project === 'string' ? query.project.trim().slice(0, 60) : '';
 
+  const label = typeof query.label === 'string' ? query.label.trim().slice(0, 40) : '';
+  const assigneeRaw = typeof query.assignee === 'string' ? query.assignee.trim() : '';
+  const assignee =
+    assigneeRaw === 'me' || /^[a-f\d]{24}$/i.test(assigneeRaw) ? assigneeRaw : undefined;
+
+  const epicRaw = typeof query.epic === 'string' ? query.epic.trim() : '';
+  const epic = epicRaw === 'none' || /^[a-f\d]{24}$/i.test(epicRaw) ? epicRaw : undefined;
+
   return {
     status,
     search: search || undefined,
     project: project || undefined,
+    assignee,
+    label: label || undefined,
+    epic,
     sort,
     from: parseDate(query.from),
     to: parseDate(query.to),
+    custom: parseCustomFilters(query),
   };
 };
 
 /** Builds the MongoDB filter for a workspace's task list. */
-export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery) => {
+export const buildTaskFilter = (workspaceId: unknown, query: TaskListQuery, currentUserId?: unknown) => {
   const filter: Record<string, unknown> = { workspace: workspaceId };
 
   if (query.status) filter.status = query.status;
   if (query.project) filter.project = query.project;
 
+  if (query.label) filter.labels = query.label;
+
+  // Aggregation pipelines do not cast, so build a real ObjectId here
+  if (query.epic) filter.epic = query.epic === 'none' ? null : new mongoose.Types.ObjectId(query.epic);
+
+  if (query.assignee) {
+    const id = query.assignee === 'me' ? currentUserId : query.assignee;
+    // Aggregation pipelines do not cast, so build a real ObjectId here
+    if (id && mongoose.isValidObjectId(String(id))) {
+      filter.assignees = new mongoose.Types.ObjectId(String(id));
+    } else {
+      // "me" without a user, never widen the result set
+      filter.assignees = { $in: [] };
+    }
+  }
+
+  // The key was matched against a slug pattern when parsed, so it cannot form another path or operator
+  for (const [key, value] of Object.entries(query.custom ?? {})) {
+    if (CUSTOM_FILTER_KEY.test(`cf.${key}`)) filter[`custom.${key}`] = customFilterMatch(value);
+  }
+
   if (query.search) {
     const pattern = new RegExp(escapeRegex(query.search), 'i');
-    filter.$or = [{ title: pattern }, { description: pattern }];
+    const matches: Record<string, unknown>[] = [{ title: pattern }, { description: pattern }];
+    // "WEB-12", "#12" or "12" also find the task with that number
+    const number = taskNumberFromSearch(query.search);
+    if (number !== null) matches.push({ number });
+    filter.$or = matches;
   }
 
   if (query.from || query.to) {

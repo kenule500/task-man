@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
+/* Base UI marks orientation with data-orientation; shadcn's base-nova classes use these short variants */
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
+/* Dark mode is class based: lib/theme.ts toggles `dark` on <html> (user preference or system) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
+  /* Tailwind's slate-500 is 4.35:1 on slate-100 surfaces; this shade passes AA (4.95:1 there, 5.43:1 on white) */
+  --color-slate-500: #5b6b82;
   --color-primary: #2563EB;
   --color-primary-hover: #1D4ED8;
   --color-background: #F9FAFB;
@@ -18,10 +26,10 @@
   --color-secondary: #F1F5F9;
   --color-secondary-foreground: #0F172A;
   --color-muted: #F1F5F9;
-  --color-muted-foreground: #64748B;
+  --color-muted-foreground: #5B6B82;
   --color-accent: #F1F5F9;
   --color-accent-foreground: #0F172A;
-  --color-destructive: #DC2626;
+  --color-destructive: #B4493E;
   --color-border: #E2E8F0;
   --color-input: #E2E8F0;
   --color-ring: #93C5FD;
@@ -35,6 +43,516 @@
   --color-sidebar-accent-foreground: #0F172A;
   --color-sidebar-border: #E2E8F0;
   --color-sidebar-ring: #2563EB;
+}
+
+/*
+ * TaskMan design tokens, tier 2: semantic names by job (additive; the tokens above keep working).
+ * Documented, with contrast ratios, on /design-system. Hex values here are mirrored in
+ * pages/design-system/tokens.ts and checked by a test, so change both together.
+ */
+@theme {
+  /* Surface, canvas, border and text roles */
+  --color-canvas: #F8FAFC;
+  --color-surface-raised: #FFFFFF;
+  --color-surface-sunken: #F1F5F9;
+  --color-border-subtle: #F1F5F9;
+  --color-border-strong: #CBD5E1;
+  --color-text-strong: #0F172A;
+  --color-text-body: #334155;
+  --color-text-subtle: #5B6B82;
+  --color-text-faint: #94A3B8;
+  --color-focus: #2563EB;
+  /* Inverse surface: toasts, code blocks, dark chips. Near-black in light mode, a raised slate in dark mode. */
+  --color-inverse: #0F172A;
+  --color-inverse-text: #FFFFFF;
+  --color-inverse-muted: #CBD5E1;
+  --color-inverse-border: #1E293B;
+
+  /* Status: dot/marker color, text on the soft background, soft background */
+  --color-status-pending: #94A3B8;
+  --color-status-pending-fg: #334155;
+  --color-status-pending-bg: #F1F5F9;
+  --color-status-in-progress: #2563EB;
+  --color-status-in-progress-fg: #1D4ED8;
+  --color-status-in-progress-bg: #EFF6FF;
+  --color-status-completed: #3A9170;
+  --color-status-completed-fg: #1F6B4A;
+  --color-status-completed-bg: #EDF6F1;
+
+  /* Priority: marker color (dots, card accents) and AA-safe text color. Same hues as the danger, warning and success tones. */
+  --color-priority-high: #C4574A;
+  --color-priority-high-text: #A33A30;
+  --color-priority-medium: #B8801A;
+  --color-priority-medium-text: #8A5B0F;
+  --color-priority-low: #3A9170;
+  --color-priority-low-text: #1F6B4A;
+
+  /* Scrum work item types: label/icon color (AA on white and on the soft background) and soft background */
+  --color-type-story: #1F6B4A;
+  --color-type-story-bg: #EDF6F1;
+  --color-type-task: #1D4ED8;
+  --color-type-task-bg: #EFF6FF;
+  --color-type-bug: #A33A30;
+  --color-type-bug-bg: #FBF0EE;
+  --color-type-spike: #6D28D9;
+  --color-type-spike-bg: #F5F3FF;
+
+  /* Project palette (folder cards, icons, dots): calm, deep tones; white text on each passes AA (5.0–7.5:1).
+     -deep is the folder's back panel and tab. */
+  --color-project-blue: #3B5B9A;
+  --color-project-blue-deep: #2E4778;
+  --color-project-violet: #5E4B9C;
+  --color-project-violet-deep: #4A3B7C;
+  --color-project-rose: #9E4560;
+  --color-project-rose-deep: #7E354B;
+  --color-project-orange: #A9573A;
+  --color-project-orange-deep: #87452E;
+  --color-project-amber: #8A6A1F;
+  --color-project-amber-deep: #6E5418;
+  --color-project-emerald: #2F6F57;
+  --color-project-emerald-deep: #255946;
+  --color-project-teal: #2A6B78;
+  --color-project-teal-deep: #21555F;
+  --color-project-slate: #4A5568;
+  --color-project-slate-deep: #3A4353;
+
+  /* Radius by job (Tailwind's rounded-lg/xl/2xl still work) */
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-page: 1rem;
+
+  /* Elevation: three levels plus the scrim behind modals */
+  --shadow-raised: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 1px 3px 0 rgb(15 23 42 / 0.08);
+  --shadow-floating: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --shadow-overlay: 0 20px 25px -5px rgb(15 23 42 / 0.12), 0 8px 10px -6px rgb(15 23 42 / 0.08);
+  --color-scrim: rgb(15 23 42 / 0.5);
+
+  /* Easings */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/*
+ * Semantic tones: the only reds, greens, ochres and blues for feedback and meaning. Calm, low chroma hues.
+ *   -solid  filled buttons and badges (white text, AA)     -solid-hover  pressed/hover of -solid
+ *   -dot    markers, bars, chart fills (3:1 against surfaces)
+ *   -fg     text on a surface and on -bg (AA)              -bg  soft background      -border  soft border
+ * Hex values are mirrored in pages/design-system/tokens.ts and darkTokens.ts and checked by tests.
+ * Never write raw red/green/emerald/rose utilities: ESLint rejects them, and the Tailwind scales below
+ * are only a safety net that lands any leftover class on these same hues.
+ */
+@theme {
+  --color-danger-solid: #B4493E;
+  --color-danger-solid-hover: #9A3B31;
+  --color-danger-dot: #C4574A;
+  --color-danger-fg: #A33A30;
+  --color-danger-bg: #FBF0EE;
+  --color-danger-border: #EBCDC8;
+
+  --color-success-solid: #2E7D5B;
+  --color-success-solid-hover: #256A4B;
+  --color-success-dot: #3A9170;
+  --color-success-fg: #1F6B4A;
+  --color-success-bg: #EDF6F1;
+  --color-success-border: #C9E0D4;
+
+  --color-warning-solid: #946212;
+  --color-warning-solid-hover: #7D520E;
+  --color-warning-dot: #B8801A;
+  --color-warning-fg: #8A5B0F;
+  --color-warning-bg: #FBF3E1;
+  --color-warning-border: #EBD9AE;
+
+  --color-info-solid: #2563EB;
+  --color-info-solid-hover: #1D4ED8;
+  --color-info-dot: #3B82F6;
+  --color-info-fg: #1D4ED8;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: #DBEAFE;
+
+  /* Safety net: Tailwind's red, rose, emerald, green and amber scales point at the tones above
+     (50 bg, 200 border, 500 dot, 600 solid, 700 fg). */
+  --color-red-50: #FBF0EE; --color-red-100: #F6E1DD; --color-red-200: #EBCDC8; --color-red-300: #DDAEA7; --color-red-400: #D0786C;
+  --color-red-500: #C4574A; --color-red-600: #B4493E; --color-red-700: #A33A30; --color-red-800: #862F27; --color-red-900: #6A2620; --color-red-950: #451915;
+  --color-rose-50: #FBF0EE; --color-rose-100: #F6E1DD; --color-rose-200: #EBCDC8; --color-rose-300: #DDAEA7; --color-rose-400: #D0786C;
+  --color-rose-500: #C4574A; --color-rose-600: #B4493E; --color-rose-700: #A33A30; --color-rose-800: #862F27; --color-rose-900: #6A2620; --color-rose-950: #451915;
+  --color-emerald-50: #EDF6F1; --color-emerald-100: #DCEDE4; --color-emerald-200: #C9E0D4; --color-emerald-300: #A5CDB9; --color-emerald-400: #66AE90;
+  --color-emerald-500: #3A9170; --color-emerald-600: #2E7D5B; --color-emerald-700: #1F6B4A; --color-emerald-800: #195A3E; --color-emerald-900: #144A33; --color-emerald-950: #0B2E20;
+  --color-green-50: #EDF6F1; --color-green-100: #DCEDE4; --color-green-200: #C9E0D4; --color-green-300: #A5CDB9; --color-green-400: #66AE90;
+  --color-green-500: #3A9170; --color-green-600: #2E7D5B; --color-green-700: #1F6B4A; --color-green-800: #195A3E; --color-green-900: #144A33; --color-green-950: #0B2E20;
+  --color-amber-50: #FBF3E1; --color-amber-100: #F6E8C6; --color-amber-200: #EBD9AE; --color-amber-300: #DCC080; --color-amber-400: #CB9B3E;
+  --color-amber-500: #B8801A; --color-amber-600: #946212; --color-amber-700: #8A5B0F; --color-amber-800: #6F490B; --color-amber-900: #553709; --color-amber-950: #352205;
+}
+
+/*
+ * Dark theme (authored, not inverted). Applied when <html> has the `dark` class.
+ *
+ * Why variables: Tailwind v4 utilities read these custom properties, so re-authoring the slate ramp and the
+ * tint ramps recolors every existing bg-white / bg-slate-* / text-slate-* / bg-red-50 text-red-700 pair at once.
+ * Elevation in dark mode is lightness: canvas (slate-50) < card (white) < raised well (slate-100) < border (slate-200).
+ * Tint chips become deep, low-chroma panels with light 600-900 text. Every text pair is >= 4.5:1
+ * (checked by pages/design-system/__tests__/darkTheme.test.ts, which reads this block).
+ */
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-white: #0F172A;
+  --color-slate-50: #0B1220;
+  --color-slate-100: #172033;
+  --color-slate-200: #263449;
+  --color-slate-300: #3A4A63;
+  --color-slate-400: #64748B;
+  /* Text, weakest to strongest */
+  --color-slate-500: #94A3B8;
+  --color-slate-600: #A8B5C8;
+  --color-slate-700: #CBD5E1;
+  --color-slate-800: #E2E8F0;
+  --color-slate-900: #F1F5F9;
+
+  /* Tint ramps: 50/100 = soft background, 200/300 = border, 600-900 = readable text on those backgrounds.
+     400 and 500 stay as they are: they are marker fills (dots, bars, icons). */
+  --color-red-50: #2B1816;
+  --color-red-100: #3A201D;
+  --color-red-200: #5A2C27;
+  --color-red-300: #7A3A33;
+  --color-red-400: #E0857A;
+  --color-red-500: #D4685B;
+  --color-red-600: #E8948A;
+  --color-red-700: #F0A79E;
+  --color-red-800: #F6C3BC;
+  --color-red-900: #FAD9D4;
+
+  --color-rose-50: #2B1816;
+  --color-rose-100: #3A201D;
+  --color-rose-200: #5A2C27;
+  --color-rose-300: #7A3A33;
+  --color-rose-400: #E0857A;
+  --color-rose-500: #D4685B;
+  --color-rose-600: #E8948A;
+  --color-rose-700: #F0A79E;
+  --color-rose-800: #F6C3BC;
+  --color-rose-900: #FAD9D4;
+
+  --color-emerald-50: #0F2620;
+  --color-emerald-100: #15342B;
+  --color-emerald-200: #25503F;
+  --color-emerald-300: #356B55;
+  --color-emerald-400: #6BC09D;
+  --color-emerald-500: #4BAA84;
+  --color-emerald-600: #74C4A2;
+  --color-emerald-700: #8FD3B4;
+  --color-emerald-800: #B3E4CC;
+  --color-emerald-900: #D2F0E1;
+
+  --color-green-50: #0F2620;
+  --color-green-100: #15342B;
+  --color-green-200: #25503F;
+  --color-green-300: #356B55;
+  --color-green-400: #6BC09D;
+  --color-green-500: #4BAA84;
+  --color-green-600: #74C4A2;
+  --color-green-700: #8FD3B4;
+  --color-green-800: #B3E4CC;
+  --color-green-900: #D2F0E1;
+
+  --color-amber-50: #2A2008;
+  --color-amber-100: #3A2D0C;
+  --color-amber-200: #554015;
+  --color-amber-300: #735A1F;
+  --color-amber-400: #E0AE4C;
+  --color-amber-500: #D19A33;
+  --color-amber-600: #DBA94D;
+  --color-amber-700: #E6BE6A;
+  --color-amber-800: #EFD293;
+  --color-amber-900: #F6E4B8;
+
+  --color-blue-50: #0F1E3A;
+  --color-blue-100: #172C52;
+  --color-blue-200: #1F3B6E;
+  --color-blue-600: #60A5FA;
+  --color-blue-700: #93C5FD;
+  --color-blue-800: #BFDBFE;
+
+  --color-violet-50: #1D1740;
+  --color-violet-100: #2A2060;
+  --color-violet-200: #3B2E85;
+  --color-violet-600: #A78BFA;
+  --color-violet-700: #C4B5FD;
+  --color-violet-800: #DDD6FE;
+
+  --color-pink-100: #3A1A33;
+  --color-pink-200: #5A2650;
+  --color-pink-800: #FBCFE8;
+  --color-cyan-100: #0F2F3A;
+  --color-cyan-200: #164E63;
+  --color-cyan-900: #CFFAFE;
+
+  /* Legacy names */
+  --color-background: #0B1220;
+  --color-surface: #0F172A;
+  --color-text-main: #F1F5F9;
+  --color-text-muted: #94A3B8;
+
+  /* shadcn semantic tokens. Solid buttons keep primary #2563EB (white text 5.17:1); text-primary is re-pointed below. */
+  --color-foreground: #F1F5F9;
+  --color-card: #0F172A;
+  --color-card-foreground: #F1F5F9;
+  --color-popover: #131D33;
+  --color-popover-foreground: #F1F5F9;
+  --color-secondary: #172033;
+  --color-secondary-foreground: #F1F5F9;
+  --color-muted: #172033;
+  --color-muted-foreground: #94A3B8;
+  --color-accent: #1C2740;
+  --color-accent-foreground: #F1F5F9;
+  --color-destructive: #E38476;
+  --color-border: #263449;
+  --color-input: #3A4A63;
+  --color-ring: #60A5FA;
+
+  --color-sidebar: #0F172A;
+  --color-sidebar-foreground: #F1F5F9;
+  --color-sidebar-primary: #2563EB;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #1C2740;
+  --color-sidebar-accent-foreground: #F1F5F9;
+  --color-sidebar-border: #263449;
+  --color-sidebar-ring: #60A5FA;
+
+  /* Tier 2 roles */
+  --color-canvas: #0B1220;
+  --color-surface-raised: #0F172A;
+  --color-surface-sunken: #172033;
+  --color-border-subtle: #172033;
+  --color-border-strong: #3A4A63;
+  --color-text-strong: #F1F5F9;
+  --color-text-body: #CBD5E1;
+  --color-text-subtle: #94A3B8;
+  --color-text-faint: #64748B;
+  --color-focus: #60A5FA;
+  --color-inverse: #1E293B;
+  --color-inverse-text: #F8FAFC;
+  --color-inverse-muted: #CBD5E1;
+  --color-inverse-border: #334155;
+
+  --color-status-pending: #64748B;
+  --color-status-pending-fg: #CBD5E1;
+  --color-status-pending-bg: #1B2740;
+  --color-status-in-progress: #3B82F6;
+  --color-status-in-progress-fg: #93C5FD;
+  --color-status-in-progress-bg: #13244A;
+  --color-status-completed: #4BAA84;
+  --color-status-completed-fg: #8FD3B4;
+  --color-status-completed-bg: #0F2620;
+
+  --color-priority-high: #D4685B;
+  --color-priority-high-text: #F0A79E;
+  --color-priority-medium: #D19A33;
+  --color-priority-medium-text: #E6BE6A;
+  --color-priority-low: #4BAA84;
+  --color-priority-low-text: #8FD3B4;
+
+  --color-type-story: #8FD3B4;
+  --color-type-story-bg: #0F2620;
+  --color-type-task: #93C5FD;
+  --color-type-task-bg: #13244A;
+  --color-type-bug: #F0A79E;
+  --color-type-bug-bg: #2B1816;
+
+  /* Semantic tones, authored for dark surfaces (-solid keeps white text at AA, -fg is AA on -bg and on the surfaces) */
+  --color-danger-solid: #B4493E;
+  --color-danger-solid-hover: #9A3B31;
+  --color-danger-dot: #D4685B;
+  --color-danger-fg: #F0A79E;
+  --color-danger-bg: #2B1816;
+  --color-danger-border: #5A2C27;
+
+  --color-success-solid: #2E7D5B;
+  --color-success-solid-hover: #256A4B;
+  --color-success-dot: #4BAA84;
+  --color-success-fg: #8FD3B4;
+  --color-success-bg: #0F2620;
+  --color-success-border: #25503F;
+
+  --color-warning-solid: #946212;
+  --color-warning-solid-hover: #7D520E;
+  --color-warning-dot: #D19A33;
+  --color-warning-fg: #E6BE6A;
+  --color-warning-bg: #2A2008;
+  --color-warning-border: #554015;
+
+  --color-info-solid: #2563EB;
+  --color-info-solid-hover: #1D4ED8;
+  --color-info-dot: #5B93F0;
+  --color-info-fg: #93C5FD;
+  --color-info-bg: #13244A;
+  --color-info-border: #1F3B6E;
+  --color-type-spike: #C4B5FD;
+  --color-type-spike-bg: #1D1740;
+
+  /* Project palette keeps its fills (white text on each passes AA); slate is lifted so the folder separates from the canvas */
+  --color-project-slate: #56637C;
+  --color-project-slate-deep: #444F64;
+
+  /* Elevation: shadows nearly vanish on dark, so they get heavier and borders do the separating */
+  --shadow-raised: 0 1px 2px 0 rgb(0 0 0 / 0.35), 0 1px 3px 0 rgb(0 0 0 / 0.4);
+  --shadow-floating: 0 4px 6px -1px rgb(0 0 0 / 0.45), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.55), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --color-scrim: rgb(2 6 23 / 0.7);
+}
+
+/*
+ * Dark mode exceptions. A few utilities mean "fixed color" rather than "surface or text" and would be recolored
+ * by the ramp above, so they are pinned here. They sit in the utilities layer after Tailwind's own utilities, and
+ * use :where() so state variants (hover:, focus-visible:) of the same utility keep their higher specificity.
+ */
+@layer utilities {
+  /* White text and white overlays sit on solid fills (bg-primary, emerald-500, project colors) */
+  :where(.dark) .text-white,
+  :where(.dark) .hover\:text-white:hover,
+  :where(.dark) .focus-visible\:text-white:focus-visible { color: #FFFFFF; }
+  :where(.dark) .text-white\/90 { color: rgb(255 255 255 / 0.9); }
+  :where(.dark) .bg-white\/20,
+  :where(.dark) .hover\:bg-white\/20:hover,
+  :where(.dark) .aria-expanded\:bg-white\/20[aria-expanded="true"] { background-color: rgb(255 255 255 / 0.2); }
+  :where(.dark) .bg-white\/30 { background-color: rgb(255 255 255 / 0.3); }
+  :where(.dark) .bg-white\/30 > .bg-white { background-color: #FFFFFF; } /* progress fill inside a project folder */
+  :where(.dark) .hover\:bg-white\/10:hover { background-color: rgb(255 255 255 / 0.1); }
+  :where(.dark) .ring-white\/10 { --tw-ring-color: rgb(255 255 255 / 0.1); }
+  :where(.dark) .focus-visible\:ring-white\/70:focus-visible { --tw-ring-color: rgb(255 255 255 / 0.7); }
+  :where(.dark) .border-white\/50 { border-color: rgb(255 255 255 / 0.08); }
+
+  /* Inverse surfaces: dark chips, toasts and the multi-select pill become a raised slate (white text stays) */
+  :where(.dark) .bg-slate-900,
+  :where(.dark) .bg-slate-800 { background-color: var(--color-inverse); }
+  :where(.dark) .border-slate-900,
+  :where(.dark) .border-slate-800 { border-color: var(--color-inverse-border); }
+
+  /* Blue text and focus outlines: #2563EB is 3.4:1 on the dark surface, so use a lighter step */
+  :where(.dark) .text-primary,
+  :where(.dark) .hover\:text-primary:hover,
+  :where(.dark) .focus\:text-primary:focus { color: #60A5FA; }
+  :where(.dark) .text-primary-hover,
+  :where(.dark) .hover\:text-primary-hover:hover { color: #93C5FD; }
+  :where(.dark) .focus-visible\:outline-primary:focus-visible { outline-color: #60A5FA; }
+  :where(.dark) .focus-visible\:ring-primary:focus-visible,
+  :where(.dark) .ring-primary\/60 { --tw-ring-color: #60A5FA; }
+
+  /* Modal scrims at 10% black are invisible on a dark page */
+  :where(.dark) .bg-black\/10 { background-color: var(--color-scrim); }
+}
+
+/* Scales that Tailwind has no theme namespace for: use as z-(--z-nav), duration-(--duration-fast) */
+:root {
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-nav: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+
+  --duration-instant: 80ms;
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 280ms;
+
+  /* Motion tokens shared with lib/motion.ts (JavaScript uses seconds: 0.12 / 0.2 / 0.32) */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  /* Spring-like curves as CSS linear(): `bouncy` overshoots once, `soft` settles without overshoot */
+  --ease-spring-bouncy: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+  --ease-spring-soft: linear(0, 0.1 4%, 0.4 10%, 0.75 18%, 0.95 28%, 1.03 40%, 1.01 55%, 1);
+}
+
+/*
+ * Animation utilities (components/ds/motion.tsx and loaders.tsx). All of them stop under
+ * prefers-reduced-motion through the global rule at the bottom of this file.
+ */
+@theme {
+  --animate-tm-rise: tm-rise var(--motion-slow) var(--ease-enter) backwards;
+  --animate-tm-float: tm-float 3.6s ease-in-out infinite;
+  --animate-tm-dot: tm-dot 1.2s ease-in-out infinite;
+  --animate-tm-bar: tm-bar 1.3s var(--ease-standard) infinite;
+  --animate-tm-flip: tm-flip 2.2s var(--ease-standard) infinite;
+  --animate-tm-flip-shadow: tm-flip-shadow 2.2s var(--ease-standard) infinite;
+  --animate-tm-toast-in: tm-toast-in 420ms var(--ease-spring-bouncy) backwards;
+  --animate-tm-pop: tm-pop 360ms var(--ease-spring-bouncy) backwards;
+  --animate-tm-ring: tm-ring 520ms var(--ease-enter) both;
+  --animate-tm-spark: tm-spark 520ms var(--ease-enter) both;
+  --animate-tm-pulse-once: tm-pulse-once 1100ms var(--ease-standard) 1;
+  --animate-tm-delayed-in: tm-delayed-in 200ms linear 160ms both;
+
+  @keyframes tm-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes tm-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes tm-dot {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.45; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes tm-bar {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(260%); }
+  }
+  @keyframes tm-flip {
+    0% { transform: rotateX(-14deg) rotateY(0deg); }
+    55%, 100% { transform: rotateX(-14deg) rotateY(360deg); }
+  }
+  @keyframes tm-flip-shadow {
+    0%, 100% { transform: scaleX(1); opacity: 0.22; }
+    25%, 75% { transform: scaleX(0.3); opacity: 0.1; }
+    50% { transform: scaleX(1); opacity: 0.22; }
+  }
+  @keyframes tm-toast-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.94); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes tm-pop {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes tm-ring {
+    from { opacity: 0.7; transform: scale(0.4); }
+    to { opacity: 0; transform: scale(1.9); }
+  }
+  @keyframes tm-spark {
+    from { opacity: 1; transform: rotate(var(--a)) translateY(-4px) scale(1); }
+    to { opacity: 0; transform: rotate(var(--a)) translateY(-18px) scale(0.3); }
+  }
+  @keyframes tm-pulse-once {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 0 4px var(--tm-pulse, rgb(245 158 11 / 0.35)); }
+  }
+  @keyframes tm-delayed-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/*
+ * Scroll containers are positioning contexts. Without this, absolutely positioned descendants such as
+ * Tailwind's sr-only labels resolve against a far ancestor, escape the scroll box and widen or lengthen
+ * the whole page. Explicit position utilities (sticky, absolute…) still win because utilities come later.
+ */
+@layer base {
+  /* Attribute match so responsive variants (md:overflow-x-auto…) are covered too */
+  [class*='overflow-auto'], [class*='overflow-x-auto'], [class*='overflow-y-auto'],
+  [class*='overflow-scroll'], [class*='overflow-x-scroll'], [class*='overflow-y-scroll'] {
+    position: relative;
+  }
+}
+
+html {
+  /* Canvas color behind the app, also under overscroll and short pages */
+  background-color: var(--color-slate-50);
 }
 
 body {
@@ -54,3 +572,12 @@ body {
 .animation-delay-100 { animation-delay: 100ms; }
 .animation-delay-200 { animation-delay: 200ms; }
 .animation-delay-300 { animation-delay: 300ms; }
+/* Respect the OS "reduce motion" setting everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

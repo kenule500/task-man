@@ -1,6 +1,73 @@
 import { getDependencyCandidates, getDependentIds } from '../lib/dependencies';
-import { toFormValues, toTaskInput, validateTaskForm } from '../lib/taskForm';
+import type { Project } from '@/features/projects';
+import {
+  parseStoryPoints, sprintBelongsTo, sprintOptionsFor, storyPointOptions, toFormValues, toTaskInput, validateTaskForm,
+} from '../lib/taskForm';
 import { makeTask } from './fixtures';
+
+const sprint = (id: string, status: 'planned' | 'active' | 'completed', name = id) =>
+  ({ _id: id, project: 'p1', name, startDate: '2026-10-01', endDate: '2026-10-14', status });
+const web: Project = {
+  _id: 'p1', name: 'Website', key: 'WEB', color: 'blue', icon: 'folder', archived: false,
+  sprints: [sprint('s1', 'completed', 'Sprint 1'), sprint('s2', 'active', 'Sprint 2'), sprint('s3', 'planned', 'Sprint 3')],
+};
+
+describe('scrum fields in the task form', () => {
+  it('defaults to a task without estimate or sprint', () => {
+    expect(toFormValues()).toMatchObject({ type: 'task', storyPoints: null, sprint: '' });
+  });
+
+  it('prefills type, points and sprint from the task', () => {
+    expect(toFormValues(makeTask({ type: 'bug', storyPoints: 5, sprint: 's2' }))).toMatchObject({ type: 'bug', storyPoints: 5, sprint: 's2' });
+  });
+
+  it('maps the values to the API payload, backlog as null', () => {
+    expect(toTaskInput({ ...toFormValues(), title: 'x', type: 'story', storyPoints: 8, sprint: 's2' })).toMatchObject({
+      type: 'story', storyPoints: 8, sprint: 's2',
+    });
+    expect(toTaskInput({ ...toFormValues(), title: 'x' })).toMatchObject({ storyPoints: null, sprint: null });
+  });
+
+  it('leaves an unchanged sprint out when editing (a completed sprint cannot be re-assigned)', () => {
+    const task = makeTask({ sprint: 's1', project: 'Website' });
+    expect('sprint' in toTaskInput(toFormValues(task), task)).toBe(false);
+    expect(toTaskInput({ ...toFormValues(task), sprint: 's2' }, task).sprint).toBe('s2');
+    expect(toTaskInput({ ...toFormValues(task), sprint: '' }, task).sprint).toBeNull();
+  });
+
+  it('never sends a sprint for subtasks', () => {
+    const sub = makeTask({ parent: 'p', sprint: null });
+    expect('sprint' in toTaskInput({ ...toFormValues(sub), sprint: 's2' }, sub)).toBe(false);
+  });
+
+  it('offers the Fibonacci scale and keeps an off-scale value', () => {
+    expect(storyPointOptions(null).map(option => option.value)).toEqual(['none', '0', '1', '2', '3', '5', '8', '13', '21']);
+    const options = storyPointOptions(40);
+    expect(options.map(option => option.value)).toContain('40');
+    expect(options.find(option => option.value === 'none')?.label).toBe('Not estimated');
+    expect(options.find(option => option.value === '1')?.label).toBe('1 point');
+  });
+
+  it('parses select values back to points', () => {
+    expect(parseStoryPoints('none')).toBeNull();
+    expect(parseStoryPoints('13')).toBe(13);
+  });
+
+  it('lists the backlog and the open sprints of the task project only', () => {
+    expect(sprintOptionsFor([web], 'Website').map(option => option.value)).toEqual(['backlog', 's2', 's3']);
+    expect(sprintOptionsFor([web], 'Website')[1].label).toBe('Sprint 2 (active)');
+    expect(sprintOptionsFor([web], 'Other').map(option => option.value)).toEqual(['backlog']);
+  });
+
+  it('keeps the current sprint listed even when it is completed', () => {
+    expect(sprintOptionsFor([web], 'Website', 's1').map(option => option.label)).toContain('Sprint 1 (completed)');
+  });
+
+  it('knows which project a sprint belongs to', () => {
+    expect(sprintBelongsTo([web], ' Website ', 's2')).toBe(true);
+    expect(sprintBelongsTo([web], 'Other', 's2')).toBe(false);
+  });
+});
 
 describe('task form helpers', () => {
   it('prefills values from an existing task', () => {

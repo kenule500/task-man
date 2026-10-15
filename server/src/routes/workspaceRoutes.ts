@@ -12,12 +12,14 @@ import {
 } from '../controllers/workspaceController.js';
 import {
   createInvitation,
+  validateCreateInvitation,
   listInvitations,
   cancelInvitation,
 } from '../controllers/invitationController.js';
 import {
   changeMemberRole,
   removeMember,
+  leaveWorkspace,
 } from '../controllers/memberController.js';
 import {
   listWorkspaceRoles,
@@ -25,9 +27,44 @@ import {
   updateCustomRole,
   deleteCustomRole,
 } from '../controllers/roleController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, rejectApiToken } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
+import { getWorkspaceActivity } from '../controllers/activityController.js';
+import { getSprintReport } from '../controllers/reportController.js';
+import { getFlowReport } from '../controllers/flowController.js';
+import automationRoutes from './automationRoutes.js';
+import workflowRoutes from './workflowRoutes.js';
+import webhookRoutes from './webhookRoutes.js';
+import tokenRoutes from './tokenRoutes.js';
+import timeRoutes from './timeRoutes.js';
+import releaseRoutes from './releaseRoutes.js';
+import fieldRoutes from './fieldRoutes.js';
+import importRoutes from './importRoutes.js';
+import pageRoutes from './pageRoutes.js';
+import changeRoutes from './changeRoutes.js';
+import {
+  getBoardSettings,
+  updateBoardSettings,
+  validateBoardSettings,
+} from '../controllers/boardSettingsController.js';
+import {
+  createSavedView,
+  deleteSavedView,
+  listSavedViews,
+  updateSavedView,
+  validateCreateSavedView,
+  validateUpdateSavedView,
+} from '../controllers/savedViewController.js';
+import {
+  disableGithubIntegration,
+  enableGithubIntegration,
+  getGithubIntegration,
+  regenerateGithubSecret,
+  updateGithubIntegration,
+  validateGithubSettings,
+} from '../controllers/integrationController.js';
 import taskRoutes from './taskRoutes.js';
+import projectRoutes from './projectRoutes.js';
 
 const router: Router = express.Router();
 
@@ -41,8 +78,8 @@ router.get('/', protect, getMyWorkspaces);
 router.post('/join', protect, joinWorkspace);
 
 // These need a workspace in the URL
-router.get('/:slug', protect, getWorkspaceBySlug);
-router.put('/:slug/activate', protect, switchWorkspace);
+router.get('/:slug', protect, rejectApiToken, getWorkspaceBySlug);
+router.put('/:slug/activate', protect, rejectApiToken, switchWorkspace);
 
 // ============================================================
 // Workspace members (read requires users:read)
@@ -73,12 +110,41 @@ router.post(
 );
 
 // ============================================================
+// Board settings (WIP limits): read with tasks:read, change with settings:manage
+// ============================================================
+router.get('/:slug/board-settings', protect, requirePermission('tasks:read'), getBoardSettings);
+router.put(
+  '/:slug/board-settings',
+  protect,
+  requirePermission('settings:manage'),
+  validateBoardSettings,
+  updateBoardSettings
+);
+
+// ============================================================
+// Integrations (GitHub): all of it, including the webhook secret, needs settings:manage
+// The public webhook receiver itself is POST /api/integrations/github/:slug
+// ============================================================
+router.get('/:slug/integrations/github', protect, requirePermission('settings:manage'), getGithubIntegration);
+router.post('/:slug/integrations/github/enable', protect, requirePermission('settings:manage'), enableGithubIntegration);
+router.post('/:slug/integrations/github/regenerate-secret', protect, requirePermission('settings:manage'), regenerateGithubSecret);
+router.post('/:slug/integrations/github/disable', protect, requirePermission('settings:manage'), disableGithubIntegration);
+router.patch(
+  '/:slug/integrations/github',
+  protect,
+  requirePermission('settings:manage'),
+  validateGithubSettings,
+  updateGithubIntegration
+);
+
+// ============================================================
 // Invitations (scoped to workspace)
 // ============================================================
 router.post(
   '/:slug/invitations',
   protect,
   requirePermission('users:write'),
+  validateCreateInvitation,
   createInvitation
 );
 router.get(
@@ -103,6 +169,8 @@ router.put(
   requirePermission('users:write'),
   changeMemberRole
 );
+// Leaving needs no permission beyond membership (checked in the controller); must come before :userId
+router.delete('/:slug/members/me', protect, rejectApiToken, leaveWorkspace);
 router.delete(
   '/:slug/members/:userId',
   protect,
@@ -144,5 +212,46 @@ router.delete(
 // Task routes protect themselves internally
 // ============================================================
 router.use('/:slug/tasks', taskRoutes);
+
+// Audit log of the workspace (owners and admins)
+router.get('/:slug/activity', protect, requirePermission('settings:manage'), getWorkspaceActivity);
+
+// Saved task views (own + shared); everyone who can read tasks may save one, ownership is checked in the controller
+router.get('/:slug/views', protect, requirePermission('tasks:read'), listSavedViews);
+router.post('/:slug/views', protect, requirePermission('tasks:read'), validateCreateSavedView, createSavedView);
+router.patch('/:slug/views/:id', protect, requirePermission('tasks:read'), validateUpdateSavedView, updateSavedView);
+router.delete('/:slug/views/:id', protect, requirePermission('tasks:read'), deleteSavedView);
+
+// Sprint report (committed / completed / added / removed); read-only, so projects:read is enough
+router.get(
+  '/:slug/projects/:projectId/sprints/:sprintId/report',
+  protect,
+  requirePermission('projects:read'),
+  getSprintReport
+);
+
+// Flow analytics: cumulative flow, cycle and lead time, aging work in progress
+router.get('/:slug/reports/flow', protect, requirePermission('projects:read'), getFlowReport);
+
+// Automation rules (routes protect themselves; managing them needs settings:manage)
+router.use('/:slug/automations', automationRoutes);
+
+// Workflow stages (board columns inside the status groups), outbound webhooks and API tokens
+router.use('/:slug/workflow', workflowRoutes);
+router.use('/:slug/webhooks', webhookRoutes);
+router.use('/:slug/tokens', tokenRoutes);
+
+// Time tracking (timesheets), releases, custom fields and imports
+router.use('/:slug/time', timeRoutes);
+router.use('/:slug/releases', releaseRoutes);
+router.use('/:slug/fields', fieldRoutes);
+router.use('/:slug/import', importRoutes);
+
+// Wiki pages and the live-update feed
+router.use('/:slug/pages', pageRoutes);
+router.use('/:slug/changes', changeRoutes);
+
+// Workspace-scoped projects and their sprints
+router.use('/:slug/projects', projectRoutes);
 
 export default router;

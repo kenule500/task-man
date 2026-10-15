@@ -16,4 +16,6 @@ export interface WorkspaceDetails {
   slug: string;
   inviteCode: string;
   createdAt?: string;
+  /** Workspace-wide policy; absent on workspaces saved before it existed */
+  security?: { require2fa?: boolean };
 }

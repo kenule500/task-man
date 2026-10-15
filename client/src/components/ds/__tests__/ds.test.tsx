@@ -63,6 +63,6 @@ describe('layout primitives', () => {
   it('shows section counts and tags', () => {
     render(<><SectionHeader title="Overdue" count={2} /><Tag tone="danger">Blocked</Tag></>);
     expect(screen.getByRole('heading', { name: /Overdue/ })).toHaveTextContent('2');
-    expect(screen.getByText('Blocked')).toHaveClass('bg-red-50');
+    expect(screen.getByText('Blocked')).toHaveClass('bg-danger-bg');
   });
 });

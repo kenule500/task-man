@@ -1,11 +1,16 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import ActiveSprints from '@/components/dashboard/ActiveSprints';
+import { usePermissions } from '@/hooks/usePermissions';
+import { VelocityChart, averageVelocity, sprintVelocities, useProjects } from '@/features/projects';
 import { AlarmClock, CalendarClock, CheckSquare, ListTodo } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { Alert, PageHeader, SectionHeader, SkeletonCards, StatCard, Surface, Tag } from '@/components/ds';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FlowReportPanel } from '@/features/flow';
+import { Alert, AnimatedNumber, PageHeader, SectionHeader, SkeletonChart, StatCard, Surface, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import {
-  DueDate, PRIORITY_META, STATUS_META, StatusBadge, TASK_PRIORITIES, TASK_STATUSES, buildReport, useTasks,
+  DueDate, PRIORITY_META, STATUS_META, StatusBadge, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES, TASK_TYPE_META, buildReport, useTasks,
   type Task,
 } from '@/features/tasks';
 
@@ -42,7 +47,7 @@ const BarRow = ({ label, count, total, dot }: BarRowProps) => {
 
 const TaskList = ({ tasks, empty }: { tasks: Task[]; empty: string }) =>
   tasks.length === 0 ? (
-    <p className="text-sm text-slate-400">{empty}</p>
+    <p className="text-sm text-slate-500">{empty}</p>
   ) : (
     <ul className="divide-y divide-slate-100">
       {tasks.map(task => (
@@ -62,27 +67,45 @@ const TaskList = ({ tasks, empty }: { tasks: Task[]; empty: string }) =>
 
 const ReportsPage = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const { tasks, loading, error, clearError } = useTasks(workspaceSlug);
+  const { can } = usePermissions();
+  // A role may see reports without reading tasks: then there is nothing task-based to load
+  const { tasks, loading, error, clearError } = useTasks(can('tasks:read') ? workspaceSlug : undefined);
+  const { projects } = useProjects(can('projects:read') ? workspaceSlug : undefined);
 
   const report = useMemo(() => buildReport(tasks), [tasks]);
+  // Scrum metrics count top-level work items (subtasks are part of their parent)
+  const workItems = useMemo(() => tasks.filter(task => !task.parent), [tasks]);
+  const byType = useMemo(
+    () => Object.fromEntries(TASK_TYPES.map(type => [type, workItems.filter(task => (task.type ?? 'task') === type).length])),
+    [workItems],
+  );
+  const velocityProjects = projects.filter(project => sprintVelocities(project.sprints).length > 0);
 
   const maxWeek = Math.max(1, ...report.completedPerWeek.map(week => week.count));
 
-  return (
-    <AppShell>
-      <PageHeader title="Reports" description="Task analytics for this workspace" />
+  const [searchParams, setSearchParams] = useSearchParams();
+  const canSeeFlow = can('projects:read') && Boolean(workspaceSlug);
+  const tab = canSeeFlow && searchParams.get('tab') === 'flow' ? 'flow' : 'overview';
+  const changeTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'flow') next.set('tab', 'flow');
+    else next.delete('tab');
+    setSearchParams(next, { replace: true });
+  };
 
+  const overview = (
+    <>
       {loading ? (
-        <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
+        <SkeletonChart label="Loading reports" height="h-64" />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
 
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total Tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-            <StatCard className="p-4 sm:p-5" title="Completion Rate" value={`${report.completionRate}%`} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-emerald-600" />
-            <StatCard className="p-4 sm:p-5" title="Overdue" value={report.overdue.length} subtitle={report.overdue.length ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-red-600" />
-            <StatCard className="p-4 sm:p-5" title="Due This Week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard index={0} className="p-4 sm:p-5" title="Total tasks" value={report.total} subtitle={`${report.byStatus.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard index={1} className="p-4 sm:p-5" title="Completion rate" value={<><AnimatedNumber value={report.completionRate} />%</>} subtitle={`${report.byStatus.completed} of ${report.total} completed`} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-success-fg" />
+            <StatCard index={2} className="p-4 sm:p-5" title="Overdue" value={report.overdue.length} subtitle={report.overdue.length ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-danger-fg" />
+            <StatCard index={3} className="p-4 sm:p-5" title="Due this week" value={report.dueThisWeek.length} subtitle="Next 7 days, not completed" icon={<CalendarClock className="w-4 h-4" />} colorClass="text-blue-600" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -99,6 +122,32 @@ const ReportsPage = () => {
                   <BarRow key={priority} label={PRIORITY_META[priority].label} count={report.byPriority[priority]} total={report.total} dot={PRIORITY_META[priority].dot} />
                 ))}
               </ul>
+            </Panel>
+          </div>
+
+          <ActiveSprints projects={projects} tasks={tasks} slug={workspaceSlug ?? ''} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <Panel title="Work by type">
+              <ul className="space-y-3">
+                {TASK_TYPES.map(type => (
+                  <BarRow key={type} label={TASK_TYPE_META[type].label} count={byType[type]} total={workItems.length} dot={TASK_TYPE_META[type].dot} />
+                ))}
+              </ul>
+            </Panel>
+            <Panel title="Sprint velocity">
+              {velocityProjects.length === 0 ? (
+                <p className="text-sm text-slate-600">Velocity appears after the first completed sprint.</p>
+              ) : (
+                <div className="space-y-5">
+                  {velocityProjects.map(project => (
+                    <div key={project._id}>
+                      <p className="mb-2 text-xs font-semibold text-slate-700">{project.name}</p>
+                      <VelocityChart velocities={sprintVelocities(project.sprints)} average={averageVelocity(project.sprints)} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </Panel>
           </div>
 
@@ -129,6 +178,25 @@ const ReportsPage = () => {
           </div>
         </>
       )}
+    </>
+  );
+
+  return (
+    <AppShell>
+      <PageHeader title="Reports" description="Task analytics for this workspace" />
+
+      {canSeeFlow ? (
+        <Tabs value={tab} onValueChange={changeTab} className="gap-5">
+          <TabsList aria-label="Report sections" className="w-full group-data-horizontal/tabs:h-11 sm:w-fit sm:group-data-horizontal/tabs:h-9">
+            <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
+            <TabsTrigger value="flow" className="px-4">Flow</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview" className="space-y-5">{overview}</TabsContent>
+          <TabsContent value="flow">
+            <FlowReportPanel slug={workspaceSlug ?? ''} projects={projects} />
+          </TabsContent>
+        </Tabs>
+      ) : overview}
     </AppShell>
   );
 };

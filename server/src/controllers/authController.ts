@@ -13,6 +13,8 @@ import { verifyEmailTemplate, resetPasswordTemplate } from '../utils/emailTempla
 import { deriveActions } from '../config/permissions.js';
 import { createSecureToken, getBearerToken, hashToken } from '../utils/tokens.js';
 import { getConfig } from '../config/env.js';
+import { createChallenge } from '../utils/twoFactor.js';
+import type { IUser } from '../models/userModel.js';
 
 // ============================================================
 // Password rules
@@ -36,7 +38,8 @@ const emailRule = () =>
 // Validation rules
 // ============================================================
 export const validateSignup = [
-  body('name').notEmpty().withMessage('Name is required').trim().escape(),
+  body('name').isString().trim().notEmpty().withMessage('Name is required')
+    .isLength({ max: 80 }).withMessage('Name must be 80 characters or fewer'),
   emailRule(),
   passwordRule('password'),
 ];
@@ -60,8 +63,10 @@ export const validateResetPassword = [passwordRule('password')];
 /** Whether the app should auto-verify new signups (dev convenience). */
 const isDevAutoVerify = (): boolean => process.env.DEV_AUTO_VERIFY === 'true';
 
+// jti makes every token unique, so each login gets its own revocable session
 const generateToken = (id: string): string => {
-  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '1h' });
+  // Long enough to stay signed in for a working week; every session is revocable server-side
+  return jwt.sign({ id }, getConfig().jwtSecret, { expiresIn: '7d', jwtid: crypto.randomUUID() });
 };
 
 /** Build an absolute URL to a frontend path (e.g. /verify-email/abc123). */
@@ -78,6 +83,27 @@ const createSession = async (userId: string, token: string, req: Request) => {
     ipAddress,
     lastLoggedIn: new Date(),
   });
+};
+
+/** Creates the session and builds the sign-in response (shared by password login and the two-factor step). */
+export const issueSession = async (user: IUser, req: Request) => {
+  const token = generateToken(user._id.toString());
+  await createSession(user._id.toString(), token, req);
+
+  const activeWs = user.activeWorkspace
+    ? await Workspace.findById(user.activeWorkspace).select('slug name')
+    : null;
+
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    token,
+    onboardingComplete: !!(user.onboarding?.completedAt),
+    activeWorkspace: user.activeWorkspace,
+    activeWorkspaceSlug: activeWs?.slug || null,
+    workspaces: user.workspaces,
+  };
 };
 
 const generateSlug = async (name: string): Promise<string> => {
@@ -113,7 +139,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   try {
     const { name, email, password } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: { $eq: String(email) } });
     if (userExists) {
       res.status(400).json({ message: 'User already exists' });
       return;
@@ -147,7 +173,8 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
         });
       } catch (emailError) {
         console.error('⚠️ Verification email failed to send:', emailError);
-        console.log('📧 Verification link (for manual testing):', verifyLink);
+        // The link is a credential: only print it for local development
+        if (process.env.NODE_ENV !== 'production') console.log('📧 Verification link (for manual testing):', verifyLink);
       }
     }
 
@@ -216,7 +243,7 @@ export const resendVerification = async (req: Request, res: Response): Promise<v
 
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (!user || user.isVerified) {
       res.status(200).json(genericResponse);
@@ -254,7 +281,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (user && (await user.matchPassword(password))) {
       if (!user.isVerified) {
@@ -265,23 +292,13 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         return;
       }
 
-      const token = generateToken(user._id.toString());
-      await createSession(user._id.toString(), token, req);
+      // Second step: no session until the authenticator code (or a recovery code) is accepted
+      if (user.twoFactor?.enabled) {
+        res.json({ twoFactorRequired: true, challenge: await createChallenge(user._id) });
+        return;
+      }
 
-      const activeWs = user.activeWorkspace
-        ? await Workspace.findById(user.activeWorkspace).select('slug name')
-        : null;
-
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        token,
-        onboardingComplete: !!(user.onboarding?.completedAt),
-        activeWorkspace: user.activeWorkspace,
-        activeWorkspaceSlug: activeWs?.slug || null,
-        workspaces: user.workspaces,
-      });
+      res.json(await issueSession(user, req));
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -319,7 +336,7 @@ export const getCurrentUser = async (req: Request, res: Response): Promise<void>
 
     if (workspaceSlug) {
       workspace = await Workspace.findOne({
-        slug: workspaceSlug,
+        slug: { $eq: String(workspaceSlug) },
         'members.user': objectId,
       });
     } else if (user.activeWorkspace) {
@@ -409,7 +426,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
 
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: { $eq: String(email) } });
 
     if (!user) {
       res.status(200).json({ message: 'If an account exists, a reset link has been sent.' });
@@ -461,6 +478,8 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     }
 
     user.password = password;
+    // An account created through single sign-on now has a password somebody chose
+    user.ssoOnly = false;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
@@ -482,6 +501,15 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 export const saveOnboarding = async (req: Request, res: Response): Promise<void> => {
   try {
     const { role, useCase, teamSize, workspaceName } = req.body;
+    if (workspaceName !== undefined && workspaceName !== null
+      && (typeof workspaceName !== 'string' || workspaceName.trim().length > 60)) {
+      res.status(400).json({ message: 'Workspace name must be text of 60 characters or fewer' });
+      return;
+    }
+    if ([role, useCase, teamSize].some(value => value !== undefined && (typeof value !== 'string' || value.length > 80))) {
+      res.status(400).json({ message: 'Invalid onboarding answers' });
+      return;
+    }
     const userId = (req as { user?: { _id?: string } }).user?._id;
     if (!userId) {
       res.status(401).json({ message: 'Not authorized' });

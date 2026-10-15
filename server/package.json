@@ -8,8 +8,11 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",
+    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js -c jest.integration.config.cjs --runInBand",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:workspace": "tsx src/scripts/seedWorkspace.ts",
+    "test:coverage": "jest --coverage --coverageReporters=text-summary --coverageReporters=lcov"
   },
   "keywords": [],
   "author": "",
@@ -18,14 +21,16 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "dotenv": "^18.0.3",
+    "dotenv": "^18.0.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.7.0",
+    "express-rate-limit": "^8.7.1",
     "express-validator": "^7.3.2",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.10.2",
-    "nodemailer": "^10.0.11"
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.15",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@swc/core": "^1.16.13",
@@ -34,10 +39,13 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.13.6",
     "@types/nodemailer": "^8.0.2",
+    "@types/supertest": "^7.2.1",
+    "@types/web-push": "^3.6.4",
     "jest": "^30.5.2",
-    "nodemon": "^3.1.14",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   }

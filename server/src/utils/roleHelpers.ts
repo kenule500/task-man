@@ -17,7 +17,7 @@ import { PERMISSIONS } from '../config/permissions.js';
  */
 export const getInvalidPermissions = (permissions: unknown): string[] => {
   if (!Array.isArray(permissions)) return [];
-  return permissions.filter((p) => typeof p !== 'string' || !(p in PERMISSIONS));
+  return permissions.filter((p) => typeof p !== 'string' || !Object.hasOwn(PERMISSIONS, p));
 };
 
 /**
@@ -33,6 +33,11 @@ export const findCustomRoleOr404 = async (
   roleId: string,
   res: Response
 ): Promise<IRole | null> => {
+  // Malformed ids are "not found", not a CastError 500
+  if (!mongoose.isValidObjectId(roleId)) {
+    res.status(404).json({ message: 'Custom role not found' });
+    return null;
+  }
   const role = await Role.findOne({
     _id: roleId,
     workspaceId,

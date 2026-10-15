@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
+import { isWorkspaceOwner } from '../utils/workspaceHelpers.js';
 import Role from '../models/roleModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { PERMISSIONS } from '../config/permissions.js';
+import { recordActivity } from '../utils/activity.js';
 import {
   sendServerError,
 } from '../utils/controllerHelpers.js';
@@ -10,6 +12,16 @@ import {
   findCustomRoleOr404,
   hasRoleNameConflict,
 } from '../utils/roleHelpers.js';
+
+
+/** Privilege ceiling: only the workspace owner may define permissions beyond their own. */
+const withinOwnPermissions = (req: Request, permissions: string[]): boolean => {
+  const workspace = req.workspace!;
+  const actorId = String((req as { user?: { _id?: unknown } }).user?._id ?? '');
+  if (isWorkspaceOwner(workspace, actorId)) return true;
+  const own = req.permissions ?? [];
+  return permissions.every(permission => own.includes(permission));
+};
 
 // ================================================================
 // @desc    List all roles available to a workspace
@@ -65,8 +77,9 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
     const workspace = req.workspace!;
     const { name, description, permissions } = req.body;
 
-    if (!name || !name.trim()) {
-      res.status(400).json({ message: 'Role name is required' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 60
+      || (description !== undefined && (typeof description !== 'string' || description.length > 280))) {
+      res.status(400).json({ message: 'Role name (max 60 characters) is required; description max 280 characters' });
       return;
     }
 
@@ -81,6 +94,10 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
       res.status(400).json({
         message: `Unknown permission(s): ${invalidPerms.join(', ')}`,
       });
+      return;
+    }
+    if (!withinOwnPermissions(req, permissions)) {
+      res.status(403).json({ message: "You can't create a role with more access than your own" });
       return;
     }
 
@@ -99,6 +116,7 @@ export const createCustomRole = async (req: Request, res: Response): Promise<voi
       workspaceId: workspace._id,
     });
 
+    await recordActivity(req, { action: 'role.created', summary: role.name, changes: [{ field: 'permissions', to: role.permissions.join(', ') }] });
     res.status(201).json(role);
   } catch (error) {
     sendServerError(res, 'createCustomRole', error);
@@ -120,6 +138,11 @@ export const updateCustomRole = async (req: Request, res: Response): Promise<voi
     if (!role) return;
 
     // ---- Update name (with conflict check) ----
+    if ((name !== undefined && (typeof name !== 'string' || name.trim().length > 60))
+      || (description !== undefined && (typeof description !== 'string' || description.length > 280))) {
+      res.status(400).json({ message: 'Role name max 60 characters; description max 280 characters' });
+      return;
+    }
     if (name !== undefined) {
       if (!name.trim()) {
         res.status(400).json({ message: 'Role name cannot be empty' });
@@ -151,10 +174,20 @@ export const updateCustomRole = async (req: Request, res: Response): Promise<voi
         });
         return;
       }
+      if (!withinOwnPermissions(req, permissions)) {
+        res.status(403).json({ message: "You can't give a role more access than your own" });
+        return;
+      }
       role.permissions = permissions;
     }
 
+    const changes = [
+      ...(role.isModified('name') ? [{ field: 'name', to: role.name }] : []),
+      ...(role.isModified('description') ? [{ field: 'description' }] : []),
+      ...(role.isModified('permissions') ? [{ field: 'permissions', to: role.permissions.join(', ') }] : []),
+    ];
     await role.save();
+    if (changes.length > 0) await recordActivity(req, { action: 'role.updated', summary: role.name, changes });
     res.status(200).json(role);
   } catch (error) {
     sendServerError(res, 'updateCustomRole', error);
@@ -175,16 +208,8 @@ export const deleteCustomRole = async (req: Request, res: Response): Promise<voi
     const role = await findCustomRoleOr404(workspace._id, roleId, res);
     if (!role) return;
 
-    // Check if any member is currently using this role
-    const workspaceDoc = await Workspace.findById(workspace._id);
-    if (!workspaceDoc) {
-      res.status(404).json({ message: 'Workspace not found' });
-      return;
-    }
-
-    const inUse = workspaceDoc.members.some(
-      (m) => m.roleId.toString() === roleId
-    );
+    // Check if any member (in any workspace) is currently using this role
+    const inUse = await Workspace.exists({ 'members.roleId': role._id });
     if (inUse) {
       res.status(409).json({
         message: 'Cannot delete this role — it is currently assigned to one or more members',
@@ -193,6 +218,7 @@ export const deleteCustomRole = async (req: Request, res: Response): Promise<voi
     }
 
     await Role.findByIdAndDelete(roleId);
+    await recordActivity(req, { action: 'role.deleted', summary: role.name });
     res.status(200).json({ message: 'Role deleted' });
   } catch (error) {
     sendServerError(res, 'deleteCustomRole', error);

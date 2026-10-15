@@ -1,43 +1,29 @@
 import { Link } from 'react-router-dom';
-import { getStoredUser, getToken } from '../../utils/session';
 import { ArrowRight, Zap } from 'lucide-react';
-
-const getAuthState = () => {
-  const user = getStoredUser();
-  if (getToken() && user) {
-    if (user.activeWorkspaceSlug) {
-      return { isLoggedIn: true, dashboardUrl: `/${user.activeWorkspaceSlug}/dashboard` };
-    }
-    if (user.onboardingComplete === false) {
-      return { isLoggedIn: true, dashboardUrl: '/onboarding' };
-    }
-  }
-  return { isLoggedIn: false, dashboardUrl: '/signup' };
-};
+import { getLandingAuth } from './landingAuth';
 
 const CTA = () => {
-  const { isLoggedIn, dashboardUrl } = getAuthState();
+  const { isLoggedIn, appUrl } = getLandingAuth();
 
   return (
-    <section className="py-20 px-6">
-      <div className="max-w-4xl mx-auto text-center bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-12 shadow-2xl shadow-primary/30">
-        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
-          <Zap className="w-6 h-6 text-white" />
+    <section aria-labelledby="cta-heading" className="px-4 py-16 sm:px-6 md:py-20">
+      <div className="mx-auto max-w-4xl rounded-3xl bg-gradient-to-br from-primary to-blue-700 p-8 text-center shadow-2xl shadow-primary/30 sm:p-12">
+        <div aria-hidden className="mx-auto mb-6 flex size-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+          <Zap className="size-6 text-white" />
         </div>
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+        <h2 id="cta-heading" className="mb-4 text-balance text-3xl font-bold text-white md:text-4xl">
           {isLoggedIn ? 'Ready to get back to work?' : 'Ready to organize your work?'}
         </h2>
-        <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
+        <p className="mx-auto mb-8 max-w-xl text-lg text-white/90">
           {isLoggedIn
             ? 'Jump back into your workspace and pick up where you left off.'
-            : 'Join thousands of teams already using TaskMan to ship faster and stay focused.'}
+            : 'Create an account, name your workspace and add your first task in a couple of minutes.'}
         </p>
         <Link
-          to={dashboardUrl}
-          className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all hover:-translate-y-0.5 shadow-lg"
+          to={appUrl}
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-lg font-semibold text-primary shadow-lg transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
-          {isLoggedIn ? 'Go to Dashboard' : 'Get Started for Free'}{' '}
-          <ArrowRight className="w-5 h-5" />
+          {isLoggedIn ? 'Go to dashboard' : 'Create your account'} <ArrowRight className="size-5" aria-hidden />
         </Link>
       </div>
     </section>

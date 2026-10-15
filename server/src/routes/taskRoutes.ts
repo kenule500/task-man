@@ -4,21 +4,90 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  duplicateTask,
+  unwatchTask,
   validateCreateTask,
+  validateDuplicateTask,
   validateUpdateTask,
+  watchTask,
 } from '../controllers/taskController.js';
+import {
+  bulkDeleteTasks,
+  bulkUpdateTasks,
+  validateBulkDelete,
+  validateBulkUpdate,
+} from '../controllers/bulkTaskController.js';
+import {
+  addComment,
+  deleteAttachment,
+  deleteComment,
+  downloadAttachment,
+  uploadAttachment,
+  validateComment,
+} from '../controllers/taskExtrasController.js';
+import {
+  addRelation,
+  moveTask,
+  removeRelation,
+  validateAddRelation,
+  validateMoveTask,
+} from '../controllers/taskRelationController.js';
+import {
+  addTimeEntry,
+  deleteTimeEntry,
+  getTaskTime,
+  startTimer,
+  stopTimer,
+  validateTimeEntry,
+} from '../controllers/timeController.js';
+import { getTaskActivity } from '../controllers/activityController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { requireWorkspaceMember } from '../middleware/workspaceMiddleware.js';
+import { requirePermission } from '../middleware/permissionMiddleware.js';
+import { uploadAttachmentFile } from '../middleware/uploadMiddleware.js';
 
-// Mounted under /api/workspaces/:slug/tasks — mergeParams exposes :slug
+// Mounted under /api/workspaces/:slug/tasks — mergeParams exposes :slug.
+// Each route checks its own permission (which also verifies workspace membership).
 const router: Router = express.Router({ mergeParams: true });
 
-router.use(protect, requireWorkspaceMember);
+router.use(protect);
 
-router.get('/', getTasks);
-router.post('/', validateCreateTask, createTask);
-router.put('/:id', validateUpdateTask, updateTask);
-router.patch('/:id', validateUpdateTask, updateTask);
-router.delete('/:id', deleteTask);
+router.get('/', requirePermission('tasks:read'), getTasks);
+router.post('/', requirePermission('tasks:write'), validateCreateTask, createTask);
+// Bulk routes come before the /:id routes so "bulk" is not read as a task id
+router.patch('/bulk', requirePermission('tasks:write'), validateBulkUpdate, bulkUpdateTasks);
+router.post('/bulk-delete', requirePermission('tasks:delete'), validateBulkDelete, bulkDeleteTasks);
+
+router.put('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
+router.patch('/:id', requirePermission('tasks:write'), validateUpdateTask, updateTask);
+router.delete('/:id', requirePermission('tasks:delete'), deleteTask);
+
+// Copy a task (and optionally its subtasks); follow / unfollow it (self only)
+router.post('/:id/duplicate', requirePermission('tasks:write'), validateDuplicateTask, duplicateTask);
+router.post('/:id/watch', requirePermission('tasks:read'), watchTask);
+router.delete('/:id/watch', requirePermission('tasks:read'), unwatchTask);
+
+// Issue links (relates, duplicates, clones, blocks) and subtask conversion
+router.post('/:id/relations', requirePermission('tasks:write'), validateAddRelation, addRelation);
+router.delete('/:id/relations/:relatedId', requirePermission('tasks:write'), removeRelation);
+router.post('/:id/move', requirePermission('tasks:write'), validateMoveTask, moveTask);
+
+// History of field changes, comments and files
+router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);
+
+// Time tracking: entries, manual logging, one running timer per user (delete: author or settings:manage)
+router.get('/:id/time', requirePermission('tasks:read'), getTaskTime);
+router.post('/:id/time', requirePermission('tasks:write'), validateTimeEntry, addTimeEntry);
+router.post('/:id/timer/start', requirePermission('tasks:write'), startTimer);
+router.post('/:id/timer/stop', requirePermission('tasks:write'), stopTimer);
+router.delete('/:id/time/:entryId', requirePermission('tasks:write'), deleteTimeEntry);
+
+// Comments (delete: author or settings:manage, checked in the controller)
+router.post('/:id/comments', requirePermission('tasks:write'), validateComment, addComment);
+router.delete('/:id/comments/:commentId', requirePermission('tasks:write'), deleteComment);
+
+// Attachments stored in GridFS (delete: uploader or tasks:delete, checked in the controller)
+router.post('/:id/attachments', requirePermission('tasks:write'), uploadAttachmentFile, uploadAttachment);
+router.get('/:id/attachments/:attachmentId', requirePermission('tasks:read'), downloadAttachment);
+router.delete('/:id/attachments/:attachmentId', requirePermission('tasks:write'), deleteAttachment);
 
 export default router;

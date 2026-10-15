@@ -5,8 +5,16 @@ import { clearSession, getToken, updateStoredUser } from '../utils/session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, Field, Surface, UserAvatar } from '@/components/ds';
-import { Save, AlertCircle } from 'lucide-react';
+import { Alert, Field, SegmentedControl, Surface, UserAvatar } from '@/components/ds';
+import { Save, AlertCircle, Monitor, Moon, Sun } from 'lucide-react';
+import { isThemePreference, syncThemeFromUser, useThemePreference, type ThemePreference } from '@/lib/theme';
+import { saveThemePreference } from '@/lib/themeApi';
+
+const THEME_CHOICES = [
+  { value: 'light' as const, label: 'Light', icon: <Sun /> },
+  { value: 'dark' as const, label: 'Dark', icon: <Moon /> },
+  { value: 'system' as const, label: 'System', icon: <Monitor /> },
+];
 
 interface ProfileData {
   _id: string;
@@ -25,6 +33,7 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [user, setUser] = useState<ProfileData | null>(null);
+  const { preference: themePreference } = useThemePreference();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,9 +53,9 @@ const ProfilePage = () => {
 
     const fetchProfile = async () => {
       try {
-        console.log('Fetching profile...');
         const response = await api.get('/profile');
-        console.log('Profile response:', response.data);
+        // The account's saved theme wins over this browser's, so it follows the person between devices
+        if (isThemePreference(response.data.theme)) syncThemeFromUser(response.data);
 
         setUser({
           _id: response.data._id,
@@ -114,6 +123,11 @@ const ProfilePage = () => {
     }
   };
 
+  const handleThemeChange = async (next: ThemePreference) => {
+    const saved = await saveThemePreference(next);
+    if (!saved) showMessage('error', 'We could not save your theme. It applies on this device only. Try again later.');
+  };
+
   if (loading) {
     return (
       <Surface padding="lg" aria-busy="true" aria-label="Loading profile">
@@ -139,15 +153,15 @@ const ProfilePage = () => {
   if (!user) {
     return (
       <Surface padding="lg" className="text-center">
-        <AlertCircle className="mx-auto mb-3 size-10 text-red-500" aria-hidden />
+        <AlertCircle className="mx-auto mb-3 size-10 text-danger-fg" aria-hidden />
         <p className="font-medium text-slate-700">Failed to load profile</p>
-        <p className="mt-1 text-sm text-slate-500">Please refresh the page or log in again.</p>
+        <p className="mt-1 text-sm text-slate-600">Please refresh the page or log in again.</p>
       </Surface>
     );
   }
 
   const CONTROL = 'h-11 bg-slate-50 border-slate-200 rounded-lg';
-  const NATIVE = 'w-full h-11 px-3 border border-slate-200 rounded-lg bg-slate-50 text-base md:text-sm';
+  const NATIVE = 'w-full h-11 px-3 border border-slate-200 rounded-lg bg-slate-50 text-base dark:bg-input/30 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm';
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -159,24 +173,26 @@ const ProfilePage = () => {
           <UserAvatar name={user.name} size="lg" className="size-16 text-xl sm:size-20 sm:text-3xl" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold text-slate-900">{user.name}</p>
-            <p className="truncate text-sm text-slate-500">{user.email}</p>
+            <p className="truncate text-sm text-slate-600">{user.email}</p>
           </div>
         </div>
 
         {/* Form */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Field label="Full Name" htmlFor="name" className="md:col-span-2">
+          <Field label="Full name" htmlFor="name" className="md:col-span-2">
             <Input
               id="name"
+              autoComplete="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className={CONTROL}
             />
           </Field>
 
-          <Field label="Job Title" htmlFor="jobTitle">
+          <Field label="Job title" htmlFor="jobTitle">
             <Input
               id="jobTitle"
+              autoComplete="organization-title"
               value={formData.jobTitle}
               onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
               placeholder="e.g., Product Designer"
@@ -188,6 +204,8 @@ const ProfilePage = () => {
             <Input
               id="phone"
               type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="+1 (555) 000-0000"
@@ -235,13 +253,26 @@ const ProfilePage = () => {
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell us a little about yourself..."
-                className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base md:text-sm"
+                className="w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base dark:bg-input/30 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
                 maxLength={280}
               />
             </Field>
-            <p className="text-right text-xs text-slate-400">{formData.bio.length}/280</p>
+            <p className="text-right text-xs text-slate-600">{formData.bio.length}/280</p>
           </div>
         </div>
+      </Surface>
+
+      <Surface as="section" padding="lg" aria-labelledby="appearance-heading">
+        <h2 id="appearance-heading" className="text-base font-semibold text-slate-900">Appearance</h2>
+        <p className="mt-1 mb-4 text-sm text-slate-600">
+          Choose how TaskMan looks. System follows your device setting. Your choice is saved to your account.
+        </p>
+        <SegmentedControl
+          aria-label="Theme"
+          options={THEME_CHOICES}
+          value={themePreference}
+          onValueChange={(next) => { void handleThemeChange(next); }}
+        />
       </Surface>
 
       <div className="flex justify-end">
@@ -250,8 +281,8 @@ const ProfilePage = () => {
           disabled={saving}
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving...' : 'Save Changes'}
+          <Save className="size-4" aria-hidden />
+          {saving ? 'Saving...' : 'Save changes'}
         </Button>
       </div>
     </form>

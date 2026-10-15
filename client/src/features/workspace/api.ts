@@ -12,7 +12,7 @@ export const workspaceApi = {
     const { data } = await api.get(`${workspaceUrl(slug)}/members`);
     return Array.isArray(data) ? data : [];
   },
-  update: async (slug: string, input: { name: string }): Promise<WorkspaceDetails> => {
+  update: async (slug: string, input: { name?: string; require2fa?: boolean }): Promise<WorkspaceDetails> => {
     const { data } = await api.put(workspaceUrl(slug), input);
     return data;
   },

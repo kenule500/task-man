@@ -40,7 +40,7 @@ commands above point the API at a local database.
 server/src/
   models/        Mongoose schemas (User, Session, Workspace, Task)
   controllers/   Route handlers + express-validator chains
-  middleware/    protect (JWT + session), requireWorkspaceMember
+  middleware/    protect (JWT + session), requirePermission (RBAC), uploads
   routes/        /api/auth, /api/profile, /api/workspaces, /api/workspaces/:slug/tasks
   utils/         Pure helpers (taskQuery, taskGraph...) — unit tested
   scripts/seed.ts
@@ -66,8 +66,10 @@ client/src/
 
 - **Branches:** never commit to `main`. Work on `feature/<topic>` and open a PR.
 - **Commits:** Conventional Commits (`feat(client): …`, `fix(server): …`), imperative, explain the why.
-- **Tasks are workspace scoped:** every task query filters by `workspace`; routes go through
-  `protect` then `requireWorkspaceMember`.
+- **Workspace routes are permission scoped:** every route goes through `protect` then
+  `requirePermission('<area>:<action>')` (see `server/src/config/permissions.ts`), which attaches
+  `req.workspace`, `req.role` and `req.permissions`; queries always filter by `req.workspace._id`.
+- **Roles:** assign roles only through `utils/roleAccess.ts` (`findAssignableRole`, `canGrantRole`).
 - **Dates are calendar days:** send/receive `YYYY-MM-DD`; on the client use `lib/date.ts`
   (`parseDateKey`, `toDateKey`, `dateKeyOf`) — never `new Date('YYYY-MM-DD')` for display.
 - **New view?** Implement `TaskViewProps` (`views/types.ts`), read data from `useTasks`, put logic in `lib/` with tests.
@@ -76,6 +78,23 @@ client/src/
 - **UI:** follow `DESIGN.md`. Use shadcn primitives from `components/ui`; no new UI libraries without discussion.
 - **Pure logic first:** anything non-visual goes in `lib/` or `utils/` with a Jest test.
 - **Secrets:** never commit `.env`. Seed credentials are test-only and live in `server/src/scripts/seed.ts`.
+
+## Working rules for contributors and coding agents
+
+- Work on a feature branch, never on `main`; open a PR against `kenule500/task-man:main`.
+- Commit author is the human contributor; no tool or AI attribution lines in commits or PRs.
+- Run against a **local** MongoDB (`MONGO_URI=mongodb://127.0.0.1:27017/task-man`); `pnpm seed` refuses non-local URIs.
+- After changes run the quality gates above and check the affected view in the browser
+  (`http://localhost:5173/demo-workspace/tasks?view=list|board|calendar|timeline`).
+
+## Gotchas
+
+- `client/src/App.css` is not imported; theme tokens live in `client/src/index.css` (`@theme`).
+- `import.meta.env` is only read in `client/src/config.ts` (Jest maps it to `client/test/config.stub.ts`).
+- jsdom lacks `PointerEvent`; `client/jest.setup.ts` polyfills it for Base UI.
+- `tsc -b` uses the root `client/tsconfig.json`; tests are type-checked by `tsconfig.test.json`.
+- Native HTML5 drag and drop is used for board/calendar; the Gantt uses pointer events
+  (keyboard: arrows move, Shift+arrows resize).
 
 ## Definition of done
 

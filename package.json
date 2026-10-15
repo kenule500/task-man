@@ -1,0 +1,14 @@
+{
+  "name": "taskman",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:server": "pnpm --filter server dev",
+    "dev:client": "pnpm --filter client dev",
+    "test": "pnpm --filter server test && pnpm --filter client test",
+    "build": "pnpm --filter server build && pnpm --filter client build"
+  }
+}

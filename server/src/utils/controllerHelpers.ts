@@ -16,7 +16,8 @@ export const requireUserId = (req: Request, res: Response): string | null => {
     res.status(401).json({ message: 'Not authorized' });
     return null;
   }
-  return userId;
+  // req.user._id is an ObjectId at runtime: normalise so `===` comparisons work
+  return String(userId);
 };
 
 /**

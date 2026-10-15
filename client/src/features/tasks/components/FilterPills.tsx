@@ -28,7 +28,7 @@ function FilterPills<T extends string>({ value, options, onChange, className, ..
             aria-checked={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              'inline-flex h-10 shrink-0 snap-start items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors sm:h-8',
+              'inline-flex h-11 shrink-0 snap-start items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors sm:h-8',
               'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
               active
                 ? 'border-primary bg-primary text-white shadow-sm'
@@ -38,7 +38,7 @@ function FilterPills<T extends string>({ value, options, onChange, className, ..
             {option.dot && <span aria-hidden className={cn('size-1.5 rounded-full', active ? 'bg-white' : option.dot)} />}
             {option.label}
             {option.count !== undefined && (
-              <span className={cn('rounded px-1 tabular-nums', active ? 'bg-white/20' : 'bg-slate-100 text-slate-500')}>
+              <span className={cn('rounded px-1 tabular-nums', active ? 'bg-black/20' : 'bg-slate-100 text-slate-500')}>
                 {option.count}
               </span>
             )}

@@ -2,9 +2,12 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
-import Workspace from '../models/workspaceModel.js';
+import { findDefaultRole, roleRank } from '../utils/roleAccess.js';
+import { recordActivity } from '../utils/activity.js';
+import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import User from '../models/userModel.js';
 import Role from '../models/roleModel.js';
+import { PERMISSIONS } from '../config/permissions.js';
 
 const generateInviteCode = (): string =>
   crypto.randomBytes(6).toString('hex').toUpperCase();
@@ -41,8 +44,8 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
     }
 
     const { name } = req.body;
-    if (!name || !name.trim()) {
-      res.status(400).json({ message: 'Workspace name is required' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 60) {
+      res.status(400).json({ message: 'Workspace name is required (60 characters max)' });
       return;
     }
 
@@ -81,6 +84,16 @@ export const createWorkspace = async (req: Request, res: Response): Promise<void
   }
 };
 
+/** Permissions of a member in a workspace (the owner has every permission). */
+const permissionsOf = async (workspace: IWorkspace, userId: string): Promise<Set<string>> => {
+  const ownerId = String((workspace.owner as { _id?: unknown })?._id ?? workspace.owner);
+  if (ownerId === userId) return new Set(Object.keys(PERMISSIONS));
+  const member = workspace.members.find(m => String((m.user as { _id?: unknown })?._id ?? m.user) === userId);
+  const roleId = (member?.roleId as { _id?: unknown } | undefined)?._id ?? member?.roleId;
+  const role = roleId ? await Role.findById(roleId).select('permissions').lean() : null;
+  return new Set(role?.permissions ?? []);
+};
+
 // ================================================================
 // @desc    Get all workspaces for current user
 // @route   GET /api/workspaces
@@ -94,9 +107,10 @@ export const getMyWorkspaces = async (req: Request, res: Response): Promise<void
     }
 
     const objectId = new mongoose.Types.ObjectId(userId);
+    // Workspace switcher data only: no invite codes or member emails (those need users:* / settings:manage)
     const workspaces = await Workspace.find({ 'members.user': objectId })
-      .select('name slug inviteCode owner members createdAt')
-      .populate('members.user', 'name email')
+      .select('name slug owner members createdAt')
+      .populate('members.user', 'name')
       .populate('members.roleId', 'name description');
 
     res.status(200).json(workspaces);
@@ -140,7 +154,15 @@ export const getWorkspaceBySlug = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(200).json(workspace);
+    // Member emails need users:read and the invite code needs users:write or settings:manage
+    const permissions = await permissionsOf(workspace, String(userId));
+    const body = workspace.toObject() as unknown as Record<string, unknown> & { members: { user?: { email?: string } }[] };
+    if (!permissions.has('users:read')) {
+      for (const member of body.members) if (member.user && typeof member.user === 'object') delete member.user.email;
+    }
+    if (!permissions.has('users:write') && !permissions.has('settings:manage')) delete body.inviteCode;
+
+    res.status(200).json(body);
   } catch (error) {
     console.error('getWorkspaceBySlug error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -189,13 +211,13 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const { inviteCode, roleId } = req.body;
-    if (!inviteCode) {
-      res.status(400).json({ message: 'Invite code is required' });
+    const { inviteCode } = req.body;
+    if (typeof inviteCode !== 'string' || !/^[A-F0-9]{12}$/i.test(inviteCode.trim())) {
+      res.status(400).json({ message: 'A valid invite code is required' });
       return;
     }
 
-    const workspace = await Workspace.findOne({ inviteCode: inviteCode.toUpperCase() });
+    const workspace = await Workspace.findOne({ inviteCode: inviteCode.trim().toUpperCase() });
     if (!workspace) {
       res.status(404).json({ message: 'Invalid invite code' });
       return;
@@ -209,14 +231,9 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Resolve role (defaults to Viewer if none provided)
-    let targetRole = null;
-    if (roleId) {
-      targetRole = await Role.findById(roleId);
-    }
-    if (!targetRole) {
-      targetRole = await Role.findOne({ name: 'Viewer', isSystem: true });
-    }
+    // Invite codes always grant the default (read-only) role; admins promote afterwards.
+    // The role is never taken from the request: that allowed joining as Product Owner.
+    const targetRole = await findDefaultRole();
     if (!targetRole) {
       res.status(500).json({ message: 'System roles not seeded. Restart the server.' });
       return;
@@ -245,7 +262,9 @@ export const joinWorkspace = async (req: Request, res: Response): Promise<void> 
 // Validation
 // ================================================================
 export const validateUpdateWorkspace = [
+  // The name is required unless the request only changes the security policy
   body('name')
+    .if((_value, { req }) => typeof req.body?.require2fa !== 'boolean' || req.body?.name !== undefined)
     .isString()
     .withMessage('Workspace name is required')
     .trim()
@@ -253,6 +272,7 @@ export const validateUpdateWorkspace = [
     .withMessage('Workspace name is required')
     .isLength({ max: 60 })
     .withMessage('Workspace name must be 60 characters or fewer'),
+  body('require2fa').optional().isBoolean({ strict: true }).withMessage('require2fa must be true or false'),
 ];
 
 // ================================================================
@@ -297,7 +317,8 @@ export const getWorkspaceMembers = async (req: Request, res: Response): Promise<
           joinedAt: m.joinedAt,
         };
       })
-      .filter((m: unknown): m is NonNullable<typeof m> => m !== null);
+      .filter(<T,>(m: T | null): m is T => m !== null)
+      .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.name.localeCompare(b.name));
 
     res.status(200).json(members);
   } catch (error) {
@@ -320,8 +341,32 @@ export const updateWorkspace = async (req: Request, res: Response): Promise<void
 
   try {
     const workspace = req.workspace!;
-    workspace.name = req.body.name;
+    const previousName = workspace.name;
+    const wasRequired = Boolean(workspace.security?.require2fa);
+    const wantsRequired: boolean | undefined = typeof req.body.require2fa === 'boolean' ? req.body.require2fa : undefined;
+
+    // Whoever turns the policy on must already be protected, or they would lock themselves out
+    if (wantsRequired === true && !wasRequired && !req.user?.twoFactor?.enabled) {
+      res.status(400).json({
+        message: 'Turn on two-factor authentication for your own account before requiring it for the workspace.',
+        code: 'OWN_TWO_FACTOR_REQUIRED',
+      });
+      return;
+    }
+
+    if (req.body.name !== undefined) workspace.name = req.body.name;
+    if (wantsRequired !== undefined) workspace.set('security.require2fa', wantsRequired);
     await workspace.save();
+    if (previousName !== workspace.name) {
+      await recordActivity(req, { action: 'workspace.updated', summary: workspace.name, changes: [{ field: 'name', from: previousName, to: workspace.name }] });
+    }
+    if (wantsRequired !== undefined && wantsRequired !== wasRequired) {
+      await recordActivity(req, {
+        action: 'workspace.updated',
+        summary: workspace.name,
+        changes: [{ field: 'require2fa', from: wasRequired ? 'on' : 'off', to: wantsRequired ? 'on' : 'off' }],
+      });
+    }
     res.status(200).json(workspace);
   } catch (error) {
     console.error('updateWorkspace error:', error);
@@ -339,6 +384,7 @@ export const regenerateInviteCode = async (req: Request, res: Response): Promise
     const workspace = req.workspace!;
     workspace.inviteCode = generateInviteCode();
     await workspace.save();
+    await recordActivity(req, { action: 'workspace.invite_code_regenerated', summary: workspace.name });
     res.status(200).json({ inviteCode: workspace.inviteCode });
   } catch (error) {
     console.error('regenerateInviteCode error:', error);

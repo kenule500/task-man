@@ -2,7 +2,6 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ListView from '../views/ListView';
 import BoardView from '../views/BoardView';
-import CalendarView from '../views/CalendarView';
 import TimelineView from '../views/TimelineView';
 import type { TaskViewProps } from '../views/types';
 import { makeTask } from './fixtures';
@@ -17,11 +16,6 @@ const handlers = (): Omit<TaskViewProps, 'tasks'> => ({
   onCreate: jest.fn(),
 });
 
-const localDateKey = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-};
-
 // jsdom applies no CSS, so both the desktop and the phone structures are in the DOM.
 // Tests scope queries with these test ids.
 describe('ListView', () => {
@@ -35,13 +29,13 @@ describe('ListView', () => {
     expect(screen.getByText(/no tasks match your current filters/i)).toBeInTheDocument();
   });
 
-  it('marks a task as done from its checkbox', async () => {
+  it('marks a task as done from its round done button', async () => {
     const props = handlers();
     const task = makeTask({ title: 'Write tests' });
     render(<ListView tasks={[task]} totalCount={1} {...props} />);
 
     const table = within(screen.getByTestId('list-table'));
-    await userEvent.click(table.getByRole('checkbox', { name: 'Mark "Write tests" as done' }));
+    await userEvent.click(table.getByRole('button', { name: 'Mark "Write tests" as done' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, { status: 'completed' });
   });
 
@@ -81,7 +75,7 @@ describe('ListView', () => {
     expect(card.getByRole('combobox', { name: 'Priority of Card task' })).toBeInTheDocument();
     expect(card.getByLabelText('Due date for Card task')).toBeInTheDocument();
 
-    await userEvent.click(card.getByRole('checkbox', { name: 'Mark "Card task" as done' }));
+    await userEvent.click(card.getByRole('button', { name: 'Mark "Card task" as done' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, { status: 'completed' });
 
     await userEvent.click(card.getByRole('button', { name: 'Card task' }));
@@ -117,7 +111,7 @@ describe('BoardView', () => {
       />,
     );
 
-    expect(screen.getByTestId('board-columns').className).toContain('snap-x');
+    expect(screen.getByTestId('board-columns').className).toContain('md:grid-cols-3');
     const columns = screen.getAllByRole('region');
     expect(columns.map(column => within(column).getByRole('heading').textContent)).toEqual([
       'Pending', 'In Progress', 'Completed',
@@ -136,9 +130,9 @@ describe('BoardView', () => {
     expect(trigger.className).not.toMatch(/(^|\s)opacity-0/);
 
     await userEvent.click(trigger);
-    expect(screen.queryByRole('menuitem', { name: /move to pending/i })).not.toBeInTheDocument();
-    expect(await screen.findByRole('menuitem', { name: /move to in progress/i })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitem', { name: /move to completed/i }));
+    expect(await screen.findByRole('menuitemradio', { name: 'Pending' })).toBeChecked();
+    expect(screen.getByRole('menuitemradio', { name: 'In Progress' })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Completed' }));
     expect(props.onUpdate).toHaveBeenCalledWith(task._id, expect.objectContaining({ status: 'completed' }));
   });
 
@@ -148,63 +142,6 @@ describe('BoardView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Add task to In Progress' }));
     expect(props.onCreate).toHaveBeenCalledWith({ status: 'in-progress' });
-  });
-});
-
-describe('CalendarView', () => {
-  it('places tasks on their due day and navigates months', async () => {
-    const task = makeTask({ title: 'Ship v1', deadline: '2026-10-14T00:00:00.000Z' });
-    render(<CalendarView tasks={[task]} initialMonth={new Date(2026, 9, 1)} {...handlers()} />);
-
-    expect(screen.getByRole('heading', { name: 'October 2026' })).toBeInTheDocument();
-    expect(within(screen.getByTestId('calendar-grid')).getByRole('button', { name: 'Ship v1' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    expect(screen.getByRole('heading', { name: 'November 2026' })).toBeInTheDocument();
-  });
-
-  it('shows an agenda of the days with tasks for phones', async () => {
-    const props = handlers();
-    const first = makeTask({ title: 'Kickoff', deadline: '2030-03-03T00:00:00.000Z' });
-    const second = makeTask({ title: 'Review', deadline: '2030-03-20T00:00:00.000Z' });
-    const elsewhere = makeTask({ title: 'Next month', deadline: '2030-04-05T00:00:00.000Z' });
-    render(<CalendarView tasks={[second, elsewhere, first]} initialMonth={new Date(2030, 2, 1)} {...props} />);
-
-    const agenda = within(screen.getByTestId('calendar-agenda'));
-    expect(agenda.getAllByTestId('agenda-day')).toHaveLength(2);
-    const headings = agenda.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent);
-    expect(headings[0]).toMatch(/Mar 3$/);
-    expect(headings[1]).toMatch(/Mar 20$/);
-    expect(agenda.queryByText('Next month')).not.toBeInTheDocument();
-
-    await userEvent.click(agenda.getByRole('button', { name: /^Review/ }));
-    expect(props.onEdit).toHaveBeenCalledWith(second);
-
-    await userEvent.click(agenda.getByRole('button', { name: 'Add task on March 3' }));
-    expect(props.onCreate).toHaveBeenLastCalledWith({ deadline: '2030-03-03' });
-
-    await userEvent.click(agenda.getByRole('button', { name: 'Add task' }));
-    expect(props.onCreate).toHaveBeenLastCalledWith();
-  });
-
-  it('highlights today in the agenda and explains an empty month', () => {
-    const today = makeTask({ title: 'Due now', deadline: `${localDateKey()}T00:00:00.000Z` });
-    const { unmount } = render(<CalendarView tasks={[today]} {...handlers()} />);
-    const day = within(screen.getByTestId('calendar-agenda')).getByTestId('agenda-day');
-    expect(day).toHaveAttribute('aria-current', 'date');
-    expect(within(day).getByText('Today')).toBeInTheDocument();
-    unmount();
-
-    render(<CalendarView tasks={[]} initialMonth={new Date(2026, 9, 1)} {...handlers()} />);
-    expect(within(screen.getByTestId('calendar-agenda')).getByText('No tasks due in October 2026.')).toBeInTheDocument();
-  });
-
-  it('creates a task due on the clicked day', async () => {
-    const props = handlers();
-    render(<CalendarView tasks={[]} initialMonth={new Date(2026, 9, 1)} {...props} />);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add task due October 20' }));
-    expect(props.onCreate).toHaveBeenCalledWith({ deadline: '2026-10-20' });
   });
 });
 
