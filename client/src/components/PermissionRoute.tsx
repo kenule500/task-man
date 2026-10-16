@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePermissions } from '../hooks/usePermissions';
 import ForbiddenPage from '../pages/ForbiddenPage';
 import { Spinner } from './ds';
@@ -17,12 +18,13 @@ interface PermissionRouteProps {
  */
 export const PermissionRoute = ({ permission, children }: PermissionRouteProps) => {
   const { can, loading } = usePermissions();
+  const { t } = useTranslation();
 
   // While permissions are loading, show nothing (avoid flashing 403)
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
-        <Spinner size="md" label="Checking access" className="text-primary" />
+        <Spinner size="md" label={t('checkingAccess')} className="text-primary" />
       </div>
     );
   }

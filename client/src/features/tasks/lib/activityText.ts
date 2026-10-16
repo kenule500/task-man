@@ -1,8 +1,10 @@
+import i18n from '@/i18n';
 import type { TaskActivityChange, TaskActivityEntry } from '../api';
 import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
 import type { TaskPriority, TaskStatus, TaskType } from '../types';
 import { dateKeyOf, formatDate } from './date';
 import { formatDuration } from '@/features/time/lib/duration';
+import { currentLocale } from '@/i18n/format';
 
 export interface ActivityTextOptions {
   /** Names a sprint id; unknown ids read as "a sprint". */
@@ -16,7 +18,7 @@ export interface ActivityText {
   details: string[];
 }
 
-const pointsLabel = (value: number) => `${value} ${value === 1 ? 'point' : 'points'}`;
+const pointsLabel = (value: number) => i18n.t('tasks:form.points', { count: value });
 
 const labelOf = (field: string, value: string | undefined): string | undefined => {
   if (value === undefined) return undefined;
@@ -34,74 +36,79 @@ export const describeChange = ({ field, from, to }: TaskActivityChange, { sprint
 
   switch (field) {
     case 'title':
-      return a && b ? `renamed the task from "${a}" to "${b}"` : 'renamed the task';
+      return a && b ? i18n.t('tasks:activity.renamed', { from: a, to: b }) : i18n.t('tasks:activity.renamedShort');
     case 'status':
     case 'priority':
     case 'type':
-      return a && b ? `changed ${field} from ${a} to ${b}` : b ? `set ${field} to ${b}` : `changed ${field}`;
+    {
+      const name = i18n.t(`tasks:activity.fieldName.${field}`);
+      return a && b ? i18n.t('tasks:activity.changedFromTo', { field: name, from: a, to: b }) : b ? i18n.t('tasks:activity.setTo', { field: name, to: b }) : i18n.t('tasks:activity.changedField', { field: name });
+    }
     case 'storyPoints': {
       const numberOf = (value?: string) => (value !== undefined && value !== '' && !Number.isNaN(Number(value)) ? Number(value) : undefined);
       const before = numberOf(from);
       const after = numberOf(to);
-      if (before !== undefined && after !== undefined) return `changed story points from ${before} to ${after}`;
-      if (after !== undefined) return `estimated this at ${pointsLabel(after)}`;
-      return 'cleared the story points';
+      if (before !== undefined && after !== undefined) return i18n.t('tasks:activity.points.changed', { from: before, to: after });
+      if (after !== undefined) return i18n.t('tasks:activity.points.estimated', { points: pointsLabel(after) });
+      return i18n.t('tasks:activity.points.cleared');
     }
     case 'estimateMinutes': {
       const minutesOf = (value?: string) => (value !== undefined && value !== '' && !Number.isNaN(Number(value)) ? Number(value) : undefined);
       const before = minutesOf(from);
       const after = minutesOf(to);
-      if (before !== undefined && after !== undefined) return `changed the estimate from ${formatDuration(before)} to ${formatDuration(after)}`;
-      if (after !== undefined) return `estimated this at ${formatDuration(after)}`;
-      return 'cleared the estimate';
+      if (before !== undefined && after !== undefined) return i18n.t('tasks:activity.estimate.changed', { from: formatDuration(before), to: formatDuration(after) });
+      if (after !== undefined) return i18n.t('tasks:activity.estimate.set', { value: formatDuration(after) });
+      return i18n.t('tasks:activity.estimate.cleared');
     }
     case 'project':
-      if (a && b) return `moved this from project ${a} to ${b}`;
-      if (b) return `moved this to project ${b}`;
-      return a ? `removed this from project ${a}` : 'changed the project';
+      if (a && b) return i18n.t('tasks:activity.project.moved', { from: a, to: b });
+      if (b) return i18n.t('tasks:activity.project.movedTo', { to: b });
+      return a ? i18n.t('tasks:activity.project.removed', { from: a }) : i18n.t('tasks:activity.project.changed');
     case 'startDate':
     case 'deadline': {
-      const name = field === 'deadline' ? 'due date' : 'start date';
-      if (a && b) return `changed the ${name} from ${a} to ${b}`;
-      return b ? `set the ${name} to ${b}` : `cleared the ${name}`;
+      const name = i18n.t(`tasks:activity.dateName.${field}`);
+      if (a && b) return i18n.t('tasks:activity.date.changed', { name, from: a, to: b });
+      return b ? i18n.t('tasks:activity.date.set', { name, to: b }) : i18n.t('tasks:activity.date.cleared', { name });
     }
     case 'labels':
-      if (a && b) return `changed labels from ${a} to ${b}`;
-      return b ? `set labels to ${b}` : 'removed all labels';
+      if (a && b) return i18n.t('tasks:activity.labels.changed', { from: a, to: b });
+      return b ? i18n.t('tasks:activity.labels.set', { to: b }) : i18n.t('tasks:activity.labels.removed');
     case 'sprint': {
       const fromName = from ? sprintName?.(from) : undefined;
       const toName = to ? sprintName?.(to) : undefined;
-      if (!to) return fromName ? `moved this from ${fromName} to the backlog` : 'moved this to the backlog';
-      if (!from) return toName ? `moved this to ${toName}` : 'moved this to a sprint';
-      return fromName && toName ? `moved this from ${fromName} to ${toName}` : 'changed the sprint';
+      if (!to) return fromName ? i18n.t('tasks:activity.sprint.toBacklogFrom', { from: fromName }) : i18n.t('tasks:activity.sprint.toBacklog');
+      if (!from) return toName ? i18n.t('tasks:activity.sprint.to', { to: toName }) : i18n.t('tasks:activity.sprint.toSprint');
+      return fromName && toName ? i18n.t('tasks:activity.sprint.fromTo', { from: fromName, to: toName }) : i18n.t('tasks:activity.sprint.changed');
     }
     case 'release':
-      return to ? 'assigned this to a release' : 'removed this from its release';
+      return to ? i18n.t('tasks:activity.release.assigned') : i18n.t('tasks:activity.release.removed');
     case 'assignees': {
       const before = Number(from ?? 0);
       const after = Number(to ?? 0);
-      if (after > before) return `added ${after - before} ${after - before === 1 ? 'assignee' : 'assignees'}`;
-      if (after < before) return `removed ${before - after} ${before - after === 1 ? 'assignee' : 'assignees'}`;
-      return 'changed the assignees';
+      if (after > before) return i18n.t('tasks:activity.assignees.added', { count: after - before });
+      if (after < before) return i18n.t('tasks:activity.assignees.removed', { count: before - after });
+      return i18n.t('tasks:activity.assignees.changed');
     }
     case 'checklist':
-      return b ? `updated the checklist (${b} done)` : 'cleared the checklist';
+      return b ? i18n.t('tasks:activity.checklist.updated', { done: b }) : i18n.t('tasks:activity.checklist.cleared');
+    case 'acceptanceCriteria':
+      return b ? i18n.t('ai:activity.criteria.updated', { count: Number(b) }) : i18n.t('ai:activity.criteria.cleared');
     case 'recurrence':
-      if (a && b) return `changed the repeat from ${a} to ${b}`;
-      return b ? `set the task to repeat ${b}` : 'stopped the task from repeating';
+      if (a && b) return i18n.t('tasks:activity.recurrence.changed', { from: a, to: b });
+      return b ? i18n.t('tasks:activity.recurrence.set', { to: b }) : i18n.t('tasks:activity.recurrence.stopped');
     case 'stage':
       // Values are stage keys ("in-review")
-      return a && b ? `moved this from ${a.replace(/-/g, ' ')} to ${b.replace(/-/g, ' ')}` : 'changed the stage';
+      return a && b ? i18n.t('tasks:activity.stage.moved', { from: a.replace(/-/g, ' '), to: b.replace(/-/g, ' ') }) : i18n.t('tasks:activity.stage.changed');
     case 'description':
-      return 'edited the description';
+      return i18n.t('tasks:activity.description');
     case 'relations':
       // Values look like "duplicated_by WEB-4"
-      if (b) return `linked this: ${b.replace(/_/g, ' ')}`;
-      return a ? `removed the link: ${a.replace(/_/g, ' ')}` : 'changed the links';
+      if (b) return i18n.t('tasks:activity.relations.linked', { to: b.replace(/_/g, ' ') });
+      return a ? i18n.t('tasks:activity.relations.removed', { from: a.replace(/_/g, ' ') }) : i18n.t('tasks:activity.relations.changed');
     case 'parent':
-      return to ? 'made this a subtask' : 'made this a standalone task';
+      return to ? i18n.t('tasks:activity.parent.subtask') : i18n.t('tasks:activity.parent.standalone');
     default:
-      return `changed ${field}`;
+      return i18n.t('tasks:activity.changedField', { field });
   }
 };
 
@@ -112,40 +119,47 @@ export const describeActivity = (entry: TaskActivityEntry, options: ActivityText
     case 'task.created':
       return {
         headline: entry.changes.some(change => change.field === 'parent')
-          ? 'created this subtask'
-          : entry.changes.some(change => change.field === 'recurrence') ? 'created this task as the next repeat' : 'created this task',
+          ? i18n.t('tasks:activity.created.subtask')
+          : entry.changes.some(change => change.field === 'recurrence') ? i18n.t('tasks:activity.created.repeat') : i18n.t('tasks:activity.created.task'),
         details: [],
       };
     case 'task.duplicated': {
       const source = entry.changes.find(change => change.field === 'source')?.from;
-      return { headline: source ? `duplicated "${source}"` : 'duplicated a task', details: [] };
+      return { headline: source ? i18n.t('tasks:activity.duplicated', { source }) : i18n.t('tasks:activity.duplicatedTask'), details: [] };
     }
     case 'task.deleted': {
       const count = Number(entry.changes.find(change => change.field === 'subtasks')?.from ?? 0);
       return {
-        headline: count > 0 ? `deleted this task and ${count} ${count === 1 ? 'subtask' : 'subtasks'}` : 'deleted this task',
+        headline: count > 0 ? i18n.t('tasks:activity.deletedWithSubtasks', { count }) : i18n.t('tasks:activity.deleted'),
         details: [],
       };
     }
     case 'task.commented':
-      return { headline: 'added a comment', details: [] };
+      return { headline: i18n.t('tasks:activity.commented'), details: [] };
     case 'task.attachment_added':
-      return { headline: file?.to ? `attached ${file.to}` : 'attached a file', details: [] };
+      return { headline: file?.to ? i18n.t('tasks:activity.attached', { file: file.to }) : i18n.t('tasks:activity.attachedFile'), details: [] };
     case 'task.attachment_removed':
-      return { headline: file?.from ? `removed the attachment ${file.from}` : 'removed an attachment', details: [] };
+      return { headline: file?.from ? i18n.t('tasks:activity.attachmentRemoved', { file: file.from }) : i18n.t('tasks:activity.attachmentRemovedGeneric'), details: [] };
+    case 'ai.review_completed': {
+      const verdict = entry.changes.find(change => change.field === 'verdict')?.to;
+      return {
+        headline: verdict ? i18n.t('ai:activity.reviewCompleted', { verdict: i18n.t(`ai:verdict.${verdict}`) }) : i18n.t('ai:activity.reviewCompletedPlain'),
+        details: [],
+      };
+    }
     case 'task.updated': {
       const sentences = entry.changes.map(change => describeChange(change, options));
-      if (sentences.length === 0) return { headline: 'updated this task', details: [] };
+      if (sentences.length === 0) return { headline: i18n.t('tasks:activity.updated'), details: [] };
       if (sentences.length === 1) return { headline: sentences[0], details: [] };
-      return { headline: `made ${sentences.length} changes`, details: sentences.map(text => text.charAt(0).toUpperCase() + text.slice(1)) };
+      return { headline: i18n.t('tasks:activity.madeChanges', { count: sentences.length }), details: sentences.map(text => text.charAt(0).toUpperCase() + text.slice(1)) };
     }
     default:
-      return { headline: 'updated this task', details: [] };
+      return { headline: i18n.t('tasks:activity.updated'), details: [] };
   }
 };
 
 /** Full local date and time, for the `title` of relative times. */
 export const absoluteTime = (iso: string): string => {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString(currentLocale(), { dateStyle: 'medium', timeStyle: 'short' });
 };

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { FolderPlus, FolderPen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { PROJECT_COLORS, PROJECT_ICONS, type Project, type ProjectColor, type ProjectIcon, type ProjectInput } from '../types';
 import { PROJECT_COLOR_STYLES } from '../lib/appearance';
-import { PROJECT_ICON_LABELS } from '../lib/icons';
 import ProjectFolderIcon from './ProjectFolderIcon';
 import { MAX_PROJECT_DESCRIPTION, MAX_PROJECT_NAME } from '../lib/limits';
 import { isValidProjectKey, normalizeProjectKey, suggestProjectKey } from '../lib/projectKey';
@@ -37,6 +37,7 @@ const choiceChip = 'flex size-11 cursor-pointer items-center justify-center roun
  * Mount with a `key` per project so values reset when the target changes.
  */
 const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFormDialogProps) => {
+  const { t } = useTranslation('projects');
   const [name, setName] = useState(project?.name ?? '');
   const [key, setKey] = useState(project?.key ?? '');
   // The key follows the name until the user types their own (always for existing projects)
@@ -57,10 +58,10 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
 
   const validate = (): Errors => {
     const next: Errors = {};
-    if (!name.trim()) next.name = 'Enter a project name.';
-    else if (name.trim().length > MAX_PROJECT_NAME) next.name = `Keep the name under ${MAX_PROJECT_NAME} characters.`;
-    if (key && !isValidProjectKey(key)) next.key = 'Use 2 to 6 letters or digits, for example WEB.';
-    if (description.length > MAX_PROJECT_DESCRIPTION) next.description = `Keep the description under ${MAX_PROJECT_DESCRIPTION} characters.`;
+    if (!name.trim()) next.name = t('project.nameRequired');
+    else if (name.trim().length > MAX_PROJECT_NAME) next.name = t('project.nameTooLong', { max: MAX_PROJECT_NAME });
+    if (key && !isValidProjectKey(key)) next.key = t('project.keyInvalid');
+    if (description.length > MAX_PROJECT_DESCRIPTION) next.description = t('project.descriptionTooLong', { max: MAX_PROJECT_DESCRIPTION });
     return next;
   };
 
@@ -82,7 +83,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
       });
       onOpenChange(false);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Could not save the project.');
+      setSubmitError(err instanceof Error ? err.message : t('project.saveError'));
     } finally {
       setSubmitting(false);
     }
@@ -95,23 +96,23 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
       open={open}
       onOpenChange={onOpenChange}
       icon={editing ? <FolderPen /> : <FolderPlus />}
-      title={editing ? 'Edit project' : 'New project'}
+      title={editing ? t('project.editTitle') : t('project.newTitle')}
       description={editing
-        ? 'Rename it, change its look or update the description. Tasks follow a renamed project.'
-        : 'A project groups sprints and tasks. Pick a color and icon so it is easy to spot.'}
+        ? t('project.editDescription')
+        : t('project.newDescription')}
       onSubmit={handleSubmit}
-      submitLabel={editing ? 'Save changes' : 'Create project'}
-      submittingLabel="Saving..."
+      submitLabel={editing ? t('sprintForm.saveChanges') : t('project.create')}
+      submittingLabel={t('sprintForm.saving')}
       submitting={submitting}
       error={submitError}
       size="md"
     >
-      <Field label="Name" htmlFor="project-name" required error={errors.name}>
+      <Field label={t('project.name')} htmlFor="project-name" required error={errors.name}>
         <Input
           id="project-name"
           value={name}
           onChange={event => changeName(event.target.value)}
-          placeholder="Website redesign"
+          placeholder={t('project.namePlaceholder')}
           maxLength={MAX_PROJECT_NAME + 20}
           autoFocus
           aria-invalid={Boolean(errors.name)}
@@ -121,10 +122,10 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
       </Field>
 
       <Field
-        label="Key"
+        label={t('project.key')}
         htmlFor="project-key"
         error={errors.key}
-        hint="A short code shown next to the project. Suggested from the name."
+        hint={t('project.keyHint')}
       >
         <Input
           id="project-key"
@@ -143,7 +144,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
       </Field>
 
       <Field
-        label="Description"
+        label={t('project.description')}
         htmlFor="project-description"
         error={errors.description}
         hint={`${description.length}/${MAX_PROJECT_DESCRIPTION}`}
@@ -152,7 +153,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
           id="project-description"
           value={description}
           onChange={event => setDescription(event.target.value)}
-          placeholder="What is this project about?"
+          placeholder={t('project.descriptionPlaceholder')}
           rows={3}
           aria-invalid={Boolean(errors.description)}
           aria-describedby={fieldMessageId('project-description')}
@@ -172,7 +173,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
 
         <div className="min-w-0 flex-1 space-y-4">
           <fieldset className="space-y-1.5">
-            <legend className="text-sm font-medium text-slate-700">Color</legend>
+            <legend className="text-sm font-medium text-slate-700">{t('project.color')}</legend>
             <div className="flex flex-wrap gap-1">
               {PROJECT_COLORS.map(value => (
                 <label key={value} className="relative">
@@ -187,14 +188,14 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
                   <span aria-hidden className={choiceChip}>
                     <span className={cn('size-7 rounded-full', PROJECT_COLOR_STYLES[value].swatch)} />
                   </span>
-                  <span className="sr-only">{PROJECT_COLOR_STYLES[value].label}</span>
+                  <span className="sr-only">{t(`colors.${value}`)}</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
           <fieldset className="space-y-1.5">
-            <legend className="text-sm font-medium text-slate-700">Icon</legend>
+            <legend className="text-sm font-medium text-slate-700">{t('project.icon')}</legend>
             <div className="flex flex-wrap gap-1">
               {PROJECT_ICONS.map(value => (
                 <label key={value} className="relative">
@@ -209,7 +210,7 @@ const ProjectFormDialog = ({ open, onOpenChange, project, onSubmit }: ProjectFor
                   <span aria-hidden className={cn(choiceChip, 'hover:bg-slate-100 peer-checked:bg-white peer-checked:ring-2 peer-checked:ring-slate-900/10')}>
                     <ProjectFolderIcon size="md" color={color} icon={value} />
                   </span>
-                  <span className="sr-only">{PROJECT_ICON_LABELS[value]}</span>
+                  <span className="sr-only">{t(`icons.${value}`)}</span>
                 </label>
               ))}
             </div>

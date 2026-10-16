@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { parseFilterParams, serializeFilters, type TaskView } from '@/features/tasks';
 import { parseQuickFilters, serializeQuickFilters } from '@/features/tasks/lib/boardQuickFilters';
 import { parseSwimlaneGroup } from '@/features/tasks/lib/swimlanes';
@@ -46,22 +47,23 @@ export const editableViews = (views: readonly SavedView[], canManageShared: bool
 /** Short description of what a view holds, e.g. "Board · project Web · active sprint · Assigned to me". */
 export const describeView = (view: Pick<SavedView, 'view' | 'query'>): string => {
   const params = new URLSearchParams(normalizeSavedQuery(view.query));
-  const parts: string[] = [view.view[0].toUpperCase() + view.view.slice(1)];
+  const t = (key: string, options?: Record<string, unknown>) => i18n.t(`tasks:views.describe.${key}`, options);
+  const parts: string[] = [i18n.t(`tasks:view.${view.view}`, { defaultValue: view.view[0].toUpperCase() + view.view.slice(1) })];
   const q = params.get('q');
   if (q) parts.push(`“${q}”`);
   for (const name of ['status', 'priority', 'type', 'label'] as const) {
     const value = params.get(name);
-    if (value) parts.push(`${name} ${value}`);
+    if (value) parts.push(t(name, { value: name === 'label' ? value : i18n.t(`tasks:views.value.${name}.${value}`, { defaultValue: value }) }));
   }
-  if (params.get('epic')) parts.push('epic');
+  if (params.get('epic')) parts.push(t('epic'));
   const project = params.get('project');
-  if (project) parts.push(`project ${project}`);
+  if (project) parts.push(t('project', { value: project }));
   const sprint = params.get('sprint');
-  if (sprint) parts.push(sprint === 'active' ? 'active sprint' : sprint === 'backlog' ? 'backlog' : 'sprint');
-  if (params.get('release')) parts.push(params.get('release') === 'none' ? 'no release' : 'release');
+  if (sprint) parts.push(sprint === 'active' ? t('activeSprint') : sprint === 'backlog' ? t('backlog') : t('sprint'));
+  if (params.get('release')) parts.push(params.get('release') === 'none' ? t('noRelease') : t('release'));
   const fieldFilters = [...params.keys()].filter(name => name.startsWith('cf.')).length;
-  if (fieldFilters > 0) parts.push(fieldFilters === 1 ? 'field filter' : `${fieldFilters} field filters`);
-  if (params.get('assignedToMe')) parts.push('assigned to me');
-  if (params.get('qf')) parts.push('quick filters');
-  return parts.join(' · ');
+  if (fieldFilters > 0) parts.push(fieldFilters === 1 ? t('fieldFilter') : t('fieldFilters', { count: fieldFilters }));
+  if (params.get('assignedToMe')) parts.push(t('assignedToMe'));
+  if (params.get('qf')) parts.push(t('quickFilters'));
+  return parts.join(t('sep'));
 };

@@ -1,5 +1,7 @@
 import { useId, useState, type KeyboardEvent } from 'react';
 import { Repeat } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { toast } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import { getApiErrorMessage } from '../api';
@@ -21,14 +23,15 @@ export interface TaskRecurrenceFieldProps {
 type Mode = 'none' | 'repeat';
 
 const MODE_OPTIONS: SelectOption<Mode>[] = [
-  { value: 'none', label: 'Does not repeat' },
-  { value: 'repeat', label: 'Repeats' },
+  { value: 'none', get label() { return i18n.t('tasks:recurrence.none'); } },
+  { value: 'repeat', get label() { return i18n.t('tasks:recurrence.repeats'); } },
 ];
 
-const BASIS_OPTIONS: SelectOption<RecurrenceBasis>[] = RECURRENCE_BASIS_OPTIONS.map(({ value, label }) => ({ value, label }));
+const BASIS_OPTIONS: SelectOption<RecurrenceBasis>[] = RECURRENCE_BASIS_OPTIONS; // labels are getters: resolved per render
 
 /** "Repeat" setting of a task: none, or every N days / weeks / months counted from the due date or the completion. */
 const TaskRecurrenceField = ({ value, canWrite, onChange }: TaskRecurrenceFieldProps) => {
+  const { t } = useTranslation('tasks');
   const inputId = useId();
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -44,7 +47,7 @@ const TaskRecurrenceField = ({ value, canWrite, onChange }: TaskRecurrenceFieldP
     try {
       await onChange(next);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not save the repeat setting.'));
+      toast.error(getApiErrorMessage(err, t('recurrence.saveError')));
     }
   };
 
@@ -71,7 +74,7 @@ const TaskRecurrenceField = ({ value, canWrite, onChange }: TaskRecurrenceFieldP
   return (
     <div className="flex flex-wrap items-center gap-2">
       <OptionSelect
-        aria-label="Repeat"
+        aria-label={t('recurrence.repeat')}
         value={value ? 'repeat' : 'none'}
         options={MODE_OPTIONS}
         onChange={mode => { void save(mode === 'repeat' ? DEFAULT_RECURRENCE : null); }}
@@ -79,14 +82,14 @@ const TaskRecurrenceField = ({ value, canWrite, onChange }: TaskRecurrenceFieldP
       />
       {value && (
         <>
-          <label htmlFor={inputId} className="text-sm text-slate-600">Every</label>
+          <label htmlFor={inputId} className="text-sm text-slate-600">{t('recurrence.everyLabel')}</label>
           <Input
             id={inputId}
             type="number"
             inputMode="numeric"
             min={1}
             max={MAX_RECURRENCE_EVERY}
-            aria-label="Repeat interval"
+            aria-label={t('recurrence.interval')}
             value={draft ?? String(value.every)}
             onChange={event => setDraft(event.target.value)}
             onBlur={commitEvery}
@@ -94,14 +97,14 @@ const TaskRecurrenceField = ({ value, canWrite, onChange }: TaskRecurrenceFieldP
             className="h-10 w-20 rounded-lg border border-slate-200 bg-white text-base text-slate-900 shadow-none focus-visible:ring-0 sm:h-9 sm:text-sm"
           />
           <OptionSelect
-            aria-label="Repeat unit"
+            aria-label={t('recurrence.unit.label')}
             value={value.unit}
             options={unitOptions}
             onChange={unit => { void save({ ...value, unit }); }}
             className="h-10 w-28 sm:h-9"
           />
           <OptionSelect
-            aria-label="Repeat counted from"
+            aria-label={t('recurrence.countedFrom')}
             value={value.basis}
             options={BASIS_OPTIONS}
             onChange={basis => { void save({ ...value, basis }); }}

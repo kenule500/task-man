@@ -22,7 +22,7 @@ export const DialogShell = ({ title, description, icon, onClose, children, initi
       initialFocus={initialFocus}
       className={`flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:rounded-xl ${wide ? 'sm:max-w-[760px]' : 'sm:max-w-[600px]'}`}
     >
-      <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pr-12 pt-5 sm:px-6 sm:pt-6">
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pe-12 pt-5 sm:px-6 sm:pt-6">
         <div className="flex items-start gap-3">
           <div aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary [&_svg]:size-5">
             {icon}

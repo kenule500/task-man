@@ -2,6 +2,8 @@ import { useId, type PointerEvent } from 'react';
 import { formatDate } from '@/features/tasks';
 import { useActiveIndex } from '../hooks/useActiveIndex';
 import { useChartWidth } from '../hooks/useChartWidth';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { FLOW_STATUS_LABEL, STACK_ORDER, areaPath, axisScale, cfdMax, describeCfd, labelIndexes, stackBands } from '../lib/flow';
 import type { CfdDay, FlowStatusKey } from '../types';
 import { ChartLegend, ChartTooltip, ScrollFrame } from './ChartParts';
@@ -26,13 +28,14 @@ const shortDate = (key: string) => formatDate(key, { month: 'short', day: 'numer
 const longDate = (key: string) => formatDate(key, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
 const dayText = (day: CfdDay) =>
-  `${longDate(day.date)}: ${STACK_ORDER.slice().reverse().map(status => `${day[status]} ${FLOW_STATUS_LABEL[status].toLowerCase()}`).join(', ')}`;
+  i18n.t('reports:flow.dayText', { date: longDate(day.date), parts: STACK_ORDER.slice().reverse().map(status => `${day[status]} ${FLOW_STATUS_LABEL[status].toLowerCase()}`).join(i18n.t('tasks:dots.separator')) });
 
 /**
  * Stacked areas of the tasks in each status per day. Widening bands show where work piles up.
  * One image for assistive tech (summary), arrow keys read the days, and a hidden table has every number.
  */
 const CumulativeFlowChart = ({ cfd }: { cfd: CfdDay[] }) => {
+  const { t } = useTranslation('reports');
   const id = useId();
   const [box, W] = useChartWidth(MIN_W);
   const { active, setActive, handlers } = useActiveIndex(cfd.length, 'last');
@@ -54,9 +57,9 @@ const CumulativeFlowChart = ({ cfd }: { cfd: CfdDay[] }) => {
 
   return (
     <figure className="m-0">
-      <ScrollFrame label="Cumulative flow chart. Use the left and right arrow keys to read each day." aria-describedby={`${id}-live`} {...handlers}>
+      <ScrollFrame label={t('flow.cfdChartLabel')} aria-describedby={`${id}-live`} {...handlers}>
         <div ref={box} className="relative min-w-[520px]" onPointerMove={moveTo} onPointerDown={moveTo}>
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={describeCfd(cfd)} className="block h-auto w-full text-slate-500">
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={describeCfd(cfd)} className="block h-auto w-full text-slate-500 [direction:ltr]">
             {scale.ticks.map(tick => (
               <g key={tick}>
                 <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-slate-200" strokeWidth={1} />
@@ -106,15 +109,15 @@ const CumulativeFlowChart = ({ cfd }: { cfd: CfdDay[] }) => {
         items={STACK_ORDER.slice().reverse().map(status => ({
           label: FLOW_STATUS_LABEL[status],
           swatch: <span aria-hidden className={`inline-block size-2.5 rounded-sm ${SWATCH[status]}`} />,
-          value: last ? `${last[status]} now` : undefined,
+          value: last ? t('flow.now', { n: last[status] }) : undefined,
         }))}
       />
 
       <div className="sr-only">
         <table>
-          <caption>Tasks in each status at the end of every day</caption>
+          <caption>{t('flow.cfdCaption')}</caption>
           <thead>
-            <tr><th scope="col">Date</th><th scope="col">Pending</th><th scope="col">In progress</th><th scope="col">Completed</th></tr>
+            <tr><th scope="col">{t('flow.date')}</th><th scope="col">{FLOW_STATUS_LABEL.pending}</th><th scope="col">{FLOW_STATUS_LABEL.inProgress}</th><th scope="col">{FLOW_STATUS_LABEL.completed}</th></tr>
           </thead>
           <tbody>
             {cfd.map(day => (

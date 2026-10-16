@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Mail, UserPlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Alert, Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { validateEmail } from '@/components/auth/validation';
 import FormDialog from './FormDialog';
+import { roleDisplayDescription, roleDisplayName } from './settings/rbac';
 
 interface Role {
   _id: string;
@@ -29,6 +31,7 @@ const InviteMemberModal = ({
   workspaceSlug,
   onInvited,
 }: InviteMemberModalProps) => {
+  const { t } = useTranslation('settings');
   const [email, setEmail] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
   const [roleId, setRoleId] = useState('');
@@ -56,12 +59,12 @@ const InviteMemberModal = ({
         }
       } catch (err) {
         console.error('Failed to load roles:', err);
-        setError('We could not load the roles. Close this dialog and try again.');
+        setError(t('invite.rolesFailed'));
       } finally {
         setLoadingRoles(false);
       }
     })();
-  }, [open, workspaceSlug]);
+  }, [open, workspaceSlug, t]);
 
   // Close shortly after a successful invite (cleared if the dialog closes first)
   useEffect(() => {
@@ -96,7 +99,7 @@ const InviteMemberModal = ({
       if (onInvited) onInvited();
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError.response?.data?.message || 'We could not send the invitation. Try again.');
+      setError(axiosError.response?.data?.message || t('invite.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -119,20 +122,20 @@ const InviteMemberModal = ({
       open={open}
       onOpenChange={handleClose}
       icon={<UserPlus aria-hidden />}
-      title="Invite a member"
-      description="Send an invitation to join this workspace."
+      title={t('invite.title')}
+      description={t('invite.description')}
       onSubmit={handleSubmit}
-      submitLabel="Send invitation"
-      submittingLabel="Sending..."
+      submitLabel={t('invite.submit')}
+      submittingLabel={t('invite.sending')}
       submitting={loading}
       submitDisabled={!roleId || loadingRoles}
       error={error}
     >
-      {success && <Alert tone="success">Invitation sent.</Alert>}
+      {success && <Alert tone="success">{t('invite.sent')}</Alert>}
 
-      <Field label="Email address" htmlFor="invite-email" required error={emailError}>
+      <Field label={t('invite.email')} htmlFor="invite-email" required error={emailError}>
         <div className="relative">
-          <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden />
+          <Mail className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden />
           <Input
             id="invite-email"
             type="email"
@@ -146,18 +149,18 @@ const InviteMemberModal = ({
             onBlur={() => setEmailTouched(true)}
             aria-invalid={!!emailError}
             aria-describedby={emailError ? fieldMessageId('invite-email') : undefined}
-            placeholder="teammate@company.com"
-            className="h-11 rounded-lg border-slate-300 bg-white pl-9 text-base shadow-none placeholder:text-slate-500 md:text-sm"
+            placeholder={t('invite.emailPlaceholder')}
+            className="h-11 rounded-lg border-slate-300 bg-white ps-9 text-base shadow-none placeholder:text-slate-500 md:text-sm"
             autoFocus
           />
         </div>
       </Field>
 
       <Field
-        label="Role"
+        label={t('invite.role')}
         htmlFor="invite-role"
         required
-        hint={selectedRole?.description || undefined}
+        hint={(selectedRole && roleDisplayDescription(selectedRole)) || undefined}
       >
         {loadingRoles ? (
           <Skeleton className="h-11 w-full rounded-lg bg-slate-200" />
@@ -166,13 +169,13 @@ const InviteMemberModal = ({
             id="invite-role"
             value={roleId}
             onChange={(e) => setRoleId(e.target.value)}
-            aria-describedby={selectedRole?.description ? fieldMessageId('invite-role') : undefined}
+            aria-describedby={selectedRole && roleDisplayDescription(selectedRole) ? fieldMessageId('invite-role') : undefined}
             className={SELECT}
             required
           >
             {roles.map((role) => (
               <option key={role._id} value={role._id}>
-                {role.name}
+                {roleDisplayName(role)}
               </option>
             ))}
           </select>

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { getApiErrorMessage } from '@/utils/api';
@@ -25,7 +26,7 @@ export const useWikiPage = (slug: string | undefined, pageId: string | undefined
       .catch(err => {
         if (cancelled) return;
         const notFound = axios.isAxiosError(err) && err.response?.status === 404;
-        setLoaded({ key, page: null, notFound, error: notFound ? '' : getApiErrorMessage(err, 'We could not load this page. Check your connection and try again.') });
+        setLoaded({ key, page: null, notFound, error: notFound ? '' : getApiErrorMessage(err, i18n.t('projects:wiki.errors.loadPage')) });
       });
     return () => { cancelled = true; };
   }, [key, slug, pageId, version]);

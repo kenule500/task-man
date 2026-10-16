@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
+import i18n from '@/i18n';
 import { fetchCached, getCached, invalidate, setCached, subscribe, tasksKey } from '@/lib/queryCache';
 import { cachedWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import type { WorkflowStage } from '@/features/workflow/types';
@@ -129,7 +130,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
           .map(task => [...removed].reduce(detachDependency, task));
       });
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not delete the task.'));
+      setError(getApiErrorMessage(err, i18n.t('tasks:errors.deleteTask')));
     } finally {
       busyRef.current -= 1;
       // On failure the task reappears
@@ -172,8 +173,8 @@ export const useTasks = (workspaceSlug: string | undefined) => {
           invalidate(key);
         }
         setError(denied
-          ? `You don't have access to "${workspaceSlug}". Use the workspace switcher to pick another one.`
-          : getApiErrorMessage(err, 'Failed to load tasks.'));
+          ? i18n.t('tasks:errors.noAccess', { slug: workspaceSlug })
+          : getApiErrorMessage(err, i18n.t('tasks:errors.loadTasks')));
       })
       .finally(() => {
         if (!cancelled) setLoadedSlug(workspaceSlug);
@@ -218,7 +219,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
       setTasks(list);
       setError('');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Failed to load tasks.'));
+      setError(getApiErrorMessage(err, i18n.t('tasks:errors.loadTasks')));
     }
   }, [workspaceSlug, setTasks]);
 
@@ -283,7 +284,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
       return saved;
     } catch (err) {
       setTasks(current => current.map(task => (task._id === id ? previous : task)));
-      setError(getApiErrorMessage(err, 'Could not save your change.'));
+      setError(getApiErrorMessage(err, i18n.t('tasks:checklist.saveError')));
       return null;
     } finally {
       busyRef.current -= 1;
@@ -368,7 +369,7 @@ export const useTasks = (workspaceSlug: string | undefined) => {
   }, [workspaceSlug, replaceTask, setTasks]);
 
   const downloadAttachment = useCallback(async (id: string, attachmentId: string): Promise<Blob> => {
-    if (!workspaceSlug) throw new Error('No workspace selected.');
+    if (!workspaceSlug) throw new Error(i18n.t('tasks:errors.noWorkspaceDot'));
     return tasksApi.downloadAttachment(workspaceSlug, id, attachmentId);
   }, [workspaceSlug]);
 

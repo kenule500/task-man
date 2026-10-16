@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Field, fieldMessageId, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ const NOTE_MAX = 200;
 
 /** "Log time" button with a small form: duration ("1h 30m"), the day it was worked and an optional note. */
 const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
+  const { t } = useTranslation('tasks');
   const id = useId();
   const [open, setOpen] = useState(false);
   const [duration, setDuration] = useState('');
@@ -39,15 +41,15 @@ const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
     if (saving) return;
     const minutes = parseDuration(duration);
     if (minutes === null || minutes < 1) {
-      setError('Enter a duration such as 1h 30m, 45m or 1:30.');
+      setError(t('time.logInvalid'));
       return;
     }
     if (minutes > MAX_ENTRY_MINUTES) {
-      setError('A single entry can be at most 24 hours. Split longer work across days.');
+      setError(t('time.logTooLong'));
       return;
     }
     if (!day || day > todayKey()) {
-      setError('Pick today or an earlier day.');
+      setError(t('time.logDay'));
       return;
     }
     setError('');
@@ -55,11 +57,11 @@ const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
     try {
       const startedAt = loggedAtFor(day);
       await onLog({ minutes, ...(startedAt ? { startedAt } : {}), ...(note.trim() ? { note: note.trim() } : {}) });
-      toast.success('Time logged');
+      toast.success(t('time.logged'));
       setOpen(false);
       reset();
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not log the time. Check your connection and try again.'));
+      setError(getApiErrorMessage(err, t('time.logError')));
     } finally {
       setSaving(false);
     }
@@ -71,13 +73,13 @@ const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
       <PopoverTrigger
         render={
           <Button type="button" variant="outline" disabled={disabled} className="h-10 gap-1.5 border-slate-300 text-slate-700 sm:h-9">
-            <Plus className="size-4" aria-hidden /> Log time
+            <Plus className="size-4" aria-hidden /> {t('time.logTime')}
           </Button>
         }
       />
-      <PopoverContent aria-label="Log time" width="lg" className="max-w-[calc(100vw-1.5rem)]">
+      <PopoverContent aria-label={t('time.logTime')} width="lg" className="max-w-[calc(100vw-1.5rem)]">
         <form onSubmit={event => { void submit(event); }} className="space-y-3" noValidate>
-          <Field label="Time spent" htmlFor={durationId} required error={error || undefined} hint={error ? undefined : 'For example 1h 30m, 45m or 1:30.'}>
+          <Field label={t('time.timeSpent')} htmlFor={durationId} required error={error || undefined} hint={error ? undefined : t('time.logHint')}>
             <Input
               id={durationId}
               value={duration}
@@ -89,7 +91,7 @@ const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
               className="h-11 text-base md:h-9 md:text-sm"
             />
           </Field>
-          <Field label="Day" htmlFor={`${id}-day`}>
+          <Field label={t('time.day')} htmlFor={`${id}-day`}>
             <Input
               id={`${id}-day`}
               type="date"
@@ -99,20 +101,20 @@ const LogTimePopover = ({ onLog, disabled }: LogTimePopoverProps) => {
               className="h-11 text-base md:h-9 md:text-sm"
             />
           </Field>
-          <Field label="Note" htmlFor={`${id}-note`} hint="Optional.">
+          <Field label={t('time.note')} htmlFor={`${id}-note`} hint={t('time.optional')}>
             <Input
               id={`${id}-note`}
               value={note}
               maxLength={NOTE_MAX}
               onChange={event => setNote(event.target.value)}
-              placeholder="What did you work on?"
+              placeholder={t('time.notePlaceholder')}
               autoComplete="off"
               className="h-11 text-base md:h-9 md:text-sm"
             />
           </Field>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="h-10 sm:h-9">Cancel</Button>
-            <Button type="submit" loading={saving} className="h-10 bg-primary text-white hover:bg-primary-hover sm:h-9">Log time</Button>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="h-10 sm:h-9">{t('actions.cancel')}</Button>
+            <Button type="submit" loading={saving} className="h-10 bg-primary text-white hover:bg-primary-hover sm:h-9">{t('time.logTime')}</Button>
           </div>
         </form>
       </PopoverContent>

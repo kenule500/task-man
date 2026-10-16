@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Task } from '../types';
 
 export interface SubtaskProgressCount {
@@ -61,7 +62,7 @@ export const arrangeWithSubtasks = (tasks: Task[], allTasks: Task[] = tasks): Li
 
   for (const task of tasks) {
     if (task.parent && shown.has(task.parent)) continue;
-    entries.push(task.parent ? { task, depth: 0, orphanOf: titles.get(task.parent) ?? 'another task' } : { task, depth: 0 });
+    entries.push(task.parent ? { task, depth: 0, orphanOf: titles.get(task.parent) ?? i18n.t('tasks:subtasks.anotherTask') } : { task, depth: 0 });
     for (const child of children.get(task._id) ?? []) entries.push({ task: child, depth: 1 });
   }
   return entries;

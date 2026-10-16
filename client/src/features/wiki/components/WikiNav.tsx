@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FileText, Plus, Search } from 'lucide-react';
 import { Alert, EmptyState, SearchInput, SkeletonList, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -29,22 +30,23 @@ const hitHref = (workspaceSlug: string, hit: { _id: string; project: string }) =
 const WikiNav = ({
   workspaceSlug, pages, loading, error, selectedId, expanded, canWrite, onToggle, onSelect, onNewPage, onNavigate,
 }: WikiNavProps) => {
+  const { t } = useTranslation('projects');
   const [query, setQuery] = useState('');
   const search = useWikiSearch(workspaceSlug, query);
 
   return (
     <div className="space-y-3">
-      <SearchInput label="Search pages" placeholder="Search pages" value={query} onValueChange={setQuery} />
+      <SearchInput label={t('wiki.searchPages')} placeholder={t('wiki.searchPages')} value={query} onValueChange={setQuery} />
 
       {search.active ? (
         <div aria-live="polite">
-          {search.searching && <p className="flex items-center gap-2 px-1 py-2 text-sm text-text-subtle"><Spinner decorative /> Searching</p>}
+          {search.searching && <p className="flex items-center gap-2 px-1 py-2 text-sm text-text-subtle"><Spinner decorative /> {t('wiki.searching')}</p>}
           {search.error && <Alert tone="error">{search.error}</Alert>}
           {!search.searching && !search.error && search.hits.length === 0 && (
-            <p className="px-1 py-2 text-sm text-text-subtle">No pages match "{query.trim()}".</p>
+            <p className="px-1 py-2 text-sm text-text-subtle">{t('wiki.noMatch', { query: query.trim() })}</p>
           )}
           {search.hits.length > 0 && (
-            <ul aria-label="Search results" className="space-y-1">
+            <ul aria-label={t('wiki.searchResults')} className="space-y-1">
               {search.hits.map(hit => (
                 <li key={hit._id}>
                   <Link
@@ -56,8 +58,8 @@ const WikiNav = ({
                       <FileText aria-hidden className="size-4 shrink-0 text-text-subtle" />
                       <span className="truncate">{hit.title}</span>
                     </span>
-                    {hit.project && <span className="block pl-5.5 text-xs text-text-subtle">{hit.project}</span>}
-                    {hit.snippet && <span className="line-clamp-2 block pl-5.5 text-xs text-text-subtle">{hit.snippet}</span>}
+                    {hit.project && <span className="block ps-5.5 text-xs text-text-subtle">{hit.project}</span>}
+                    {hit.snippet && <span className="line-clamp-2 block ps-5.5 text-xs text-text-subtle">{hit.snippet}</span>}
                   </Link>
                 </li>
               ))}
@@ -65,23 +67,23 @@ const WikiNav = ({
           )}
         </div>
       ) : loading ? (
-        <SkeletonList label="Loading pages" rows={5} avatar={false} trailing={false} bare />
+        <SkeletonList label={t('wiki.loadingPages')} rows={5} avatar={false} trailing={false} bare />
       ) : error ? (
         <Alert tone="error">{error}</Alert>
       ) : pages.length === 0 ? (
         <EmptyState
           headingLevel="h2"
           icon={<Search />}
-          title="No pages yet"
-          description={canWrite ? 'Create the first page to start your wiki.' : 'Nothing has been written here yet.'}
-          action={canWrite ? <Button type="button" onClick={onNewPage}><Plus aria-hidden /> New page</Button> : undefined}
+          title={t('wiki.noPagesTitle')}
+          description={canWrite ? t('wiki.noPagesWrite') : t('wiki.noPagesRead')}
+          action={canWrite ? <Button type="button" onClick={onNewPage}><Plus aria-hidden /> {t('wiki.newPage')}</Button> : undefined}
           className="py-8"
         />
       ) : (
         <>
           {canWrite && (
             <Button type="button" variant="outline" onClick={onNewPage} className="h-11 w-full justify-start gap-2 md:h-9">
-              <Plus aria-hidden /> New page
+              <Plus aria-hidden /> {t('wiki.newPage')}
             </Button>
           )}
           <WikiTree pages={pages} selectedId={selectedId} expanded={expanded} onToggle={onToggle} onSelect={id => { onSelect(id); onNavigate?.(); }} />

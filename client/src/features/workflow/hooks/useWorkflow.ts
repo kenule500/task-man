@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { useParams } from 'react-router-dom';
 import { workflowApi } from '../api';
-import { STATUS_STAGES } from '../lib/stages';
+import { STATUS_STAGES, localizeStage } from '../lib/stages';
 import type { WorkflowStage, WorkflowUpdate } from '../types';
 
 // One cache per workspace slug, shared by every view on screen; saving the settings updates all of them.
@@ -47,8 +49,10 @@ export const resetWorkflowCache = () => {
 };
 
 export interface UseWorkflow {
-  /** The workspace's stages in board order; the three plain statuses until the workflow is loaded. */
+  /** The workspace's stages in board order; the three plain statuses until the workflow is loaded. Built-in names are translated. */
   stages: WorkflowStage[];
+  /** The stages exactly as saved (what the settings page edits). */
+  rawStages: WorkflowStage[];
   /** False while loading or when the API could not be reached (stages are then the plain statuses). */
   loaded: boolean;
   /** Replaces the workflow (needs settings:manage); rejects with the API error. */
@@ -61,6 +65,7 @@ export interface UseWorkflow {
  * so views need no extra props; outside a workspace route the plain status columns are used.
  */
 export const useWorkflow = (slugArg?: string): UseWorkflow => {
+  const { i18n: i18nInstance } = useTranslation();
   const params = useParams();
   const slug = slugArg ?? params.workspaceSlug;
   const stages = useSyncExternalStore(subscribe, () => (slug ? cache.get(slug) : undefined));
@@ -70,7 +75,7 @@ export const useWorkflow = (slugArg?: string): UseWorkflow => {
   }, [slug]);
 
   const save = useCallback(async (update: WorkflowUpdate) => {
-    if (!slug) throw new Error('No workspace selected');
+    if (!slug) throw new Error(i18n.t('tasks:workflow.noWorkspace'));
     const saved = await workflowApi.save(slug, update);
     publish(slug, saved);
     return saved;
@@ -81,5 +86,7 @@ export const useWorkflow = (slugArg?: string): UseWorkflow => {
     await load(slug);
   }, [slug]);
 
-  return { stages: stages ?? STATUS_STAGES, loaded: stages !== undefined, save, reload };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the language decides the names
+  const shown = useMemo(() => (stages ? stages.map(localizeStage) : STATUS_STAGES), [stages, i18nInstance.language]);
+  return { stages: shown, rawStages: stages ?? STATUS_STAGES, loaded: stages !== undefined, save, reload };
 };

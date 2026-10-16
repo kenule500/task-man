@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Task } from '@/features/tasks';
 import { addDays, dateKeyOf, diffInDays, parseDateKey, toDateKey } from '@/features/tasks';
 import type { Sprint } from '../types';
@@ -66,12 +67,13 @@ export const describeBurndown = (burndown: Burndown, today: Date = new Date()): 
   const todayKey = toDateKey(today);
   const known = points.filter(point => point.remaining !== null);
   const current = known.at(-1);
-  if (!current || points.length === 0) return `Burndown chart: ${total} ${unit} planned, the sprint has not started.`;
+  const unitLabel = i18n.t(`projects:units.${unit}`);
+  if (!current || points.length === 0) return i18n.t('projects:burndown.notStarted', { total, unit: unitLabel });
 
   const day = points.findIndex(point => point.date === current.date) + 1;
   const remaining = current.remaining ?? 0;
   const diff = Math.round((remaining - current.ideal) * 10) / 10;
-  const pace = diff > 0 ? `${diff} ${unit} behind the ideal line` : diff < 0 ? `${-diff} ${unit} ahead of the ideal line` : 'on the ideal line';
-  const when = current.date === todayKey ? `Day ${day} of ${points.length}` : `Day ${day} of ${points.length} (latest data)`;
-  return `Burndown chart: ${remaining} of ${total} ${unit} remaining. ${when}, ${pace}.`;
+  const pace = diff > 0 ? i18n.t('projects:burndown.behind', { diff, unit: unitLabel }) : diff < 0 ? i18n.t('projects:burndown.ahead', { diff: -diff, unit: unitLabel }) : i18n.t('projects:burndown.onLine');
+  const when = current.date === todayKey ? i18n.t('projects:burndown.day', { day, total: points.length }) : i18n.t('projects:burndown.dayLatest', { day, total: points.length });
+  return i18n.t('projects:burndown.summary', { remaining, total, unit: unitLabel, when, pace });
 };

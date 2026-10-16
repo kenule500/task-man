@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { AlertTriangle, ChartGantt } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useDir } from '@/i18n/useIsRtl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ds';
@@ -13,6 +15,7 @@ import {
 import { useLiveHold } from '@/features/live/hooks/useLiveHold';
 import type { Task } from '../types';
 import type { TaskViewProps } from './types';
+import { currentLocale } from '@/i18n/format';
 
 const ROW_HEIGHT = 44;
 const BAR_HEIGHT = 26;
@@ -44,6 +47,8 @@ const previewRow = (row: TimelineRow, drag: DragState | null): TimelineRow => {
 const TimelineView = ({
   tasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true,
 }: Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'>) => {
+  const { t } = useTranslation('tasks');
+  const dir = useDir();
   const [zoom, setZoom] = useState<Zoom>(getInitialZoom);
   const [drag, setDrag] = useState<DragState | null>(null);
   // A refetch in the middle of a bar drag would move the bars under the pointer
@@ -115,9 +120,9 @@ const TimelineView = ({
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
         <EmptyState
           icon={<ChartGantt />}
-          title="Nothing scheduled yet"
-          description="Add tasks with a start and due date to see them on the timeline."
-          action={canWrite ? <Button onClick={() => onCreate()} className="h-9 bg-primary hover:bg-primary-hover text-white">Add task</Button> : undefined}
+          title={t('timeline.emptyTitle')}
+          description={t('timeline.emptyDescription')}
+          action={canWrite ? <Button onClick={() => onCreate()} className="h-9 bg-primary hover:bg-primary-hover text-white">{t('calendar.addTask')}</Button> : undefined}
         />
       </div>
     );
@@ -127,16 +132,16 @@ const TimelineView = ({
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 border-b border-slate-100 md:px-6 md:py-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-slate-400" />Dependency</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 shrink-0 border-t-2 border-dashed border-danger-dot" />Starts before prerequisite is due</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 bg-slate-400" />{t('timeline.dependency')}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 shrink-0 border-t-2 border-dashed border-danger-dot" />{t('timeline.startsBefore')}</span>
           {conflicts > 0 && (
             <span role="status" className="inline-flex items-center gap-1 rounded-md bg-danger-bg px-2 py-0.5 font-medium text-danger-fg">
-              <AlertTriangle className="size-3.5" aria-hidden /> {conflicts} scheduling {conflicts === 1 ? 'conflict' : 'conflicts'}
+              <AlertTriangle className="size-3.5" aria-hidden /> {t('timeline.conflicts', { count: conflicts })}
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div role="group" aria-label="Zoom" className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+          <div role="group" aria-label={t('timeline.zoom')} className="flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
             {(Object.keys(ZOOM_LEVELS) as Zoom[]).map(level => (
               <button
                 key={level}
@@ -148,17 +153,18 @@ const TimelineView = ({
                   zoom === level && 'bg-white text-slate-900 shadow-sm',
                 )}
               >
-                {level === 'day' ? 'Days' : 'Weeks'}
+                {level === 'day' ? t('timeline.days') : t('timeline.weeks')}
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={scrollToToday} className="h-10 border-slate-200 px-4 text-slate-700 md:h-8 md:px-2.5">Today</Button>
+          <Button variant="outline" size="sm" onClick={scrollToToday} className="h-10 border-slate-200 px-4 text-slate-700 md:h-8 md:px-2.5">{t('calendar.today')}</Button>
         </div>
       </header>
 
-      <div className="flex">
+      {/* Time reads left to right in every language: the chart keeps its axis, only the task names follow the language */}
+      <div className="flex" dir="ltr">
         {/* Task names */}
-        <div className="w-28 shrink-0 border-r border-slate-100 sm:w-56 md:w-64">
+        <div dir={dir} className="w-28 shrink-0 border-r border-slate-100 sm:w-56 md:w-64">
           <div className="flex h-14 items-end border-b border-slate-100 bg-slate-50/50 px-3 pb-2 text-xs sm:px-4 font-semibold uppercase tracking-wider text-slate-500">
             Task Name
           </div>
@@ -169,12 +175,12 @@ const TimelineView = ({
                   type="button"
                   onClick={() => (onOpen ?? onEdit)(task)}
                   title={task.title}
-                  className="flex h-full min-w-0 flex-1 items-center gap-2 text-left text-sm text-slate-700 hover:text-primary"
+                  className="flex h-full min-w-0 flex-1 items-center gap-2 text-start text-sm text-slate-700 hover:text-primary"
                 >
                   <StatusDot status={task.status} />
                   <span className={cn('truncate', task.status === 'completed' && 'text-slate-500 line-through')}>{task.title}</span>
                 </button>
-                <AssigneeStack users={task.assignees} max={2} className="ml-2 hidden sm:inline-flex" />
+                <AssigneeStack users={task.assignees} max={2} className="ms-2 hidden sm:inline-flex" />
               </li>
             ))}
           </ul>
@@ -189,7 +195,7 @@ const TimelineView = ({
                   <div
                     key={month.label}
                     style={{ left: month.offset * dayWidth, width: month.span * dayWidth }}
-                    className="absolute top-0 h-full truncate border-l border-slate-200 px-2 pt-1 text-xs font-semibold text-slate-600"
+                    className="absolute top-0 h-full truncate border-s border-slate-200 px-2 pt-1 text-xs font-semibold text-slate-600"
                   >
                     {month.label}
                   </div>
@@ -207,7 +213,7 @@ const TimelineView = ({
                   >
                     {(zoom === 'day' || day.getDay() === 1) && (
                       <>
-                        {zoom === 'day' && <span>{day.toLocaleDateString('en-US', { weekday: 'narrow' })}</span>}
+                        {zoom === 'day' && <span>{day.toLocaleDateString(currentLocale(), { weekday: 'narrow' })}</span>}
                         <span>{day.getDate()}</span>
                       </>
                     )}
@@ -286,10 +292,10 @@ const TimelineView = ({
                       onPointerCancel={() => setDrag(null)}
                       onClick={() => handleBarClick(task)}
                       onKeyDown={event => handleBarKeyDown(event, task)}
-                      aria-label={`${task.title}, ${STATUS_META[task.status].label}, ${dates}.${canWrite ? ' Arrow keys move, Shift+Arrow keys change the due date.' : ''}`}
+                      aria-label={t('timeline.barLabel', { title: task.title, status: t(`status.${task.status}`), dates, hint: canWrite ? t('timeline.barHint') : '' })}
                       title={`${task.title} · ${dates}`}
                       className={cn(
-                        'relative h-full select-none rounded-md border text-left text-xs font-medium shadow-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
+                        'relative h-full select-none rounded-md border text-start text-xs font-medium shadow-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
                         canWrite && 'touch-none cursor-grab active:cursor-grabbing',
                         STATUS_META[task.status].surface,
                         drag?.id === task._id && 'ring-2 ring-primary/40',
@@ -305,12 +311,12 @@ const TimelineView = ({
                         <span
                           aria-hidden
                           onPointerDown={event => startDrag(event, task, 'resize')}
-                          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-md hover:bg-black/10"
+                          className="absolute inset-y-0 end-0 w-2 cursor-ew-resize rounded-e-md hover:bg-black/10"
                         />
                       )}
                     </button>
                     {!labelInside && (
-                      <span className="pointer-events-none ml-2 inline-flex items-center gap-1 whitespace-nowrap text-xs text-slate-600">
+                      <span className="pointer-events-none ms-2 inline-flex items-center gap-1 whitespace-nowrap text-xs text-slate-600">
                         <TaskTypeIcon type={task.type} className="size-3" />
                         {task.title}
                       </span>

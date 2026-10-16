@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { planningApi } from '../api';
 import type { SprintReport } from '../lib/sprintReport';
@@ -20,7 +21,7 @@ export const useSprintReport = (slug: string | undefined, projectId: string | un
     planningApi.sprintReport(slug, projectId, sprintId)
       .then(report => { if (!cancelled) setLoaded({ key, report, error: '' }); })
       .catch(err => {
-        if (!cancelled) setLoaded({ key, report: null, error: getApiErrorMessage(err, 'Could not load the sprint report') });
+        if (!cancelled) setLoaded({ key, report: null, error: getApiErrorMessage(err, i18n.t('planning:roadmap.loadError')) });
       });
     return () => { cancelled = true; };
   }, [key, slug, projectId, sprintId]);

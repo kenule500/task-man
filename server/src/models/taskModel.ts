@@ -21,6 +21,8 @@ export const MAX_TASK_LINKS = 50;
 export const MAX_CHECKLIST_ITEMS = 50;
 export const MAX_CHECKLIST_TEXT = 200;
 export const MAX_WATCHERS = 500;
+export const MAX_ACCEPTANCE_CRITERIA = 30;
+export const MAX_CRITERION_TEXT = 300;
 
 // Typed links between tasks (Jira style); "blocks" / "blocked by" live in `dependencies` instead
 export const MAX_TASK_RELATIONS = 50;
@@ -67,6 +69,12 @@ export interface ITaskChecklistItem {
   _id: mongoose.Types.ObjectId;
   text: string;
   done: boolean;
+}
+
+/** One condition the finished work must meet; the AI code review checks the linked pull request against each. */
+export interface ITaskCriterion {
+  _id: mongoose.Types.ObjectId;
+  text: string;
 }
 
 export interface ITaskAttachment {
@@ -118,6 +126,8 @@ export interface ITask extends Document {
   assignees: mongoose.Types.ObjectId[];
   // Items to tick off inside the task, in display order
   checklist: ITaskChecklistItem[];
+  // What "done" means, in display order (at most MAX_ACCEPTANCE_CRITERIA)
+  acceptanceCriteria?: ITaskCriterion[];
   // Workspace members who follow the task (told about comments and completion like assignees)
   watchers: mongoose.Types.ObjectId[];
   // Repeat rule of a top-level task; when it is completed the next occurrence is created
@@ -145,6 +155,10 @@ const commentSchema = new Schema<ITaskComment>({
 const checklistItemSchema = new Schema<ITaskChecklistItem>({
   text: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_CHECKLIST_TEXT },
   done: { type: Boolean, default: false },
+});
+
+const criterionSchema = new Schema<ITaskCriterion>({
+  text: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_CRITERION_TEXT },
 });
 
 const recurrenceSchema = new Schema<Recurrence>({
@@ -226,6 +240,13 @@ const taskSchema: Schema = new Schema({
     validate: {
       validator: (items: unknown[]) => items.length <= MAX_CHECKLIST_ITEMS,
       message: `A checklist can have at most ${MAX_CHECKLIST_ITEMS} items`,
+    },
+  },
+  acceptanceCriteria: {
+    type: [criterionSchema],
+    validate: {
+      validator: (items: unknown[]) => items.length <= MAX_ACCEPTANCE_CRITERIA,
+      message: `A task can have at most ${MAX_ACCEPTANCE_CRITERIA} acceptance criteria`,
     },
   },
   watchers: {

@@ -1,0 +1,772 @@
+{
+  "layout": {
+    "title": "Settings",
+    "description": "Manage your account and preferences",
+    "sections": "Settings sections",
+    "profile": {
+      "label": "Profile",
+      "description": "Your public information"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "description": "Email & push preferences"
+    },
+    "security": {
+      "label": "Security",
+      "description": "Password & account safety"
+    }
+  },
+  "profile": {
+    "loading": "Loading profile",
+    "loadFailed": "Failed to load profile",
+    "loadFailedHint": "Please refresh the page or log in again.",
+    "updated": "Profile updated successfully",
+    "updateFailed": "Failed to update profile",
+    "fullName": "Full name",
+    "jobTitle": "Job title",
+    "jobTitlePlaceholder": "e.g., Product Designer",
+    "phone": "Phone",
+    "timezone": "Timezone",
+    "timezones": {
+      "newYork": "Eastern Time",
+      "losAngeles": "Pacific Time",
+      "london": "London",
+      "paris": "Paris",
+      "lagos": "Lagos",
+      "tokyo": "Tokyo",
+      "dubai": "Dubai"
+    },
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us a little about yourself...",
+    "appearance": "Appearance",
+    "appearanceHint": "Choose how TaskMan looks. System follows your device setting. Your choice is saved to your account.",
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "themeSaveFailed": "We could not save your theme. It applies on this device only. Try again later.",
+    "saving": "Saving...",
+    "save": "Save changes"
+  },
+  "security": {
+    "changePassword": "Change password",
+    "changePasswordHint": "Update your password to keep your account secure.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordChanged": "Password changed. Your other devices have been signed out.",
+    "passwordFailed": "Failed to change password. Check your current password and try again.",
+    "updating": "Updating...",
+    "update": "Update password"
+  },
+  "twoFactor": {
+    "title": "Two-factor authentication",
+    "description": "Add a second step to sign-in: a 6-digit code from an authenticator app on your phone. A stolen password alone is then not enough.",
+    "yourAccount": "your account",
+    "on": "On",
+    "off": "Off",
+    "loadFailed": "Could not load this setting",
+    "turnedOn": "Turned on.",
+    "turnedOnDate": "Turned on on {{date}}.",
+    "codesLeft_one": "{{count}} recovery code left.",
+    "codesLeft_other": "{{count}} recovery codes left.",
+    "lowCodes": "You are running low on recovery codes. Create new ones and store them somewhere safe.",
+    "newCodes": "New recovery codes",
+    "turnOff": "Turn off",
+    "setUp": "Set up two-factor authentication",
+    "isOff": "Two-factor authentication is off.",
+    "setup": {
+      "steps": {
+        "scan": "Scan",
+        "verify": "Verify",
+        "codes": "Save codes",
+        "done": "Done"
+      },
+      "startFailed": "We could not start the setup. Try again.",
+      "passwordRequired": "Enter your password.",
+      "codeRequired": "Enter the 6-digit code from your app.",
+      "verifyFailed": "We could not verify that code. Try again.",
+      "title": "Turn on two-factor authentication",
+      "description": "Sign-in will ask for a code from an authenticator app such as Google Authenticator, 1Password or Authy.",
+      "progress": "Two-factor setup progress",
+      "preparing": "Preparing your key...",
+      "scan": "Scan this QR code with your authenticator app. On the same phone? Use the key below instead.",
+      "qrLabel": "QR code for TaskMan, account {{account}}",
+      "qrFailed": "The QR code could not be drawn. Use the key below instead.",
+      "setupKey": "Setup key (enter it manually)",
+      "keyCopied": "Setup key copied to clipboard",
+      "codeLabel": "6-digit code from your app",
+      "passwordLabel": "Your password",
+      "passwordHint": "We ask again to be sure it is you.",
+      "saved": "I have saved these recovery codes",
+      "doneTitle": "Two-factor authentication is on",
+      "doneDescription": "Next time you sign in, TaskMan asks for a code from your app. Your recovery codes work if you lose your phone.",
+      "next": "Next",
+      "back": "Back",
+      "verifying": "Verifying...",
+      "turnOn": "Turn on",
+      "continue": "Continue",
+      "done": "Done"
+    },
+    "action": {
+      "disable": {
+        "title": "Turn off two-factor authentication",
+        "description": "Confirm with your password and a code. Your account will be protected by your password alone.",
+        "submit": "Turn off",
+        "submitting": "Turning off..."
+      },
+      "regenerate": {
+        "title": "Get new recovery codes",
+        "description": "Your old recovery codes stop working. Confirm with your password and a code from your app.",
+        "submit": "Create new codes",
+        "submitting": "Creating..."
+      },
+      "recoveryRequired": "Enter the 8-character recovery code, like abcd-efgh.",
+      "failed": "That did not work. Check your password and code, then try again.",
+      "recoveryLabel": "Recovery code",
+      "recoveryHint": "Each recovery code works once.",
+      "useApp": "Use my authenticator app instead",
+      "useRecovery": "Use a recovery code instead"
+    },
+    "newCodesDialog": {
+      "title": "Your new recovery codes",
+      "description": "The old codes no longer work."
+    },
+    "codes": {
+      "saveNow": "Save these now",
+      "onlyOnce": "We show them only once. Each code signs you in one time if you lose your phone.",
+      "list": "Recovery codes",
+      "copy": "Copy codes",
+      "download": "Download .txt",
+      "copiedStatus": "Recovery codes copied to clipboard"
+    },
+    "file": {
+      "title": "TaskMan recovery codes",
+      "account": "Account: {{account}}",
+      "created": "Created: {{date}}",
+      "hint": "Each code works once. Keep this file somewhere safe, away from your phone."
+    }
+  },
+  "devices": {
+    "title": "Signed-in devices",
+    "signOutOthers": "Sign out all other devices",
+    "loadFailed": "Could not load devices",
+    "emptyTitle": "No active devices",
+    "emptyDescription": "Devices appear here while their sign-in is still valid.",
+    "footer": "You stay signed in for 7 days on each device unless you sign it out here. Changing your password signs out other devices.",
+    "confirmOthersTitle": "Sign out all other devices?",
+    "confirmOthersDescription": "Every device except this one will be signed out and will need to log in again.",
+    "confirmOthersConfirm": "Sign out other devices",
+    "confirmCurrentTitle": "Sign out this device?",
+    "confirmCurrentDescription": "This signs this browser out. You will be taken to the login page.",
+    "signOut": "Sign out",
+    "signingOut": "Signing out...",
+    "signedOutDevice": "Signed out {{device}}.",
+    "signedOutOthers_one": "Signed out {{count}} other device.",
+    "signedOutOthers_other": "Signed out {{count}} other devices.",
+    "signOutFailed": "Could not sign out that device. Try again.",
+    "signOutOthersFailed": "Could not sign out your other devices. Try again.",
+    "thisDevice": "This device",
+    "ipUnknown": "IP unknown",
+    "signedIn": "Signed in {{when}}",
+    "unknownTime": "at an unknown time",
+    "signOutDevice": "Sign out {{device}}",
+    "browserOnOs": "{{browser}} on {{os}}",
+    "unknownDevice": "Unknown device",
+    "relative": {
+      "justNow": "just now",
+      "minutes_one": "{{count}} min ago",
+      "minutes_other": "{{count}} min ago",
+      "hours_one": "{{count}} h ago",
+      "hours_other": "{{count}} h ago",
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
+    }
+  },
+  "connected": {
+    "title": "Connected sign-in methods",
+    "none": "No provider is connected. Sign in once with Google or Microsoft using the email address of this account and it is connected automatically, as long as the provider has verified that address.",
+    "emailNotShared": "Email not shared",
+    "remove": "Remove",
+    "removing": "Removing...",
+    "removeLabel": "Remove {{provider}} sign-in",
+    "removed": "{{provider}} sign-in removed.",
+    "removeFailed": "Could not remove that sign-in method. Try again.",
+    "onlyWay": "This is the only way to sign in to your account. To remove it, first set a password with “Forgot password” on the sign-in page.",
+    "confirmTitle": "Remove {{provider}} sign-in?",
+    "confirmTitleGeneric": "Remove sign-in method?",
+    "confirmDescription": "You will no longer be able to sign in with it. Your account and data stay as they are."
+  },
+  "notifications": {
+    "saved": "Notification preferences saved",
+    "saveFailed": "Failed to save preferences",
+    "options": {
+      "email": {
+        "label": "Send me emails",
+        "desc": "The main switch for email. When it is off you get no emails, only notifications in the app."
+      },
+      "taskAssigned": {
+        "label": "Assignments, mentions and comments",
+        "desc": "Email me when someone assigns me a task, mentions me in a comment, or comments on a task I own or am assigned to."
+      },
+      "taskCompleted": {
+        "label": "Completed tasks",
+        "desc": "Email me when a task I own or am assigned to is marked completed by someone else."
+      },
+      "weeklyDigest": {
+        "label": "Weekly digest",
+        "desc": "Not sent yet. Your choice is saved for when the weekly summary launches."
+      }
+    },
+    "inApp": {
+      "title": "In the app",
+      "description": "Always on. The bell in the top bar and your <b>Inbox</b> show assignments, completed tasks, mentions and comments on your tasks. They are kept for 90 days, and you are never notified about your own actions."
+    },
+    "email": {
+      "title": "Email",
+      "description": "Choose which of those notifications also reach your inbox.",
+      "off": "Email is off, so nothing below is sent."
+    },
+    "push": {
+      "title": "Push",
+      "description": "Pop-up notifications from your browser or phone, for the same events as the bell.",
+      "label": "Send me push notifications",
+      "desc": "Applies to every device where push is on. Turn it off to pause push without removing your devices. Saved with the other preferences."
+    },
+    "save": "Save preferences"
+  },
+  "push": {
+    "title": "Push notifications on this device",
+    "description": "Get a system notification for assignments, mentions and comments, even when TaskMan is closed. Each device and browser is set up on its own.",
+    "checking": "Checking this device...",
+    "unsupportedTitle": "Not available in this browser",
+    "unsupported": "Push notifications are not supported here. On iPhone and iPad they work once TaskMan is added to the Home Screen (Share, then Add to Home Screen) and opened from there.",
+    "unavailableTitle": "Not set up on this server",
+    "unavailable": "Push notifications are turned off for this TaskMan server. In-app notifications and emails still work.",
+    "deniedTitle": "Notifications are blocked",
+    "denied": "Your browser blocks notifications for TaskMan. To turn them on, allow notifications for this site in your browser settings (usually the icon next to the address bar), then reload this page.",
+    "off": "Push is off on this device.",
+    "on": "Push is on for this device.",
+    "turningOff": "Turning off...",
+    "turningOn": "Turning on...",
+    "turnOff": "Turn off on this device",
+    "turnOn": "Turn on for this device",
+    "errors": {
+      "notReady": "The background service is not ready yet. Reload the page and try again.",
+      "denied": "Permission was not granted. Choose Allow when your browser asks.",
+      "turnOn": "Could not turn on push notifications. Try again.",
+      "turnOff": "Could not turn off push notifications. Try again."
+    }
+  },
+  "github": {
+    "title": "Integrations",
+    "intro": "Connect GitHub to see pull requests, commits and branches on each task. Mention a task key such as <c>WEB-12</c> in a branch name, commit message or pull request.",
+    "connected": "Connected. GitHub sends events to the URL below.",
+    "notConnected": "Not connected.",
+    "loading": "Loading integration...",
+    "loadFailed": "We could not load the GitHub integration.",
+    "enableHint": "Turning it on creates a private webhook URL and secret for this workspace. Nothing is read from your repositories.",
+    "enable": "Enable GitHub integration",
+    "enabling": "Enabling...",
+    "enableFailed": "We could not enable the integration.",
+    "payloadUrl": "Payload URL",
+    "secret": "Secret",
+    "show": "Show",
+    "hide": "Hide",
+    "copyFailed": "Could not copy automatically. Select the text and copy it manually.",
+    "copiedStatus": "{{label}} copied to clipboard",
+    "regenerate": "Regenerate secret",
+    "regenerated": "Secret regenerated. Update it in GitHub.",
+    "regenerateFailed": "We could not regenerate the secret.",
+    "saveFailed": "We could not save this setting.",
+    "autoLabel": "Move tasks automatically",
+    "autoDescription": "A pull request that mentions a task moves it to In progress when opened and to Completed when merged. Completed tasks are never reopened.",
+    "setUp": "Set up the webhook",
+    "steps": {
+      "open": "In GitHub, open your repository, then <b>Settings</b>, <b>Webhooks</b>, <b>Add webhook</b>.",
+      "url": "Paste the <b>Payload URL</b> above.",
+      "type": "Set <b>Content type</b> to <c>application/json</c>.",
+      "secret": "Paste the <b>Secret</b> above.",
+      "events": "Under <b>Which events</b>, choose <b>Let me select individual events</b> and tick <b>Pull requests</b>, <b>Pushes</b> and <b>Branch or tag creation</b>.",
+      "save": "Save. GitHub sends a ping; a green check next to the delivery means it works."
+    },
+    "turnOff": "Turn off GitHub integration",
+    "disabled": "GitHub integration turned off.",
+    "disableFailed": "We could not turn the integration off.",
+    "confirmRegenerate": {
+      "title": "Regenerate the webhook secret?",
+      "description": "The current secret stops working at once. Paste the new secret into the GitHub webhook, or deliveries will be rejected."
+    },
+    "confirmDisable": {
+      "title": "Turn off the GitHub integration?",
+      "description": "The webhook URL and secret are deleted and GitHub deliveries are rejected. Links already on tasks stay."
+    }
+  },
+  "workspace": {
+    "title": "Workspace settings",
+    "description": "Manage the name, invite code and roles for this workspace.",
+    "links": {
+      "audit": {
+        "title": "Audit log",
+        "description": "See who changed what, when and from where. Export it as CSV."
+      },
+      "workflow": {
+        "title": "Workflow",
+        "description": "Board stages like In review or QA, and their WIP limits."
+      },
+      "automations": {
+        "title": "Automations",
+        "description": "Rules that change tasks for you when something happens."
+      },
+      "fields": {
+        "title": "Custom fields",
+        "description": "Extra task information such as a customer, a budget or a link."
+      },
+      "import": {
+        "title": "Import",
+        "description": "Bring tasks over from Trello, Jira or a CSV file."
+      },
+      "developers": {
+        "title": "Developers",
+        "description": "API tokens for scripts and signed webhooks for your services."
+      }
+    },
+    "loading": "Loading settings",
+    "notFound": "Workspace not found.",
+    "readOnly": "You do not have permission to change these settings. This view is read-only.",
+    "general": "General",
+    "name": "Workspace name",
+    "nameHint": "The URL slug <c>{{slug}}</c> does not change when you rename.",
+    "nameUpdated": "Workspace name updated.",
+    "updateFailed": "Failed to update the workspace.",
+    "inviteCode": "Invite code",
+    "inviteHint": "Teammates join with this code. Regenerating it invalidates the old code and links.",
+    "copyCode": "Copy code",
+    "copyFailed": "Could not copy automatically. Select the code and copy it manually.",
+    "codeCopiedStatus": "Invite code copied to clipboard",
+    "regenerate": "Regenerate code",
+    "regenerating": "Regenerating...",
+    "codeRegenerated": "Invite code regenerated. The previous code no longer works.",
+    "regenerateFailed": "Failed to regenerate the invite code.",
+    "confirmRegenerate": {
+      "title": "Regenerate the invite code?",
+      "description": "The current code and any shared invite links stop working immediately. Existing members keep their access."
+    },
+    "system": "System",
+    "noDescription": "No description",
+    "permissionCount_one": "{{count}} permission",
+    "permissionCount_other": "{{count}} permissions",
+    "editRole": "Edit role {{name}}",
+    "deleteRole": "Delete role {{name}}",
+    "rolesLoadFailed": "We could not load the roles.",
+    "roleDeleted": "Role \"{{name}}\" deleted.",
+    "roleDeleteFailed": "We could not delete the role.",
+    "confirmDeleteRole": {
+      "title": "Delete the role \"{{name}}\"?",
+      "description": "Members who have this role may lose access. This cannot be undone.",
+      "confirm": "Delete role"
+    },
+    "roles": {
+      "title": "Roles and permissions",
+      "description": "Define custom roles and their permissions for this workspace.",
+      "new": "New role",
+      "search": "Search roles",
+      "view": "Roles view",
+      "cards": "Cards",
+      "matrix": "Matrix",
+      "cardsRegion": "Role cards",
+      "none": "There are no roles yet.",
+      "noMatch": "No roles match \"{{query}}\".",
+      "noCatalog": "The permission list is not available right now, so the matrix cannot be shown. Switch to Cards or reload the page.",
+      "systemRoles": "System roles",
+      "customRoles": "Custom roles",
+      "noCustomMatch": "No custom roles match \"{{query}}\".",
+      "noCustom": "No custom roles yet",
+      "noCustomHint": "Create roles tailored to your team, like \"Marketing Lead\", \"Contractor\" or \"Auditor\".",
+      "createFirst": "Create your first role",
+      "system": {
+        "ProductOwner": {
+          "name": "Product Owner",
+          "description": "Full control over the product, backlog, team, and settings."
+        },
+        "ScrumMaster": {
+          "name": "Scrum Master",
+          "description": "Facilitates the team and removes blockers."
+        },
+        "Developer": {
+          "name": "Developer",
+          "description": "Builds and updates assigned tasks and projects."
+        },
+        "TeamMember": {
+          "name": "Team Member",
+          "description": "Works on assigned tasks."
+        },
+        "Viewer": {
+          "name": "Viewer",
+          "description": "Read-only access to the workspace."
+        }
+      }
+    },
+    "security": {
+      "title": "Security",
+      "ownFirstTitle": "Turn on two-factor authentication for your own account first",
+      "ownFirst": "You would be locked out of this workspace otherwise.",
+      "setItUp": "Set it up in Security settings",
+      "requireLabel": "Require two-factor authentication",
+      "requireDescription": "Members without two-factor authentication cannot open this workspace until they turn it on. They can do that in their own Security settings, and they cannot turn it off while this is on.",
+      "ownersOnly": "Only owners and admins can change this setting.",
+      "changeFailed": "We could not change this setting. Try again."
+    }
+  },
+  "roles": {
+    "system": {
+      "ProductOwner": {
+        "name": "Product Owner",
+        "description": "Full control over the product, backlog, team, and settings."
+      },
+      "ScrumMaster": {
+        "name": "Scrum Master",
+        "description": "Facilitates the team and removes blockers."
+      },
+      "Developer": {
+        "name": "Developer",
+        "description": "Builds and updates assigned tasks and projects."
+      },
+      "TeamMember": {
+        "name": "Team Member",
+        "description": "Works on assigned tasks."
+      },
+      "Viewer": {
+        "name": "Viewer",
+        "description": "Read-only access to the workspace."
+      }
+    }
+  },
+  "permissionGroups": {
+    "Projects": "Projects",
+    "Tasks": "Tasks",
+    "Users": "Users",
+    "Reports": "Reports",
+    "Settings": "Settings"
+  },
+  "permissions": {
+    "projects_read": "View projects",
+    "projects_write": "Create/edit projects",
+    "projects_delete": "Delete projects",
+    "tasks_read": "View tasks",
+    "tasks_write": "Create/edit tasks",
+    "tasks_delete": "Delete tasks",
+    "users_read": "View team members",
+    "users_write": "Invite/remove members",
+    "reports_read": "View analytics",
+    "settings_manage": "Change workspace settings"
+  },
+  "matrix": {
+    "label": "Permission matrix",
+    "caption": "Permissions granted to each role. Columns are roles, rows are permissions grouped by area.",
+    "permission": "Permission",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "allowed": "Allowed",
+    "notAllowed": "Not allowed"
+  },
+  "roleEditor": {
+    "nameRequired": "Give the role a name.",
+    "permissionsFailed": "We could not load the permission list. Close this dialog and try again.",
+    "saveFailed": "We could not save the role. Try again.",
+    "editTitle": "Edit role",
+    "createTitle": "Create custom role",
+    "editDescription": "Update this role's name and permissions.",
+    "createDescription": "Define a new role for your workspace.",
+    "create": "Create role",
+    "name": "Role name",
+    "namePlaceholder": "e.g. Marketing Lead, Contractor, Auditor",
+    "descriptionLabel": "Description",
+    "descriptionHint": "Optional. Shown when inviting people.",
+    "permissions": "Permissions",
+    "loadingPermissions": "Loading permissions...",
+    "deselectAll": "Deselect all",
+    "selectAll": "Select all",
+    "groupPermissions": "{{group}} permissions",
+    "selected_one": "{{count}} permission selected",
+    "selected_other": "{{count}} permissions selected"
+  },
+  "team": {
+    "title": "Team",
+    "description": "Manage who has access to this workspace and their roles.",
+    "invite": "Invite member",
+    "members": "Members",
+    "membersList": "Members list",
+    "loadingMembers": "Loading members",
+    "loadFailed": "We could not load the team. Refresh the page to try again.",
+    "noRole": "No role",
+    "changeRole": "Change role",
+    "changeRoleFor": "Change role for {{name}}, currently {{role}}",
+    "changeRoleFailed": "We could not change the role. Try again.",
+    "emptyTitle": "No members yet",
+    "emptyManage": "Invite your first teammate to get started.",
+    "emptyView": "There are no team members to show.",
+    "you": "You",
+    "owner": "Owner",
+    "removeMemberLabel": "Remove {{name}} from this workspace",
+    "pendingInvitations": "Pending invitations",
+    "invitationsList": "Pending invitations list",
+    "invitationMeta": "As {{role}} · Expires {{date}}",
+    "cancelInvitationLabel": "Cancel invitation for {{email}}",
+    "removeFailed": "We could not remove the member. Try again.",
+    "cancelFailed": "We could not cancel the invitation. Try again.",
+    "confirmRemove": {
+      "title": "Remove this member?",
+      "description": "{{name}} loses access to this workspace immediately. You can invite them again later.",
+      "confirm": "Remove member"
+    },
+    "confirmCancel": {
+      "title": "Cancel this invitation?",
+      "description": "The invitation sent to {{email}} stops working.",
+      "confirm": "Cancel invitation"
+    }
+  },
+  "invite": {
+    "title": "Invite a member",
+    "description": "Send an invitation to join this workspace.",
+    "submit": "Send invitation",
+    "sending": "Sending...",
+    "sent": "Invitation sent.",
+    "email": "Email address",
+    "emailPlaceholder": "teammate@company.com",
+    "role": "Role",
+    "rolesFailed": "We could not load the roles. Close this dialog and try again.",
+    "sendFailed": "We could not send the invitation. Try again."
+  },
+  "createWorkspace": {
+    "title": "Create a new workspace",
+    "description": "Workspaces are shared spaces where your team can collaborate.",
+    "submit": "Create workspace",
+    "creating": "Creating...",
+    "hint": "A URL-safe slug is generated automatically.",
+    "placeholder": "e.g. Acme Corp, Marketing Team, Personal",
+    "nameRequired": "Give the workspace a name.",
+    "failed": "We could not create the workspace. Try again."
+  },
+  "audit": {
+    "title": "Audit log",
+    "description_one": "Every change in this workspace: who did what, when and from where. Entries are kept for {{count}} day.",
+    "description_other": "Every change in this workspace: who did what, when and from where. Entries are kept for {{count}} days.",
+    "restrictedTitle": "Only people who manage settings can see the audit log",
+    "restrictedDescription": "Ask an owner or admin of this workspace if you need to see the audit log.",
+    "exportCsv": "Export CSV",
+    "exporting": "Exporting…",
+    "exported": "Audit log exported",
+    "exportFailed": "We could not export the audit log.",
+    "exportHint": "The export includes the entries that match these filters.",
+    "loading": "Loading audit log",
+    "loadFailed": "Could not load the audit log",
+    "loadFailedNext": "Check your connection and try again.",
+    "noMatchTitle": "No entries match these filters",
+    "noMatchDescription": "Try another area or actor, or clear the filters to see everything.",
+    "emptyTitle": "No entries yet",
+    "emptyDescription": "Changes to tasks, projects, sprints, members and settings will appear here.",
+    "clearFilters": "Clear filters",
+    "filters": {
+      "all": "All",
+      "everyone": "Everyone",
+      "formerMember": "Former member",
+      "byArea": "Filter by area"
+    },
+    "table": {
+      "entries": "Audit log entries",
+      "caption": "Audit log, newest first. Select a row for details.",
+      "time": "Time",
+      "ip": "IP",
+      "openDetails": "Open details: {{description}}"
+    },
+    "pagination": {
+      "label": "Audit log pages",
+      "showing": "Showing entries {{range}}",
+      "none": "No entries on this page",
+      "newer": "Newer",
+      "older": "Older"
+    },
+    "sheet": {
+      "when": "When",
+      "actor": "Actor",
+      "action": "Action",
+      "area": "Area",
+      "subject": "Subject",
+      "ip": "IP address",
+      "device": "Device",
+      "notRecorded": "not recorded",
+      "changes": "Changes",
+      "noChanges": "This action did not change any tracked field.",
+      "from": "From",
+      "to": "To",
+      "identifiers": "Identifiers",
+      "entry": "Entry",
+      "task": "Task",
+      "project": "Project",
+      "sprint": "Sprint"
+    },
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "range": "from {{from}} to {{to}}",
+    "openTask": "Open task",
+    "openProject": "Open project",
+    "openSprintProject": "Open sprint project",
+    "removedUser": "A removed user",
+    "arrow": "→",
+    "quote": "\"{{text}}\"",
+    "areas": {
+      "task": "Tasks",
+      "project": "Projects",
+      "sprint": "Sprints",
+      "member": "Members",
+      "invitation": "Invitations",
+      "workspace": "Workspace",
+      "audit": "Exports",
+      "automation": "Automations",
+      "workflow": "Workflow",
+      "webhook": "Webhooks",
+      "token": "API tokens",
+      "time": "Time",
+      "release": "Releases",
+      "field": "Custom fields",
+      "import": "Imports",
+      "page": "Wiki pages",
+      "role": "Roles",
+      "integration": "Integrations"
+    },
+    "fields": {
+      "startDate": "start date",
+      "deadline": "due date",
+      "storyPoints": "story points",
+      "completedPoints": "completed points",
+      "movedTasks": "moved tasks",
+      "status": "status",
+      "priority": "priority",
+      "title": "title",
+      "description": "description",
+      "assignees": "assignees",
+      "labels": "labels",
+      "sprint": "sprint",
+      "project": "project",
+      "parent": "parent",
+      "role": "role",
+      "name": "name",
+      "file": "file",
+      "type": "type",
+      "epic": "epic"
+    },
+    "change": {
+      "edited": "{{label}}: edited",
+      "changed": "{{label}}: changed",
+      "none": "none",
+      "sprint": "sprint",
+      "backlog": "backlog",
+      "separator": "; ",
+      "listSeparator": ", ",
+      "more": "+{{count}} more"
+    },
+    "sentence": {
+      "aTask": "a task",
+      "aFile": "a file",
+      "aSprint": "a sprint",
+      "aMember": "a member",
+      "someone": "someone",
+      "points_one": "{{count}} point",
+      "points_other": "{{count}} points",
+      "taskUpdated": "{{name}} updated {{subject}}",
+      "taskFieldsUpdated": "{{name}} updated {{fields}} of {{subject}}",
+      "descriptionEdited": "{{name}} edited the description of {{subject}}",
+      "movedToSprint": "{{name}} moved {{subject}} to another sprint",
+      "movedToBacklog": "{{name}} moved {{subject}} to the backlog",
+      "fieldChanged": "{{name}} changed the {{field}} of {{subject}} from {{from}} to {{to}}",
+      "fieldSet": "{{name}} set the {{field}} of {{subject}} to {{to}}",
+      "fieldCleared": "{{name}} cleared the {{field}} of {{subject}}",
+      "taskCreated": "{{name}} created task {{subject}}",
+      "subtaskCreated": "{{name}} created subtask {{subject}}",
+      "taskDeleted": "{{name}} deleted task {{subject}}",
+      "taskCommented": "{{name}} commented on {{task}}",
+      "attachmentAdded": "{{name}} attached {{file}} to {{task}}",
+      "attachmentRemoved": "{{name}} removed {{file}} from {{task}}",
+      "projectCreated": "{{name}} created project {{subject}}",
+      "projectUpdated": "{{name}} updated project {{subject}}",
+      "projectDeleted": "{{name}} deleted project {{subject}}",
+      "sprintCreatedIn": "{{name}} created {{sprint}} in {{project}}",
+      "sprintCreated": "{{name}} created {{sprint}}",
+      "sprintStarted": "{{name}} started {{sprint}}",
+      "sprintCompleted": "{{name}} completed {{sprint}}",
+      "sprintCompletedPoints": "{{name}} completed {{sprint}} ({{points}})",
+      "sprintUpdated": "{{name}} updated {{sprint}}",
+      "sprintDeleted": "{{name}} deleted {{sprint}}",
+      "roleChangedFromTo": "{{name}} changed the role of {{who}} from {{from}} to {{to}}",
+      "roleChangedTo": "{{name}} changed the role of {{who}} to {{to}}",
+      "roleChanged": "{{name}} changed the role of {{who}}",
+      "memberRemoved": "{{name}} removed {{who}} from the workspace",
+      "memberJoined": "{{who}} joined the workspace",
+      "invitedAs": "{{name}} invited {{who}} as {{role}}",
+      "invited": "{{name}} invited {{who}}",
+      "invitationCancelled": "{{name}} cancelled the invitation for {{who}}",
+      "workspaceRenamed": "{{name}} renamed the workspace from {{from}} to {{to}}",
+      "workspaceUpdated": "{{name}} updated the workspace settings",
+      "inviteCodeRegenerated": "{{name}} regenerated the invite code",
+      "auditExported": "{{name}} exported the audit log",
+      "auditExportedWith": "{{name}} exported the audit log ({{summary}})"
+    },
+    "actions": {
+      "task_created": "Task created",
+      "task_updated": "Task updated",
+      "task_deleted": "Task deleted",
+      "task_commented": "Comment added",
+      "task_attachment_added": "File added",
+      "task_attachment_removed": "File removed",
+      "project_created": "Project created",
+      "project_updated": "Project updated",
+      "project_deleted": "Project deleted",
+      "sprint_created": "Sprint created",
+      "sprint_updated": "Sprint updated",
+      "sprint_started": "Sprint started",
+      "sprint_completed": "Sprint completed",
+      "sprint_deleted": "Sprint deleted",
+      "member_role_changed": "Role changed",
+      "member_removed": "Member removed",
+      "member_joined": "Member joined",
+      "invitation_sent": "Invitation sent",
+      "invitation_cancelled": "Invitation cancelled",
+      "workspace_updated": "Workspace updated",
+      "workspace_invite_code_regenerated": "Invite code reset",
+      "audit_exported": "Log exported",
+      "member_left": "Member left",
+      "role_created": "Role created",
+      "role_updated": "Role updated",
+      "role_deleted": "Role deleted",
+      "task_comment_deleted": "Comment deleted",
+      "integration_updated": "Integration updated",
+      "task_duplicated": "Task duplicated",
+      "automation_created": "Automation created",
+      "automation_updated": "Automation updated",
+      "automation_deleted": "Automation deleted",
+      "automation_ran": "Automation ran",
+      "workflow_updated": "Workflow updated",
+      "webhook_created": "Webhook added",
+      "webhook_updated": "Webhook updated",
+      "webhook_deleted": "Webhook removed",
+      "token_created": "API token created",
+      "token_revoked": "API token revoked",
+      "time_logged": "Time logged",
+      "time_deleted": "Time entry removed",
+      "release_created": "Release created",
+      "release_updated": "Release updated",
+      "release_deleted": "Release deleted",
+      "release_released": "Version released",
+      "field_created": "Custom field added",
+      "field_updated": "Custom field updated",
+      "field_deleted": "Custom field removed",
+      "import_completed": "Import completed",
+      "page_created": "Page created",
+      "page_updated": "Page updated",
+      "page_deleted": "Page deleted"
+    }
+  }
+}

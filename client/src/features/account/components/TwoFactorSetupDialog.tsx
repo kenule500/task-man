@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Check, Copy, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, EmptyState, Stepper, Spinner, type StepperStep } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,14 +16,8 @@ import type { TwoFactorSetup } from '../types';
 import { QrCode } from './QrCode';
 import { RecoveryCodesPanel } from './RecoveryCodesPanel';
 
-const STEPS: StepperStep[] = [
-  { id: 'scan', title: 'Scan' },
-  { id: 'verify', title: 'Verify' },
-  { id: 'codes', title: 'Save codes' },
-  { id: 'done', title: 'Done' },
-];
-
 type Phase = 'scan' | 'verify' | 'codes' | 'done';
+const PHASES: Phase[] = ['scan', 'verify', 'codes', 'done'];
 const PHASE_INDEX: Record<Phase, number> = { scan: 0, verify: 1, codes: 2, done: 3 };
 
 interface SetupFlowProps {
@@ -35,6 +30,8 @@ interface SetupFlowProps {
 
 /** Mounted only while the dialog is open, so every opening starts a fresh setup (new pending secret). */
 const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps) => {
+  const { t } = useTranslation('settings');
+  const steps: StepperStep[] = PHASES.map((id) => ({ id, title: t(`twoFactor.setup.steps.${id}`) }));
   const [setup, setSetup] = useState<TwoFactorSetup | null>(null);
   const [loadError, setLoadError] = useState('');
   const [phase, setPhase] = useState<Phase>('scan');
@@ -53,12 +50,12 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
         if (!cancelled) setSetup(result);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setLoadError(getApiErrorMessage(err, 'We could not start the setup. Try again.'));
+        if (!cancelled) setLoadError(getApiErrorMessage(err, t('twoFactor.setup.startFailed')));
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copySecret = async () => {
     if (!setup) return;
@@ -74,7 +71,7 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
   const verify = async (event: FormEvent) => {
     event.preventDefault();
     if (!password || !isCompleteCode(code)) {
-      setError(!password ? 'Enter your password.' : 'Enter the 6-digit code from your app.');
+      setError(!password ? t('twoFactor.setup.passwordRequired') : t('twoFactor.setup.codeRequired'));
       return;
     }
     setBusy(true);
@@ -86,7 +83,7 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
       setPhase('codes');
       onEnabled();
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'We could not verify that code. Try again.'));
+      setError(getApiErrorMessage(err, t('twoFactor.setup.verifyFailed')));
     } finally {
       setBusy(false);
     }
@@ -99,15 +96,15 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
 
   return (
     <>
-      <DialogHeader className="space-y-1 px-4 pt-5 pr-12 sm:px-6 sm:pt-6">
-        <DialogTitle className="text-lg font-bold text-slate-900">Turn on two-factor authentication</DialogTitle>
+      <DialogHeader className="space-y-1 px-4 pt-5 pe-12 sm:px-6 sm:pt-6">
+        <DialogTitle className="text-lg font-bold text-slate-900">{t('twoFactor.setup.title')}</DialogTitle>
         <DialogDescription className="text-sm leading-relaxed text-slate-600">
-          Sign-in will ask for a code from an authenticator app such as Google Authenticator, 1Password or Authy.
+          {t('twoFactor.setup.description')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="px-4 sm:px-6">
-        <Stepper steps={STEPS} current={PHASE_INDEX[phase]} size="sm" label="Two-factor setup progress" />
+        <Stepper steps={steps} current={PHASE_INDEX[phase]} size="sm" label={t('twoFactor.setup.progress')} />
       </div>
 
       <div className="max-h-[60dvh] min-h-0 space-y-4 overflow-y-auto px-4 py-1 sm:px-6">
@@ -115,28 +112,28 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
           <Alert tone="error">{loadError}</Alert>
         ) : !setup ? (
           <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-600" role="status">
-            <Spinner decorative /> Preparing your key...
+            <Spinner decorative /> {t('twoFactor.setup.preparing')}
           </div>
         ) : phase === 'scan' ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-700">
-              Scan this QR code with your authenticator app. On the same phone? Use the key below instead.
+              {t('twoFactor.setup.scan')}
             </p>
             <div className="flex justify-center">
-              <QrCode value={setup.otpauthUrl} label={`QR code for TaskMan, account ${account}`} />
+              <QrCode value={setup.otpauthUrl} label={t('twoFactor.setup.qrLabel', { account })} />
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-medium text-slate-600">Setup key (enter it manually)</p>
+              <p className="text-xs font-medium text-slate-600">{t('twoFactor.setup.setupKey')}</p>
               <div className="mt-1 flex items-center justify-between gap-2">
                 <code className="break-all font-mono text-sm font-semibold tracking-wider text-slate-900" data-testid="two-factor-secret">
                   {formatSecret(setup.secret)}
                 </code>
                 <Button type="button" variant="outline" size="sm" onClick={() => void copySecret()} className="h-10 shrink-0 gap-1.5 sm:h-8">
                   {secretCopied ? <Check aria-hidden /> : <Copy aria-hidden />}
-                  {secretCopied ? 'Copied' : 'Copy'}
+                  {secretCopied ? t('common:copied') : t('common:copy')}
                 </Button>
               </div>
-              <p role="status" className="sr-only">{secretCopied ? 'Setup key copied to clipboard' : ''}</p>
+              <p role="status" className="sr-only">{secretCopied ? t('twoFactor.setup.keyCopied') : ''}</p>
             </div>
           </div>
         ) : phase === 'verify' ? (
@@ -144,18 +141,18 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
             {error && <Alert tone="error">{error}</Alert>}
             <OneTimeCodeField
               id="setup-code"
-              label="6-digit code from your app"
+              label={t('twoFactor.setup.codeLabel')}
               value={code}
               onChange={setCode}
               autoFocus
             />
             <PasswordField
               id="setup-password"
-              label="Your password"
+              label={t('twoFactor.setup.passwordLabel')}
               value={password}
               onChange={setPassword}
               autoComplete="current-password"
-              hint="We ask again to be sure it is you."
+              hint={t('twoFactor.setup.passwordHint')}
             />
           </form>
         ) : phase === 'codes' ? (
@@ -163,14 +160,14 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
             <RecoveryCodesPanel codes={recoveryCodes} account={account} />
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-slate-800">
               <Checkbox checked={saved} onCheckedChange={(checked) => setSaved(checked === true)} />
-              I have saved these recovery codes
+              {t('twoFactor.setup.saved')}
             </label>
           </div>
         ) : (
           <EmptyState
             icon={<ShieldCheck />}
-            title="Two-factor authentication is on"
-            description="Next time you sign in, TaskMan asks for a code from your app. Your recovery codes work if you lose your phone."
+            title={t('twoFactor.setup.doneTitle')}
+            description={t('twoFactor.setup.doneDescription')}
             className="py-6 sm:py-6"
           />
         )}
@@ -179,30 +176,30 @@ const SetupFlow = ({ account, onEnabled, onClose, onLockChange }: SetupFlowProps
       <DialogFooter className="flex-row justify-end gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4 [&>button]:flex-1 sm:[&>button]:flex-none">
         {phase === 'scan' && (
           <>
-            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-10">Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-10">{t('common:cancel')}</Button>
             <Button type="button" disabled={!setup} onClick={() => setPhase('verify')} className="h-11 bg-primary text-white hover:bg-primary-hover sm:h-10">
-              Next
+              {t('twoFactor.setup.next')}
             </Button>
           </>
         )}
         {phase === 'verify' && (
           <>
             <Button type="button" variant="outline" disabled={busy} onClick={() => { setError(''); setPhase('scan'); }} className="h-11 sm:h-10">
-              Back
+              {t('twoFactor.setup.back')}
             </Button>
             <Button type="submit" form="two-factor-verify" disabled={busy} className="h-11 bg-primary text-white hover:bg-primary-hover sm:h-10">
-              {busy ? <><Spinner decorative /> Verifying...</> : 'Turn on'}
+              {busy ? <><Spinner decorative /> {t('twoFactor.setup.verifying')}</> : t('twoFactor.setup.turnOn')}
             </Button>
           </>
         )}
         {phase === 'codes' && (
           <Button type="button" disabled={!saved} onClick={finishCodes} className="h-11 bg-primary text-white hover:bg-primary-hover sm:h-10">
-            Continue
+            {t('twoFactor.setup.continue')}
           </Button>
         )}
         {phase === 'done' && (
           <Button type="button" onClick={onClose} className="h-11 bg-primary text-white hover:bg-primary-hover sm:h-10">
-            Done
+            {t('twoFactor.setup.done')}
           </Button>
         )}
       </DialogFooter>

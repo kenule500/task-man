@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import type { StoredUser } from '@/utils/session';
 import type { SsoProviderId } from './types';
 
@@ -6,24 +7,16 @@ export const SSO_PROVIDER_IDS: readonly SsoProviderId[] = ['google', 'microsoft'
 export const isSsoProviderId = (value: unknown): value is SsoProviderId =>
   typeof value === 'string' && (SSO_PROVIDER_IDS as readonly string[]).includes(value);
 
-/** Plain-language text for the fixed `sso_error` codes the server redirects with. */
-const ERROR_MESSAGES: Record<string, string> = {
-  access_denied: 'Sign-in was cancelled. You can try again or use your email and password.',
-  invalid_state: 'That sign-in link has expired or was already used. Start again from this page.',
-  provider_error: 'The sign-in provider did not answer as expected. Try again in a moment.',
-  invalid_token: 'The response from the provider could not be verified, so you were not signed in. Try again.',
-  email_missing: 'The provider did not share an email address, so we could not match your account.',
-  email_unverified: 'The provider has not verified that email address, so we cannot use it to sign you in. Verify it with the provider, or use your email and password.',
-  tenant_not_allowed: 'This type of Microsoft account is not allowed here. Use a work or school account, or another sign-in method.',
-  account_conflict: 'This email already belongs to an account linked to a different login at that provider. Sign in with your email and password instead.',
-  server_error: 'Something went wrong on our side. Try again in a moment.',
-  not_started: 'That sign-in was not started in this browser. Please start again from the sign-in page.',
-};
+/** The fixed `sso_error` codes the server redirects with; their plain-language text is in auth:sso.errors. */
+const KNOWN_ERROR_CODES = new Set([
+  'access_denied', 'invalid_state', 'provider_error', 'invalid_token', 'email_missing', 'email_unverified',
+  'tenant_not_allowed', 'account_conflict', 'server_error', 'not_started',
+]);
 
 /** Message for an `sso_error` code, or `null` when the code is missing. Unknown codes get a generic message (never echoed). */
 export const ssoErrorMessage = (code: string | null | undefined): string | null => {
   if (!code) return null;
-  return ERROR_MESSAGES[code] ?? 'Single sign-on did not work. Try again or use your email and password.';
+  return t(`auth:sso.errors.${KNOWN_ERROR_CODES.has(code) ? code : 'generic'}`);
 };
 
 /** A relative in-app path (`/x`), never an absolute or protocol-relative URL. */
@@ -85,6 +78,7 @@ interface ProfileLike {
   name?: unknown;
   email?: unknown;
   createdAt?: unknown;
+  language?: unknown;
   onboarding?: { completedAt?: unknown } | null;
   activeWorkspace?: unknown;
   workspaces?: unknown;
@@ -107,5 +101,6 @@ export const storedUserFromProfile = (data: unknown): StoredUser => {
     activeWorkspaceSlug: typeof activeSlug === 'string' ? activeSlug : undefined,
     workspaces: workspaces.map((item) => String(item._id)),
     createdAt: typeof profile.createdAt === 'string' ? profile.createdAt : undefined,
+    language: typeof profile.language === 'string' ? profile.language : undefined,
   };
 };

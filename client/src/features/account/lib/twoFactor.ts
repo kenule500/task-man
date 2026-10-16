@@ -1,4 +1,5 @@
 /** Pure helpers for the two-factor screens (code entry, secret and recovery-code formatting). */
+import { t } from '@/i18n';
 
 export const TWO_FACTOR_CODE_LENGTH = 6;
 
@@ -23,11 +24,11 @@ export const isCompleteRecoveryCode = (code: string): boolean => /^[a-z0-9]{4}-[
 /** Text of the downloadable recovery-code file. */
 export const recoveryCodesFile = (codes: string[], account: string, now = new Date()): string =>
   [
-    'TaskMan recovery codes',
-    `Account: ${account}`,
-    `Created: ${now.toISOString().slice(0, 10)}`,
+    t('settings:twoFactor.file.title'),
+    t('settings:twoFactor.file.account', { account }),
+    t('settings:twoFactor.file.created', { date: now.toISOString().slice(0, 10) }),
     '',
-    'Each code works once. Keep this file somewhere safe, away from your phone.',
+    t('settings:twoFactor.file.hint'),
     '',
     ...codes,
     '',

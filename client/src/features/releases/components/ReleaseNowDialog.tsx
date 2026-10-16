@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Rocket } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import type { MoveOpenTo, Release } from '../types';
 import { formatReleaseDates } from '../lib/progress';
@@ -23,6 +24,7 @@ const toMove = (choice: string): MoveOpenTo => (choice === KEEP ? undefined : ch
 
 /** Asks where the unfinished tasks go before marking a release as released. */
 const ReleaseNowDialog = ({ open, onOpenChange, release, targets, onConfirm }: ReleaseNowDialogProps) => {
+  const { t } = useTranslation('projects');
   const { counts } = release.progress;
   const openCount = counts.pending + counts['in-progress'];
   const [choice, setChoice] = useState<string>(targets[0]?._id ?? KEEP);
@@ -37,7 +39,7 @@ const ReleaseNowDialog = ({ open, onOpenChange, release, targets, onConfirm }: R
       await onConfirm(openCount === 0 ? undefined : toMove(choice));
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not release.');
+      setError(err instanceof Error ? err.message : t('releases.now.error'));
     } finally {
       setSubmitting(false);
     }
@@ -48,40 +50,40 @@ const ReleaseNowDialog = ({ open, onOpenChange, release, targets, onConfirm }: R
       open={open}
       onOpenChange={onOpenChange}
       icon={<Rocket />}
-      title={`Release ${release.name}`}
-      description={`${formatReleaseDates(release)}. Finished tasks stay in the release and appear in its notes.`}
+      title={t('releases.now.title', { name: release.name })}
+      description={t('releases.now.description', { dates: formatReleaseDates(release) })}
       onSubmit={handleSubmit}
-      submitLabel="Release"
-      submittingLabel="Releasing..."
+      submitLabel={t('releases.now.submit')}
+      submittingLabel={t('releases.now.submitting')}
       submitting={submitting}
       error={error}
     >
       {openCount === 0 ? (
-        <p className="text-sm text-slate-700">Every task in this release is done. Nothing needs to move.</p>
+        <p className="text-sm text-slate-700">{t('releases.now.allDone')}</p>
       ) : (
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-slate-700">
-            {openCount} unfinished {openCount === 1 ? 'task' : 'tasks'}: what should happen to them?
+            {t('releases.now.unfinished', { count: openCount })}
           </legend>
           {targets.map(target => (
             <label key={target._id} className={optionClass}>
               <input type="radio" name="move-open-to" value={target._id} checked={choice === target._id} onChange={() => setChoice(target._id)} className="size-4 accent-blue-600" />
               <span className="min-w-0">
-                <span className="block truncate font-medium">Move to {target.name}</span>
+                <span className="block truncate font-medium">{t('releases.now.moveTo', { name: target.name })}</span>
                 <span className="block text-xs text-slate-600">{formatReleaseDates(target)}</span>
               </span>
             </label>
           ))}
           <label className={optionClass}>
             <input type="radio" name="move-open-to" value={REMOVE} checked={choice === REMOVE} onChange={() => setChoice(REMOVE)} className="size-4 accent-blue-600" />
-            Remove them from the release
+            {t('releases.now.remove')}
           </label>
           <label className={optionClass}>
             <input type="radio" name="move-open-to" value={KEEP} checked={choice === KEEP} onChange={() => setChoice(KEEP)} className="size-4 accent-blue-600" />
-            Leave them in this release
+            {t('releases.now.keep')}
           </label>
           {targets.length === 0 && (
-            <p className="text-xs text-slate-600">Plan another release to move unfinished work straight into it.</p>
+            <p className="text-xs text-slate-600">{t('releases.now.planAnother')}</p>
           )}
         </fieldset>
       )}

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Surface } from './primitives';
 
@@ -15,7 +16,7 @@ interface RegionProps {
   children: ReactNode;
 }
 
-const SkeletonRegion = ({ label = 'Loading', className, children }: RegionProps) => (
+const SkeletonRegion = ({ label = t('loading'), className, children }: RegionProps) => (
   <div role="status" aria-busy="true" aria-label={label} className={className}>
     <span className="sr-only">{label}</span>
     <div aria-hidden>{children}</div>
@@ -35,7 +36,7 @@ interface SkeletonListProps {
 }
 
 /** Rows with avatar, title, meta line and an optional trailing pill. */
-export const SkeletonList = ({ rows = 5, avatar = true, trailing = true, bare = false, label = 'Loading list', className }: SkeletonListProps) => {
+export const SkeletonList = ({ rows = 5, avatar = true, trailing = true, bare = false, label = t('skeleton.list'), className }: SkeletonListProps) => {
   const list = (
     <ul className="divide-y divide-border-subtle">
       {Array.from({ length: rows }, (_, index) => (
@@ -65,7 +66,7 @@ interface SkeletonBoardProps {
 }
 
 /** Kanban columns: a header and a stack of cards each. Clips sideways like the real board. */
-export const SkeletonBoard = ({ columns = 3, cards = 3, label = 'Loading board', className }: SkeletonBoardProps) => (
+export const SkeletonBoard = ({ columns = 3, cards = 3, label = t('skeleton.board'), className }: SkeletonBoardProps) => (
   <SkeletonRegion label={label} className={className}>
     <div className="flex gap-4 overflow-hidden">
       {Array.from({ length: columns }, (_, column) => (
@@ -98,7 +99,7 @@ interface SkeletonTableProps {
 }
 
 /** Table with a header row; the first column is wider like a title column. */
-export const SkeletonTable = ({ rows = 6, columns = 4, label = 'Loading table', className }: SkeletonTableProps) => {
+export const SkeletonTable = ({ rows = 6, columns = 4, label = t('skeleton.table'), className }: SkeletonTableProps) => {
   const template = { gridTemplateColumns: `minmax(0,2fr) repeat(${Math.max(columns - 1, 1)}, minmax(0,1fr))` };
   return (
     <SkeletonRegion label={label} className={className}>
@@ -135,11 +136,11 @@ interface SkeletonChartProps {
 const BAR_HEIGHTS = ['45%', '70%', '55%', '85%', '35%', '65%', '90%', '50%', '75%', '60%'];
 
 /** Chart card: title and a bar plot with a baseline. */
-export const SkeletonChart = ({ height = 'h-56', title = true, bars = 8, bare = false, label = 'Loading chart', className }: SkeletonChartProps) => {
+export const SkeletonChart = ({ height = 'h-56', title = true, bars = 8, bare = false, label = t('skeleton.chart'), className }: SkeletonChartProps) => {
   const plot = (
     <div className="space-y-3">
       {title && <Skeleton className={cn('h-4 w-40', BAR)} />}
-      <div className={cn('flex items-end gap-2 border-b border-l border-slate-200 px-2 pt-2', height)}>
+      <div className={cn('flex items-end gap-2 border-b border-s border-slate-200 px-2 pt-2', height)}>
         {Array.from({ length: bars }, (_, index) => (
           <Skeleton key={index} className={cn('flex-1 rounded-b-none', BAR)} style={{ height: BAR_HEIGHTS[index % BAR_HEIGHTS.length] }} />
         ))}
@@ -163,7 +164,7 @@ interface SkeletonDetailProps {
 }
 
 /** Body of a detail dialog: title, key/value block and a paragraph. */
-export const SkeletonDetail = ({ fields = 4, lines = 3, label = 'Loading details', className }: SkeletonDetailProps) => (
+export const SkeletonDetail = ({ fields = 4, lines = 3, label = t('skeleton.details'), className }: SkeletonDetailProps) => (
   <SkeletonRegion label={label} className={className}>
     <div className="space-y-6">
       <div className="space-y-2.5">

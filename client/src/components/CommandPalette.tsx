@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { cn } from 'cn';
 import { Spinner } from '@/components/ds';
@@ -30,6 +31,7 @@ interface LoadedTasks {
 
 const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = false }: CommandPaletteProps) => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation('nav');
   const uid = useId();
   const listId = `${uid}-list`;
   const optionId = (id: string) => `${uid}-${id}`;
@@ -67,7 +69,9 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
   );
   const items = useMemo(
     () => buildCommandItems(slug, gate, tasksReady ? loaded.tasks : [], tasksReady ? loaded.projects : undefined),
-    [slug, gate, tasksReady, loaded],
+    // i18n.language: the labels are translated when the items are built
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [slug, gate, tasksReady, loaded, i18n.language],
   );
   const results = useMemo(() => searchCommands(query, items), [query, items]);
   const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
@@ -121,8 +125,8 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
 
   const trimmed = query.trim();
   const statusMessage = results.length
-    ? `${results.length} ${results.length === 1 ? 'result' : 'results'}`
-    : `No results for ${trimmed}`;
+    ? t('palette.results', { count: results.length })
+    : t('palette.noResultsFor', { query: trimmed });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -131,9 +135,9 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
         initialFocus={inputRef}
         className="top-0 left-0 flex h-dvh max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 sm:top-[12%] sm:left-1/2 sm:h-auto sm:max-h-[min(32rem,76dvh)] sm:max-w-xl sm:-translate-x-1/2 sm:rounded-xl"
       >
-        <DialogTitle className="sr-only">Search</DialogTitle>
+        <DialogTitle className="sr-only">{t('search')}</DialogTitle>
         <DialogDescription className="sr-only">
-          Find pages, tasks and projects. Use the arrow keys to move and Enter to open.
+          {t('palette.description')}
         </DialogDescription>
 
         <div className="flex items-center gap-2 border-b border-slate-200 px-3 pt-[env(safe-area-inset-top)]">
@@ -142,7 +146,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
             ref={inputRef}
             type="text"
             role="combobox"
-            aria-label="Search tasks and pages"
+            aria-label={t('palette.inputLabel')}
             aria-expanded={results.length > 0}
             aria-controls={listId}
             aria-autocomplete="list"
@@ -151,7 +155,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="go"
-            placeholder="Search tasks, pages…"
+            placeholder={t('searchPlaceholder')}
             value={query}
             onChange={event => {
               setQuery(event.target.value);
@@ -165,10 +169,10 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
             onClick={() => handleOpenChange(false)}
             className="inline-flex h-8 items-center rounded-md px-2 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-primary sm:hidden"
           >
-            Cancel
+            {t('common:cancel')}
           </button>
           <kbd className="hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-sans text-[11px] font-medium text-slate-500 sm:inline">
-            Esc
+            {t('shortcuts.keys.esc')}
           </kbd>
         </div>
 
@@ -178,7 +182,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
           id={listId}
           ref={listRef}
           role="listbox"
-          aria-label="Results"
+          aria-label={t('palette.resultsLabel')}
           // Results scroll inside the dialog with a visible scrollbar; the search field and footer stay put
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] [scrollbar-gutter:stable] [scrollbar-width:thin]"
         >
@@ -194,7 +198,7 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
                     role="presentation"
                     className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500"
                   >
-                    {group}
+                    {t(`palette.groups.${group}`)}
                   </li>
                   {groupItems.map(item => {
                     const Icon = item.icon;
@@ -232,22 +236,22 @@ const CommandPalette = ({ open, onOpenChange, slug, can, permissionsLoading = fa
 
           {results.length === 0 && !loadingTasks && (
             <li role="presentation" className="px-3 py-10 text-center text-sm text-slate-500">
-              No results for <span className="font-medium text-slate-700">“{trimmed}”</span>
+              <Trans t={t} i18nKey="palette.noResults" values={{ query: trimmed }} components={{ q: <span className="font-medium text-slate-700" /> }} />
             </li>
           )}
           {loadingTasks && (
-            <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500"><Spinner decorative size="xs" className="mr-1.5 align-middle" />Loading tasks…</li>
+            <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500"><Spinner decorative size="xs" className="me-1.5 align-middle" />{t('palette.loadingTasks')}</li>
           )}
           {loaded?.failed && tasksReady && (
             <li role="presentation" className="px-3 py-3 text-center text-xs text-slate-500">
-              Tasks could not be loaded. Pages are still available.
+              {t('palette.loadFailed')}
             </li>
           )}
         </ul>
 
         <div className="hidden items-center gap-3 border-t border-slate-200 px-3 py-2 text-[11px] text-slate-500 sm:flex">
-          <span><kbd className="font-sans">↑↓</kbd> to move</span>
-          <span><kbd className="font-sans">↵</kbd> to open</span>
+          <span><kbd className="font-sans">↑↓</kbd> {t('palette.toMove')}</span>
+          <span><kbd className="font-sans">↵</kbd> {t('palette.toOpen')}</span>
         </div>
       </DialogContent>
     </Dialog>

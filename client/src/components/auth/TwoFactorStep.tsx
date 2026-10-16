@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { Alert, Field, fieldMessageId, Spinner } from '@/components/ds';
 import { AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ interface TwoFactorStepProps {
 
 /** Second step of sign-in: the 6-digit authenticator code, or a recovery code instead. */
 export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFactorStepProps) => {
+  const { t } = useTranslation('auth');
   const [useRecovery, setUseRecovery] = useState(false);
   const [code, setCode] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
@@ -48,11 +50,13 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
     <>
       <AuthStatusHeader
         icon={<ShieldCheck />}
-        title="Enter the 6-digit code"
+        title={t('twoFactor.title')}
         description={
           useRecovery
-            ? 'Enter one of the recovery codes you saved when you turned on two-factor authentication.'
-            : <>Open your authenticator app and enter the code{email ? <> for <span className="font-semibold text-slate-800">{email}</span></> : null}.</>
+            ? t('twoFactor.recoveryDescription')
+            : email
+              ? <Trans t={t} i18nKey="twoFactor.appDescriptionFor" values={{ email }} components={{ e: <span className="font-semibold text-slate-800" /> }} />
+              : t('twoFactor.appDescription')
         }
       />
 
@@ -61,10 +65,10 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
       <form onSubmit={submit} noValidate className="space-y-5">
         {useRecovery ? (
           <Field
-            label="Recovery code"
+            label={t('twoFactor.recoveryLabel')}
             htmlFor="recovery-code"
-            error={invalid ? 'Enter the 8-character code, like abcd-efgh.' : undefined}
-            hint="Each recovery code works once."
+            error={invalid ? t('twoFactor.recoveryError') : undefined}
+            hint={t('twoFactor.recoveryHint')}
           >
             <Input
               id="recovery-code"
@@ -85,10 +89,10 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
         ) : (
           <OneTimeCodeField
             id="two-factor-code"
-            label="Authentication code"
+            label={t('twoFactor.codeLabel')}
             value={code}
             onChange={setCode}
-            error={invalid ? 'Enter the 6-digit code.' : undefined}
+            error={invalid ? t('twoFactor.codeError') : undefined}
             autoFocus
           />
         )}
@@ -100,11 +104,11 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
         >
           {loading ? (
             <>
-              <Spinner decorative /> Verifying...
+              <Spinner decorative /> {t('twoFactor.verifying')}
             </>
           ) : (
             <>
-              Verify and sign in <ArrowRight className="size-4" aria-hidden />
+              {t('twoFactor.verify')} <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
             </>
           )}
         </Button>
@@ -116,14 +120,14 @@ export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }: TwoFa
           onClick={switchMode}
           className="inline-flex min-h-10 items-center px-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
         >
-          {useRecovery ? 'Use my authenticator app instead' : 'Use a recovery code instead'}
+          {useRecovery ? t('twoFactor.useApp') : t('twoFactor.useRecovery')}
         </button>
         <button
           type="button"
           onClick={onBack}
           className="inline-flex min-h-10 items-center px-2 text-slate-600 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
         >
-          Back to sign in
+          {t('twoFactor.back')}
         </button>
       </div>
     </>

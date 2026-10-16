@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { SearchInput } from '@/components/ds';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +20,7 @@ interface LinkTaskDialogProps {
 
 /** Searchable multi-select of the project's tasks to link to an epic. */
 const LinkTaskDialog = ({ open, onOpenChange, epic, candidates, epicTitles, onConfirm }: LinkTaskDialogProps) => {
+  const { t } = useTranslation('projects');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +48,7 @@ const LinkTaskDialog = ({ open, onOpenChange, epic, candidates, epicTitles, onCo
       await onConfirm(candidates.filter(task => selected.has(task._id)).map(task => task._id));
       onOpenChange(false);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not link the tasks.'));
+      setError(getApiErrorMessage(err, t('link.error')));
     } finally {
       setSubmitting(false);
     }
@@ -59,11 +61,11 @@ const LinkTaskDialog = ({ open, onOpenChange, epic, candidates, epicTitles, onCo
       open={open}
       onOpenChange={onOpenChange}
       icon={<Link2 />}
-      title="Link existing tasks"
-      description={`Choose the tasks that belong to "${epic.title}". A task that is in another epic moves here.`}
+      title={t('link.title')}
+      description={t('link.description', { title: epic.title })}
       onSubmit={handleSubmit}
-      submitLabel={count > 0 ? `Link ${count} ${count === 1 ? 'task' : 'tasks'}` : 'Link tasks'}
-      submittingLabel="Linking..."
+      submitLabel={count > 0 ? t('link.submit', { count }) : t('link.submitNone')}
+      submittingLabel={t('link.linking')}
       submitting={submitting}
       submitDisabled={count === 0}
       error={error}
@@ -71,15 +73,15 @@ const LinkTaskDialog = ({ open, onOpenChange, epic, candidates, epicTitles, onCo
     >
       {candidates.length === 0 ? (
         <p className="rounded-lg bg-slate-50 px-3 py-6 text-center text-sm text-slate-600">
-          Every task of this project is already in this epic.
+          {t('link.allLinked')}
         </p>
       ) : (
         <>
-          <SearchInput label="Search tasks" placeholder="Search tasks…" value={query} onValueChange={setQuery} />
+          <SearchInput label={t('link.searchLabel')} placeholder={t('link.searchPlaceholder')} value={query} onValueChange={setQuery} />
           {visible.length === 0 ? (
-            <p className="px-1 py-4 text-center text-sm text-slate-600">No task matches "{query.trim()}".</p>
+            <p className="px-1 py-4 text-center text-sm text-slate-600">{t('link.noMatch', { query: query.trim() })}</p>
           ) : (
-            <ul aria-label="Tasks to link" className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+            <ul aria-label={t('link.listLabel')} className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
               {visible.map(task => {
                 const elsewhere = task.epic ? epicTitles.get(task.epic) : undefined;
                 return (
@@ -95,7 +97,7 @@ const LinkTaskDialog = ({ open, onOpenChange, epic, candidates, epicTitles, onCo
                           <TaskKey task={task} />
                           <span className="font-medium [overflow-wrap:anywhere]">{task.title}</span>
                         </span>
-                        {elsewhere && <span className="block text-xs text-slate-600">Now in {elsewhere}</span>}
+                        {elsewhere && <span className="block text-xs text-slate-600">{t('link.nowIn', { epic: elsewhere })}</span>}
                       </span>
                     </label>
                   </li>

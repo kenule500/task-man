@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert } from 'lucide-react';
 import { EmptyState } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { TWO_FACTOR_REQUIRED_EVENT } from '@/utils/twoFactorRequired';
  * It appears when any request answers 403 TWO_FACTOR_REQUIRED and covers the workspace until they set it up.
  */
 const TwoFactorRequiredGate = () => {
+  const { t } = useTranslation('nav');
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
@@ -25,14 +27,14 @@ const TwoFactorRequiredGate = () => {
       <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white shadow-sm">
         <EmptyState
           icon={<ShieldAlert />}
-          title="Turn on two-factor authentication"
-          description="This workspace requires two-factor authentication. It takes about two minutes with an authenticator app, and you can come straight back."
+          title={t('twoFactorGate.title')}
+          description={t('twoFactorGate.description')}
           action={
             <Link
               to="/settings/security"
               className={buttonVariants({ className: 'h-11 bg-primary px-5 text-white hover:bg-primary-hover sm:h-10' })}
             >
-              Open Security settings
+              {t('twoFactorGate.action')}
             </Link>
           }
         />

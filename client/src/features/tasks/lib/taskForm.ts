@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Project, Sprint } from '@/features/projects';
 import { STORY_POINT_SCALE, type SelectOption } from '../constants';
 import type { Task, TaskInput, TaskPriority, TaskStatus, TaskType } from '../types';
@@ -62,10 +63,10 @@ export const toFormValues = (task?: Task | null, defaults: Partial<TaskFormValue
 /** Same rules as the API, checked before submitting. */
 export const validateTaskForm = (values: TaskFormValues): TaskFormErrors => {
   const errors: TaskFormErrors = {};
-  if (!values.title.trim()) errors.title = 'Give the task a title.';
-  if (!values.deadline) errors.deadline = 'Pick a due date.';
+  if (!values.title.trim()) errors.title = i18n.t('tasks:form.errors.title');
+  if (!values.deadline) errors.deadline = i18n.t('tasks:form.errors.deadline');
   if (values.startDate && values.deadline && values.startDate > values.deadline) {
-    errors.startDate = 'Start date must be on or before the due date.';
+    errors.startDate = i18n.t('tasks:form.errors.startDate');
   }
   return errors;
 };
@@ -112,8 +113,8 @@ export const storyPointOptions = (current: number | null): SelectOption<string>[
   if (current !== null && !values.includes(current)) values.push(current);
   values.sort((a, b) => a - b);
   return [
-    { value: NO_ESTIMATE_VALUE, label: 'Not estimated' },
-    ...values.map(value => ({ value: String(value), label: `${value} ${value === 1 ? 'point' : 'points'}` })),
+    { value: NO_ESTIMATE_VALUE, label: i18n.t('tasks:form.notEstimated') },
+    ...values.map(value => ({ value: String(value), label: i18n.t('tasks:form.points', { count: value }) })),
   ];
 };
 
@@ -128,7 +129,7 @@ export const findProjectByName = (projects: Project[], name: string | undefined)
   return wanted ? projects.find(project => project.name === wanted) : undefined;
 };
 
-const sprintLabel = (sprint: Sprint) => (sprint.status === 'active' ? `${sprint.name} (active)` : sprint.name);
+const sprintLabel = (sprint: Sprint) => (sprint.status === 'active' ? i18n.t('tasks:form.sprintActive', { name: sprint.name }) : sprint.name);
 
 /**
  * Sprints a task of `projectName` can join: the backlog plus the project's planned and active sprints.
@@ -142,8 +143,8 @@ export const sprintOptionsFor = (
   const project = findProjectByName(projects, projectName);
   const sprints = (project?.sprints ?? []).filter(sprint => sprint.status !== 'completed' || sprint._id === currentSprintId);
   return [
-    { value: BACKLOG_VALUE, label: 'Backlog' },
-    ...sprints.map(sprint => ({ value: sprint._id, label: sprint.status === 'completed' ? `${sprint.name} (completed)` : sprintLabel(sprint) })),
+    { value: BACKLOG_VALUE, label: i18n.t('tasks:form.backlog') },
+    ...sprints.map(sprint => ({ value: sprint._id, label: sprint.status === 'completed' ? i18n.t('tasks:form.sprintCompleted', { name: sprint.name }) : sprintLabel(sprint) })),
   ];
 };
 
@@ -155,7 +156,7 @@ export const epicOptionsFor = (epics: Task[], projectName: string | undefined, c
   const project = projectName?.trim() ?? '';
   const usable = epics.filter(epic => !project || (epic.project ?? '') === project || epic._id === currentEpicId);
   return [
-    { value: NO_EPIC_VALUE, label: 'No epic' },
+    { value: NO_EPIC_VALUE, label: i18n.t('tasks:form.noEpic') },
     ...usable.map(epic => ({ value: epic._id, label: epic.title })),
   ];
 };

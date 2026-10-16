@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
 import { ArrowDown, ArrowUp, CheckSquare, Circle, CircleCheck, CornerDownRight, MessageSquare, PanelRightOpen, Paperclip, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 // Deep import: the projects index imports the tasks module back
@@ -64,6 +65,7 @@ const ListView = ({
   tasks, totalCount, allTasks, onUpdate, onEdit, onDelete, onOpen, canWrite = true, canDelete = true,
   onBulkUpdate, onBulkDelete, projects, members,
 }: ListViewProps) => {
+  const { t } = useTranslation('tasks');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { active: activeFields } = useCustomFields();
   // Visible columns are remembered per workspace; changing workspace re-reads them (state adjusted while rendering)
@@ -157,12 +159,12 @@ const ListView = ({
   };
 
   const applyPatch = (patch: BulkTaskPatch) => {
-    if (onBulkUpdate) void run(() => onBulkUpdate([...selected], patch), 'Could not update the selected tasks.');
+    if (onBulkUpdate) void run(() => onBulkUpdate([...selected], patch), t('list.updateError'));
   };
 
   const confirmDelete = async () => {
     if (!onBulkDelete) return;
-    const ok = await run(() => onBulkDelete([...selected]), 'Could not delete the selected tasks.');
+    const ok = await run(() => onBulkDelete([...selected]), t('list.deleteError'));
     setConfirmingDelete(false);
     if (ok) clear();
   };
@@ -193,13 +195,12 @@ const ListView = ({
         setSelected(toggleAll(visibleIds, selected));
         anchor.current = null;
       }}
-      aria-label="Select all tasks"
+      aria-label={t('list.selectAll')}
       className={INDETERMINATE}
     />
   );
   const orphanedSubtasks = (allTasks ?? tasks)
     .filter(task => task.parent && selected.has(task.parent) && !selected.has(task._id)).length;
-  const noun = count === 1 ? 'task' : 'tasks';
 
   return (
     // The checkbox change event carries no modifier keys, so Shift is noted on the click that causes it
@@ -209,26 +210,26 @@ const ListView = ({
     >
       {selectable && (
         <p role="status" aria-live="polite" aria-atomic className="sr-only">
-          {count > 0 ? `${count} ${noun} selected` : ''}
+          {count > 0 ? t('list.selectedStatus', { count }) : ''}
         </p>
       )}
       {tasks.length === 0 ? (
         <EmptyState
           icon={<CheckSquare />}
-          title="No tasks found"
+          title={t('list.emptyTitle')}
           description={totalCount === 0
-            ? "You're all caught up! Create your first task to get started."
-            : 'No tasks match your current filters.'}
+            ? t('list.emptyAllCaughtUp')
+            : t('list.emptyFilters')}
         />
       ) : (
         <>
           {/* Desktop and tablet: table */}
           <div data-testid="list-table" className="hidden overflow-x-auto md:block">
-            <div role="table" aria-label="Tasks" style={{ minWidth: `${tableMinWidth(columns, selectable)}rem` }}>
+            <div role="table" aria-label={t('list.tableLabel')} style={{ minWidth: `${tableMinWidth(columns, selectable)}rem` }}>
               <div role="row" style={{ gridTemplateColumns: table.template }} className={cn(GRID, 'px-6 py-4 border-b border-slate-100 bg-slate-50/50')}>
                 {selectable && <div role="columnheader" className="flex items-center">{selectAll}</div>}
-                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider"><span className="sr-only">Done</span></div>
-                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Task Name</div>
+                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider"><span className="sr-only">{t('list.doneColumn')}</span></div>
+                <div role="columnheader" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('list.taskName')}</div>
                 {columns.map(column => (
                   <ColumnHeader
                     key={column.id}
@@ -238,7 +239,7 @@ const ListView = ({
                   />
                 ))}
                 <div role="columnheader" className="flex items-center justify-end">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t('list.actionsColumn')}</span>
                   <ListColumnsMenu
                     builtIn={builtIn}
                     custom={custom}
@@ -260,27 +261,27 @@ const ListView = ({
               {count > 0 || phoneSelecting ? (
                 <>
                   <div className="flex h-10 items-center">{selectAll}</div>
-                  <span className="flex-1 text-sm text-slate-600" aria-hidden>Select all</span>
+                  <span className="flex-1 text-sm text-slate-600" aria-hidden>{t('list.selectAllPhone')}</span>
                   <button
                     type="button"
                     onClick={() => { setPhoneSelecting(false); clear(); }}
                     className="min-h-10 rounded-md px-2 text-sm font-medium text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
                   >
-                    Done
+                    {t('actions.done')}
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => setPhoneSelecting(true)}
-                  className="ml-auto min-h-10 rounded-md px-2 text-sm font-medium text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
+                  className="ms-auto min-h-10 rounded-md px-2 text-sm font-medium text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  Select
+                  {t('list.select')}
                 </button>
               )}
             </div>
           )}
-          <ul role="list" aria-label="Tasks" data-testid="list-cards" className="divide-y divide-slate-100 md:hidden">
+          <ul role="list" aria-label={t('list.tableLabel')} data-testid="list-cards" className="divide-y divide-slate-100 md:hidden">
             {entries.map(entry => (
               <ListCard key={entry.task._id} {...entryProps(entry)} />
             ))}
@@ -289,8 +290,7 @@ const ListView = ({
           {/* Leaves room for the floating bulk bar so it never covers the last rows */}
           <div className={cn('flex justify-between items-center px-4 py-4 bg-slate-50/50 border-t border-slate-100 md:px-6', count > 0 && 'pb-28 md:pb-20')}>
             <p className="text-xs text-slate-500">
-              Showing <span className="font-medium text-slate-700">{tasks.length}</span> of{' '}
-              <span className="font-medium text-slate-700">{totalCount}</span> tasks
+              <Trans t={t} i18nKey="list.showing" values={{ shown: tasks.length, total: totalCount }} components={{ b: <span className="font-medium text-slate-700" /> }} />
             </p>
           </div>
         </>
@@ -311,15 +311,15 @@ const ListView = ({
       <ConfirmActionDialog
         open={confirmingDelete}
         onOpenChange={open => !open && !busy && setConfirmingDelete(false)}
-        title={`Delete ${count} ${noun}?`}
+        title={t('list.deleteTitle', { count })}
         description={
           <>
-            {orphanedSubtasks > 0 && `${orphanedSubtasks} ${orphanedSubtasks === 1 ? 'subtask goes' : 'subtasks go'} with them. `}
-            The selected tasks are deleted with their comments and attachments. This cannot be undone.
+            {orphanedSubtasks > 0 && `${t('list.orphans', { count: orphanedSubtasks })} `}
+            {t('list.deleteBody')}
           </>
         }
-        confirmLabel={`Delete ${count} ${noun}`}
-        busyLabel="Deleting..."
+        confirmLabel={t('list.deleteConfirm', { count })}
+        busyLabel={t('list.deleting')}
         busy={busy}
         onConfirm={() => { void confirmDelete(); }}
       />
@@ -345,6 +345,7 @@ interface TableContext {
 
 /** A header cell; number and date custom columns sort the rows when clicked. */
 const ColumnHeader = ({ column, sort, onSort }: { column: ListColumn; sort: ColumnSort | null; onSort: () => void }) => {
+  const { t } = useTranslation('tasks');
   const label = <span className="truncate">{column.header}</span>;
   return (
     <div
@@ -360,7 +361,7 @@ const ColumnHeader = ({ column, sort, onSort }: { column: ListColumn; sort: Colu
         >
           {label}
           {sort && (sort.direction === 'asc' ? <ArrowUp className="size-3 shrink-0" aria-hidden /> : <ArrowDown className="size-3 shrink-0" aria-hidden />)}
-          <span className="sr-only">, sort by this column</span>
+          <span className="sr-only">{t('list.sortSr')}</span>
         </button>
       ) : label}
     </div>
@@ -384,20 +385,24 @@ type ListRowProps = Pick<TaskViewProps, 'onUpdate' | 'onEdit' | 'onDelete' | 'on
 /** Opens the details dialog (falls back to the edit form when the page has none). */
 const openTask = ({ task, onOpen, onEdit }: Pick<ListRowProps, 'task' | 'onOpen' | 'onEdit'>) => () => (onOpen ?? onEdit)(task);
 
-const DetailsButton = ({ task, onOpen, onEdit, className }: Pick<ListRowProps, 'task' | 'onOpen' | 'onEdit'> & { className?: string }) => (
+const DetailsButton = ({ task, onOpen, onEdit, className }: Pick<ListRowProps, 'task' | 'onOpen' | 'onEdit'> & { className?: string }) => {
+  const { t } = useTranslation('tasks');
+  return (
   <Button
     variant="ghost"
     size="icon-sm"
-    aria-label={`Open details for ${task.title}`}
+    aria-label={t('list.openDetails', { title: task.title })}
     onClick={openTask({ task, onOpen, onEdit })}
     className={cn('size-10 text-slate-500 hover:bg-slate-200 hover:text-slate-600 md:size-7', className)}
   >
     <PanelRightOpen />
   </Button>
-);
+  );
+};
 
 /** Round "done" button, visually distinct from the square selection checkbox. */
 const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; completed: boolean; canWrite: boolean; onUpdate: ListRowProps['onUpdate'] }) => {
+  const { t } = useTranslation('tasks');
   // Marking a task done plays a one-shot check burst (state adjusted while rendering, no effect)
   const [wasCompleted, setWasCompleted] = useState(completed);
   const [burst, setBurst] = useState(0);
@@ -412,7 +417,7 @@ const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; compl
     aria-pressed={completed}
     disabled={!canWrite}
     onClick={() => onUpdate(task._id, { status: completed ? 'pending' : 'completed' })}
-    aria-label={completed ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
+    aria-label={t(completed ? 'list.markNotDone' : 'list.markDone', { title: task.title })}
     className={cn(
       'relative flex size-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors md:size-8',
       'hover:text-success-fg focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default disabled:hover:text-slate-400',
@@ -427,15 +432,19 @@ const DoneToggle = ({ task, completed, canWrite, onUpdate }: { task: Task; compl
   );
 };
 
-const SelectCheckbox = ({ task, selection }: Pick<ListRowProps, 'task'> & { selection: NonNullable<ListRowProps['selection']> }) => (
+const SelectCheckbox = ({ task, selection }: Pick<ListRowProps, 'task'> & { selection: NonNullable<ListRowProps['selection']> }) => {
+  const { t } = useTranslation('tasks');
+  return (
   <Checkbox
     checked={selection.selected}
     onCheckedChange={checked => selection.onChange(task._id, checked)}
-    aria-label={`Select "${task.title}"`}
+    aria-label={t('list.selectTask', { title: task.title })}
   />
-);
+  );
+};
 
 const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, depth = 0, orphanOf, progress, selection, table }: ListRowProps & { table: TableContext }) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
   const titleClass = cn('font-medium text-sm text-slate-900', completed && 'text-slate-500 line-through');
@@ -461,15 +470,15 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
         <DoneToggle task={task} completed={completed} canWrite={canWrite} onUpdate={onUpdate} />
       </div>
 
-      <div role="cell" className={cn('min-w-0 pl-2', depth === 1 && 'pl-7')}>
+      <div role="cell" className={cn('min-w-0 ps-2', depth === 1 && 'ps-7')}>
         <div className="flex items-center gap-2">
-          {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-500" aria-hidden />}
+          {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-500 rtl:-scale-x-100" aria-hidden />}
           <TaskTypeIcon type={task.type} />
           <TaskKey task={task} />
           <div className="min-w-0 flex-1">
             <InlineText
               value={task.title}
-              label={`Rename ${task.title}`}
+              label={t('list.rename', { title: task.title })}
               onSave={title => onUpdate(task._id, { title })}
               readOnly={!canWrite}
               onOpen={openTask({ task, onOpen, onEdit })}
@@ -477,7 +486,7 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
             />
           </div>
         </div>
-        <TaskMeta task={task} showAssignees={false} progress={progress} orphanOf={orphanOf} className={cn(depth === 1 && 'pl-6')} columns={table.columns} />
+        <TaskMeta task={task} showAssignees={false} progress={progress} orphanOf={orphanOf} className={cn(depth === 1 && 'ps-6')} columns={table.columns} />
       </div>
 
       {table.columns.map(column => (
@@ -503,7 +512,10 @@ const ListRow = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete
   );
 };
 
-const EMPTY_CELL = <span className="text-xs text-slate-500" aria-label="None">{'\u2014'}</span>;
+const EmptyCell = () => {
+  const { t } = useTranslation('tasks');
+  return <span className="text-xs text-slate-500" aria-label={t('detail.none')}>{'\u2014'}</span>;
+};
 
 /** The value of one column in a table row. */
 const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
@@ -514,17 +526,18 @@ const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
   onUpdate: ListRowProps['onUpdate'];
   table: TableContext;
 }) => {
+  const { t } = useTranslation('tasks');
   switch (column.id) {
     case 'assignees':
       return (
         <>
           <AssigneeStack users={task.assignees} preview />
-          {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-500" aria-label="Unassigned">{'\u2014'}</span>}
+          {(task.assignees ?? []).length === 0 && <span className="text-xs text-slate-500" aria-label={t('list.unassigned')}>{'\u2014'}</span>}
         </>
       );
     case 'priority':
       return canWrite ? (
-        <PrioritySelect variant="inline" aria-label={`Priority of ${task.title}`} value={task.priority} onChange={priority => onUpdate(task._id, { priority })} />
+        <PrioritySelect variant="inline" aria-label={t('list.priorityOf', { title: task.title })} value={task.priority} onChange={priority => onUpdate(task._id, { priority })} />
       ) : (
         <PriorityIndicator priority={task.priority} className="px-2" />
       );
@@ -532,7 +545,7 @@ const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
       return canWrite ? (
         <StatusSelect
           variant="inline"
-          aria-label={`Status of ${task.title}`}
+          aria-label={t('list.statusOf', { title: task.title })}
           value={task.status}
           stage={task.stage}
           onChange={status => onUpdate(task._id, { status })}
@@ -544,7 +557,7 @@ const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
     case 'dueDate':
       return (
         <InlineDate
-          label={`Due date for ${task.title}`}
+          label={t('list.dueDateFor', { title: task.title })}
           value={dateKeyOf(task.deadline)}
           min={task.startDate ? dateKeyOf(task.startDate) : undefined}
           onSave={deadline => onUpdate(task._id, { deadline })}
@@ -553,16 +566,16 @@ const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
         />
       );
     case 'storyPoints':
-      return task.storyPoints === null || task.storyPoints === undefined ? EMPTY_CELL : <StoryPoints points={task.storyPoints} />;
+      return task.storyPoints === null || task.storyPoints === undefined ? <EmptyCell /> : <StoryPoints points={task.storyPoints} />;
     case 'release':
       return task.release ? (
         <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-slate-700">
           <Rocket aria-hidden className="size-3.5 shrink-0 text-slate-500" />
-          <span className="truncate">{table.releaseName(task.release) ?? 'Release'}</span>
+          <span className="truncate">{table.releaseName(task.release) ?? t('list.releaseFallback')}</span>
         </span>
-      ) : EMPTY_CELL;
+      ) : <EmptyCell />;
     case 'time':
-      return (task.loggedMinutes ?? 0) > 0 || task.estimateMinutes ? <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} /> : EMPTY_CELL;
+      return (task.loggedMinutes ?? 0) > 0 || task.estimateMinutes ? <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} /> : <EmptyCell />;
     default:
       return column.field ? (
         <CustomFieldValue field={column.field} value={task.custom?.[column.field.key]} userName={table.userName} empty={'\u2014'} />
@@ -572,6 +585,7 @@ const ColumnCell = ({ column, task, overdue, canWrite, onUpdate, table }: {
 
 /** Counters of comments and attachments, hidden when zero. */
 const ActivityCounts = ({ task }: { task: Task }) => {
+  const { t } = useTranslation('tasks');
   const comments = task.comments?.length ?? 0;
   const attachments = task.attachments?.length ?? 0;
   if (!comments && !attachments) return null;
@@ -579,13 +593,13 @@ const ActivityCounts = ({ task }: { task: Task }) => {
   return (
     <>
       {comments > 0 && (
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-500" title="Comments">
-          <MessageSquare className="size-3" aria-hidden />{comments}<span className="sr-only"> comments</span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-500" title={t('list.comments')}>
+          <MessageSquare className="size-3" aria-hidden />{comments}<span className="sr-only">{t('list.commentsSr')}</span>
         </span>
       )}
       {attachments > 0 && (
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-500" title="Attachments">
-          <Paperclip className="size-3" aria-hidden />{attachments}<span className="sr-only"> attachments</span>
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs text-slate-500" title={t('list.attachments')}>
+          <Paperclip className="size-3" aria-hidden />{attachments}<span className="sr-only">{t('list.attachmentsSr')}</span>
         </span>
       )}
     </>
@@ -602,14 +616,15 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf, c
   /** Table columns on screen: what they show is left out of the meta line. */
   columns?: ListColumn[];
 }) => {
+  const { t } = useTranslation('tasks');
   const shown = new Set(columns?.map(column => column.id));
   const columnFields = columns?.flatMap(column => (column.field ? [column.field.key] : []));
   return (
   <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5', className)}>
     {orphanOf && (
-      <span className="inline-flex max-w-40 shrink-0 items-center gap-1 truncate rounded bg-slate-100 px-1.5 text-xs text-slate-600" title={`Subtask of ${orphanOf}`}>
-        <CornerDownRight className="size-3 shrink-0" aria-hidden />
-        <span className="truncate">Subtask of {orphanOf}</span>
+      <span className="inline-flex max-w-40 shrink-0 items-center gap-1 truncate rounded bg-slate-100 px-1.5 text-xs text-slate-600" title={t('list.subtaskOf', { title: orphanOf })}>
+        <CornerDownRight className="size-3 shrink-0 rtl:-scale-x-100" aria-hidden />
+        <span className="truncate">{t('list.subtaskOf', { title: orphanOf })}</span>
       </span>
     )}
     {!shown.has('storyPoints') && <StoryPoints points={task.storyPoints} />}
@@ -624,13 +639,14 @@ const TaskMeta = ({ task, className, showAssignees = true, progress, orphanOf, c
     <RepeatBadge recurrence={task.recurrence} />
     {!shown.has('time') && <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />}
     <ActivityCounts task={task} />
-    {showAssignees && <AssigneeStack users={task.assignees} className="ml-auto" />}
+    {showAssignees && <AssigneeStack users={task.assignees} className="ms-auto" />}
   </div>
   );
 };
 
 /** Compact phone layout: title row with actions, then status, priority and due date. */
 const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelete, depth = 0, orphanOf, progress, selection }: ListRowProps) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
 
@@ -639,7 +655,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
       data-testid="list-card"
       // The checkbox announces selection; list items cannot carry aria-selected
       data-selected={selection?.selected ? "" : undefined}
-      className={cn('group flex items-start gap-3 px-4 py-3', depth === 1 && 'pl-9', selection?.selected && 'bg-primary/5')}
+      className={cn('group flex items-start gap-3 px-4 py-3', depth === 1 && 'ps-9', selection?.selected && 'bg-primary/5')}
     >
       {selection?.active && (
         <div className="flex h-10 items-center">
@@ -652,14 +668,14 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-1">
-          <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
-            {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-500" aria-hidden />}
+          <div className="flex min-w-0 flex-1 items-center gap-2 ps-2">
+            {depth === 1 && <CornerDownRight className="size-3.5 shrink-0 text-slate-500 rtl:-scale-x-100" aria-hidden />}
             <TaskTypeIcon type={task.type} />
             <TaskKey task={task} />
             <div className="min-w-0 flex-1">
               <InlineText
                 value={task.title}
-                label={`Rename ${task.title}`}
+                label={t('list.rename', { title: task.title })}
                 onSave={title => onUpdate(task._id, { title })}
                 readOnly={!canWrite}
                 onOpen={openTask({ task, onOpen, onEdit })}
@@ -675,17 +691,17 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             canEdit={canWrite}
             canDelete={canDelete}
             subtaskCount={progress?.total}
-            className="-mr-2 shrink-0"
+            className="-me-2 shrink-0"
           />
         </div>
-        <TaskMeta task={task} className="pl-2" progress={progress} orphanOf={orphanOf} />
+        <TaskMeta task={task} className="ps-2" progress={progress} orphanOf={orphanOf} />
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {canWrite ? (
             <>
               <StatusSelect
                 variant="inline"
-                aria-label={`Status of ${task.title}`}
+                aria-label={t('list.statusOf', { title: task.title })}
                 value={task.status}
                 stage={task.stage}
                 onChange={status => onUpdate(task._id, { status })}
@@ -694,7 +710,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
               />
               <PrioritySelect
                 variant="inline"
-                aria-label={`Priority of ${task.title}`}
+                aria-label={t('list.priorityOf', { title: task.title })}
                 value={task.priority}
                 onChange={priority => onUpdate(task._id, { priority })}
                 className="h-10 border-slate-200"
@@ -707,7 +723,7 @@ const ListCard = ({ task, onUpdate, onEdit, onDelete, onOpen, canWrite, canDelet
             </>
           )}
           <InlineDate
-            label={`Due date for ${task.title}`}
+            label={t('list.dueDateFor', { title: task.title })}
             value={dateKeyOf(task.deadline)}
             min={task.startDate ? dateKeyOf(task.startDate) : undefined}
             onSave={deadline => onUpdate(task._id, { deadline })}

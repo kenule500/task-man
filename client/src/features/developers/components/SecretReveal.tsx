@@ -1,4 +1,5 @@
 import { KeyRound } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from './CopyButton';
@@ -9,23 +10,27 @@ interface SecretRevealProps {
   /** "API token" or "signing secret" */
   noun: string;
   secret: string;
+  /** True for an API token (the loss advice differs from a webhook secret). */
+  isToken?: boolean;
   onClose: () => void;
 }
 
 /** Shows a token or secret once, with a copy button. It cannot be read again after this dialog closes. */
-export const SecretReveal = ({ title, noun, secret, onClose }: SecretRevealProps) => (
+export const SecretReveal = ({ title, noun, secret, isToken = false, onClose }: SecretRevealProps) => {
+  const { t } = useTranslation('admin');
+  return (
   <DialogShell
     title={title}
-    description={`Copy your ${noun} now and keep it somewhere safe.`}
+    description={t('developers.secretDescription', { noun })}
     icon={<KeyRound />}
     onClose={onClose}
   >
     <DialogBody>
-      <Alert tone="warning" title={`You will not see this ${noun} again`}>
-        TaskMan stores only what it needs to check it. If you lose it, {noun === 'API token' ? 'revoke it and create a new one' : 'rotate the secret to get a new one'}.
+      <Alert tone="warning" title={t('developers.secretWarning', { noun })}>
+        {isToken ? t('developers.secretWarningBodyToken') : t('developers.secretWarningBodySecret')}
       </Alert>
       <div>
-        <p id="secret-reveal-label" className="mb-1 text-xs font-medium text-slate-700">Your {noun}</p>
+        <p id="secret-reveal-label" className="mb-1 text-xs font-medium text-slate-700">{t('developers.yourNoun', { noun })}</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <code
             aria-labelledby="secret-reveal-label"
@@ -38,7 +43,8 @@ export const SecretReveal = ({ title, noun, secret, onClose }: SecretRevealProps
       </div>
     </DialogBody>
     <DialogActions>
-      <Button type="button" onClick={onClose} className="h-11 sm:h-9">I have copied it</Button>
+      <Button type="button" onClick={onClose} className="h-11 sm:h-9">{t('developers.copiedIt')}</Button>
     </DialogActions>
   </DialogShell>
-);
+  );
+};

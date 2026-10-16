@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Stepper, Surface, type StepperStep } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import type { Project } from '@/features/projects';
@@ -10,14 +11,7 @@ import { ResultStep } from './ResultStep';
 import { ReviewStep } from './ReviewStep';
 import { SourceStep } from './SourceStep';
 import { UploadStep } from './UploadStep';
-
-const STEPS: StepperStep[] = [
-  { id: 'source', title: 'Source' },
-  { id: 'upload', title: 'File' },
-  { id: 'map', title: 'Map' },
-  { id: 'review', title: 'Review' },
-  { id: 'import', title: 'Import' },
-];
+import { currentLocale } from '@/i18n/format';
 
 interface ImportWizardProps {
   slug: string;
@@ -28,6 +22,8 @@ interface ImportWizardProps {
 
 /** The five-step import flow. Each step has one heading; focus moves to it when the step changes. */
 export const ImportWizard = ({ slug, wizard, projects, canCreateProject }: ImportWizardProps) => {
+  const { t } = useTranslation('admin');
+  const stepList: StepperStep[] = ['source', 'upload', 'map', 'review', 'import'].map(id => ({ id, title: t(`import.steps.${id}`) }));
   const { step, preview, draft, problems } = wizard;
   const index = WIZARD_STEPS.indexOf(step);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -50,16 +46,16 @@ export const ImportWizard = ({ slug, wizard, projects, canCreateProject }: Impor
             : false;
 
   const titles = {
-    source: 'Choose where your work comes from',
-    upload: 'Upload the file',
-    map: 'Map it to this workspace',
-    review: 'Review before importing',
-    import: wizard.result ? 'Import finished' : wizard.importError ? 'Import failed' : 'Importing',
+    source: t('import.titles.source'),
+    upload: t('import.titles.upload'),
+    map: t('import.titles.map'),
+    review: t('import.titles.review'),
+    import: wizard.result ? t('import.titles.finished') : wizard.importError ? t('import.titles.failed') : t('import.titles.importing'),
   } as const;
 
   return (
     <div className="space-y-5">
-      <Stepper steps={STEPS} current={index} label="Import progress" size="sm" />
+      <Stepper steps={stepList} current={index} label={t('import.progress')} size="sm" />
 
       <Surface as="section" aria-labelledby="import-step-title" className="space-y-5">
         <h2 id="import-step-title" ref={heading} tabIndex={-1} className="text-base font-semibold text-text-strong outline-none">
@@ -104,16 +100,16 @@ export const ImportWizard = ({ slug, wizard, projects, canCreateProject }: Impor
           <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-between">
             {index > 0 ? (
               <Button type="button" variant="outline" className="h-11 sm:h-9" onClick={wizard.back}>
-                <ArrowLeft aria-hidden /> Back
+                <ArrowLeft className="rtl:-scale-x-100" aria-hidden /> {t('import.back')}
               </Button>
             ) : <span />}
             {step === 'review' ? (
               <Button type="button" className="h-11 sm:h-9" disabled={!canContinue} onClick={() => { void wizard.runImport(); }}>
-                <Upload aria-hidden /> Import {preview?.total.toLocaleString()} {preview?.total === 1 ? 'task' : 'tasks'}
+                <Upload aria-hidden /> {t('import.importTasks', { count: preview?.total ?? 0, n: preview?.total.toLocaleString(currentLocale()) })}
               </Button>
             ) : (
               <Button type="button" className="h-11 sm:h-9" disabled={!canContinue} onClick={wizard.next}>
-                Continue <ArrowRight aria-hidden />
+                {t('import.continue')} <ArrowRight className="rtl:-scale-x-100" aria-hidden />
               </Button>
             )}
           </div>

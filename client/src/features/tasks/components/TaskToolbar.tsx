@@ -1,4 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { ArrowUpDown, Download, Flag, FolderKanban, Layers, ListFilter, Rocket, Search, SlidersHorizontal, Tag, Timer, UserCheck, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,14 +15,14 @@ import type { Task, TaskFilters, TaskPriority, TaskSort, TaskStatus, TaskType } 
 import FilterPills from './FilterPills';
 import { OptionSelect } from './TaskSelects';
 
-const STATUS_FILTER_OPTIONS: SelectOption<TaskStatus | 'all'>[] = [{ value: 'all', label: 'All' }, ...STATUS_OPTIONS];
+const STATUS_FILTER_OPTIONS: SelectOption<TaskStatus | 'all'>[] = [{ value: 'all', get label() { return i18n.t('tasks:toolbar.all'); } }, ...STATUS_OPTIONS];
 
 const PRIORITY_FILTER_OPTIONS: SelectOption<TaskPriority | 'all'>[] = [
-  { value: 'all', label: 'All priorities' },
+  { value: 'all', get label() { return i18n.t('tasks:toolbar.allPriorities'); } },
   ...PRIORITY_OPTIONS,
 ];
 
-const TYPE_FILTER_OPTIONS: SelectOption<TaskType | 'all'>[] = [{ value: 'all', label: 'All types' }, ...TASK_TYPE_OPTIONS];
+const TYPE_FILTER_OPTIONS: SelectOption<TaskType | 'all'>[] = [{ value: 'all', get label() { return i18n.t('tasks:toolbar.allTypes'); } }, ...TASK_TYPE_OPTIONS];
 
 interface TaskToolbarProps {
   filters: TaskFilters;
@@ -55,20 +57,21 @@ interface TaskToolbarProps {
 
 /** Search, status pills (not on the board), priority and sort controls shared by every view. */
 const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = true, labels = [], epics = [], canFilterMine = false, projects = [], onExport, exportCount, viewsMenu, releases = [], customFields = [], members = [] }: TaskToolbarProps) => {
+  const { t } = useTranslation('tasks');
   const epicOptions: SelectOption<string>[] = [
-    { value: 'all', label: 'All epics' },
-    { value: 'none', label: 'No epic' },
+    { value: 'all', label: t('toolbar.allEpics') },
+    { value: 'none', label: t('form.noEpic') },
     ...epics.map(epic => ({ value: epic._id, label: epic.title })),
   ];
   const labelOptions: SelectOption<string>[] = [
-    { value: 'all', label: 'All labels' },
+    { value: 'all', label: t('toolbar.allLabels') },
     ...labels.map(label => ({ value: label, label })),
   ];
   // Project picker: active projects (plus the chosen one, even when archived or unknown)
   const chosenProject = filters.project ?? 'all';
   const scopeProject = scopeProjectOf(filters, projects);
   const projectOptions: SelectOption<string>[] = [
-    { value: 'all', label: 'All projects' },
+    { value: 'all', label: t('toolbar.allProjects') },
     ...projects.filter(project => !project.archived || project === findScopeProject(chosenProject, projects))
       .map(project => ({ value: project.name, label: project.name })),
     ...(chosenProject !== 'all' && !findScopeProject(chosenProject, projects) ? [{ value: chosenProject, label: chosenProject }] : []),
@@ -76,15 +79,15 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
   // Sprint picker: the scope project's sprints, running first, completed last
   const chosenSprint = filters.sprint ?? 'all';
   const sprintOptions: SelectOption<string>[] = scopeProject ? [
-    { value: 'all', label: 'All sprints' },
-    ...(scopeProject.sprints.some(sprint => sprint.status === 'active') ? [{ value: 'active', label: 'Active sprint' }] : []),
-    { value: 'backlog', label: 'Backlog' },
+    { value: 'all', label: t('toolbar.allSprints') },
+    ...(scopeProject.sprints.some(sprint => sprint.status === 'active') ? [{ value: 'active', label: t('toolbar.activeSprint') }] : []),
+    { value: 'backlog', label: t('form.backlog') },
     ...orderSprints(scopeProject.sprints).map(sprint => ({
       value: sprint._id,
-      label: sprint.status === 'completed' ? `${sprint.name} (completed)` : sprint.status === 'planned' ? `${sprint.name} (planned)` : sprint.name,
+      label: sprint.status === 'completed' ? t('form.sprintCompleted', { name: sprint.name }) : sprint.status === 'planned' ? t('toolbar.sprintPlanned', { name: sprint.name }) : sprint.name,
     })),
     ...(chosenSprint !== 'all' && chosenSprint !== 'active' && chosenSprint !== 'backlog' && !scopeProject.sprints.some(sprint => sprint._id === chosenSprint)
-      ? [{ value: chosenSprint, label: 'Unknown sprint' }] : []),
+      ? [{ value: chosenSprint, label: t('toolbar.unknownSprint') }] : []),
   ] : [];
   // Release picker: the scope project's releases (archived ones only when chosen)
   const chosenRelease = filters.release ?? 'all';
@@ -92,11 +95,11 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
     ? releases.filter(release => release.project === scopeProject._id && (release.status !== 'archived' || release._id === chosenRelease))
     : [];
   const releaseOptions: SelectOption<string>[] = scopeProject && projectReleases.length > 0 ? [
-    { value: 'all', label: 'All releases' },
-    { value: 'none', label: 'No release' },
-    ...projectReleases.map(release => ({ value: release._id, label: release.status === 'released' ? `${release.name} (released)` : release.name })),
+    { value: 'all', label: t('toolbar.allReleases') },
+    { value: 'none', label: t('toolbar.noRelease') },
+    ...projectReleases.map(release => ({ value: release._id, label: release.status === 'released' ? t('toolbar.releaseReleased', { name: release.name }) : release.name })),
     ...(chosenRelease !== 'all' && chosenRelease !== 'none' && !projectReleases.some(release => release._id === chosenRelease)
-      ? [{ value: chosenRelease, label: 'Unknown release' }] : []),
+      ? [{ value: chosenRelease, label: t('toolbar.unknownRelease') }] : []),
   ] : [];
   const fieldFilters = filterableFields(customFields, chosenProject);
   const assignedToMe = Boolean(filters.assignedToMe);
@@ -121,7 +124,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
       {showStatus && (
         <FilterPills
           className="min-w-0"
-          aria-label="Filter by status"
+          aria-label={t('toolbar.filterByStatus')}
           value={filters.status}
           options={STATUS_FILTER_OPTIONS.map(option => ({ ...option, count: counts[option.value] }))}
           onChange={status => onChange({ ...filters, status })}
@@ -131,12 +134,12 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="flex gap-2 sm:contents">
         <div className="relative min-w-0 flex-1 sm:w-56 sm:flex-none">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" aria-hidden />
           <Input
             type="search"
-            aria-label="Search tasks"
-            placeholder="Search tasks..."
-            className="pl-9 h-11 bg-white border-slate-200 rounded-lg text-base sm:h-9 sm:text-sm"
+            aria-label={t('toolbar.searchLabel')}
+            placeholder={t('toolbar.searchPlaceholder')}
+            className="ps-9 h-11 bg-white border-slate-200 rounded-lg text-base sm:h-9 sm:text-sm"
             value={filters.search}
             onChange={e => onChange({ ...filters, search: e.target.value })}
           />
@@ -151,33 +154,33 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
             showFilters || activeFilterCount > 0 ? 'border-primary text-primary' : 'border-slate-200 bg-white text-slate-700',
           )}
         >
-          <SlidersHorizontal className="size-4" aria-hidden /> Filters
+          <SlidersHorizontal className="size-4" aria-hidden /> {t('toolbar.filters')}
           {activeFilterCount > 0 && (
             <span className="rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-white">
-              {activeFilterCount}<span className="sr-only"> active</span>
+              {activeFilterCount}<span className="sr-only">{t('toolbar.activeSr')}</span>
             </span>
           )}
         </button>
-        {viewsMenu && <div className="shrink-0 sm:order-last sm:ml-auto">{viewsMenu}</div>}
+        {viewsMenu && <div className="shrink-0 sm:order-last sm:ms-auto">{viewsMenu}</div>}
         {onExport && (
           <Button
             type="button"
             variant="outline"
-            aria-label="Export CSV"
-            title={exportCount === undefined ? 'Export CSV' : `Export ${exportCount} ${exportCount === 1 ? 'task' : 'tasks'} as CSV`}
+            aria-label={t('toolbar.exportCsv')}
+            title={exportCount === undefined ? t('toolbar.exportCsv') : t('toolbar.exportTitle', { count: exportCount })}
             disabled={exportCount === 0}
             onClick={onExport}
-            className={cn('h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:h-9 sm:w-auto sm:px-3', !viewsMenu && 'sm:ml-auto')}
+            className={cn('h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:order-last sm:h-9 sm:w-auto sm:px-3', !viewsMenu && 'sm:ms-auto')}
           >
             <Download className="size-4" aria-hidden />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">{t('toolbar.exportCsv')}</span>
           </Button>
         )}
         </div>
         <div id={filtersId} className={cn('grid grid-cols-2 gap-2 sm:contents', !showFilters && 'max-sm:hidden')}>
         {projects.length > 0 && (
           <OptionSelect
-            aria-label="Filter by project"
+            aria-label={t('toolbar.filterByProject')}
             icon={<FolderKanban className="size-3.5 text-slate-500" aria-hidden />}
             value={chosenProject}
             options={projectOptions}
@@ -188,7 +191,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         )}
         {scopeProject && (
           <OptionSelect
-            aria-label="Filter by sprint"
+            aria-label={t('toolbar.filterBySprint')}
             icon={<Timer className="size-3.5 text-slate-500" aria-hidden />}
             value={chosenSprint}
             options={sprintOptions}
@@ -199,7 +202,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         )}
         {releaseOptions.length > 0 && (
           <OptionSelect
-            aria-label="Filter by release"
+            aria-label={t('toolbar.filterByRelease')}
             icon={<Rocket className="size-3.5 text-slate-500" aria-hidden />}
             value={chosenRelease}
             options={releaseOptions}
@@ -217,12 +220,12 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
               assignedToMe ? 'border-primary bg-primary text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
             )}
           >
-            <UserCheck className="size-3.5" aria-hidden /> Assigned to me
+            <UserCheck className="size-3.5" aria-hidden /> {t('toolbar.assignedToMe')}
           </button>
         )}
         {labels.length > 0 && (
           <OptionSelect
-            aria-label="Filter by label"
+            aria-label={t('toolbar.filterByLabel')}
             icon={<Tag className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.label ?? 'all'}
             options={labelOptions}
@@ -231,7 +234,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
           />
         )}
         <OptionSelect
-          aria-label="Filter by type"
+          aria-label={t('toolbar.filterByType')}
           icon={<Layers className="size-3.5 text-slate-500" aria-hidden />}
           value={filters.type ?? 'all'}
           options={TYPE_FILTER_OPTIONS}
@@ -240,7 +243,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         />
         {epics.length > 0 && (
           <OptionSelect
-            aria-label="Filter by epic"
+            aria-label={t('toolbar.filterByEpic')}
             icon={<Zap className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.epic ?? 'all'}
             options={epicOptions}
@@ -251,7 +254,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         {fieldFilters.map(field => (
           <OptionSelect
             key={field.key}
-            aria-label={`Filter by ${field.name}`}
+            aria-label={t('toolbar.filterByField', { name: field.name })}
             icon={<ListFilter className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.custom?.[field.key] ?? 'all'}
             options={filterOptions(field, members, filters.custom?.[field.key])}
@@ -261,7 +264,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
           />
         ))}
         <OptionSelect
-          aria-label="Filter by priority"
+          aria-label={t('toolbar.filterByPriority')}
           icon={<Flag className="size-3.5 text-slate-500" aria-hidden />}
           value={filters.priority}
           options={PRIORITY_FILTER_OPTIONS}
@@ -270,7 +273,7 @@ const TaskToolbar = ({ filters, onChange, counts, showStatus = true, showSort = 
         />
         {showSort && (
           <OptionSelect<TaskSort>
-            aria-label="Sort tasks"
+            aria-label={t('toolbar.sort')}
             icon={<ArrowUpDown className="size-3.5 text-slate-500" aria-hidden />}
             value={filters.sort}
             options={SORT_OPTIONS}

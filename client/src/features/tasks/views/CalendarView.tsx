@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type DragEvent, type Ref, type TouchEvent } from 'react';
 import { CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { SegmentedControl } from '@/components/ds';
@@ -16,20 +18,21 @@ import { DOT_META, dotStateOf, summarizeDay, type DaySummary } from '../lib/cale
 import { buildMonthGrid, groupByDeadline, rescheduleToDeadline, type CalendarDay } from '../lib/schedule';
 import { scrollBehavior } from '../lib/scroll';
 import {
-  WEEKDAYS, buildWeek, defaultSelectedKey, formatTaskRange, readMobileMode, shiftWeek, writeMobileMode,
+  weekdayInitials, weekdayLabels, buildWeek, defaultSelectedKey, formatTaskRange, readMobileMode, shiftWeek, writeMobileMode,
   type MobileCalendarMode,
 } from '../lib/week';
 import type { Task } from '../types';
 import ProjectChip from '@/features/projects/components/ProjectChip';
 import type { TaskViewProps } from './types';
+import { currentLocale } from '@/i18n/format';
 
 const VISIBLE_PER_DAY = 3;
 const FLASH_MS = 1600;
 const SWIPE_PX = 48;
 
 const MODE_OPTIONS: { value: MobileCalendarMode; label: string }[] = [
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
+  { value: 'week', get label() { return i18n.t('tasks:calendar.week'); } },
+  { value: 'month', get label() { return i18n.t('tasks:calendar.month'); } },
 ];
 
 interface CalendarViewProps extends Pick<TaskViewProps, 'tasks' | 'onUpdate' | 'onEdit' | 'onCreate' | 'onOpen' | 'canWrite'> {
@@ -47,6 +50,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
 
 /** Month grid placing tasks on their due date. Drag a task to another day to reschedule it. */
 const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, canWrite = true, initialMonth }: CalendarViewProps) => {
+  const { t } = useTranslation('tasks');
   const open = onOpen ?? onEdit;
   // Epics are containers: the calendar shows the work items inside them
   const tasks = useMemo(() => withoutEpics(shownTasks), [shownTasks]);
@@ -136,19 +140,19 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
           <Button
             variant="outline"
             size="sm"
-            aria-label="Go to today"
-            title="Go to today (T)"
+            aria-label={t('calendar.goToToday')}
+            title={t('calendar.goToTodayTitle')}
             onClick={goToToday}
-            className="mr-1 h-10 gap-1.5 border-primary/30 px-4 font-medium text-primary hover:bg-primary/5 hover:text-primary active:scale-95 active:bg-primary/10 md:h-8 md:px-2.5"
+            className="me-1 h-10 gap-1.5 border-primary/30 px-4 font-medium text-primary hover:bg-primary/5 hover:text-primary active:scale-95 active:bg-primary/10 md:h-8 md:px-2.5"
           >
             <CalendarCheck aria-hidden />
-            Today
+            {t('calendar.today')}
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Previous month" onClick={() => changeMonth(-1)} className="size-10 text-slate-500 md:size-7">
-            <ChevronLeft />
+          <Button variant="ghost" size="icon-sm" aria-label={t('calendar.prevMonth')} onClick={() => changeMonth(-1)} className="size-10 text-slate-500 md:size-7">
+            <ChevronLeft className="rtl:-scale-x-100" />
           </Button>
-          <Button variant="ghost" size="icon-sm" aria-label="Next month" onClick={() => changeMonth(1)} className="size-10 text-slate-500 md:size-7">
-            <ChevronRight />
+          <Button variant="ghost" size="icon-sm" aria-label={t('calendar.nextMonth')} onClick={() => changeMonth(1)} className="size-10 text-slate-500 md:size-7">
+            <ChevronRight className="rtl:-scale-x-100" />
           </Button>
         </div>
       </header>
@@ -157,7 +161,7 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
       <div data-testid="calendar-agenda" className="md:hidden">
         <div className="flex justify-center border-b border-slate-100 px-4 py-2">
           <SegmentedControl
-            aria-label="Calendar layout"
+            aria-label={t('calendar.layout')}
             size="sm"
             options={MODE_OPTIONS}
             value={mobileMode}
@@ -196,7 +200,7 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
       <div data-testid="calendar-grid" ref={gridRef} className="hidden overflow-x-auto md:block">
         <div className="min-w-[720px]">
           <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
-            {WEEKDAYS.map(day => (
+            {weekdayLabels().map(day => (
               <div key={day} className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">{day}</div>
             ))}
           </div>
@@ -222,7 +226,7 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
                   }}
                   onDrop={event => handleDrop(event, day)}
                   className={cn(
-                    'group relative min-h-28 border-b border-r border-slate-100 p-1.5 outline-none transition-colors [&:nth-child(7n)]:border-r-0',
+                    'group relative min-h-28 border-b border-e border-slate-100 p-1.5 outline-none transition-colors [&:nth-child(7n)]:border-e-0',
                     'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
                     !day.inMonth && 'bg-slate-50/60',
                     dragOverKey === day.key && 'bg-blue-50/60 ring-1 ring-inset ring-primary/30',
@@ -245,7 +249,7 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
                     {canWrite && (
                       <button
                         type="button"
-                        aria-label={`Add task due ${day.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`}
+                        aria-label={t('calendar.addTaskDue', { date: day.date.toLocaleDateString(currentLocale(), { month: 'long', day: 'numeric' }) })}
                         onClick={() => onCreate({ deadline: day.key })}
                         className="rounded p-0.5 text-slate-500 opacity-0 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 group-hover:opacity-100"
                       >
@@ -268,7 +272,7 @@ const CalendarView = ({ tasks: shownTasks, onUpdate, onEdit, onCreate, onOpen, c
                       onClick={() => setExpandedKey(expanded ? null : day.key)}
                       className="mt-1 px-1.5 text-xs font-medium text-slate-500 hover:text-primary"
                     >
-                      {expanded ? 'Show less' : `+${hidden} more`}
+                      {expanded ? t('calendar.showLess') : t('calendar.more', { count: hidden })}
                     </button>
                   )}
                 </div>
@@ -305,8 +309,10 @@ const DayDots = ({ summary, ringed = false }: { summary: DaySummary; ringed?: bo
 };
 
 /** Four dots with labels explaining the colors; wraps on narrow phones. */
-const DotLegend = () => (
-  <ul aria-label="Legend" className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2 text-xs text-slate-600">
+const DotLegend = () => {
+  const { t } = useTranslation('tasks');
+  return (
+  <ul aria-label={t('calendar.legend')} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-100 px-4 py-2 text-xs text-slate-600">
     {(['pending', 'in-progress', 'completed', 'overdue'] as const).map(state => (
       <li key={state} className="flex items-center gap-1.5">
         <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[state].dot)} />
@@ -314,7 +320,8 @@ const DotLegend = () => (
       </li>
     ))}
   </ul>
-);
+  );
+};
 
 const dayLabel = (key: string, summary: DaySummary) =>
   `${formatDate(key, { weekday: 'long', month: 'long', day: 'numeric' })}${summary.summary ? `, ${summary.summary}` : ''}`;
@@ -327,14 +334,16 @@ interface MonthCompactProps {
 }
 
 /** Phone month grid: 7 columns of small cells with the date and colored dots; tap selects the day. */
-const MonthCompact = ({ days, selectedKey, tasksByDay, onSelect }: MonthCompactProps) => (
+const MonthCompact = ({ days, selectedKey, tasksByDay, onSelect }: MonthCompactProps) => {
+  const { t } = useTranslation('tasks');
+  return (
   <div className="border-b border-slate-100 px-2 py-2">
     <div aria-hidden className="grid grid-cols-7 pb-1">
-      {WEEKDAYS.map(day => (
-        <div key={day} className="text-center text-[11px] font-medium uppercase tracking-wide text-slate-500">{day.slice(0, 2)}</div>
+      {weekdayInitials().map((day, index) => (
+        <div key={index} className="text-center text-[11px] font-medium uppercase tracking-wide text-slate-500">{day}</div>
       ))}
     </div>
-    <ul aria-label="Month" className="grid grid-cols-7 gap-y-0.5">
+    <ul aria-label={t('calendar.month')} className="grid grid-cols-7 gap-y-0.5">
       {days.map(day => {
         const selected = day.key === selectedKey;
         const summary = summarizeDay(tasksByDay.get(day.key) ?? []);
@@ -364,10 +373,12 @@ const MonthCompact = ({ days, selectedKey, tasksByDay, onSelect }: MonthCompactP
       })}
     </ul>
   </div>
-);
+  );
+};
 
 /** Phone week strip: previous/next week, swipe, one pill per day with color-coded dots when tasks are due. */
 const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps) => {
+  const { t } = useTranslation('tasks');
   const week = useMemo(() => buildWeek(parseDateKey(selectedKey), tasksByDay), [selectedKey, tasksByDay]);
   const touchStartX = useRef<number | null>(null);
 
@@ -381,11 +392,11 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
 
   return (
     <div className="flex items-center gap-0.5 border-b border-slate-100 px-1 py-3">
-      <Button variant="ghost" size="icon-sm" aria-label="Previous week" onClick={() => onSelect(shiftWeek(selectedKey, -1))} className="h-16 w-8 shrink-0 text-slate-500">
-        <ChevronLeft />
+      <Button variant="ghost" size="icon-sm" aria-label={t('calendar.prevWeek')} onClick={() => onSelect(shiftWeek(selectedKey, -1))} className="h-16 w-8 shrink-0 text-slate-500">
+        <ChevronLeft className="rtl:-scale-x-100" />
       </Button>
       <ul
-        aria-label="Week"
+        aria-label={t('calendar.week')}
         onTouchStart={event => { touchStartX.current = event.touches[0].clientX; }}
         onTouchEnd={handleTouchEnd}
         // Seven columns always fit a 320 px phone: the whole week is visible without scrolling
@@ -421,8 +432,8 @@ const WeekStrip = ({ selectedKey, month, tasksByDay, onSelect }: WeekStripProps)
           );
         })}
       </ul>
-      <Button variant="ghost" size="icon-sm" aria-label="Next week" onClick={() => onSelect(shiftWeek(selectedKey, 1))} className="h-16 w-8 shrink-0 text-slate-500">
-        <ChevronRight />
+      <Button variant="ghost" size="icon-sm" aria-label={t('calendar.nextWeek')} onClick={() => onSelect(shiftWeek(selectedKey, 1))} className="h-16 w-8 shrink-0 text-slate-500">
+        <ChevronRight className="rtl:-scale-x-100" />
       </Button>
     </div>
   );
@@ -440,26 +451,27 @@ interface DayPanelProps extends Pick<TaskViewProps, 'onCreate'> {
 
 /** The selected day's tasks as colored event cards. */
 const DayPanel = ({ dayKey, tasks, highlighted, onOpen, onCreate, canWrite, ref }: DayPanelProps) => {
+  const { t } = useTranslation('tasks');
   const isToday = dayKey === todayKey();
   const longLabel = formatDate(dayKey, { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <section
       ref={ref}
-      aria-label={`Tasks on ${longLabel}`}
+      aria-label={t('calendar.tasksOn', { date: longLabel })}
       data-testid="calendar-day-panel"
       className={cn('scroll-mt-32 p-4 transition-shadow', highlighted && 'ring-2 ring-inset ring-primary/60')}
     >
       <div className="flex items-center justify-between gap-2">
         <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
           {formatDate(dayKey, { weekday: 'long', month: 'short', day: 'numeric' })}
-          {isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">Today</span>}
+          {isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">{t('calendar.today')}</span>}
         </h3>
         {canWrite && tasks.length > 0 && (
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={`Add task on ${formatDate(dayKey, { month: 'long', day: 'numeric' })}`}
+            aria-label={t('calendar.addTaskOn', { date: formatDate(dayKey, { month: 'long', day: 'numeric' }) })}
             onClick={() => onCreate({ deadline: dayKey })}
             className="size-11 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           >
@@ -471,10 +483,10 @@ const DayPanel = ({ dayKey, tasks, highlighted, onOpen, onCreate, canWrite, ref 
       {tasks.length === 0 ? (
         <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center">
           <CalendarDays className="size-6 text-slate-300" aria-hidden />
-          <p className="text-sm text-slate-500">{isToday ? 'Nothing due today.' : 'Nothing due this day.'}</p>
+          <p className="text-sm text-slate-500">{isToday ? t('calendar.nothingToday') : t('calendar.nothingDay')}</p>
           {canWrite && (
             <Button onClick={() => onCreate({ deadline: dayKey })} className="mt-1 h-11 bg-primary px-4 text-white hover:bg-primary-hover">
-              <Plus /> Add task
+              <Plus /> {t('calendar.addTask')}
             </Button>
           )}
         </div>
@@ -493,6 +505,7 @@ const DayPanel = ({ dayKey, tasks, highlighted, onOpen, onCreate, canWrite, ref 
 
 /** Colored event card: left bar by status, title, project, "start → due", badge and assignees. */
 const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
   const range = formatTaskRange(task);
@@ -503,13 +516,13 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
       type="button"
       onClick={() => onOpen(task)}
       className={cn(
-        'relative flex min-h-16 w-full items-stretch gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-3 text-left',
+        'relative flex min-h-16 w-full items-stretch gap-3 overflow-hidden rounded-xl border py-3 ps-4 pe-3 text-start',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary active:scale-[0.99] motion-reduce:active:scale-100',
         STATUS_META[task.status].surface,
         overdue && 'border-danger-border bg-danger-bg text-danger-fg',
       )}
     >
-      <span aria-hidden className={cn('absolute inset-y-0 left-0 w-1.5', barClass)} />
+      <span aria-hidden className={cn('absolute inset-y-0 start-0 w-1.5', barClass)} />
       <span className="min-w-0 flex-1">
         <span className={cn('block truncate text-sm font-semibold', completed && 'line-through')}>{task.title}</span>
         {task.project && <ProjectChip name={task.project} link={false} className="mt-0.5 max-w-full text-xs" />}
@@ -519,7 +532,7 @@ const EventCard = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void 
             {range}
           </span>
         )}
-        {overdue && <span className="sr-only"> (overdue)</span>}
+        {overdue && <span className="sr-only"> {t('badges.overdue')}</span>}
       </span>
       <span className="flex shrink-0 flex-col items-end justify-between gap-2">
         <StatusBadge status={task.status} className="bg-white/70" />
@@ -537,6 +550,7 @@ interface UpcomingAgendaProps {
 
 /** Compact, collapsed-by-default list of the month's days that have tasks. */
 const UpcomingAgenda = ({ days, monthLabel, onOpen }: UpcomingAgendaProps) => {
+  const { t } = useTranslation('tasks');
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
   const total = days.reduce((sum, day) => sum + day.tasks.length, 0);
@@ -549,11 +563,11 @@ const UpcomingAgenda = ({ days, monthLabel, onOpen }: UpcomingAgendaProps) => {
           aria-expanded={expanded}
           aria-controls={listId}
           onClick={() => setExpanded(value => !value)}
-          className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg text-left text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-primary"
+          className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg text-start text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-primary"
         >
           <span>
-            Upcoming this month
-            <span className="ml-2 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-500">{total}</span>
+            {t('calendar.upcoming')}
+            <span className="ms-2 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-500">{total}</span>
           </span>
           <ChevronDown aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', expanded && 'rotate-180')} />
         </button>
@@ -561,16 +575,16 @@ const UpcomingAgenda = ({ days, monthLabel, onOpen }: UpcomingAgendaProps) => {
 
       <div id={listId} hidden={!expanded}>
         {expanded && (days.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">No tasks due in {monthLabel}.</p>
+          <p className="py-6 text-center text-sm text-slate-500">{t('calendar.noneInMonth', { month: monthLabel })}</p>
         ) : (
           <ol className="mt-1 mb-2 space-y-4">
             {days.map(day => (
               <li key={day.key} data-testid="agenda-day" aria-current={day.isToday ? 'date' : undefined}>
                 <h4 className={cn('flex items-center gap-2 text-sm font-semibold', day.isToday ? 'text-primary' : 'text-slate-700')}>
                   {formatDate(day.key, { weekday: 'short', month: 'short', day: 'numeric' })}
-                  {day.isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">Today</span>}
+                  {day.isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-white">{t('calendar.today')}</span>}
                 </h4>
-                <ul className={cn('mt-1 space-y-1.5 border-l-2 pl-3', day.isToday ? 'border-primary' : 'border-slate-100')}>
+                <ul className={cn('mt-1 space-y-1.5 border-s-2 ps-3', day.isToday ? 'border-primary' : 'border-slate-100')}>
                   {day.tasks.map(task => (
                     <li key={task._id}>
                       <AgendaItem task={task} onOpen={onOpen} />
@@ -587,6 +601,7 @@ const UpcomingAgenda = ({ days, monthLabel, onOpen }: UpcomingAgendaProps) => {
 };
 
 const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void }) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
 
@@ -595,7 +610,7 @@ const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void
       type="button"
       onClick={() => onOpen(task)}
       className={cn(
-        'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium',
+        'flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2 text-start text-sm font-medium',
         STATUS_META[task.status].surface,
         overdue && 'border-danger-border bg-danger-bg text-danger-fg',
       )}
@@ -604,14 +619,15 @@ const AgendaItem = ({ task, onOpen }: { task: Task; onOpen: (task: Task) => void
       <span className={cn('min-w-0 flex-1 truncate', completed && 'line-through')}>{task.title}</span>
       {task.labels?.slice(0, 2).map(label => <LabelChip key={label} label={label} className="max-w-20 shrink-0" />)}
       <span className="shrink-0 text-xs font-normal opacity-80">
-        {STATUS_META[task.status].label}
-        {overdue && <span className="sr-only"> (overdue)</span>}
+        {t(`status.${task.status}`)}
+        {overdue && <span className="sr-only"> {t('badges.overdue')}</span>}
       </span>
     </button>
   );
 };
 
 const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: Task) => void; draggable: boolean }) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const overdue = isOverdue(task.deadline, completed);
   const labels = task.labels ?? [];
@@ -625,9 +641,9 @@ const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: 
         event.dataTransfer.effectAllowed = 'move';
       }}
       onClick={() => onOpen(task)}
-      title={`${task.title} · ${STATUS_META[task.status].label}${labels.length ? ` · ${labels.join(', ')}` : ''}`}
+      title={`${task.title} · ${t(`status.${task.status}`)}${labels.length ? ` · ${labels.join(', ')}` : ''}`}
       className={cn(
-        'flex w-full items-center gap-1.5 truncate rounded-md border px-1.5 py-1 text-left text-xs font-medium',
+        'flex w-full items-center gap-1.5 truncate rounded-md border px-1.5 py-1 text-start text-xs font-medium',
         draggable && 'cursor-grab active:cursor-grabbing',
         STATUS_META[task.status].surface,
         overdue && 'border-danger-border bg-danger-bg text-danger-fg',
@@ -636,11 +652,11 @@ const CalendarChip = ({ task, onOpen, draggable }: { task: Task; onOpen: (task: 
       <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT_META[dotStateOf(task)].dot)} />
       <span className={cn('truncate', completed && 'line-through')}>{task.title}</span>
       {labels.length > 0 && (
-        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+        <span className="ms-auto flex shrink-0 items-center gap-0.5">
           {labels.slice(0, 3).map(label => (
             <span key={label} aria-hidden className={cn('size-2 rounded-full ring-1 ring-white', getLabelStyle(label).dot)} />
           ))}
-          <span className="sr-only">Labels: {labels.join(', ')}</span>
+          <span className="sr-only">{t('calendar.labelsSr', { labels: labels.join(', ') })}</span>
         </span>
       )}
     </button>

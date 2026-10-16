@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { KeyRound, ShieldOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -20,39 +21,24 @@ interface TwoFactorActionDialogProps {
   onRegenerated: (codes: string[]) => void;
 }
 
-const COPY = {
-  disable: {
-    icon: <ShieldOff />,
-    title: 'Turn off two-factor authentication',
-    description: 'Confirm with your password and a code. Your account will be protected by your password alone.',
-    submit: 'Turn off',
-    submitting: 'Turning off...',
-  },
-  regenerate: {
-    icon: <KeyRound />,
-    title: 'Get new recovery codes',
-    description: 'Your old recovery codes stop working. Confirm with your password and a code from your app.',
-    submit: 'Create new codes',
-    submitting: 'Creating...',
-  },
-} as const;
+const ICONS = { disable: <ShieldOff />, regenerate: <KeyRound /> } as const;
 
 /** Password plus an authenticator code (or, to turn it off, a recovery code). */
 export const TwoFactorActionDialog = ({ action, onClose, onDisabled, onRegenerated }: TwoFactorActionDialogProps) => {
+  const { t } = useTranslation('settings');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const copy = COPY[action];
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const recovering = action === 'disable' && useRecovery;
-    if (!password) return setError('Enter your password.');
+    if (!password) return setError(t('twoFactor.setup.passwordRequired'));
     if (recovering ? !isCompleteRecoveryCode(recoveryCode) : !isCompleteCode(code)) {
-      return setError(recovering ? 'Enter the 8-character recovery code, like abcd-efgh.' : 'Enter the 6-digit code from your app.');
+      return setError(recovering ? t('twoFactor.action.recoveryRequired') : t('twoFactor.setup.codeRequired'));
     }
     setBusy(true);
     setError('');
@@ -64,7 +50,7 @@ export const TwoFactorActionDialog = ({ action, onClose, onDisabled, onRegenerat
         onRegenerated(await twoFactorApi.regenerateRecoveryCodes({ password, code }));
       }
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'That did not work. Check your password and code, then try again.'));
+      setError(getApiErrorMessage(err, t('twoFactor.action.failed')));
       setBusy(false);
     }
   };
@@ -73,24 +59,24 @@ export const TwoFactorActionDialog = ({ action, onClose, onDisabled, onRegenerat
     <FormDialog
       open
       onOpenChange={(open) => !open && !busy && onClose()}
-      icon={copy.icon}
-      title={copy.title}
-      description={copy.description}
+      icon={ICONS[action]}
+      title={t(`twoFactor.action.${action}.title`)}
+      description={t(`twoFactor.action.${action}.description`)}
       onSubmit={(event) => void submit(event)}
-      submitLabel={copy.submit}
-      submittingLabel={copy.submitting}
+      submitLabel={t(`twoFactor.action.${action}.submit`)}
+      submittingLabel={t(`twoFactor.action.${action}.submitting`)}
       submitting={busy}
       error={error}
     >
       <PasswordField
         id={`${action}-password`}
-        label="Your password"
+        label={t('twoFactor.setup.passwordLabel')}
         value={password}
         onChange={setPassword}
         autoComplete="current-password"
       />
       {useRecovery ? (
-        <Field label="Recovery code" htmlFor="action-recovery-code" hint="Each recovery code works once.">
+        <Field label={t('twoFactor.action.recoveryLabel')} htmlFor="action-recovery-code" hint={t('twoFactor.action.recoveryHint')}>
           <Input
             id="action-recovery-code"
             type="text"
@@ -105,7 +91,7 @@ export const TwoFactorActionDialog = ({ action, onClose, onDisabled, onRegenerat
           />
         </Field>
       ) : (
-        <OneTimeCodeField id={`${action}-code`} label="6-digit code from your app" value={code} onChange={setCode} />
+        <OneTimeCodeField id={`${action}-code`} label={t('twoFactor.setup.codeLabel')} value={code} onChange={setCode} />
       )}
       {action === 'disable' && (
         <button
@@ -116,7 +102,7 @@ export const TwoFactorActionDialog = ({ action, onClose, onDisabled, onRegenerat
           }}
           className="inline-flex min-h-10 items-center text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
         >
-          {useRecovery ? 'Use my authenticator app instead' : 'Use a recovery code instead'}
+          {useRecovery ? t('twoFactor.action.useApp') : t('twoFactor.action.useRecovery')}
         </button>
       )}
     </FormDialog>

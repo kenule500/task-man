@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { describeLoad, type WorkloadRow } from '../lib/workload';
 
 interface CapacityBarProps {
@@ -12,13 +13,14 @@ interface CapacityBarProps {
  * capacity visibly runs past the capacity marker. One image for assistive technology, with its numbers in the label.
  */
 const CapacityBar = ({ row, capacity, showCapacity = true }: CapacityBarProps) => {
+  const { t } = useTranslation('planning');
   const scale = Math.max(capacity, row.points.total, 1);
   const width = (points: number) => `${(points / scale) * 100}%`;
 
   return (
     <div
       role="img"
-      aria-label={showCapacity ? describeLoad(row, capacity) : `${row.points.total} points, ${row.items.total} ${row.items.total === 1 ? 'item' : 'items'}`}
+      aria-label={showCapacity ? describeLoad(row, capacity) : t('workload.barLabel', { points: row.points.total, items: t('workload.items', { count: row.items.total }) })}
       className="relative h-3 w-full overflow-hidden rounded-full bg-slate-100"
     >
       <div className="flex h-full">

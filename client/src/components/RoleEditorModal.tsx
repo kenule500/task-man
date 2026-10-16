@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { permissionGroupLabel, permissionLabel } from './settings/rbac';
 import api from '../utils/api';
 import { Field, fieldMessageId, Spinner } from '@/components/ds';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +38,7 @@ const RoleEditorModal = ({
   role,
   onSaved,
 }: RoleEditorModalProps) => {
+  const { t } = useTranslation('settings');
   // Initial values come from the role; the parent remounts the modal per role (key)
   const [name, setName] = useState(role?.name || '');
   const [nameTouched, setNameTouched] = useState(false);
@@ -47,7 +50,7 @@ const RoleEditorModal = ({
   const [error, setError] = useState('');
 
   const isEditing = !!role?._id;
-  const nameError = nameTouched && !name.trim() ? 'Give the role a name.' : '';
+  const nameError = nameTouched && !name.trim() ? t('roleEditor.nameRequired') : '';
 
   // Load permission catalog
   useEffect(() => {
@@ -58,12 +61,12 @@ const RoleEditorModal = ({
         setPermissionGroups(response.data);
       } catch (err) {
         console.error('Failed to load permissions:', err);
-        setError('We could not load the permission list. Close this dialog and try again.');
+        setError(t('roleEditor.permissionsFailed'));
       } finally {
         setPermissionsLoaded(true);
       }
     })();
-  }, [open]);
+  }, [open, t]);
 
   const togglePermission = (key: string) => {
     setPermissions((prev) =>
@@ -104,7 +107,7 @@ const RoleEditorModal = ({
       onOpenChange(false);
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError.response?.data?.message || 'We could not save the role. Try again.');
+      setError(axiosError.response?.data?.message || t('roleEditor.saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -116,15 +119,15 @@ const RoleEditorModal = ({
       onOpenChange={onOpenChange}
       size="md"
       icon={<Shield aria-hidden />}
-      title={isEditing ? 'Edit role' : 'Create custom role'}
-      description={isEditing ? "Update this role's name and permissions." : 'Define a new role for your workspace.'}
+      title={isEditing ? t('roleEditor.editTitle') : t('roleEditor.createTitle')}
+      description={isEditing ? t('roleEditor.editDescription') : t('roleEditor.createDescription')}
       onSubmit={handleSubmit}
-      submitLabel={isEditing ? 'Save changes' : 'Create role'}
-      submittingLabel="Saving..."
+      submitLabel={isEditing ? t('profile.save') : t('roleEditor.create')}
+      submittingLabel={t('profile.saving')}
       submitting={loading}
       error={error}
     >
-      <Field label="Role name" htmlFor="role-name" required error={nameError}>
+      <Field label={t('roleEditor.name')} htmlFor="role-name" required error={nameError}>
         <Input
           id="role-name"
           value={name}
@@ -132,7 +135,7 @@ const RoleEditorModal = ({
           onBlur={() => setNameTouched(true)}
           aria-invalid={!!nameError}
           aria-describedby={nameError ? fieldMessageId('role-name') : undefined}
-          placeholder="e.g. Marketing Lead, Contractor, Auditor"
+          placeholder={t('roleEditor.namePlaceholder')}
           className={CONTROL}
           maxLength={60}
           required
@@ -140,7 +143,7 @@ const RoleEditorModal = ({
         />
       </Field>
 
-      <Field label="Description" htmlFor="role-desc" hint="Optional. Shown when inviting people.">
+      <Field label={t('roleEditor.descriptionLabel')} htmlFor="role-desc" hint={t('roleEditor.descriptionHint')}>
         <Input
           id="role-desc"
           value={description}
@@ -153,9 +156,9 @@ const RoleEditorModal = ({
       </Field>
 
       <div className="space-y-2">
-        <p id="role-permissions-label" className="text-sm font-medium text-slate-700">Permissions</p>
+        <p id="role-permissions-label" className="text-sm font-medium text-slate-700">{t('roleEditor.permissions')}</p>
         <div role="group" aria-labelledby="role-permissions-label" className="divide-y divide-slate-100 rounded-lg border border-slate-200 sm:max-h-[50dvh] sm:overflow-y-auto sm:overscroll-contain [scrollbar-width:thin]">
-          {!permissionsLoaded && <p className="flex items-center gap-2 p-4 text-sm text-slate-600"><Spinner decorative />Loading permissions...</p>}
+          {!permissionsLoaded && <p className="flex items-center gap-2 p-4 text-sm text-slate-600"><Spinner decorative />{t('roleEditor.loadingPermissions')}</p>}
           {Object.entries(permissionGroups).map(([group, perms]) => {
             const keys = perms.map((p) => p.key);
             const allSelected = keys.every((k) => permissions.includes(k));
@@ -163,11 +166,11 @@ const RoleEditorModal = ({
 
             return (
               <fieldset key={group} className="bg-white">
-                <legend className="sr-only">{group}</legend>
+                <legend className="sr-only">{permissionGroupLabel(group)}</legend>
                 <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-1.5">
                   <span aria-hidden className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-                    {group}
-                    <span className="ml-2 font-normal normal-case tracking-normal text-slate-600 tabular-nums">
+                    {permissionGroupLabel(group)}
+                    <span className="ms-2 font-normal normal-case tracking-normal text-slate-600 tabular-nums">
                       {selectedCount}/{keys.length}
                     </span>
                   </span>
@@ -176,8 +179,8 @@ const RoleEditorModal = ({
                     onClick={() => toggleGroup(group)}
                     className="min-h-10 rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
                   >
-                    {allSelected ? 'Deselect all' : 'Select all'}
-                    <span className="sr-only"> {group} permissions</span>
+                    {allSelected ? t('roleEditor.deselectAll') : t('roleEditor.selectAll')}
+                    <span className="sr-only"> {t('roleEditor.groupPermissions', { group: permissionGroupLabel(group) })}</span>
                   </button>
                 </div>
                 <div className="px-4 py-1">
@@ -187,7 +190,7 @@ const RoleEditorModal = ({
                         checked={permissions.includes(perm.key)}
                         onCheckedChange={() => togglePermission(perm.key)}
                       />
-                      <span className="flex-1 text-sm text-slate-700">{perm.label}</span>
+                      <span className="flex-1 text-sm text-slate-700">{permissionLabel(perm)}</span>
                       <code className="hidden font-mono text-[11px] text-slate-600 sm:block">{perm.key}</code>
                     </label>
                   ))}
@@ -197,7 +200,7 @@ const RoleEditorModal = ({
           })}
         </div>
         <p className="text-xs text-slate-600" aria-live="polite">
-          {permissions.length} permission{permissions.length !== 1 ? 's' : ''} selected
+          {t('roleEditor.selected', { count: permissions.length })}
         </p>
       </div>
     </FormDialog>

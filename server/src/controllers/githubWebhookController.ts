@@ -4,6 +4,8 @@ import Activity from '../models/activityModel.js';
 import Project from '../models/projectModel.js';
 import Task, { ITaskLink, MAX_TASK_LINKS } from '../models/taskModel.js';
 import Workspace from '../models/workspaceModel.js';
+import { shouldAutoReview } from '../utils/ai/autoReview.js';
+import { queueAutoReview, runInBackground, runReview } from '../utils/ai/reviewService.js';
 import {
   GithubTransition, LinkInput, PlanItem, TaskKeyRef, TRANSITIONS, planGithubEvent, verifySignature,
 } from '../utils/githubEvents.js';
@@ -99,7 +101,7 @@ export const githubWebhook = async (req: Request, res: Response): Promise<void> 
 
     const workspace = slug
       ? await Workspace.findOne({ slug, 'integrations.github.enabled': true })
-        .select('+integrations.github.secret integrations.github.autoTransition')
+        .select('+integrations.github.secret integrations.github.autoTransition ai.enabled ai.autoReview')
       : null;
     const secret = workspace?.integrations?.github?.secret;
 
@@ -138,6 +140,9 @@ export const githubWebhook = async (req: Request, res: Response): Promise<void> 
     const autoTransition = workspace.integrations?.github?.autoTransition !== false;
     const tasks = await resolveTasks(workspaceId, items);
     let linked = 0;
+    // AI code review on new pull request commits (opt-in per workspace); queued after the links are saved
+    const autoReview = workspace.ai?.enabled === true && workspace.ai?.autoReview === true && shouldAutoReview(event, payload);
+    const reviews: { taskId: Id; link: LinkInput }[] = [];
 
     for (const item of items) {
       const seen = new Set<string>();
@@ -147,10 +152,22 @@ export const githubWebhook = async (req: Request, res: Response): Promise<void> 
         seen.add(String(task._id));
         await upsertTaskLink(workspaceId, task._id, item.link);
         linked += 1;
+        if (autoReview && item.link.kind === 'pull_request' && item.link.state === 'open') reviews.push({ taskId: task._id, link: item.link });
         if (autoTransition && item.transition) {
           await transitionTask(workspaceId, task._id, item.transition);
         }
       }
+    }
+
+    for (const { taskId, link } of reviews) {
+      const queued = await queueAutoReview({
+        workspaceId,
+        settings: workspace.ai,
+        task: { _id: taskId, links: [{ ...link, updatedAt: new Date() }] },
+        prUrl: link.url,
+        headSha: link.sha ?? '',
+      });
+      if (queued) runInBackground(runReview(queued._id as Id));
     }
 
     res.status(linked > 0 ? 200 : 202).json({ message: linked > 0 ? 'OK' : 'Ignored', linked });

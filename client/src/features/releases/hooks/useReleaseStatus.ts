@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useState } from 'react';
 import { toast } from '@/components/ds';
 import type { Release, ReleasePatch } from '../types';
@@ -13,7 +14,7 @@ export const useReleaseStatus = (update: (id: string, patch: ReleasePatch) => Pr
       toast.success(`${release.name} ${message}`);
       onDone?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not change the release.');
+      toast.error(err instanceof Error ? err.message : i18n.t('projects:releases.errors.change'));
     } finally {
       setBusyId(null);
     }

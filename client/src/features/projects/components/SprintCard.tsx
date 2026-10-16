@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CalendarDays, ChevronDown, FileBarChart, LayoutGrid, ListTodo, Pencil, Play, Flag, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EmptyState, ProgressBar, Surface, Tag } from '@/components/ds';
@@ -40,9 +41,9 @@ interface SprintCardProps {
 }
 
 const STATUS_TAG = {
-  planned: { tone: 'neutral', label: 'Planned' },
-  active: { tone: 'primary', label: 'Active' },
-  completed: { tone: 'success', label: 'Completed' },
+  planned: { tone: 'neutral' },
+  active: { tone: 'primary' },
+  completed: { tone: 'success' },
 } as const;
 
 const Meta = ({ icon, children, className }: { icon: ReactNode; children: ReactNode; className?: string }) => (
@@ -59,6 +60,7 @@ const SprintCard = ({
   sprint, projectName, tasks, subtasks, expanded, onToggle, canManage, canWriteTasks, blockedByActive, starting = false,
   onStart, onComplete, onEdit, onDelete, onOpenTask, onToggleSubtask, onQuickAdd,
 }: SprintCardProps) => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const headingId = useId();
   const panelId = useId();
@@ -87,14 +89,14 @@ const SprintCard = ({
                   onClick={onToggle}
                   aria-expanded={expanded}
                   aria-controls={panelId}
-                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-lg px-1 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
+                  className="flex min-h-11 max-w-full items-center gap-1.5 rounded-lg px-1 text-start hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
                 >
                   <ChevronDown aria-hidden className={cn('size-4 shrink-0 text-slate-500 transition-transform motion-reduce:transition-none', !expanded && '-rotate-90')} />
                   {/* Full name: keeps its width and wraps only when longer than the card */}
                   <span className="min-w-0 break-words">{sprint.name}</span>
                 </button>
               </h3>
-              <Tag tone={status.tone} size="sm">{status.label}</Tag>
+              <Tag tone={status.tone} size="sm">{t(`sprint.status.${sprint.status}`)}</Tag>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
               <Meta icon={<CalendarDays />}>{formatSprintRange(sprint)}</Meta>
@@ -103,18 +105,18 @@ const SprintCard = ({
               )}
               {sprint.status === 'completed' && (
                 <Meta icon={<Flag />}>
-                  {sprint.completedPoints ?? 0} points delivered
-                  {sprint.completedAt && <> · done {formatDate(dateKeyOf(sprint.completedAt), { month: 'short', day: 'numeric' })}</>}
+                  {t('sprint.pointsDelivered', { count: sprint.completedPoints ?? 0 })}
+                  {sprint.completedAt && t('sprint.doneOn', { date: formatDate(dateKeyOf(sprint.completedAt), { month: 'short', day: 'numeric' }) })}
                 </Meta>
               )}
-              <Meta icon={<ListTodo />}>{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</Meta>
+              <Meta icon={<ListTodo />}>{t('sprint.tasksCount', { count: tasks.length })}</Meta>
               {sprint.status !== 'completed' && workspaceSlug && (
                 <Link
                   to={scopeHref(workspaceSlug, { view: 'board', project: projectName, sprint: sprint._id })}
                   className="-my-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:-my-1 md:min-h-8"
                 >
                   <LayoutGrid aria-hidden className="size-3.5" />
-                  Open board<span className="sr-only"> for {sprint.name}</span>
+                  {t('sprint.openBoard')}<span className="sr-only">{t('sprint.forName', { name: sprint.name })}</span>
                 </Link>
               )}
               {sprint.status !== 'planned' && workspaceSlug && (
@@ -123,7 +125,7 @@ const SprintCard = ({
                   className="-my-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:-my-1 md:min-h-8"
                 >
                   <FileBarChart aria-hidden className="size-3.5" />
-                  Sprint report<span className="sr-only"> for {sprint.name}</span>
+                  {t('sprint.report')}<span className="sr-only">{t('sprint.forName', { name: sprint.name })}</span>
                 </Link>
               )}
             </div>
@@ -133,7 +135,7 @@ const SprintCard = ({
             <div className="flex shrink-0 flex-wrap items-center gap-1">
               {sprint.status === 'active' && (
                 <Button onClick={() => onComplete(sprint)} className="h-11 gap-2 rounded-lg bg-primary px-3 text-sm text-white hover:bg-primary-hover md:h-8">
-                  <Flag className="size-4" aria-hidden /> Complete sprint
+                  <Flag className="size-4" aria-hidden /> {t('sprint.complete')}
                 </Button>
               )}
               {sprint.status === 'planned' && (
@@ -143,14 +145,14 @@ const SprintCard = ({
                   aria-describedby={blockedByActive ? hintId : undefined}
                   className="h-11 gap-2 rounded-lg bg-primary px-3 text-sm text-white hover:bg-primary-hover md:h-8"
                 >
-                  <Play className="size-4" aria-hidden /> {starting ? 'Starting...' : 'Start sprint'}
+                  <Play className="size-4" aria-hidden /> {starting ? t('sprint.starting') : t('sprint.start')}
                 </Button>
               )}
-              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(sprint)} aria-label={`Edit ${sprint.name}`} className={iconButton}>
+              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(sprint)} aria-label={t('sprint.editAria', { name: sprint.name })} className={iconButton}>
                 <Pencil />
               </Button>
               {sprint.status === 'planned' && (
-                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(sprint)} aria-label={`Delete ${sprint.name}`} className={cn(iconButton, 'hover:bg-danger-bg hover:text-danger-fg')}>
+                <Button variant="ghost" size="icon-sm" onClick={() => onDelete(sprint)} aria-label={t('sprint.deleteAria', { name: sprint.name })} className={cn(iconButton, 'hover:bg-danger-bg hover:text-danger-fg')}>
                   <Trash2 />
                 </Button>
               )}
@@ -159,18 +161,18 @@ const SprintCard = ({
         </div>
 
         {blockedByActive && canManage && sprint.status === 'planned' && (
-          <p id={hintId} className="text-xs text-slate-600">Complete the active sprint before starting this one.</p>
+          <p id={hintId} className="text-xs text-slate-600">{t('sprint.blockedHint')}</p>
         )}
 
-        {sprint.goal && <p className="text-sm text-slate-700"><span className="font-semibold">Goal:</span> {sprint.goal}</p>}
+        {sprint.goal && <p className="text-sm text-slate-700"><span className="font-semibold">{t('sprint.goal')}</span> {sprint.goal}</p>}
 
         {sprint.status !== 'completed' && (
           <div>
             <div className="mb-1 flex justify-between text-xs text-slate-600">
-              <span>Progress</span>
+              <span>{t('sprint.progress')}</span>
               <span className="tabular-nums">{describeProgress(progress)}</span>
             </div>
-            <ProgressBar value={progress.percent} label={`${sprint.name} progress`} showValue />
+            <ProgressBar value={progress.percent} label={t('sprint.progressOf', { name: sprint.name })} showValue />
           </div>
         )}
       </div>
@@ -179,13 +181,13 @@ const SprintCard = ({
         <div id={panelId} className="border-t border-slate-100">
           {burndown && burndown.total > 0 && (
             <div className="border-b border-slate-100 p-4 sm:p-5">
-              <h4 className="mb-2 text-sm font-semibold text-slate-900">Burndown</h4>
-              <BurndownChart burndown={burndown} title={`${sprint.name} burndown`} />
+              <h4 className="mb-2 text-sm font-semibold text-slate-900">{t('sprint.burndown')}</h4>
+              <BurndownChart burndown={burndown} title={t('sprint.burndownOf', { name: sprint.name })} />
             </div>
           )}
-          {canAddTasks && <QuickAdd label={`Add a story to ${sprint.name}…`} onAdd={onQuickAdd} />}
+          {canAddTasks && <QuickAdd label={t('sprint.addStoryTo', { name: sprint.name })} onAdd={onQuickAdd} />}
           <TaskList
-            label={`Tasks in ${sprint.name}`}
+            label={t('sprint.tasksIn', { name: sprint.name })}
             tasks={tasks}
             subtasks={subtasks}
             canWrite={canWriteTasks}
@@ -195,10 +197,10 @@ const SprintCard = ({
               <EmptyState
                 className="py-8 sm:py-10"
                 icon={<ListTodo />}
-                title="No tasks in this sprint"
+                title={t('sprint.noTasks')}
                 description={sprint.status === 'completed'
-                  ? 'No finished tasks were kept in this sprint.'
-                  : 'Add a story above, or move tasks here from the backlog.'}
+                  ? t('sprint.noTasksCompleted')
+                  : t('sprint.noTasksOpen')}
               />
             )}
           />

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,9 @@ interface ConfirmActionDialogProps {
 /** Confirmation for destructive actions (replaces `window.confirm`). */
 const ConfirmActionDialog = ({
   open, onOpenChange, title, description, confirmLabel, busyLabel, busy = false, onConfirm,
-}: ConfirmActionDialogProps) => (
+}: ConfirmActionDialogProps) => {
+  const { t } = useTranslation();
+  return (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent className="border border-slate-200 bg-white shadow-2xl">
       <AlertDialogHeader>
@@ -33,13 +36,14 @@ const ConfirmActionDialog = ({
         <AlertDialogDescription className="text-sm text-slate-600">{description}</AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter className="border-t border-slate-200 bg-slate-50">
-        <AlertDialogCancel className="border-slate-300 text-slate-700 hover:bg-slate-100">Cancel</AlertDialogCancel>
+        <AlertDialogCancel className="border-slate-300 text-slate-700 hover:bg-slate-100">{t('cancel')}</AlertDialogCancel>
         <AlertDialogAction onClick={onConfirm} disabled={busy} className="bg-danger-solid text-white hover:bg-danger-solid-hover">
           {busy ? (busyLabel ?? confirmLabel) : confirmLabel}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
-);
+  );
+};
 
 export default ConfirmActionDialog;

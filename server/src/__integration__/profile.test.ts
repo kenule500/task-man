@@ -70,6 +70,15 @@ describe('profile', () => {
     expect((await update(user, { theme: 'neon' })).status).toBe(400);
   });
 
+  it('accepts the supported languages and rejects others with a 400', async () => {
+    for (const language of ['fr', 'ar', 'en']) {
+      const res = await update(user, { language });
+      expect(res.status).toBe(200);
+      expect(res.body.language).toBe(language);
+    }
+    expect((await update(user, { language: 'xx' })).status).toBe(400);
+  });
+
   it('only allows http(s) avatar URLs', async () => {
     for (const avatarUrl of ['javascript:alert(1)', 'data:image/svg+xml;base64,AAAA', 'ftp://example.com/a.png', '//evil.test/a.png']) {
       expect((await update(user, { avatarUrl })).status).toBe(400);

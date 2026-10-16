@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { alertVariants, bannerVariants, type BannerVariants } from './variants';
 
 export type BannerTone = 'info' | 'success' | 'warning' | 'danger';
@@ -25,7 +26,7 @@ type BannerProps = BannerVariants & {
  * Use `Alert` for feedback next to a form or panel. Danger is announced at once (`role="alert"`), the rest politely.
  */
 export const Banner = ({
-  tone = 'info', title, children, action, onDismiss, dismissLabel = 'Dismiss', sticky, rounded, className,
+  tone = 'info', title, children, action, onDismiss, dismissLabel = t('dismiss'), sticky, rounded, className,
 }: BannerProps) => {
   const Icon = ICONS[tone];
   return (

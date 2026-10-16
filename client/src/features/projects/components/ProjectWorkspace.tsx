@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckSquare, ChevronDown, Gauge, Inbox, LayoutGrid, ListTodo, Plus, Target } from 'lucide-react';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Alert, EmptyState, SkeletonCards, StatCard, Surface, toast } from '@/components/ds';
@@ -58,6 +59,7 @@ const MOVE_PLACEHOLDER = '';
 const ProjectWorkspace = ({
   workspaceSlug, project, projects, canManage, sprintActions, onTasksChanged, onNewSprint, onEditSprint,
 }: ProjectWorkspaceProps) => {
+  const { t } = useTranslation('projects');
   const { can, user } = usePermissions();
   const canWriteTasks = can('tasks:write');
   const canDeleteTasks = can('tasks:delete');
@@ -116,10 +118,10 @@ const ProjectWorkspace = ({
   const addStory = async (title: string, extra: Pick<TaskInput, 'deadline'> & Partial<TaskInput>) => {
     try {
       const created = await createTask({ title, project: project.name, type: 'story', ...extra });
-      if (created) toast.success('Story added');
+      if (created) toast.success(t('workspace.storyAdded'));
       return created;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the story.'));
+      toast.error(getApiErrorMessage(err, t('workspace.storyError')));
       throw err;
     }
   };
@@ -127,10 +129,10 @@ const ProjectWorkspace = ({
   const addEpic = async (title: string) => {
     try {
       const created = await createTask({ title, project: project.name, type: 'epic', deadline: toDateKey(addDays(new Date(), 30)) });
-      if (created) toast.success('Epic added');
+      if (created) toast.success(t('workspace.epicAdded'));
       return created;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the epic.'));
+      toast.error(getApiErrorMessage(err, t('workspace.epicError')));
       throw err;
     }
   };
@@ -143,10 +145,10 @@ const ProjectWorkspace = ({
         title, project: project.name, type: 'story', epic: epic._id,
         deadline: dateKeyOf(epic.deadline) || toDateKey(addDays(new Date(), 14)),
       });
-      if (created) toast.success(`Added to ${epic.title}`);
+      if (created) toast.success(t('workspace.addedToEpic', { epic: epic.title }));
       return created;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the task.'));
+      toast.error(getApiErrorMessage(err, t('workspace.taskError')));
       throw err;
     }
   };
@@ -154,10 +156,10 @@ const ProjectWorkspace = ({
   const addSubtaskTo = async (item: Task, title: string) => {
     try {
       const created = await createTask({ title, parent: item._id, project: project.name, deadline: dateKeyOf(item.deadline) });
-      if (created) toast.success('Subtask added');
+      if (created) toast.success(t('workspace.subtaskAdded'));
       return created;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the subtask.'));
+      toast.error(getApiErrorMessage(err, t('workspace.subtaskError')));
       throw err;
     }
   };
@@ -165,21 +167,21 @@ const ProjectWorkspace = ({
   const linkToEpic = async (epic: Task, taskIds: string[]) => {
     const saved = await Promise.all(taskIds.map(id => updateTask(id, { epic: epic._id })));
     const failed = saved.filter(task => !task).length;
-    if (failed === taskIds.length) throw new Error('Could not link the tasks. Try again.');
-    if (failed > 0) toast.error(`Could not link ${failed} of ${taskIds.length} tasks`);
-    else toast.success(`Linked ${taskIds.length} ${taskIds.length === 1 ? 'task' : 'tasks'} to ${epic.title}`);
+    if (failed === taskIds.length) throw new Error(t('workspace.linkError'));
+    if (failed > 0) toast.error(t('workspace.linkPartial', { failed, total: taskIds.length }));
+    else toast.success(t('workspace.linked', { count: taskIds.length, epic: epic.title }));
   };
 
   const changeEpic = async (task: Task, epic: string | null, success: string) => {
     const saved = await updateTask(task._id, { epic });
     if (saved) toast.success(success);
-    else toast.error(`Could not update "${task.title}"`);
+    else toast.error(t('workspace.updateError', { title: task.title }));
   };
 
   const moveToSprint = async (task: Task, sprintId: string) => {
     const target = project.sprints.find(sprint => sprint._id === sprintId);
     const saved = await updateTask(task._id, { sprint: sprintId });
-    if (saved && target) toast.success(`Moved to ${target.name}`);
+    if (saved && target) toast.success(t('workspace.movedTo', { name: target.name }));
   };
 
   /** Asks first; see commitDeleteTask. */
@@ -194,11 +196,11 @@ const ProjectWorkspace = ({
     setDetailId(null);
     deleteTask(task._id);
     toast({
-      title: 'Task deleted',
+      title: t('workspace.taskDeleted'),
       description: task.title,
       duration: DELETE_UNDO_MS,
       pauseOnHover: false,
-      action: { label: 'Undo', onClick: () => undoDelete(task._id) },
+      action: { label: t('actions.undo'), onClick: () => undoDelete(task._id) },
     });
   };
 
@@ -223,9 +225,9 @@ const ProjectWorkspace = ({
     setStartingId(sprint._id);
     try {
       await sprintActions.start(sprint._id);
-      toast.success(`${sprint.name} started`);
+      toast.success(t('workspace.sprintStarted', { name: sprint.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not start the sprint.');
+      toast.error(err instanceof Error ? err.message : t('workspace.sprintStartError'));
     } finally {
       setStartingId(null);
     }
@@ -236,11 +238,11 @@ const ProjectWorkspace = ({
     setDeleteBusy(true);
     try {
       await sprintActions.remove(deletingSprint._id);
-      toast.success(`${deletingSprint.name} deleted`);
+      toast.success(t('workspace.sprintDeleted', { name: deletingSprint.name }));
       setDeletingSprint(null);
       onTasksChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not delete the sprint.');
+      toast.error(err instanceof Error ? err.message : t('workspace.sprintDeleteError'));
     } finally {
       setDeleteBusy(false);
     }
@@ -276,7 +278,7 @@ const ProjectWorkspace = ({
   }
 
   const moveOptions = [
-    { value: MOVE_PLACEHOLDER, label: 'Move to sprint' },
+    { value: MOVE_PLACEHOLDER, label: t('workspace.moveToSprint') },
     ...assignable.map(sprint => ({ value: sprint._id, label: sprint.name })),
   ];
 
@@ -290,7 +292,7 @@ const ProjectWorkspace = ({
           className={buttonVariants({ className: 'h-11 w-full justify-center gap-2 rounded-lg bg-primary px-4 text-sm text-white shadow-sm hover:bg-primary-hover sm:h-10 sm:w-fit' })}
         >
           <LayoutGrid className="size-4 shrink-0" aria-hidden />
-          Active sprint board
+          {t('workspace.activeBoard')}
           <span className="max-w-48 truncate font-normal opacity-90">{active[0].name}</span>
         </Link>
       )}
@@ -298,46 +300,46 @@ const ProjectWorkspace = ({
       <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <StatCard
           className="p-4 sm:p-5"
-          title="Total tasks"
+          title={t('workspace.stats.totalTasks')}
           value={progress.totalTasks}
-          subtitle={`${groups.backlog.length} in the backlog`}
+          subtitle={t('workspace.stats.inBacklog', { n: groups.backlog.length })}
           icon={<ListTodo className="size-4" />}
           colorClass="text-slate-600"
         />
         <StatCard
           className="p-4 sm:p-5"
-          title="Completed"
+          title={t('workspace.stats.completed')}
           value={`${progress.totalTasks === 0 ? 0 : Math.round((progress.doneTasks / progress.totalTasks) * 100)}%`}
-          subtitle={`${progress.doneTasks} of ${progress.totalTasks} done`}
+          subtitle={t('workspace.stats.doneOf', { done: progress.doneTasks, total: progress.totalTasks })}
           icon={<CheckSquare className="size-4" />}
           colorClass="text-success-fg"
         />
         <StatCard
           className="p-4 sm:p-5"
-          title="Story points"
+          title={t('workspace.stats.storyPoints')}
           value={`${progress.donePoints}/${progress.totalPoints}`}
-          subtitle="done / planned"
+          subtitle={t('workspace.stats.doneOverPlanned')}
           icon={<Target className="size-4" />}
           colorClass="text-blue-600"
         />
         <StatCard
           className="p-4 sm:p-5"
-          title="Velocity"
+          title={t('workspace.stats.velocity')}
           value={velocity ?? '–'}
-          subtitle={velocity === null ? 'No completed sprints yet' : 'points per sprint (last 3)'}
+          subtitle={velocity === null ? t('workspace.stats.noCompletedSprints') : t('workspace.stats.pointsPerSprint')}
           icon={<Gauge className="size-4" />}
           colorClass="text-violet-600"
         />
       </div>
 
       <Tabs value={tab} onValueChange={value => setTab(value as TabValue)} className="gap-4">
-        <TabsList aria-label="Project sections" className="w-full group-data-horizontal/tabs:h-11 sm:w-fit sm:group-data-horizontal/tabs:h-9">
-          <TabsTrigger value="sprints" className="px-4">Sprints <span className="tabular-nums text-slate-600">{project.sprints.length}</span></TabsTrigger>
-          <TabsTrigger value="backlog" className="px-4">Backlog <span className="tabular-nums text-slate-600">{groups.backlog.length}</span></TabsTrigger>
-          <TabsTrigger value="epics" className="px-4">Epics <span className="tabular-nums text-slate-600">{epics.length}</span></TabsTrigger>
-          <TabsTrigger value="releases" className="px-4">Releases <span className="tabular-nums text-slate-600">{releaseCount}</span></TabsTrigger>
-          <TabsTrigger value="wiki" className="px-4">Wiki</TabsTrigger>
-          <TabsTrigger value="overview" className="px-4">Overview</TabsTrigger>
+        <TabsList aria-label={t('workspace.sections')} className="w-full group-data-horizontal/tabs:h-11 sm:w-fit sm:group-data-horizontal/tabs:h-9">
+          <TabsTrigger value="sprints" className="px-4">{t('workspace.tabs.sprints')} <span className="tabular-nums text-slate-600">{project.sprints.length}</span></TabsTrigger>
+          <TabsTrigger value="backlog" className="px-4">{t('workspace.tabs.backlog')} <span className="tabular-nums text-slate-600">{groups.backlog.length}</span></TabsTrigger>
+          <TabsTrigger value="epics" className="px-4">{t('workspace.tabs.epics')} <span className="tabular-nums text-slate-600">{epics.length}</span></TabsTrigger>
+          <TabsTrigger value="releases" className="px-4">{t('workspace.tabs.releases')} <span className="tabular-nums text-slate-600">{releaseCount}</span></TabsTrigger>
+          <TabsTrigger value="wiki" className="px-4">{t('workspace.tabs.wiki')}</TabsTrigger>
+          <TabsTrigger value="overview" className="px-4">{t('workspace.tabs.overview')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sprints" className="space-y-5">
@@ -345,13 +347,13 @@ const ProjectWorkspace = ({
             <Surface padding="none">
               <EmptyState
                 icon={<Target />}
-                title="No sprints yet"
+                title={t('workspace.noSprintsTitle')}
                 description={canManage
-                  ? 'Plan your first sprint, then move stories from the backlog into it.'
-                  : 'Sprints will show up here once someone plans them.'}
+                  ? t('workspace.noSprintsManage')
+                  : t('workspace.noSprintsRead')}
                 action={canManage ? (
                   <Button onClick={onNewSprint} className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover">
-                    <Plus className="size-4" aria-hidden /> New sprint
+                    <Plus className="size-4" aria-hidden /> {t('workspace.newSprint')}
                   </Button>
                 ) : undefined}
               />
@@ -360,16 +362,16 @@ const ProjectWorkspace = ({
             <>
               {active.length > 0 && (
                 <section aria-labelledby="active-sprints" className="space-y-3">
-                  <h2 id="active-sprints" className="text-sm font-semibold text-slate-900">Active sprint</h2>
+                  <h2 id="active-sprints" className="text-sm font-semibold text-slate-900">{t('workspace.activeSprint')}</h2>
                   {active.map(renderSprint)}
                 </section>
               )}
               {active.length === 0 && planned.length > 0 && (
-                <Alert tone="info">No sprint is running. Start a planned sprint to track burndown.</Alert>
+                <Alert tone="info">{t('workspace.noneRunning')}</Alert>
               )}
               {planned.length > 0 && (
                 <section aria-labelledby="planned-sprints" className="space-y-3">
-                  <h2 id="planned-sprints" className="text-sm font-semibold text-slate-900">Planned</h2>
+                  <h2 id="planned-sprints" className="text-sm font-semibold text-slate-900">{t('workspace.planned')}</h2>
                   {planned.map(renderSprint)}
                 </section>
               )}
@@ -384,7 +386,7 @@ const ProjectWorkspace = ({
                       className="-mx-2 flex min-h-11 items-center gap-2 rounded-lg px-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary md:min-h-9"
                     >
                       <ChevronDown aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', !showCompleted && '-rotate-90')} />
-                      Completed sprints
+                      {t('workspace.completedSprints')}
                       <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{completed.length}</span>
                     </button>
                   </h2>
@@ -396,24 +398,24 @@ const ProjectWorkspace = ({
         </TabsContent>
 
         <TabsContent value="backlog">
-          <Surface as="section" padding="none" aria-label="Backlog" className="overflow-hidden">
+          <Surface as="section" padding="none" aria-label={t('workspace.backlog')} className="overflow-hidden">
             <div className="flex justify-end border-b border-slate-100 px-4 py-1.5 sm:px-5">
               <Link
                 to={scopeHref(workspaceSlug, { view: 'list', project: project.name, sprint: 'backlog' })}
                 className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
               >
                 <ListTodo aria-hidden className="size-3.5" />
-                Open as list<span className="sr-only"> in Tasks</span>
+                {t('workspace.openAsList')}<span className="sr-only">{t('workspace.inTasksSr')}</span>
               </Link>
             </div>
             {canWriteTasks && (
               <QuickAdd
-                label="Add a story to the backlog…"
+                label={t('workspace.addToBacklog')}
                 onAdd={title => addStory(title, { deadline: toDateKey(addDays(new Date(), 14)) })}
               />
             )}
             <TaskList
-              label="Backlog"
+              label={t('workspace.backlog')}
               tasks={groups.backlog}
               subtasks={groups.subtasks}
               canWrite={canWriteTasks}
@@ -424,7 +426,7 @@ const ProjectWorkspace = ({
                   value={MOVE_PLACEHOLDER}
                   options={moveOptions}
                   onChange={sprintId => { void moveToSprint(task, sprintId); }}
-                  aria-label={`Move "${task.title}" to a sprint`}
+                  aria-label={t('workspace.moveTaskAria', { title: task.title })}
                   className="h-11 w-36 sm:w-44 md:h-8"
                 />
               ) : undefined}
@@ -432,10 +434,10 @@ const ProjectWorkspace = ({
                 <EmptyState
                   className="py-10"
                   icon={<Inbox />}
-                  title="The backlog is empty"
+                  title={t('workspace.backlogEmpty')}
                   description={canWriteTasks
-                    ? 'Add a story above. Stories you have not planned into a sprint wait here.'
-                    : 'Stories that are not planned into a sprint wait here.'}
+                    ? t('workspace.backlogEmptyWrite')
+                    : t('workspace.backlogEmptyRead')}
                 />
               )}
             />
@@ -443,7 +445,7 @@ const ProjectWorkspace = ({
         </TabsContent>
 
         <TabsContent value="epics">
-          <Surface as="section" padding="none" aria-label="Epics" className="overflow-hidden">
+          <Surface as="section" padding="none" aria-label={t('workspace.epics')} className="overflow-hidden">
             <EpicsPanel
               epics={epics}
               tasks={own}
@@ -455,9 +457,9 @@ const ProjectWorkspace = ({
               onAddToEpic={addToEpic}
               onAddSubtask={addSubtaskTo}
               onLinkTasks={linkToEpic}
-              onRemoveFromEpic={task => { void changeEpic(task, null, 'Removed from epic'); }}
+              onRemoveFromEpic={task => { void changeEpic(task, null, t('workspace.removedFromEpic')); }}
               onMoveToEpic={(task, epicId) => {
-                void changeEpic(task, epicId, `Moved to ${epics.find(epic => epic._id === epicId)?.title ?? 'the epic'}`);
+                void changeEpic(task, epicId, t('workspace.movedTo', { name: epics.find(epic => epic._id === epicId)?.title ?? t('workspace.theEpic') }));
               }}
             />
           </Surface>
@@ -506,7 +508,7 @@ const ProjectWorkspace = ({
           projects={projects}
           onSubmit={async input => {
             const saved = await updateTask(editing._id, input);
-            if (saved) toast.success('Task saved');
+            if (saved) toast.success(t('workspace.taskSaved'));
             return saved;
           }}
         />
@@ -522,10 +524,10 @@ const ProjectWorkspace = ({
           plannedSprints={planned}
           onConfirm={async moveOpenTo => {
             const { movedTasks } = await sprintActions.complete(completing._id, moveOpenTo);
-            const where = moveOpenTo === 'backlog' ? 'the backlog' : project.sprints.find(sprint => sprint._id === moveOpenTo)?.name ?? 'the next sprint';
+            const where = moveOpenTo === 'backlog' ? t('workspace.theBacklog') : project.sprints.find(sprint => sprint._id === moveOpenTo)?.name ?? t('workspace.theNextSprint');
             toast.success(movedTasks > 0
-              ? `${completing.name} completed. ${movedTasks} open ${movedTasks === 1 ? 'task' : 'tasks'} moved to ${where}.`
-              : `${completing.name} completed.`);
+              ? t('workspace.sprintCompletedMoved', { name: completing.name, count: movedTasks, where })
+              : t('workspace.sprintCompleted', { name: completing.name }));
             onTasksChanged();
           }}
         />
@@ -534,10 +536,10 @@ const ProjectWorkspace = ({
       <ConfirmActionDialog
         open={Boolean(deletingSprint)}
         onOpenChange={open => !open && !deleteBusy && setDeletingSprint(null)}
-        title={`Delete "${deletingSprint?.name ?? ''}"?`}
-        description="The sprint is deleted. Its tasks go back to the backlog."
-        confirmLabel="Delete sprint"
-        busyLabel="Deleting..."
+        title={t('workspace.deleteSprintTitle', { name: deletingSprint?.name ?? '' })}
+        description={t('workspace.deleteSprintBody')}
+        confirmLabel={t('workspace.deleteSprintConfirm')}
+        busyLabel={t('workspace.deleting')}
         busy={deleteBusy}
         onConfirm={confirmDeleteSprint}
       />

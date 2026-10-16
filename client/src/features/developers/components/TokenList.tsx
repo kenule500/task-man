@@ -1,4 +1,5 @@
 import { KeyRound, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
@@ -12,11 +13,14 @@ interface TokenListProps {
 }
 
 /** Active tokens as cards: name, `tm_abcd…` prefix, scope count, last use and expiry. */
-export const TokenList = ({ tokens, now, onRevoke }: TokenListProps) => (
-  <ul aria-label="API tokens" className="space-y-3">
+export const TokenList = ({ tokens, now, onRevoke }: TokenListProps) => {
+  const { t } = useTranslation('admin');
+  return (
+  <ul aria-label={t('developers.tokenList')} className="space-y-3">
     {tokens.map(token => {
       const expiry = describeExpiry(token.expiresAt, now);
-      const lastUsed = token.lastUsedAt ? `Last used ${formatRelativeTime(token.lastUsedAt, now)}` : 'Never used';
+      const lastUsed = token.lastUsedAt ? t('developers.lastUsed', { when: formatRelativeTime(token.lastUsedAt, now) }) : t('developers.neverUsed');
+      const expired = Boolean(token.expiresAt) && new Date(token.expiresAt as string).getTime() <= (now ?? new Date()).getTime();
       return (
         <li key={token._id}>
           <Surface as="article" radius="xl" padding="sm" className="flex items-start gap-3 sm:p-4" aria-label={token.name}>
@@ -25,16 +29,16 @@ export const TokenList = ({ tokens, now, onRevoke }: TokenListProps) => (
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="break-words text-sm font-semibold text-slate-900">{token.name}</h3>
                 <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">tm_{token.prefix}…</code>
-                {expiry === 'Expired' && <Tag tone="danger">Expired</Tag>}
+                {expired && <Tag tone="danger">{t('developers.expiredTag')}</Tag>}
               </div>
               <p className="mt-1 text-xs text-slate-600">
-                <span>{token.scopes.length} {token.scopes.length === 1 ? 'scope' : 'scopes'}</span>
+                <span>{t('developers.scopeCount', { count: token.scopes.length })}</span>
                 <span aria-hidden> · </span>
                 <span>{lastUsed}</span>
                 <span aria-hidden> · </span>
                 <span>{expiry}</span>
               </p>
-              <p className="sr-only">Scopes: {token.scopes.join(', ')}</p>
+              <p className="sr-only">{t('developers.scopesSr', { list: token.scopes.join(', ') })}</p>
             </div>
             <Button
               type="button"
@@ -43,11 +47,12 @@ export const TokenList = ({ tokens, now, onRevoke }: TokenListProps) => (
               className="h-10 shrink-0 gap-1.5 px-3 text-sm md:h-9"
             >
               <Trash2 aria-hidden />
-              Revoke<span className="sr-only"> {token.name}</span>
+              {t('developers.revoke')}<span className="sr-only">{t('developers.revokeSr', { name: token.name })}</span>
             </Button>
           </Surface>
         </li>
       );
     })}
   </ul>
-);
+  );
+};

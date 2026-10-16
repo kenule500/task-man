@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlarmClock, CheckSquare, Clock, ListTodo, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, PageHeader, SkeletonBoard, SkeletonList, StatCard, Surface, toast } from '@/components/ds';
@@ -31,6 +32,7 @@ interface TaskPageProps {
 }
 
 const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
+  const { t } = useTranslation('tasks');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { can, user, loading: permissionsLoading } = usePermissions();
@@ -164,12 +166,12 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
     deleteTask(task._id);
     const subtaskCount = tasks.filter(item => item.parent === task._id).length;
     toast({
-      title: task.parent ? 'Subtask deleted' : 'Task deleted',
-      description: subtaskCount ? `${task.title} and ${subtaskCount} ${subtaskCount === 1 ? 'subtask' : 'subtasks'}` : task.title,
+      title: task.parent ? t('page.subtaskDeleted') : t('page.taskDeleted'),
+      description: subtaskCount ? t('page.deletedWithSubtasks', { title: task.title, count: subtaskCount }) : task.title,
       duration: DELETE_UNDO_MS,
       // The request is sent when the time is up, so the countdown must not pause on hover
       pauseOnHover: false,
-      action: { label: 'Undo', onClick: () => undoDelete(task._id) },
+      action: { label: t('actions.undo'), onClick: () => undoDelete(task._id) },
     });
   };
 
@@ -185,7 +187,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
         ?? tasks.flatMap(task => task.assignees ?? []).find(person => person._id === id)?.name,
     });
     downloadCsv(tasksCsvFilename(workspaceSlug ?? ''), csv);
-    toast.success(`Exported ${visibleTasks.length} ${visibleTasks.length === 1 ? 'task' : 'tasks'}`);
+    toast.success(t('page.exported', { count: visibleTasks.length }));
   };
 
   const handleEdit = (task: Task) => {
@@ -228,8 +230,8 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
   return (
     <AppShell>
       <PageHeader
-        title="Tasks"
-        description={canWrite ? 'All work in this workspace, as a list, board, calendar or timeline' : 'All work in this workspace (read-only access)'}
+        title={t('page.title')}
+        description={canWrite ? t('page.descriptionWrite') : t('page.descriptionRead')}
         actions={canWrite ? (
           <Button
             onClick={() => setForm({ mode: 'create', defaults: scopeDefaults })}
@@ -237,23 +239,23 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
             // Phones use the "+" button of the bottom navigation instead
             className="h-10 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover max-md:hidden sm:h-9"
           >
-            <Plus className="w-4 h-4" /> Add Task
+            <Plus className="w-4 h-4" /> {t('page.addTask')}
           </Button>
         ) : undefined}
       />
 
       {loading ? (
-        view === 'board' ? <SkeletonBoard label="Loading board" /> : <SkeletonList label="Loading tasks" rows={6} />
+        view === 'board' ? <SkeletonBoard label={t('page.loadingBoard')} /> : <SkeletonList label={t('page.loadingTasks')} rows={6} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
 
           {/* Phones go straight to the tasks; the dashboard has the same numbers */}
           <div className="hidden grid-cols-2 gap-3 sm:grid sm:gap-5 lg:grid-cols-4">
-            <StatCard className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle={`${stats.pending} pending`} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
-            <StatCard className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
-            <StatCard className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle={stats.total ? `${Math.round((stats.completed / stats.total) * 100)}% of all tasks` : 'Nothing yet'} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-success-fg" />
-            <StatCard className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle={stats.overdue ? 'Missed deadlines' : 'All on track'} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-danger-fg" />
+            <StatCard className="p-4 sm:p-5" title={t('page.stats.total')} value={stats.total} subtitle={t('page.stats.pendingSubtitle', { count: stats.pending })} icon={<ListTodo className="w-4 h-4" />} colorClass="text-slate-600" />
+            <StatCard className="p-4 sm:p-5" title={t('page.stats.inProgress')} value={stats.inProgress} subtitle={t('page.stats.inProgressSubtitle')} icon={<Clock className="w-4 h-4" />} colorClass="text-blue-600" />
+            <StatCard className="p-4 sm:p-5" title={t('page.stats.completed')} value={stats.completed} subtitle={stats.total ? t('page.stats.completedSubtitle', { percent: Math.round((stats.completed / stats.total) * 100) }) : t('page.stats.nothingYet')} icon={<CheckSquare className="w-4 h-4" />} colorClass="text-success-fg" />
+            <StatCard className="p-4 sm:p-5" title={t('page.stats.overdue')} value={stats.overdue} subtitle={stats.overdue ? t('page.stats.overdueSubtitle') : t('page.stats.onTrack')} icon={<AlarmClock className="w-4 h-4" />} colorClass="text-danger-fg" />
           </div>
 
           {workspaceSlug && scoped && (
@@ -344,7 +346,7 @@ const TaskPage = ({ defaultView = 'list' }: TaskPageProps) => {
           projects={projects}
           onSubmit={async input => {
             const saved = await (form.mode === 'edit' ? updateTask(form.task._id, input) : createTask(input));
-            if (saved) toast.success(form.mode === 'edit' ? 'Task saved' : 'Task created');
+            if (saved) toast.success(form.mode === 'edit' ? t('page.taskSaved') : t('page.taskCreated'));
             return saved;
           }}
         />

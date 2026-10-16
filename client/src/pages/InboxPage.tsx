@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BellOff, CheckCheck } from 'lucide-react';
 import { EmptyState, ErrorState, PageHeader, SegmentedControl, SkeletonList, Surface, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -6,12 +7,10 @@ import {
   NotificationRow, useNotificationInbox, useOpenNotification, type InboxFilter,
 } from '@/features/notifications';
 
-const FILTERS: { value: InboxFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'unread', label: 'Unread' },
-];
+const FILTERS: InboxFilter[] = ['all', 'unread'];
 
 const InboxPage = () => {
+  const { t } = useTranslation('nav');
   const [searchParams, setSearchParams] = useSearchParams();
   const filter: InboxFilter = searchParams.get('filter') === 'unread' ? 'unread' : 'all';
   const { items, unreadCount, loading, loadingMore, error, hasMore, loadMore, retry, markRead, markAllRead } =
@@ -25,8 +24,8 @@ const InboxPage = () => {
   return (
     <div className="max-w-3xl space-y-5 pb-6">
       <PageHeader
-        title="Inbox"
-        description="Assignments, completed tasks, mentions and comments on your tasks. Notifications are kept for 90 days."
+        title={t('inbox.title')}
+        description={t('inbox.description')}
         actions={(
           <Button
             type="button"
@@ -35,43 +34,41 @@ const InboxPage = () => {
             disabled={unreadCount === 0}
             className="h-11 gap-1.5 sm:h-9"
           >
-            <CheckCheck className="size-4" aria-hidden /> Mark all as read
+            <CheckCheck className="size-4" aria-hidden /> {t('notifications.markAllRead')}
           </Button>
         )}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedControl
-          aria-label="Show notifications"
+          aria-label={t('inbox.show')}
           value={filter}
           onValueChange={changeFilter}
-          options={FILTERS.map(option => ({
-            value: option.value,
-            label: option.value === 'unread' && unreadCount > 0 ? `Unread (${unreadCount})` : option.label,
+          options={FILTERS.map(value => ({
+            value,
+            label: value === 'unread' && unreadCount > 0 ? t('inbox.unreadCount', { count: unreadCount }) : t(`inbox.filters.${value}`),
           }))}
         />
       </div>
 
       <Surface padding="none" className="overflow-hidden">
         {loading ? (
-          <SkeletonList bare avatar={false} trailing={false} rows={4} label="Loading notifications" />
+          <SkeletonList bare avatar={false} trailing={false} rows={4} label={t('notifications.loading')} />
         ) : error && items.length === 0 ? (
           <ErrorState
-            title="We could not load your notifications"
-            reason="The server did not answer."
-            nextStep="Check your connection and try again."
-            action={<Button type="button" variant="outline" onClick={() => void retry()} className="h-11 sm:h-9">Try again</Button>}
+            title={t('inbox.loadFailed')}
+            reason={t('inbox.loadFailedReason')}
+            nextStep={t('inbox.loadFailedNext')}
+            action={<Button type="button" variant="outline" onClick={() => void retry()} className="h-11 sm:h-9">{t('common:retry')}</Button>}
           />
         ) : items.length === 0 ? (
           <EmptyState
             icon={<BellOff />}
-            title={filter === 'unread' ? 'Nothing unread' : 'No notifications yet'}
-            description={filter === 'unread'
-              ? 'You have read everything. New notifications show up here.'
-              : 'When someone assigns you a task or mentions you in a comment, it shows up here.'}
+            title={filter === 'unread' ? t('inbox.emptyUnreadTitle') : t('inbox.emptyTitle')}
+            description={filter === 'unread' ? t('inbox.emptyUnreadDescription') : t('inbox.emptyDescription')}
           />
         ) : (
-          <ul className="divide-y divide-slate-100" aria-label="Notifications">
+          <ul className="divide-y divide-slate-100" aria-label={t('notifications.title')}>
             {items.map(notification => (
               <li key={notification._id}>
                 <NotificationRow notification={notification} onSelect={openNotification} />
@@ -82,7 +79,7 @@ const InboxPage = () => {
       </Surface>
 
       {error && items.length > 0 && (
-        <p role="alert" className="text-sm text-danger-fg">We could not load older notifications. Try again.</p>
+        <p role="alert" className="text-sm text-danger-fg">{t('inbox.loadOlderFailed')}</p>
       )}
 
       {hasMore && (
@@ -96,7 +93,7 @@ const InboxPage = () => {
             className="h-11 min-w-40 gap-2 sm:h-9"
           >
             {loadingMore && <Spinner decorative />}
-            {loadingMore ? 'Loading...' : 'Load older'}
+            {loadingMore ? t('nav:loading') : t('inbox.loadOlder')}
           </Button>
         </div>
       )}

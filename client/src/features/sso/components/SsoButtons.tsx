@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ssoStartUrl } from '../api';
@@ -10,14 +11,15 @@ import { ProviderIcon } from './ProviderIcon';
  * Renders nothing unless the server has at least one provider configured.
  */
 export const SsoButtons = ({ redirect }: { redirect?: string }) => {
+  const { t } = useTranslation('auth');
   const providers = useSsoProviders();
   if (providers.length === 0) return null;
 
   return (
     <div className="mt-6" data-testid="sso-buttons">
-      <div className="mb-5 flex items-center" role="separator" aria-label="or">
+      <div className="mb-5 flex items-center" role="separator" aria-label={t('sso.or')}>
         <span aria-hidden className="h-px flex-1 bg-slate-200" />
-        <span aria-hidden className="px-3 text-xs font-medium uppercase tracking-wide text-slate-500">or</span>
+        <span aria-hidden className="px-3 text-xs font-medium uppercase tracking-wide text-slate-500">{t('sso.or')}</span>
         <span aria-hidden className="h-px flex-1 bg-slate-200" />
       </div>
       <div className="space-y-3">
@@ -32,7 +34,7 @@ export const SsoButtons = ({ redirect }: { redirect?: string }) => {
             )}
           >
             <ProviderIcon provider={provider.id} />
-            Continue with {provider.label}
+            {t('sso.continueWith', { provider: provider.label })}
           </a>
         ))}
       </div>

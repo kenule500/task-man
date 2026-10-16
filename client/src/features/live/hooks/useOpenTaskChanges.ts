@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { toast } from '@/components/ds';
+import i18n from '@/i18n';
 import { describeLiveChange, isTaskContentChange } from '../lib/describe';
 import { isLiveHeld, refreshLiveNow, subscribeIncoming } from '../lib/liveStore';
 
@@ -20,9 +21,9 @@ export const useOpenTaskChanges = (slug: string | undefined, taskId: string | un
       const mine = batch.changes.filter(change => change.task === taskId && isTaskContentChange(change.action));
       const latest = mine[mine.length - 1];
       if (!latest) return;
-      const title = mine.length > 1 ? `${mine.length} changes to ${labelRef.current || 'this task'} by others` : describeLiveChange(latest, labelRef.current);
+      const title = mine.length > 1 ? i18n.t('tasks:live.changesByOthers', { count: mine.length, label: labelRef.current || i18n.t('tasks:live.thisTask') }) : describeLiveChange(latest, labelRef.current);
       toast(isLiveHeld()
-        ? { title, action: { label: 'Refresh', onClick: () => refreshLiveNow(slug) } }
+        ? { title, action: { label: i18n.t('tasks:live.refresh'), onClick: () => refreshLiveNow(slug) } }
         : { title });
     });
   }, [slug, taskId]);

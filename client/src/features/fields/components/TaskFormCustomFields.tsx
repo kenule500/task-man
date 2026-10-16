@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import { useCustomFields } from '../hooks/useCustomFields';
 import { useFieldMembers } from '../hooks/useFieldMembers';
@@ -20,6 +21,7 @@ interface TaskFormCustomFieldsProps {
 
 /** Custom fields inside the task form. Renders nothing when no field applies to the project. */
 const TaskFormCustomFields = ({ workspaceSlug, project, values, onChange, errors = {} }: TaskFormCustomFieldsProps) => {
+  const { t } = useTranslation('tasks');
   const routeSlug = useParams().workspaceSlug;
   const slug = workspaceSlug ?? routeSlug;
   const { active } = useCustomFields(slug);
@@ -30,7 +32,7 @@ const TaskFormCustomFields = ({ workspaceSlug, project, values, onChange, errors
 
   return (
     <fieldset className="space-y-4 rounded-lg border border-slate-200 p-3 sm:p-4">
-      <legend className="px-1 text-sm font-medium text-slate-700">Fields</legend>
+      <legend className="px-1 text-sm font-medium text-slate-700">{t('fields.section')}</legend>
       {applicable.map(field => {
         const inputId = `task-field-${field.key}`;
         const errorId = `${inputId}-error`;

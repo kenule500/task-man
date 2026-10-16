@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/ds';
 import { useTaskPresence } from '../hooks/useTaskPresence';
 
@@ -10,6 +11,7 @@ interface PresenceBarProps {
 
 /** "Also viewing" avatars for the people who have this task open right now. Renders nothing when it is only you. */
 const PresenceBar = ({ slug, taskId }: PresenceBarProps) => {
+  const { t } = useTranslation('tasks');
   const viewers = useTaskPresence(slug, taskId);
   if (viewers.length === 0) return null;
 
@@ -17,8 +19,8 @@ const PresenceBar = ({ slug, taskId }: PresenceBarProps) => {
   const extra = viewers.length - shown.length;
 
   return (
-    <div className="flex items-center gap-2 text-xs text-slate-500" aria-label={`Also viewing: ${viewers.map(viewer => viewer.name).join(', ')}`} role="group">
-      <span aria-hidden>Also viewing</span>
+    <div className="flex items-center gap-2 text-xs text-slate-500" aria-label={t('live.alsoViewingAria', { names: viewers.map(viewer => viewer.name).join(', ') })} role="group">
+      <span aria-hidden>{t('live.alsoViewing')}</span>
       <span className="flex items-center -space-x-1.5">
         {shown.map(viewer => (
           <span key={viewer._id} title={viewer.name}>

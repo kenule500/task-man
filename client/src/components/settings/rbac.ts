@@ -1,4 +1,5 @@
 /** Shapes and pure helpers shared by the role views on the workspace settings page. */
+import { t } from '@/i18n';
 
 export interface PermissionOption {
   key: string;
@@ -21,6 +22,27 @@ export const SYSTEM_ROLE_ORDER = ['Product Owner', 'Scrum Master', 'Developer', 
 
 /** Permission groups in the order reviewers expect; unknown groups follow alphabetically. */
 export const GROUP_ORDER = ['Projects', 'Tasks', 'Users', 'Reports', 'Settings'];
+
+const compact = (text: string) => text.replace(/\s+/g, '');
+
+/** A role's name in the interface language. The five system roles are translated; custom roles keep the name they were given. */
+export const roleDisplayName = (role: { name: string; isSystem?: boolean }): string =>
+  (role.isSystem ?? SYSTEM_ROLE_ORDER.includes(role.name))
+    ? t(`settings:roles.system.${compact(role.name)}.name`, { defaultValue: role.name })
+    : role.name;
+
+/** A role's description; system roles are translated. */
+export const roleDisplayDescription = (role: { name: string; description?: string; isSystem?: boolean }): string =>
+  (role.isSystem ?? SYSTEM_ROLE_ORDER.includes(role.name))
+    ? t(`settings:roles.system.${compact(role.name)}.description`, { defaultValue: role.description ?? '' })
+    : (role.description ?? '');
+
+/** Permission catalog entries come from the server in English: show them translated, falling back to the server text. */
+export const permissionLabel = (option: PermissionOption): string =>
+  t(`settings:permissions.${option.key.replace(':', '_')}`, { defaultValue: option.label });
+
+export const permissionGroupLabel = (group: string): string =>
+  t(`settings:permissionGroups.${compact(group)}`, { defaultValue: group });
 
 const systemRank = (name: string) => {
   const index = SYSTEM_ROLE_ORDER.indexOf(name);

@@ -1,6 +1,7 @@
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { Tag } from './primitives';
 
 interface TagInputProps {
@@ -61,12 +62,12 @@ export const TagInput = ({
       <div className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-lg border border-input bg-white px-2 py-1.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 sm:min-h-10">
         {value.map(tag => (
           renderTag ? <span key={tag} className="contents">{renderTag(tag, remove)}</span> : (
-            <Tag key={tag} className="gap-1 pr-0.5">
+            <Tag key={tag} className="gap-1 pe-0.5">
               <span className="truncate">{tag}</span>
               <button
                 type="button"
                 onClick={() => remove(tag)}
-                aria-label={`Remove ${noun} ${tag}`}
+                aria-label={t('tagInput.remove', { noun, tag })}
                 className="flex size-4 shrink-0 items-center justify-center rounded hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-focus"
               >
                 <X className="size-3" aria-hidden />
@@ -82,25 +83,25 @@ export const TagInput = ({
           onBlur={() => draft.trim() && commit(draft)}
           disabled={full}
           maxLength={maxLength}
-          placeholder={value.length === 0 ? `Add a ${noun} and press Enter` : full ? '' : 'Add another'}
+          placeholder={value.length === 0 ? t('tagInput.addFirst', { noun }) : full ? '' : t('tagInput.addAnother')}
           autoComplete="off"
           aria-describedby={`${inputId}-hint`}
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-base text-text-strong outline-none placeholder:text-text-subtle disabled:cursor-not-allowed sm:text-sm"
         />
       </div>
       <p id={`${inputId}-hint`} className="text-xs text-text-subtle">
-        {full ? `Maximum of ${max} ${noun}s reached.` : 'Press Enter or comma to add, Backspace to remove.'}{' '}
+        {full ? t('tagInput.max', { max, noun }) : t('tagInput.hint')}{' '}
         <span className="tabular-nums">{value.length}/{max}</span>
       </p>
       {matches.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={`${noun[0].toUpperCase()}${noun.slice(1)} suggestions`}>
-          <span className="text-xs text-text-subtle">Suggestions:</span>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('tagInput.suggestionsFor', { noun: `${noun[0].toUpperCase()}${noun.slice(1)}` })}>
+          <span className="text-xs text-text-subtle">{t('tagInput.suggestions')}</span>
           {matches.map(tag => (
             <button
               key={tag}
               type="button"
               onClick={() => commit(tag)}
-              aria-label={`Add ${noun} ${tag}`}
+              aria-label={t('tagInput.add', { noun, tag })}
               className="rounded-md focus-visible:outline-2 focus-visible:outline-focus"
             >
               {renderTag ? renderTag(tag) : <Tag className="cursor-pointer hover:brightness-95">{tag}</Tag>}

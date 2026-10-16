@@ -1,4 +1,5 @@
 // Jira-style quick filters above the board: toggle chips, AND-combined, kept in the URL (?qf=mine,bugs).
+import i18n from '@/i18n';
 import type { Task } from '../types';
 import { addDays, dateKeyOf, toDateKey } from './date';
 import { startOfWeek } from './week';
@@ -7,11 +8,11 @@ export const QUICK_FILTER_KEYS = ['mine', 'bugs', 'due-week', 'blocked', 'unassi
 export type QuickFilterKey = (typeof QUICK_FILTER_KEYS)[number];
 
 export const QUICK_FILTER_LABELS: Record<QuickFilterKey, string> = {
-  mine: 'My tasks',
-  bugs: 'Bugs',
-  'due-week': 'Due this week',
-  blocked: 'Blocked',
-  unassigned: 'Unassigned',
+  get mine() { return i18n.t('tasks:quickFilters.mine'); },
+  get bugs() { return i18n.t('tasks:quickFilters.bugs'); },
+  get 'due-week'() { return i18n.t('tasks:quickFilters.due-week'); },
+  get blocked() { return i18n.t('tasks:quickFilters.blocked'); },
+  get unassigned() { return i18n.t('tasks:quickFilters.unassigned'); },
 };
 
 export interface QuickFilterContext {

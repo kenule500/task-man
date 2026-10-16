@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Archive, ArchiveRestore, CalendarDays, CheckCircle2, CircleDashed, FolderKanban, ListTodo, Pencil, Rocket, RotateCcw, Target, Trash2 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import {
@@ -19,9 +20,10 @@ import {
 } from '@/features/releases/lib/progress';
 import type { Release, ReleaseDetail, ReleaseTask } from '@/features/releases/types';
 
-const pointsLabel = (points: number) => `${points} ${points === 1 ? 'point' : 'points'}`;
 
-const TaskRow = ({ task, slug }: { task: ReleaseTask; slug: string }) => (
+const TaskRow = ({ task, slug }: { task: ReleaseTask; slug: string }) => {
+  const { t } = useTranslation('projects');
+  return (
   <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 sm:px-5">
     <TypeBadge type={task.type === 'epic' ? 'task' : task.type} size="sm" />
     {task.key && <span className="font-mono text-xs tabular-nums text-slate-500">{task.key}</span>}
@@ -32,13 +34,14 @@ const TaskRow = ({ task, slug }: { task: ReleaseTask; slug: string }) => (
       {task.title}
     </Link>
     {typeof task.storyPoints === 'number' && (
-      <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600" title="Story points">
+      <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600" title={t('releasePage.storyPoints')}>
         {task.storyPoints}
       </span>
     )}
     <AvatarStack people={(task.assignees ?? []).map(user => ({ name: user.name, src: user.avatarUrl || undefined }))} max={3} />
   </li>
-);
+  );
+};
 
 interface ReleaseBodyProps {
   detail: ReleaseDetail;
@@ -57,6 +60,8 @@ interface ReleaseBodyProps {
 const ReleaseBody = ({
   detail, notesMarkdown, slug, canManage, busy, onEdit, onRelease, onArchive, onReopen, onDelete, backToProject,
 }: ReleaseBodyProps) => {
+  const { t } = useTranslation('projects');
+  const pointsLabel = (points: number) => t('form.points', { count: points, ns: 'tasks' });
   const { progress } = detail;
   const percent = releasePercent(progress);
   const groups = useMemo(() => groupReleaseTasks(detail.tasks), [detail.tasks]);
@@ -66,11 +71,11 @@ const ReleaseBody = ({
   return (
     <>
       <Breadcrumbs
-        label="Breadcrumb"
+        label={t('releasePage.breadcrumb')}
         items={[
-          { label: 'Projects', href: `/${slug}/projects` },
+          { label: t('releasePage.projects'), href: `/${slug}/projects` },
           { label: detail.project.name, href: projectHref },
-          { label: 'Releases', href: `${projectHref}?tab=releases` },
+          { label: t('releasePage.releases'), href: `${projectHref}?tab=releases` },
           { label: detail.name },
         ]}
         renderLink={(item, className) => <Link to={item.href} className={className}>{item.label}</Link>}
@@ -93,27 +98,27 @@ const ReleaseBody = ({
             {backToProject}
             {canManage && detail.status === 'unreleased' && (
               <Button onClick={onRelease} disabled={busy} className="h-11 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover md:h-9">
-                <Rocket className="size-4" aria-hidden /> Release
+                <Rocket className="size-4" aria-hidden /> {t('releases.card.release')}
               </Button>
             )}
             {canManage && detail.status !== 'unreleased' && (
               <Button variant="outline" onClick={onReopen} disabled={busy} className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none md:h-9">
-                {detail.status === 'archived' ? <ArchiveRestore className="size-4" aria-hidden /> : <RotateCcw className="size-4" aria-hidden />} Reopen
+                {detail.status === 'archived' ? <ArchiveRestore className="size-4" aria-hidden /> : <RotateCcw className="size-4" aria-hidden />} {t('releases.card.reopen')}
               </Button>
             )}
             {canManage && (
               <Button variant="outline" onClick={onEdit} className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none md:h-9">
-                <Pencil className="size-4" aria-hidden /> Edit
+                <Pencil className="size-4" aria-hidden /> {t('actions.edit')}
               </Button>
             )}
             {canManage && detail.status !== 'archived' && (
               <Button variant="outline" onClick={onArchive} disabled={busy} className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none md:h-9">
-                <Archive className="size-4" aria-hidden /> Archive
+                <Archive className="size-4" aria-hidden /> {t('releases.card.archive')}
               </Button>
             )}
             {canManage && (
               <Button variant="outline" onClick={onDelete} className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-danger-fg shadow-none md:h-9">
-                <Trash2 className="size-4" aria-hidden /> Delete
+                <Trash2 className="size-4" aria-hidden /> {t('actions.delete')}
               </Button>
             )}
           </>
@@ -122,29 +127,29 @@ const ReleaseBody = ({
 
       {detail.description && <p className="max-w-3xl whitespace-pre-line text-sm text-slate-700">{detail.description}</p>}
 
-      <section aria-label="Summary" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <section aria-label={t('releasePage.summary')} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         <Surface className="col-span-2 flex items-center gap-4 p-4 lg:col-span-1">
-          <ProgressRing value={percent} label={`${detail.name} progress`} size={64} strokeWidth={6} />
+          <ProgressRing value={percent} label={t('releases.card.progressOf', { name: detail.name })} size={64} strokeWidth={6} />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900">Progress</p>
+            <p className="text-sm font-semibold text-slate-900">{t('releasePage.progress')}</p>
             <p className="text-xs text-slate-600">{describeReleaseProgress(progress)}</p>
           </div>
         </Surface>
-        <StatCard className="p-4" icon={<CircleDashed />} title="To do" value={progress.counts.pending} subtitle={pointsLabel(progress.points.pending)} colorClass="text-slate-600" />
-        <StatCard className="p-4" icon={<ListTodo />} title="In progress" value={progress.counts['in-progress']} subtitle={pointsLabel(progress.points['in-progress'])} colorClass="text-blue-600" />
-        <StatCard className="p-4" icon={<CheckCircle2 />} title="Done" value={progress.counts.completed} subtitle={pointsLabel(progress.points.completed)} colorClass="text-success-fg" />
-        <StatCard className="col-span-2 p-4 lg:col-span-1" icon={<Target />} title="Total points" value={progress.points.total} subtitle={`${progress.counts.total} ${progress.counts.total === 1 ? 'task' : 'tasks'}`} colorClass="text-violet-600" />
+        <StatCard className="p-4" icon={<CircleDashed />} title={t('releasePage.todo')} value={progress.counts.pending} subtitle={pointsLabel(progress.points.pending)} colorClass="text-slate-600" />
+        <StatCard className="p-4" icon={<ListTodo />} title={t('releasePage.inProgress')} value={progress.counts['in-progress']} subtitle={pointsLabel(progress.points['in-progress'])} colorClass="text-blue-600" />
+        <StatCard className="p-4" icon={<CheckCircle2 />} title={t('releasePage.done')} value={progress.counts.completed} subtitle={pointsLabel(progress.points.completed)} colorClass="text-success-fg" />
+        <StatCard className="col-span-2 p-4 lg:col-span-1" icon={<Target />} title={t('releasePage.totalPoints')} value={progress.points.total} subtitle={t('releases.card.tasks', { count: progress.counts.total })} colorClass="text-violet-600" />
       </section>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-        <section aria-label="Tasks in this release" className="min-w-0 space-y-3">
+        <section aria-label={t('releasePage.tasksRegion')} className="min-w-0 space-y-3">
           {groups.length === 0 ? (
             <Surface padding="none">
               <EmptyState
                 className="py-10"
                 icon={<Rocket />}
-                title="No tasks in this release"
-                description="Choose this release in a task's details to add it. Finished work appears in the release notes."
+                title={t('releasePage.noTasks')}
+                description={t('releasePage.noTasksBody')}
               />
             </Surface>
           ) : groups.map(group => (
@@ -168,6 +173,7 @@ const ReleaseBody = ({
 
 /** One release: status, dates, progress, its tasks by status group and the generated release notes. */
 const ReleasePage = () => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug = '', projectId = '', releaseId } = useParams<{ workspaceSlug: string; projectId: string; releaseId: string }>();
   const navigate = useNavigate();
   const { can } = usePermissions();
@@ -182,7 +188,7 @@ const ReleasePage = () => {
       to={`/${workspaceSlug}/projects/${projectId}?tab=releases`}
       className={buttonVariants({ variant: 'outline', className: 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none md:h-9' })}
     >
-      <FolderKanban className="size-4" aria-hidden /> Back to releases
+      <FolderKanban className="size-4" aria-hidden /> {t('releasePage.backToReleases')}
     </Link>
   );
 
@@ -192,22 +198,22 @@ const ReleasePage = () => {
     <AppShell>
       {loading ? (
         <>
-          <h1 className="sr-only">Release</h1>
+          <h1 className="sr-only">{t('releasePage.release')}</h1>
           <SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" className="gap-3 sm:gap-5" />
         </>
       ) : !release ? (
         <>
-          <h1 className="sr-only">Release</h1>
+          <h1 className="sr-only">{t('releasePage.release')}</h1>
           <Surface padding="none">
             {error && !/not found/i.test(error) ? (
               <ErrorState
-                title="We could not load this release"
+                title={t('releasePage.loadFailed')}
                 reason={error}
-                nextStep="Check your connection and try again. If the release was deleted, pick another one from the project."
+                nextStep={t('releasePage.loadNext')}
                 action={backToProject}
               />
             ) : (
-              <EmptyState icon={<Rocket />} title="Release not found" description="It may have been deleted, or the link is wrong." action={backToProject} />
+              <EmptyState icon={<Rocket />} title={t('releasePage.notFound')} description={t('releasePage.notFoundBody')} action={backToProject} />
             )}
           </Surface>
         </>

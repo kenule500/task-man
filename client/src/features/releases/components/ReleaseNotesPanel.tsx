@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Copy, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SectionHeader, Surface, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { copyToClipboard } from '@/features/tasks/lib/taskKey';
@@ -21,18 +22,19 @@ const HEADING_CLASS = {
  * React text (never as HTML), with a button that copies the Markdown source.
  */
 const ReleaseNotesPanel = ({ markdown }: ReleaseNotesPanelProps) => {
+  const { t } = useTranslation('projects');
   const blocks = useMemo(() => parseNotesMarkdown(markdown), [markdown]);
 
   const copy = async () => {
-    if (await copyToClipboard(markdown)) toast.success('Release notes copied');
-    else toast.error('Could not copy. Select the notes and copy them manually.');
+    if (await copyToClipboard(markdown)) toast.success(t('releases.notes.copied'));
+    else toast.error(t('releases.notes.copyError'));
   };
 
   return (
     <Surface as="section" aria-labelledby="release-notes-title" padding="none" className="overflow-hidden">
       <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
         <SectionHeader
-          title={<span id="release-notes-title">Release notes</span>}
+          title={<span id="release-notes-title">{t('releases.notes.title')}</span>}
           icon={<FileText className="size-4" />}
           action={(
             <Button
@@ -41,13 +43,13 @@ const ReleaseNotesPanel = ({ markdown }: ReleaseNotesPanelProps) => {
               disabled={!markdown}
               className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none md:h-8"
             >
-              <Copy className="size-4" aria-hidden /> Copy Markdown
+              <Copy className="size-4" aria-hidden /> {t('releases.notes.copyMarkdown')}
             </Button>
           )}
         />
       </div>
       <div className="space-y-3 px-4 py-4 sm:px-5" data-testid="release-notes">
-        {blocks.length === 0 && <p className="text-sm text-slate-600">No notes yet.</p>}
+        {blocks.length === 0 && <p className="text-sm text-slate-600">{t('releases.notes.none')}</p>}
         {blocks.map((block, index) => {
           if (block.kind === 'heading') {
             const Heading = `h${block.level + 2}` as 'h3' | 'h4' | 'h5';
@@ -62,7 +64,7 @@ const ReleaseNotesPanel = ({ markdown }: ReleaseNotesPanelProps) => {
                     <li key={itemIndex} className="flex items-baseline gap-2">
                       <span aria-hidden className="size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-slate-400" />
                       <span className="min-w-0 break-words">
-                        {key && <span className="mr-2 font-mono text-xs tabular-nums text-slate-500">{key}</span>}
+                        {key && <span className="me-2 font-mono text-xs tabular-nums text-slate-500">{key}</span>}
                         {title}
                       </span>
                     </li>

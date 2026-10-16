@@ -1,0 +1,782 @@
+{
+  "layout": {
+    "title": "Paramètres",
+    "description": "Gérez votre compte et vos préférences",
+    "sections": "Sections des paramètres",
+    "profile": {
+      "label": "Profil",
+      "description": "Vos informations publiques"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "description": "Préférences d’e-mail et de notifications push"
+    },
+    "security": {
+      "label": "Sécurité",
+      "description": "Mot de passe et sécurité du compte"
+    }
+  },
+  "profile": {
+    "loading": "Chargement du profil",
+    "loadFailed": "Impossible de charger le profil",
+    "loadFailedHint": "Actualisez la page ou reconnectez-vous.",
+    "updated": "Profil mis à jour",
+    "updateFailed": "Impossible de mettre à jour le profil",
+    "fullName": "Nom complet",
+    "jobTitle": "Poste",
+    "jobTitlePlaceholder": "p. ex. Designer produit",
+    "phone": "Téléphone",
+    "timezone": "Fuseau horaire",
+    "timezones": {
+      "newYork": "Heure de l’Est",
+      "losAngeles": "Heure du Pacifique",
+      "london": "Londres",
+      "paris": "Paris",
+      "lagos": "Lagos",
+      "tokyo": "Tokyo",
+      "dubai": "Dubaï"
+    },
+    "bio": "Présentation",
+    "bioPlaceholder": "Parlez-nous un peu de vous…",
+    "appearance": "Apparence",
+    "appearanceHint": "Choisissez l’apparence de TaskMan. « Système » suit le réglage de votre appareil. Votre choix est enregistré sur votre compte.",
+    "theme": "Thème",
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    },
+    "themeSaveFailed": "Impossible d’enregistrer votre thème. Il s’applique uniquement sur cet appareil. Réessayez plus tard.",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer les modifications"
+  },
+  "security": {
+    "changePassword": "Changer le mot de passe",
+    "changePasswordHint": "Mettez à jour votre mot de passe pour protéger votre compte.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "passwordChanged": "Mot de passe modifié. Vos autres appareils ont été déconnectés.",
+    "passwordFailed": "Impossible de modifier le mot de passe. Vérifiez votre mot de passe actuel et réessayez.",
+    "updating": "Mise à jour…",
+    "update": "Mettre à jour le mot de passe"
+  },
+  "twoFactor": {
+    "title": "Authentification à deux facteurs",
+    "description": "Ajoutez une seconde étape à la connexion : un code à 6 chiffres généré par une application d’authentification sur votre téléphone. Un mot de passe volé ne suffit alors plus.",
+    "yourAccount": "votre compte",
+    "on": "Activée",
+    "off": "Désactivée",
+    "loadFailed": "Impossible de charger ce paramètre",
+    "turnedOn": "Activée.",
+    "turnedOnDate": "Activée le {{date}}.",
+    "codesLeft_one": "{{count}} code de récupération restant.",
+    "codesLeft_many": "{{count}} de codes de récupération restants.",
+    "codesLeft_other": "{{count}} codes de récupération restants.",
+    "lowCodes": "Il vous reste peu de codes de récupération. Créez-en de nouveaux et conservez-les en lieu sûr.",
+    "newCodes": "Nouveaux codes de récupération",
+    "turnOff": "Désactiver",
+    "setUp": "Configurer l’authentification à deux facteurs",
+    "isOff": "L’authentification à deux facteurs est désactivée.",
+    "setup": {
+      "steps": {
+        "scan": "Scanner",
+        "verify": "Vérifier",
+        "codes": "Enregistrer les codes",
+        "done": "Terminé"
+      },
+      "startFailed": "Impossible de démarrer la configuration. Réessayez.",
+      "passwordRequired": "Saisissez votre mot de passe.",
+      "codeRequired": "Saisissez le code à 6 chiffres de votre application.",
+      "verifyFailed": "Impossible de vérifier ce code. Réessayez.",
+      "title": "Activer l’authentification à deux facteurs",
+      "description": "La connexion demandera un code généré par une application d’authentification, comme Google Authenticator, 1Password ou Authy.",
+      "progress": "Progression de la configuration à deux facteurs",
+      "preparing": "Préparation de votre clé…",
+      "scan": "Scannez ce code QR avec votre application d’authentification. Sur le même téléphone ? Utilisez plutôt la clé ci-dessous.",
+      "qrLabel": "Code QR pour TaskMan, compte {{account}}",
+      "qrFailed": "Impossible d’afficher le code QR. Utilisez plutôt la clé ci-dessous.",
+      "setupKey": "Clé de configuration (à saisir manuellement)",
+      "keyCopied": "Clé de configuration copiée dans le presse-papiers",
+      "codeLabel": "Code à 6 chiffres de votre application",
+      "passwordLabel": "Votre mot de passe",
+      "passwordHint": "Nous le redemandons pour vérifier que c’est bien vous.",
+      "saved": "J’ai enregistré ces codes de récupération",
+      "doneTitle": "L’authentification à deux facteurs est activée",
+      "doneDescription": "À votre prochaine connexion, TaskMan demandera un code généré par votre application. Vos codes de récupération fonctionnent si vous perdez votre téléphone.",
+      "next": "Suivant",
+      "back": "Retour",
+      "verifying": "Vérification…",
+      "turnOn": "Activer",
+      "continue": "Continuer",
+      "done": "Terminer"
+    },
+    "action": {
+      "disable": {
+        "title": "Désactiver l’authentification à deux facteurs",
+        "description": "Confirmez avec votre mot de passe et un code. Votre compte ne sera plus protégé que par votre mot de passe.",
+        "submit": "Désactiver",
+        "submitting": "Désactivation…"
+      },
+      "regenerate": {
+        "title": "Obtenir de nouveaux codes de récupération",
+        "description": "Vos anciens codes de récupération cesseront de fonctionner. Confirmez avec votre mot de passe et un code de votre application.",
+        "submit": "Créer de nouveaux codes",
+        "submitting": "Création…"
+      },
+      "recoveryRequired": "Saisissez le code de récupération à 8 caractères, par exemple abcd-efgh.",
+      "failed": "Cela n’a pas fonctionné. Vérifiez votre mot de passe et votre code, puis réessayez.",
+      "recoveryLabel": "Code de récupération",
+      "recoveryHint": "Chaque code de récupération ne fonctionne qu’une fois.",
+      "useApp": "Utiliser plutôt mon application d’authentification",
+      "useRecovery": "Utiliser plutôt un code de récupération"
+    },
+    "newCodesDialog": {
+      "title": "Vos nouveaux codes de récupération",
+      "description": "Les anciens codes ne fonctionnent plus."
+    },
+    "codes": {
+      "saveNow": "Enregistrez-les maintenant",
+      "onlyOnce": "Nous ne les affichons qu’une seule fois. Chaque code vous connecte une fois si vous perdez votre téléphone.",
+      "list": "Codes de récupération",
+      "copy": "Copier les codes",
+      "download": "Télécharger .txt",
+      "copiedStatus": "Codes de récupération copiés dans le presse-papiers"
+    },
+    "file": {
+      "title": "Codes de récupération TaskMan",
+      "account": "Compte : {{account}}",
+      "created": "Créé le : {{date}}",
+      "hint": "Chaque code ne fonctionne qu’une fois. Conservez ce fichier en lieu sûr, loin de votre téléphone."
+    }
+  },
+  "devices": {
+    "title": "Appareils connectés",
+    "signOutOthers": "Déconnecter tous les autres appareils",
+    "loadFailed": "Impossible de charger les appareils",
+    "emptyTitle": "Aucun appareil actif",
+    "emptyDescription": "Les appareils apparaissent ici tant que leur connexion est valide.",
+    "footer": "Vous restez connecté pendant 7 jours sur chaque appareil, sauf si vous le déconnectez ici. Changer votre mot de passe déconnecte les autres appareils.",
+    "confirmOthersTitle": "Déconnecter tous les autres appareils ?",
+    "confirmOthersDescription": "Tous les appareils sauf celui-ci seront déconnectés et devront se reconnecter.",
+    "confirmOthersConfirm": "Déconnecter les autres appareils",
+    "confirmCurrentTitle": "Déconnecter cet appareil ?",
+    "confirmCurrentDescription": "Cela déconnecte ce navigateur. Vous serez redirigé vers la page de connexion.",
+    "signOut": "Déconnecter",
+    "signingOut": "Déconnexion…",
+    "signedOutDevice": "{{device}} déconnecté.",
+    "signedOutOthers_one": "{{count}} autre appareil déconnecté.",
+    "signedOutOthers_many": "{{count}} d’autres appareils déconnectés.",
+    "signedOutOthers_other": "{{count}} autres appareils déconnectés.",
+    "signOutFailed": "Impossible de déconnecter cet appareil. Réessayez.",
+    "signOutOthersFailed": "Impossible de déconnecter vos autres appareils. Réessayez.",
+    "thisDevice": "Cet appareil",
+    "ipUnknown": "IP inconnue",
+    "signedIn": "Connecté {{when}}",
+    "unknownTime": "à une heure inconnue",
+    "signOutDevice": "Déconnecter {{device}}",
+    "browserOnOs": "{{browser}} sur {{os}}",
+    "unknownDevice": "Appareil inconnu",
+    "relative": {
+      "justNow": "à l’instant",
+      "minutes_one": "il y a {{count}} min",
+      "minutes_many": "il y a {{count}} min",
+      "minutes_other": "il y a {{count}} min",
+      "hours_one": "il y a {{count}} h",
+      "hours_many": "il y a {{count}} h",
+      "hours_other": "il y a {{count}} h",
+      "days_one": "il y a {{count}} jour",
+      "days_many": "il y a {{count}} de jours",
+      "days_other": "il y a {{count}} jours"
+    }
+  },
+  "connected": {
+    "title": "Méthodes de connexion associées",
+    "none": "Aucun fournisseur n’est associé. Connectez-vous une fois avec Google ou Microsoft en utilisant l’adresse e-mail de ce compte : il sera associé automatiquement, à condition que le fournisseur ait vérifié cette adresse.",
+    "emailNotShared": "E-mail non communiqué",
+    "remove": "Retirer",
+    "removing": "Retrait…",
+    "removeLabel": "Retirer la connexion {{provider}}",
+    "removed": "Connexion {{provider}} retirée.",
+    "removeFailed": "Impossible de retirer cette méthode de connexion. Réessayez.",
+    "onlyWay": "C’est le seul moyen de vous connecter à votre compte. Pour le retirer, définissez d’abord un mot de passe avec « Mot de passe oublié » sur la page de connexion.",
+    "confirmTitle": "Retirer la connexion {{provider}} ?",
+    "confirmTitleGeneric": "Retirer la méthode de connexion ?",
+    "confirmDescription": "Vous ne pourrez plus vous connecter avec elle. Votre compte et vos données restent inchangés."
+  },
+  "notifications": {
+    "saved": "Préférences de notification enregistrées",
+    "saveFailed": "Impossible d’enregistrer les préférences",
+    "options": {
+      "email": {
+        "label": "M’envoyer des e-mails",
+        "desc": "L’interrupteur principal des e-mails. Désactivé, vous ne recevez aucun e-mail, seulement les notifications dans l’application."
+      },
+      "taskAssigned": {
+        "label": "Assignations, mentions et commentaires",
+        "desc": "M’envoyer un e-mail quand quelqu’un m’assigne une tâche, me mentionne dans un commentaire ou commente une tâche dont je suis responsable ou à laquelle je suis assigné."
+      },
+      "taskCompleted": {
+        "label": "Tâches terminées",
+        "desc": "M’envoyer un e-mail quand une tâche dont je suis responsable ou à laquelle je suis assigné est marquée comme terminée par quelqu’un d’autre."
+      },
+      "weeklyDigest": {
+        "label": "Résumé hebdomadaire",
+        "desc": "Pas encore envoyé. Votre choix est enregistré pour le lancement du résumé hebdomadaire."
+      }
+    },
+    "inApp": {
+      "title": "Dans l’application",
+      "description": "Toujours activées. La cloche de la barre supérieure et votre <b>Boîte de réception</b> affichent les assignations, les tâches terminées, les mentions et les commentaires sur vos tâches. Elles sont conservées 90 jours, et vous n’êtes jamais notifié de vos propres actions."
+    },
+    "email": {
+      "title": "E-mail",
+      "description": "Choisissez lesquelles de ces notifications arrivent aussi dans votre boîte mail.",
+      "off": "Les e-mails sont désactivés : rien de ce qui suit n’est envoyé."
+    },
+    "push": {
+      "title": "Notifications push",
+      "description": "Notifications contextuelles de votre navigateur ou de votre téléphone, pour les mêmes événements que la cloche.",
+      "label": "M’envoyer des notifications push",
+      "desc": "S’applique à tous les appareils où le push est activé. Désactivez-le pour mettre le push en pause sans retirer vos appareils. Enregistré avec les autres préférences."
+    },
+    "save": "Enregistrer les préférences"
+  },
+  "push": {
+    "title": "Notifications push sur cet appareil",
+    "description": "Recevez une notification système pour les assignations, les mentions et les commentaires, même quand TaskMan est fermé. Chaque appareil et chaque navigateur se configure séparément.",
+    "checking": "Vérification de cet appareil…",
+    "unsupportedTitle": "Indisponible dans ce navigateur",
+    "unsupported": "Les notifications push ne sont pas prises en charge ici. Sur iPhone et iPad, elles fonctionnent une fois TaskMan ajouté à l’écran d’accueil (Partager, puis Sur l’écran d’accueil) et ouvert depuis celui-ci.",
+    "unavailableTitle": "Non configuré sur ce serveur",
+    "unavailable": "Les notifications push sont désactivées sur ce serveur TaskMan. Les notifications dans l’application et les e-mails fonctionnent toujours.",
+    "deniedTitle": "Les notifications sont bloquées",
+    "denied": "Votre navigateur bloque les notifications de TaskMan. Pour les activer, autorisez les notifications pour ce site dans les paramètres de votre navigateur (généralement l’icône à côté de la barre d’adresse), puis rechargez cette page.",
+    "off": "Le push est désactivé sur cet appareil.",
+    "on": "Le push est activé sur cet appareil.",
+    "turningOff": "Désactivation…",
+    "turningOn": "Activation…",
+    "turnOff": "Désactiver sur cet appareil",
+    "turnOn": "Activer sur cet appareil",
+    "errors": {
+      "notReady": "Le service en arrière-plan n’est pas encore prêt. Rechargez la page et réessayez.",
+      "denied": "L’autorisation n’a pas été accordée. Choisissez Autoriser lorsque votre navigateur vous le demande.",
+      "turnOn": "Impossible d’activer les notifications push. Réessayez.",
+      "turnOff": "Impossible de désactiver les notifications push. Réessayez."
+    }
+  },
+  "github": {
+    "title": "Intégrations",
+    "intro": "Connectez GitHub pour voir les pull requests, les commits et les branches sur chaque tâche. Mentionnez une clé de tâche comme <c>WEB-12</c> dans un nom de branche, un message de commit ou une pull request.",
+    "connected": "Connecté. GitHub envoie les événements à l’URL ci-dessous.",
+    "notConnected": "Non connecté.",
+    "loading": "Chargement de l’intégration…",
+    "loadFailed": "Impossible de charger l’intégration GitHub.",
+    "enableHint": "L’activer crée une URL de webhook privée et un secret pour cet espace de travail. Rien n’est lu dans vos dépôts.",
+    "enable": "Activer l’intégration GitHub",
+    "enabling": "Activation…",
+    "enableFailed": "Impossible d’activer l’intégration.",
+    "payloadUrl": "URL de la charge utile (Payload URL)",
+    "secret": "Secret",
+    "show": "Afficher",
+    "hide": "Masquer",
+    "copyFailed": "Impossible de copier automatiquement. Sélectionnez le texte et copiez-le manuellement.",
+    "copiedStatus": "{{label}} copié dans le presse-papiers",
+    "regenerate": "Régénérer le secret",
+    "regenerated": "Secret régénéré. Mettez-le à jour dans GitHub.",
+    "regenerateFailed": "Impossible de régénérer le secret.",
+    "saveFailed": "Impossible d’enregistrer ce paramètre.",
+    "autoLabel": "Déplacer les tâches automatiquement",
+    "autoDescription": "Une pull request qui mentionne une tâche la passe à En cours à l’ouverture et à Terminée à la fusion. Les tâches terminées ne sont jamais rouvertes.",
+    "setUp": "Configurer le webhook",
+    "steps": {
+      "open": "Dans GitHub, ouvrez votre dépôt, puis <b>Settings</b>, <b>Webhooks</b>, <b>Add webhook</b>.",
+      "url": "Collez l’<b>URL de la charge utile (Payload URL)</b> ci-dessus.",
+      "type": "Réglez <b>Content type</b> sur <c>application/json</c>.",
+      "secret": "Collez le <b>Secret</b> ci-dessus.",
+      "events": "Sous <b>Which events</b>, choisissez <b>Let me select individual events</b> et cochez <b>Pull requests</b>, <b>Pushes</b> et <b>Branch or tag creation</b>.",
+      "save": "Enregistrez. GitHub envoie un ping ; une coche verte à côté de la livraison indique que tout fonctionne."
+    },
+    "turnOff": "Désactiver l’intégration GitHub",
+    "disabled": "Intégration GitHub désactivée.",
+    "disableFailed": "Impossible de désactiver l’intégration.",
+    "confirmRegenerate": {
+      "title": "Régénérer le secret du webhook ?",
+      "description": "Le secret actuel cesse de fonctionner immédiatement. Collez le nouveau secret dans le webhook GitHub, sinon les livraisons seront rejetées."
+    },
+    "confirmDisable": {
+      "title": "Désactiver l’intégration GitHub ?",
+      "description": "L’URL du webhook et le secret sont supprimés et les livraisons GitHub sont rejetées. Les liens déjà présents sur les tâches sont conservés."
+    }
+  },
+  "workspace": {
+    "title": "Paramètres de l’espace de travail",
+    "description": "Gérez le nom, le code d’invitation et les rôles de cet espace de travail.",
+    "links": {
+      "audit": {
+        "title": "Journal d’audit",
+        "description": "Voyez qui a modifié quoi, quand et d’où. Exportez-le en CSV."
+      },
+      "workflow": {
+        "title": "Workflow",
+        "description": "Étapes du tableau comme « En revue » ou « QA », et leurs limites de travail en cours (WIP)."
+      },
+      "automations": {
+        "title": "Automatisations",
+        "description": "Des règles qui modifient les tâches à votre place quand quelque chose se produit."
+      },
+      "fields": {
+        "title": "Champs personnalisés",
+        "description": "Informations supplémentaires sur les tâches, comme un client, un budget ou un lien."
+      },
+      "import": {
+        "title": "Importer",
+        "description": "Importez des tâches depuis Trello, Jira ou un fichier CSV."
+      },
+      "developers": {
+        "title": "Développeurs",
+        "description": "Jetons d’API pour vos scripts et webhooks signés pour vos services."
+      }
+    },
+    "loading": "Chargement des paramètres",
+    "notFound": "Espace de travail introuvable.",
+    "readOnly": "Vous n’avez pas l’autorisation de modifier ces paramètres. Cette vue est en lecture seule.",
+    "general": "Général",
+    "name": "Nom de l’espace de travail",
+    "nameHint": "Le slug d’URL <c>{{slug}}</c> ne change pas quand vous renommez l’espace.",
+    "nameUpdated": "Nom de l’espace de travail mis à jour.",
+    "updateFailed": "Impossible de mettre à jour l’espace de travail.",
+    "inviteCode": "Code d’invitation",
+    "inviteHint": "Vos collègues rejoignent l’espace avec ce code. Le régénérer invalide l’ancien code et les anciens liens.",
+    "copyCode": "Copier le code",
+    "copyFailed": "Impossible de copier automatiquement. Sélectionnez le code et copiez-le manuellement.",
+    "codeCopiedStatus": "Code d’invitation copié dans le presse-papiers",
+    "regenerate": "Régénérer le code",
+    "regenerating": "Régénération…",
+    "codeRegenerated": "Code d’invitation régénéré. L’ancien code ne fonctionne plus.",
+    "regenerateFailed": "Impossible de régénérer le code d’invitation.",
+    "confirmRegenerate": {
+      "title": "Régénérer le code d’invitation ?",
+      "description": "Le code actuel et tous les liens d’invitation partagés cessent de fonctionner immédiatement. Les membres actuels conservent leur accès."
+    },
+    "system": "Système",
+    "noDescription": "Aucune description",
+    "permissionCount_one": "{{count}} autorisation",
+    "permissionCount_many": "{{count}} d’autorisations",
+    "permissionCount_other": "{{count}} autorisations",
+    "editRole": "Modifier le rôle {{name}}",
+    "deleteRole": "Supprimer le rôle {{name}}",
+    "rolesLoadFailed": "Impossible de charger les rôles.",
+    "roleDeleted": "Rôle « {{name}} » supprimé.",
+    "roleDeleteFailed": "Impossible de supprimer le rôle.",
+    "confirmDeleteRole": {
+      "title": "Supprimer le rôle « {{name}} » ?",
+      "description": "Les membres qui ont ce rôle peuvent perdre l’accès. Cette action est irréversible.",
+      "confirm": "Supprimer le rôle"
+    },
+    "roles": {
+      "title": "Rôles et autorisations",
+      "description": "Définissez des rôles personnalisés et leurs autorisations pour cet espace de travail.",
+      "new": "Nouveau rôle",
+      "search": "Rechercher des rôles",
+      "view": "Affichage des rôles",
+      "cards": "Cartes",
+      "matrix": "Matrice",
+      "cardsRegion": "Cartes des rôles",
+      "none": "Aucun rôle pour le moment.",
+      "noMatch": "Aucun rôle ne correspond à « {{query}} ».",
+      "noCatalog": "La liste des autorisations n’est pas disponible pour le moment, la matrice ne peut donc pas être affichée. Passez à l’affichage en cartes ou rechargez la page.",
+      "systemRoles": "Rôles système",
+      "customRoles": "Rôles personnalisés",
+      "noCustomMatch": "Aucun rôle personnalisé ne correspond à « {{query}} ».",
+      "noCustom": "Aucun rôle personnalisé",
+      "noCustomHint": "Créez des rôles adaptés à votre équipe, comme « Responsable marketing », « Prestataire » ou « Auditeur ».",
+      "createFirst": "Créer votre premier rôle",
+      "system": {
+        "ProductOwner": {
+          "name": "Product Owner",
+          "description": "Contrôle total du produit, du backlog, de l’équipe et des paramètres."
+        },
+        "ScrumMaster": {
+          "name": "Scrum Master",
+          "description": "Facilite le travail de l’équipe et lève les obstacles."
+        },
+        "Developer": {
+          "name": "Développeur",
+          "description": "Réalise et met à jour les tâches et les projets qui lui sont assignés."
+        },
+        "TeamMember": {
+          "name": "Membre de l’équipe",
+          "description": "Travaille sur les tâches qui lui sont assignées."
+        },
+        "Viewer": {
+          "name": "Lecteur",
+          "description": "Accès en lecture seule à l’espace de travail."
+        }
+      }
+    },
+    "security": {
+      "title": "Sécurité",
+      "ownFirstTitle": "Activez d’abord l’authentification à deux facteurs sur votre propre compte",
+      "ownFirst": "Sinon, vous seriez exclu de cet espace de travail.",
+      "setItUp": "Configurez-la dans les paramètres de sécurité",
+      "requireLabel": "Exiger l’authentification à deux facteurs",
+      "requireDescription": "Les membres sans authentification à deux facteurs ne peuvent pas ouvrir cet espace de travail tant qu’ils ne l’ont pas activée. Ils peuvent le faire dans leurs propres paramètres de sécurité, et ne peuvent pas la désactiver tant que cette option est active.",
+      "ownersOnly": "Seuls les propriétaires et les administrateurs peuvent modifier ce paramètre.",
+      "changeFailed": "Impossible de modifier ce paramètre. Réessayez."
+    }
+  },
+  "roles": {
+    "system": {
+      "ProductOwner": {
+        "name": "Product Owner",
+        "description": "Contrôle total du produit, du backlog, de l’équipe et des paramètres."
+      },
+      "ScrumMaster": {
+        "name": "Scrum Master",
+        "description": "Facilite le travail de l’équipe et lève les obstacles."
+      },
+      "Developer": {
+        "name": "Développeur",
+        "description": "Réalise et met à jour les tâches et les projets qui lui sont assignés."
+      },
+      "TeamMember": {
+        "name": "Membre de l’équipe",
+        "description": "Travaille sur les tâches qui lui sont assignées."
+      },
+      "Viewer": {
+        "name": "Lecteur",
+        "description": "Accès en lecture seule à l’espace de travail."
+      }
+    }
+  },
+  "permissionGroups": {
+    "Projects": "Projets",
+    "Tasks": "Tâches",
+    "Users": "Utilisateurs",
+    "Reports": "Rapports",
+    "Settings": "Paramètres"
+  },
+  "permissions": {
+    "projects_read": "Voir les projets",
+    "projects_write": "Créer et modifier des projets",
+    "projects_delete": "Supprimer des projets",
+    "tasks_read": "Voir les tâches",
+    "tasks_write": "Créer et modifier des tâches",
+    "tasks_delete": "Supprimer des tâches",
+    "users_read": "Voir les membres de l’équipe",
+    "users_write": "Inviter et retirer des membres",
+    "reports_read": "Voir les analyses",
+    "settings_manage": "Modifier les paramètres de l’espace de travail"
+  },
+  "matrix": {
+    "label": "Matrice des autorisations",
+    "caption": "Autorisations accordées à chaque rôle. Les colonnes sont les rôles, les lignes sont les autorisations regroupées par domaine.",
+    "permission": "Autorisation",
+    "members_one": "{{count}} membre",
+    "members_many": "{{count}} de membres",
+    "members_other": "{{count}} membres",
+    "allowed": "Autorisé",
+    "notAllowed": "Non autorisé"
+  },
+  "roleEditor": {
+    "nameRequired": "Donnez un nom au rôle.",
+    "permissionsFailed": "Impossible de charger la liste des autorisations. Fermez cette boîte de dialogue et réessayez.",
+    "saveFailed": "Impossible d’enregistrer le rôle. Réessayez.",
+    "editTitle": "Modifier le rôle",
+    "createTitle": "Créer un rôle personnalisé",
+    "editDescription": "Mettez à jour le nom et les autorisations de ce rôle.",
+    "createDescription": "Définissez un nouveau rôle pour votre espace de travail.",
+    "create": "Créer le rôle",
+    "name": "Nom du rôle",
+    "namePlaceholder": "p. ex. Responsable marketing, Prestataire, Auditeur",
+    "descriptionLabel": "Description",
+    "descriptionHint": "Facultatif. Affichée lors de l’invitation de personnes.",
+    "permissions": "Autorisations",
+    "loadingPermissions": "Chargement des autorisations…",
+    "deselectAll": "Tout désélectionner",
+    "selectAll": "Tout sélectionner",
+    "groupPermissions": "autorisations : {{group}}",
+    "selected_one": "{{count}} autorisation sélectionnée",
+    "selected_many": "{{count}} d’autorisations sélectionnées",
+    "selected_other": "{{count}} autorisations sélectionnées"
+  },
+  "team": {
+    "title": "Équipe",
+    "description": "Gérez qui a accès à cet espace de travail et avec quels rôles.",
+    "invite": "Inviter un membre",
+    "members": "Membres",
+    "membersList": "Liste des membres",
+    "loadingMembers": "Chargement des membres",
+    "loadFailed": "Impossible de charger l’équipe. Actualisez la page pour réessayer.",
+    "noRole": "Aucun rôle",
+    "changeRole": "Changer de rôle",
+    "changeRoleFor": "Changer le rôle de {{name}}, actuellement {{role}}",
+    "changeRoleFailed": "Impossible de changer le rôle. Réessayez.",
+    "emptyTitle": "Aucun membre pour le moment",
+    "emptyManage": "Invitez votre premier collègue pour commencer.",
+    "emptyView": "Aucun membre de l’équipe à afficher.",
+    "you": "Vous",
+    "owner": "Propriétaire",
+    "removeMemberLabel": "Retirer {{name}} de cet espace de travail",
+    "pendingInvitations": "Invitations en attente",
+    "invitationsList": "Liste des invitations en attente",
+    "invitationMeta": "En tant que {{role}} · Expire le {{date}}",
+    "cancelInvitationLabel": "Annuler l’invitation de {{email}}",
+    "removeFailed": "Impossible de retirer le membre. Réessayez.",
+    "cancelFailed": "Impossible d’annuler l’invitation. Réessayez.",
+    "confirmRemove": {
+      "title": "Retirer ce membre ?",
+      "description": "{{name}} perd immédiatement l’accès à cet espace de travail. Vous pourrez l’inviter à nouveau plus tard.",
+      "confirm": "Retirer le membre"
+    },
+    "confirmCancel": {
+      "title": "Annuler cette invitation ?",
+      "description": "L’invitation envoyée à {{email}} cessera de fonctionner.",
+      "confirm": "Annuler l’invitation"
+    }
+  },
+  "invite": {
+    "title": "Inviter un membre",
+    "description": "Envoyez une invitation pour rejoindre cet espace de travail.",
+    "submit": "Envoyer l’invitation",
+    "sending": "Envoi…",
+    "sent": "Invitation envoyée.",
+    "email": "Adresse e-mail",
+    "emailPlaceholder": "collegue@entreprise.com",
+    "role": "Rôle",
+    "rolesFailed": "Impossible de charger les rôles. Fermez cette boîte de dialogue et réessayez.",
+    "sendFailed": "Impossible d’envoyer l’invitation. Réessayez."
+  },
+  "createWorkspace": {
+    "title": "Créer un espace de travail",
+    "description": "Les espaces de travail sont des lieux partagés où votre équipe collabore.",
+    "submit": "Créer l’espace de travail",
+    "creating": "Création…",
+    "hint": "Un slug adapté aux URL est généré automatiquement.",
+    "placeholder": "p. ex. Acme, Équipe marketing, Personnel",
+    "nameRequired": "Donnez un nom à l’espace de travail.",
+    "failed": "Impossible de créer l’espace de travail. Réessayez."
+  },
+  "audit": {
+    "title": "Journal d’audit",
+    "description_one": "Chaque modification de cet espace de travail : qui a fait quoi, quand et d’où. Les entrées sont conservées {{count}} jour.",
+    "description_many": "Chaque modification de cet espace de travail : qui a fait quoi, quand et d’où. Les entrées sont conservées {{count}} de jours.",
+    "description_other": "Chaque modification de cet espace de travail : qui a fait quoi, quand et d’où. Les entrées sont conservées {{count}} jours.",
+    "restrictedTitle": "Seules les personnes qui gèrent les paramètres peuvent voir le journal d’audit",
+    "restrictedDescription": "Demandez à un propriétaire ou à un administrateur de cet espace de travail si vous avez besoin de consulter le journal d’audit.",
+    "exportCsv": "Exporter en CSV",
+    "exporting": "Exportation…",
+    "exported": "Journal d’audit exporté",
+    "exportFailed": "Impossible d’exporter le journal d’audit.",
+    "exportHint": "L’export inclut les entrées qui correspondent à ces filtres.",
+    "loading": "Chargement du journal d’audit",
+    "loadFailed": "Impossible de charger le journal d’audit",
+    "loadFailedNext": "Vérifiez votre connexion et réessayez.",
+    "noMatchTitle": "Aucune entrée ne correspond à ces filtres",
+    "noMatchDescription": "Essayez un autre domaine ou un autre auteur, ou effacez les filtres pour tout voir.",
+    "emptyTitle": "Aucune entrée pour le moment",
+    "emptyDescription": "Les modifications des tâches, projets, sprints, membres et paramètres apparaîtront ici.",
+    "clearFilters": "Effacer les filtres",
+    "filters": {
+      "all": "Tout",
+      "everyone": "Tout le monde",
+      "formerMember": "Ancien membre",
+      "byArea": "Filtrer par domaine"
+    },
+    "table": {
+      "entries": "Entrées du journal d’audit",
+      "caption": "Journal d’audit, des plus récentes aux plus anciennes. Sélectionnez une ligne pour voir les détails.",
+      "time": "Heure",
+      "ip": "IP",
+      "openDetails": "Ouvrir les détails : {{description}}"
+    },
+    "pagination": {
+      "label": "Pages du journal d’audit",
+      "showing": "Entrées affichées {{range}}",
+      "none": "Aucune entrée sur cette page",
+      "newer": "Plus récentes",
+      "older": "Plus anciennes"
+    },
+    "sheet": {
+      "when": "Quand",
+      "actor": "Auteur",
+      "action": "Action",
+      "area": "Domaine",
+      "subject": "Objet",
+      "ip": "Adresse IP",
+      "device": "Appareil",
+      "notRecorded": "non enregistré",
+      "changes": "Modifications",
+      "noChanges": "Cette action n’a modifié aucun champ suivi.",
+      "from": "De",
+      "to": "À",
+      "identifiers": "Identifiants",
+      "entry": "Entrée",
+      "task": "Tâche",
+      "project": "Projet",
+      "sprint": "Sprint"
+    },
+    "today": "Aujourd’hui",
+    "yesterday": "Hier",
+    "range": "du {{from}} au {{to}}",
+    "openTask": "Ouvrir la tâche",
+    "openProject": "Ouvrir le projet",
+    "openSprintProject": "Ouvrir le projet du sprint",
+    "removedUser": "Un utilisateur supprimé",
+    "arrow": "→",
+    "quote": "« {{text}} »",
+    "areas": {
+      "task": "Tâches",
+      "project": "Projets",
+      "sprint": "Sprints",
+      "member": "Membres",
+      "invitation": "Invitations",
+      "workspace": "Espace de travail",
+      "audit": "Exports",
+      "automation": "Automatisations",
+      "workflow": "Workflow",
+      "webhook": "Webhooks",
+      "token": "Jetons d’API",
+      "time": "Temps",
+      "release": "Versions",
+      "field": "Champs personnalisés",
+      "import": "Imports",
+      "page": "Pages du wiki",
+      "role": "Rôles",
+      "integration": "Intégrations"
+    },
+    "fields": {
+      "startDate": "date de début",
+      "deadline": "échéance",
+      "storyPoints": "points d’effort",
+      "completedPoints": "points terminés",
+      "movedTasks": "tâches déplacées",
+      "status": "statut",
+      "priority": "priorité",
+      "title": "titre",
+      "description": "description",
+      "assignees": "assignés",
+      "labels": "étiquettes",
+      "sprint": "sprint",
+      "project": "projet",
+      "parent": "parent",
+      "role": "rôle",
+      "name": "nom",
+      "file": "fichier",
+      "type": "type",
+      "epic": "epic"
+    },
+    "change": {
+      "edited": "{{label}} : modifiée",
+      "changed": "{{label}} : modifié",
+      "none": "aucun",
+      "sprint": "sprint",
+      "backlog": "backlog",
+      "separator": " ; ",
+      "listSeparator": ", ",
+      "more": "+{{count}} de plus"
+    },
+    "sentence": {
+      "aTask": "une tâche",
+      "aFile": "un fichier",
+      "aSprint": "un sprint",
+      "aMember": "un membre",
+      "someone": "quelqu’un",
+      "points_one": "{{count}} point",
+      "points_many": "{{count}} de points",
+      "points_other": "{{count}} points",
+      "taskUpdated": "{{name}} a mis à jour {{subject}}",
+      "taskFieldsUpdated": "{{name}} a mis à jour {{fields}} de {{subject}}",
+      "descriptionEdited": "{{name}} a modifié la description de {{subject}}",
+      "movedToSprint": "{{name}} a déplacé {{subject}} vers un autre sprint",
+      "movedToBacklog": "{{name}} a déplacé {{subject}} vers le backlog",
+      "fieldChanged": "{{name}} a changé {{field}} de {{subject}} de {{from}} à {{to}}",
+      "fieldSet": "{{name}} a défini {{field}} de {{subject}} sur {{to}}",
+      "fieldCleared": "{{name}} a effacé {{field}} de {{subject}}",
+      "taskCreated": "{{name}} a créé la tâche {{subject}}",
+      "subtaskCreated": "{{name}} a créé la sous-tâche {{subject}}",
+      "taskDeleted": "{{name}} a supprimé la tâche {{subject}}",
+      "taskCommented": "{{name}} a commenté {{task}}",
+      "attachmentAdded": "{{name}} a joint {{file}} à {{task}}",
+      "attachmentRemoved": "{{name}} a retiré {{file}} de {{task}}",
+      "projectCreated": "{{name}} a créé le projet {{subject}}",
+      "projectUpdated": "{{name}} a mis à jour le projet {{subject}}",
+      "projectDeleted": "{{name}} a supprimé le projet {{subject}}",
+      "sprintCreatedIn": "{{name}} a créé {{sprint}} dans {{project}}",
+      "sprintCreated": "{{name}} a créé {{sprint}}",
+      "sprintStarted": "{{name}} a démarré {{sprint}}",
+      "sprintCompleted": "{{name}} a terminé {{sprint}}",
+      "sprintCompletedPoints": "{{name}} a terminé {{sprint}} ({{points}})",
+      "sprintUpdated": "{{name}} a mis à jour {{sprint}}",
+      "sprintDeleted": "{{name}} a supprimé {{sprint}}",
+      "roleChangedFromTo": "{{name}} a changé le rôle de {{who}} de {{from}} à {{to}}",
+      "roleChangedTo": "{{name}} a changé le rôle de {{who}} en {{to}}",
+      "roleChanged": "{{name}} a changé le rôle de {{who}}",
+      "memberRemoved": "{{name}} a retiré {{who}} de l’espace de travail",
+      "memberJoined": "{{who}} a rejoint l’espace de travail",
+      "invitedAs": "{{name}} a invité {{who}} en tant que {{role}}",
+      "invited": "{{name}} a invité {{who}}",
+      "invitationCancelled": "{{name}} a annulé l’invitation de {{who}}",
+      "workspaceRenamed": "{{name}} a renommé l’espace de travail de {{from}} en {{to}}",
+      "workspaceUpdated": "{{name}} a mis à jour les paramètres de l’espace de travail",
+      "inviteCodeRegenerated": "{{name}} a régénéré le code d’invitation",
+      "auditExported": "{{name}} a exporté le journal d’audit",
+      "auditExportedWith": "{{name}} a exporté le journal d’audit ({{summary}})"
+    },
+    "actions": {
+      "task_created": "Tâche créée",
+      "task_updated": "Tâche mise à jour",
+      "task_deleted": "Tâche supprimée",
+      "task_commented": "Commentaire ajouté",
+      "task_attachment_added": "Fichier ajouté",
+      "task_attachment_removed": "Fichier retiré",
+      "project_created": "Projet créé",
+      "project_updated": "Projet mis à jour",
+      "project_deleted": "Projet supprimé",
+      "sprint_created": "Sprint créé",
+      "sprint_updated": "Sprint mis à jour",
+      "sprint_started": "Sprint démarré",
+      "sprint_completed": "Sprint terminé",
+      "sprint_deleted": "Sprint supprimé",
+      "member_role_changed": "Rôle modifié",
+      "member_removed": "Membre retiré",
+      "member_joined": "Membre arrivé",
+      "invitation_sent": "Invitation envoyée",
+      "invitation_cancelled": "Invitation annulée",
+      "workspace_updated": "Espace de travail mis à jour",
+      "workspace_invite_code_regenerated": "Code d’invitation réinitialisé",
+      "audit_exported": "Journal exporté",
+      "member_left": "Membre parti",
+      "role_created": "Rôle créé",
+      "role_updated": "Rôle mis à jour",
+      "role_deleted": "Rôle supprimé",
+      "task_comment_deleted": "Commentaire supprimé",
+      "integration_updated": "Intégration mise à jour",
+      "task_duplicated": "Tâche dupliquée",
+      "automation_created": "Automatisation créée",
+      "automation_updated": "Automatisation mise à jour",
+      "automation_deleted": "Automatisation supprimée",
+      "automation_ran": "Automatisation exécutée",
+      "workflow_updated": "Workflow mis à jour",
+      "webhook_created": "Webhook ajouté",
+      "webhook_updated": "Webhook mis à jour",
+      "webhook_deleted": "Webhook retiré",
+      "token_created": "Jeton d’API créé",
+      "token_revoked": "Jeton d’API révoqué",
+      "time_logged": "Temps enregistré",
+      "time_deleted": "Entrée de temps retirée",
+      "release_created": "Version créée",
+      "release_updated": "Version mise à jour",
+      "release_deleted": "Version supprimée",
+      "release_released": "Version publiée",
+      "field_created": "Champ personnalisé ajouté",
+      "field_updated": "Champ personnalisé mis à jour",
+      "field_deleted": "Champ personnalisé retiré",
+      "import_completed": "Import terminé",
+      "page_created": "Page créée",
+      "page_updated": "Page mise à jour",
+      "page_deleted": "Page supprimée"
+    }
+  }
+}

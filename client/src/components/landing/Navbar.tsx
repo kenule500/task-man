@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { getLandingAuth } from './landingAuth';
 
 const NAV_LINKS = [
-  { href: '#features', label: 'Features' },
-  { href: '#teams', label: 'Teams and roles' },
-];
+  { href: '#features', key: 'features' },
+  { href: '#teams', key: 'teams' },
+] as const;
 
 const PRIMARY_LINK =
   'rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
 const Navbar = () => {
+  const { t } = useTranslation('landing');
   const { isLoggedIn, appUrl } = getLandingAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -29,30 +32,31 @@ const Navbar = () => {
     <header className="fixed top-0 z-50 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-3 focus:top-3 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary focus:shadow-lg"
       >
-        Skip to content
+        {t('nav.skip')}
       </a>
-      <nav aria-label="Main" className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 md:px-8 md:py-4">
+      <nav aria-label={t('nav.main')} className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 md:px-8 md:py-4">
         <Link to="/" className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <span aria-hidden className="flex size-8 items-center justify-center rounded-lg bg-primary text-sm text-white">T</span>
           TaskMan
         </Link>
 
         <ul className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
-          {NAV_LINKS.map(({ href, label }) => (
+          {NAV_LINKS.map(({ href, key }) => (
             <li key={href}>
               <a href={href} className="rounded transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-                {label}
+                {t(`nav.${key}`)}
               </a>
             </li>
           ))}
         </ul>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          <LanguageSwitcher />
           {isLoggedIn ? (
             <Link to={appUrl} className={PRIMARY_LINK}>
-              Go to dashboard
+              {t('goToDashboard')}
             </Link>
           ) : (
             <>
@@ -60,16 +64,16 @@ const Navbar = () => {
                 to="/login"
                 className="hidden min-h-10 items-center rounded px-2 text-sm font-medium text-slate-700 transition-colors hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary sm:inline-flex"
               >
-                Sign in
+                {t('nav.signIn')}
               </Link>
               <Link to="/signup" className={PRIMARY_LINK}>
-                Get started
+                {t('nav.getStarted')}
               </Link>
             </>
           )}
           <button
             type="button"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen((open) => !open)}
@@ -83,14 +87,14 @@ const Navbar = () => {
       {menuOpen && (
         <div id="mobile-menu" className="border-t border-slate-100 bg-white px-4 pb-4 pt-2 md:hidden">
           <ul className="flex flex-col">
-            {NAV_LINKS.map(({ href, label }) => (
+            {NAV_LINKS.map(({ href, key }) => (
               <li key={href}>
                 <a
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  {label}
+                  {t(`nav.${key}`)}
                 </a>
               </li>
             ))}
@@ -100,7 +104,7 @@ const Navbar = () => {
                   to="/login"
                   className="flex min-h-12 items-center rounded-lg px-3 text-base font-medium text-slate-800 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary sm:hidden"
                 >
-                  Sign in
+                  {t('nav.signIn')}
                 </Link>
               </li>
             )}

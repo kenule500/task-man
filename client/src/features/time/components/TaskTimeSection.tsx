@@ -1,5 +1,6 @@
 import { useContext, useId, useState, type KeyboardEvent } from 'react';
 import { Play, Square, Timer, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Field, SectionHeader, UserAvatar, fieldMessageId, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ interface EstimateFieldProps {
 
 /** Estimate box: "2h 30m" on blur or Enter; empty clears it. */
 const EstimateField = ({ value, disabled, onCommit }: EstimateFieldProps) => {
+  const { t } = useTranslation('tasks');
   const id = useId();
   const [draft, setDraft] = useState(value ? formatDuration(value) : '');
   const [error, setError] = useState('');
@@ -46,7 +48,7 @@ const EstimateField = ({ value, disabled, onCommit }: EstimateFieldProps) => {
     const text = draft.trim();
     const minutes = text === '' ? null : parseDuration(text);
     if (text !== '' && (minutes === null || minutes > MAX_ESTIMATE_MINUTES)) {
-      setError('Enter a duration such as 2h 30m, 45m or 1:30.');
+      setError(t('time.estimateInvalid'));
       return;
     }
     setError('');
@@ -58,7 +60,7 @@ const EstimateField = ({ value, disabled, onCommit }: EstimateFieldProps) => {
       await onCommit(minutes);
       setDraft(minutes ? formatDuration(minutes) : '');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not save the estimate.'));
+      setError(getApiErrorMessage(err, t('time.estimateSaveError')));
     }
   };
 
@@ -76,7 +78,7 @@ const EstimateField = ({ value, disabled, onCommit }: EstimateFieldProps) => {
   };
 
   return (
-    <Field label="Estimate" htmlFor={id} error={error || undefined} hint={error || disabled ? undefined : 'For example 2h 30m. Leave empty for none.'} className="w-full sm:w-44">
+    <Field label={t('time.estimate')} htmlFor={id} error={error || undefined} hint={error || disabled ? undefined : t('time.estimateHint')} className="w-full sm:w-44">
       <Input
         id={id}
         value={draft}
@@ -96,13 +98,15 @@ const EstimateField = ({ value, disabled, onCommit }: EstimateFieldProps) => {
 
 const EntryRow = ({
   entry, canDelete, onDelete, deleting,
-}: { entry: TimeEntry; canDelete: boolean; onDelete: (entry: TimeEntry) => void; deleting: boolean }) => (
+}: { entry: TimeEntry; canDelete: boolean; onDelete: (entry: TimeEntry) => void; deleting: boolean }) => {
+  const { t } = useTranslation('tasks');
+  return (
   <li className="flex min-h-11 items-start gap-2.5 px-3 py-2">
     <UserAvatar name={entry.user.name} src={entry.user.avatarUrl || undefined} size="sm" className="mt-0.5 size-6 text-[10px]" />
     <div className="min-w-0 flex-1">
       <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-slate-900">
         <span className="font-medium tabular-nums">
-          {entry.running ? 'Running now' : formatDuration(entry.minutes)}
+          {entry.running ? t('time.runningNow') : formatDuration(entry.minutes)}
           {!entry.running && <span className="sr-only"> ({describeDuration(entry.minutes)})</span>}
         </span>
         <span className="truncate text-slate-600">{entry.user.name}</span>
@@ -117,19 +121,21 @@ const EntryRow = ({
         size="icon-sm"
         disabled={deleting}
         onClick={() => onDelete(entry)}
-        aria-label={`Delete ${entry.running ? 'running timer' : formatDuration(entry.minutes)} entry by ${entry.user.name}`}
+        aria-label={t('time.deleteEntry', { what: entry.running ? t('time.runningTimer') : formatDuration(entry.minutes), name: entry.user.name })}
         className="size-9 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-7"
       >
         <Trash2 className="size-4" aria-hidden />
       </Button>
     )}
   </li>
-);
+  );
+};
 
 /** Time section of the task dialog: estimate, logged vs estimate, timer, manual logging and the entries. */
 const TaskTimeSection = ({
   workspaceSlug, taskId, estimateMinutes, currentUserId, canWrite, canEditEstimate, onEstimateChange,
 }: TaskTimeSectionProps) => {
+  const { t } = useTranslation('tasks');
   const permissions = useContext(PermissionContext);
   const canManage = permissions?.can('settings:manage') ?? false;
   const { data, loading, error, retry, log, remove } = useTaskTime(workspaceSlug, taskId);
@@ -147,13 +153,13 @@ const TaskTimeSection = ({
     try {
       if (runningHere) {
         await stopTimer(workspaceSlug, taskId);
-        toast.success('Timer stopped and time logged');
+        toast.success(t('time.timerStopped'));
       } else {
         await startTimer(workspaceSlug, taskId);
-        toast.success(timer ? `Timer moved here from ${timer.task.key || timer.task.title}` : 'Timer started');
+        toast.success(timer ? t('time.timerMoved', { from: timer.task.key || timer.task.title }) : t('time.timerStarted'));
       }
     } catch (err) {
-      toast.error(getApiErrorMessage(err, runningHere ? 'Could not stop the timer.' : 'Could not start the timer.'));
+      toast.error(getApiErrorMessage(err, runningHere ? t('time.stopError') : t('time.startError')));
     } finally {
       setBusy(false);
     }
@@ -163,9 +169,9 @@ const TaskTimeSection = ({
     setDeletingId(entry._id);
     try {
       await remove(entry._id);
-      toast.success('Time entry deleted');
+      toast.success(t('time.entryDeleted'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not delete the entry.'));
+      toast.error(getApiErrorMessage(err, t('time.entryDeleteError')));
     } finally {
       setDeletingId(null);
     }
@@ -177,18 +183,18 @@ const TaskTimeSection = ({
   const elapsed = runningHere && timer ? now - new Date(timer.startedAt).getTime() : 0;
 
   return (
-    <section aria-label="Time">
-      <SectionHeader title="Time" icon={<Timer className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
+    <section aria-label={t('time.section')}>
+      <SectionHeader title={t('time.section')} icon={<Timer className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
 
       {error && !data && (
-        <Alert tone="error" title="We could not load the time entries" className="mb-2">
-          <Button type="button" variant="link" onClick={retry} className="h-auto p-0">Try again</Button>
+        <Alert tone="error" title={t('time.loadFailed')} className="mb-2">
+          <Button type="button" variant="link" onClick={retry} className="h-auto p-0">{t('actions.retry')}</Button>
         </Alert>
       )}
 
       {loading ? (
         <div role="status" aria-busy="true" className="space-y-2">
-          <span className="sr-only">Loading time entries</span>
+          <span className="sr-only">{t('time.loadingEntries')}</span>
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-4 w-2/3" />
         </div>
@@ -213,10 +219,10 @@ const TaskTimeSection = ({
                   {runningHere ? <Square className="size-4" aria-hidden /> : <Play className="size-4" aria-hidden />}
                   {runningHere ? (
                     <>
-                      Stop timer <span className="tabular-nums" aria-hidden>{formatElapsed(elapsed)}</span>
-                      <span className="sr-only">, running for {describeDuration(Math.floor(elapsed / 60_000))}</span>
+                      {t('time.stopTimer')} <span className="tabular-nums" aria-hidden>{formatElapsed(elapsed)}</span>
+                      <span className="sr-only">{t('time.runningFor', { duration: describeDuration(Math.floor(elapsed / 60_000)) })}</span>
                     </>
-                  ) : 'Start timer'}
+                  ) : t('time.startTimer')}
                 </Button>
                 <LogTimePopover onLog={log} />
               </div>
@@ -226,9 +232,9 @@ const TaskTimeSection = ({
           <TimeProgressBar logged={logged} estimate={estimate} />
 
           {entries.length === 0 ? (
-            <p className="text-sm text-slate-500">No time logged yet.</p>
+            <p className="text-sm text-slate-500">{t('time.noneLogged')}</p>
           ) : (
-            <ul aria-label="Time entries" className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            <ul aria-label={t('time.entriesList')} className="divide-y divide-slate-100 rounded-lg border border-slate-200">
               {entries.map(entry => (
                 <EntryRow
                   key={entry._id}

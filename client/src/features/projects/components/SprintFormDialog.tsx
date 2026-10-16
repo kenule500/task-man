@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { CalendarRange } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ const fieldClass = 'h-11 sm:h-10 bg-white border border-slate-300 rounded-lg tex
 
 /** Plan or edit a sprint: name, goal and its start and end days. Mount with a `key` per sprint. */
 const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: SprintFormDialogProps) => {
+  const { t } = useTranslation('projects');
   const [name, setName] = useState(sprint?.name ?? defaults?.name ?? '');
   const [goal, setGoal] = useState(sprint?.goal ?? defaults?.goal ?? '');
   const [startDate, setStartDate] = useState(sprint ? dateKeyOf(sprint.startDate) : defaults?.startDate ?? '');
@@ -37,12 +39,12 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
 
   const validate = (): Errors => {
     const next: Errors = {};
-    if (!name.trim()) next.name = 'Enter a sprint name.';
-    else if (name.trim().length > MAX_SPRINT_NAME) next.name = `Keep the name under ${MAX_SPRINT_NAME} characters.`;
-    if (goal.length > MAX_SPRINT_GOAL) next.goal = `Keep the goal under ${MAX_SPRINT_GOAL} characters.`;
-    if (!startDate) next.startDate = 'Choose a start date.';
-    if (!endDate) next.endDate = 'Choose an end date.';
-    else if (startDate && endDate < startDate) next.endDate = 'The sprint must end on or after its start date.';
+    if (!name.trim()) next.name = t('sprintForm.nameRequired');
+    else if (name.trim().length > MAX_SPRINT_NAME) next.name = t('sprintForm.nameTooLong', { max: MAX_SPRINT_NAME });
+    if (goal.length > MAX_SPRINT_GOAL) next.goal = t('sprintForm.goalTooLong', { max: MAX_SPRINT_GOAL });
+    if (!startDate) next.startDate = t('sprintForm.startRequired');
+    if (!endDate) next.endDate = t('sprintForm.endRequired');
+    else if (startDate && endDate < startDate) next.endDate = t('sprintForm.endBeforeStart');
     return next;
   };
 
@@ -58,7 +60,7 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
       await onSubmit({ name: name.trim(), goal: goal.trim(), startDate, endDate });
       onOpenChange(false);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Could not save the sprint.');
+      setSubmitError(err instanceof Error ? err.message : t('sprintForm.saveError'));
     } finally {
       setSubmitting(false);
     }
@@ -71,20 +73,20 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
       open={open}
       onOpenChange={onOpenChange}
       icon={<CalendarRange />}
-      title={editing ? 'Edit sprint' : 'New sprint'}
-      description={editing ? 'Change the name, goal or dates of this sprint.' : 'Plan a time-boxed iteration. Add tasks to it from the backlog.'}
+      title={editing ? t('sprintForm.editTitle') : t('sprintForm.newTitle')}
+      description={editing ? t('sprintForm.editDescription') : t('sprintForm.newDescription')}
       onSubmit={handleSubmit}
-      submitLabel={editing ? 'Save changes' : 'Create sprint'}
-      submittingLabel="Saving..."
+      submitLabel={editing ? t('sprintForm.saveChanges') : t('sprintForm.create')}
+      submittingLabel={t('sprintForm.saving')}
       submitting={submitting}
       error={submitError}
     >
-      <Field label="Name" htmlFor="sprint-name" required error={errors.name}>
+      <Field label={t('sprintForm.name')} htmlFor="sprint-name" required error={errors.name}>
         <Input
           id="sprint-name"
           value={name}
           onChange={event => setName(event.target.value)}
-          placeholder="Sprint 1"
+          placeholder={t('sprintForm.namePlaceholder')}
           autoFocus
           aria-invalid={Boolean(errors.name)}
           aria-describedby={describedBy('sprint-name', Boolean(errors.name))}
@@ -92,7 +94,7 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
         />
       </Field>
 
-      <Field label="Goal" htmlFor="sprint-goal" error={errors.goal} hint={`What should be true when the sprint ends? ${goal.length}/${MAX_SPRINT_GOAL}`}>
+      <Field label={t('sprintForm.goal')} htmlFor="sprint-goal" error={errors.goal} hint={t('sprintForm.goalHint', { length: goal.length, max: MAX_SPRINT_GOAL })}>
         <Textarea
           id="sprint-goal"
           value={goal}
@@ -105,7 +107,7 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Start date" htmlFor="sprint-start" required error={errors.startDate}>
+        <Field label={t('sprintForm.startDate')} htmlFor="sprint-start" required error={errors.startDate}>
           <Input
             id="sprint-start"
             type="date"
@@ -116,7 +118,7 @@ const SprintFormDialog = ({ open, onOpenChange, sprint, defaults, onSubmit }: Sp
             className={fieldClass}
           />
         </Field>
-        <Field label="End date" htmlFor="sprint-end" required error={errors.endDate}>
+        <Field label={t('sprintForm.endDate')} htmlFor="sprint-end" required error={errors.endDate}>
           <Input
             id="sprint-end"
             type="date"

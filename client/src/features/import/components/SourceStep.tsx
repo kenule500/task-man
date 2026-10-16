@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { Download, FileJson, FileSpreadsheet, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { IconTile, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,12 +17,13 @@ interface SourceStepProps {
 
 /** Step 1: which tool the work comes from, with the short "how to export" help of the chosen one. */
 export const SourceStep = ({ source, onChange }: SourceStepProps) => {
+  const { t } = useTranslation('admin');
   const name = useId();
   const info = sourceInfo(source);
   return (
     <div className="space-y-5">
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-text-strong">Where is your work now?</legend>
+        <legend className="mb-2 text-sm font-medium text-text-strong">{t('import.where')}</legend>
         <div className="grid gap-3 sm:grid-cols-3">
           {SOURCES.map(item => {
             const Icon = ICONS[item.id];
@@ -54,9 +56,9 @@ export const SourceStep = ({ source, onChange }: SourceStepProps) => {
       </fieldset>
 
       <Surface as="section" aria-labelledby="import-help" padding="sm" className="space-y-3 shadow-none">
-        <h2 id="import-help" className="text-sm font-semibold text-text-strong">How to export from {info.label}</h2>
+        <h2 id="import-help" className="text-sm font-semibold text-text-strong">{t('import.howToExport', { label: info.label })}</h2>
         <p className="text-sm text-text-body">{info.summary}</p>
-        <ol className="list-decimal space-y-1.5 pl-5 text-sm text-text-body marker:text-text-subtle">
+        <ol className="list-decimal space-y-1.5 ps-5 text-sm text-text-body marker:text-text-subtle">
           {info.steps.map(step => <li key={step}>{step}</li>)}
         </ol>
         <p className="text-xs text-text-subtle">{info.carries}</p>
@@ -67,7 +69,7 @@ export const SourceStep = ({ source, onChange }: SourceStepProps) => {
             className="h-11 sm:h-9"
             onClick={() => downloadTextFile('taskman-import-template.csv', csvTemplate())}
           >
-            <Download aria-hidden /> Download the CSV template
+            <Download aria-hidden /> {t('import.downloadTemplate')}
           </Button>
         )}
       </Surface>

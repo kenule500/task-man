@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Surface, SectionHeader, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
@@ -14,6 +15,7 @@ const LABELS = { google: 'Google', microsoft: 'Microsoft' } as const;
  * (and while it loads or fails: the rest of the page does not depend on it).
  */
 export const ConnectedSignIn = () => {
+  const { t } = useTranslation('settings');
   const [state, setState] = useState<SsoMethodsState | null>(null);
   const [pending, setPending] = useState<SsoMethod | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,14 +33,14 @@ export const ConnectedSignIn = () => {
     try {
       await ssoApi.unlink(method.provider);
       setState((current) => current && { ...current, methods: current.methods.filter((item) => item.provider !== method.provider) });
-      toast.success(`${LABELS[method.provider]} sign-in removed.`);
+      toast.success(t('connected.removed', { provider: LABELS[method.provider] }));
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, 'Could not remove that sign-in method. Try again.'));
+      toast.error(getApiErrorMessage(err, t('connected.removeFailed')));
     } finally {
       setBusy(false);
       setPending(null);
     }
-  }, []);
+  }, [t]);
 
   if (!state || (state.methods.length === 0 && state.available.length === 0)) return null;
 
@@ -46,12 +48,11 @@ export const ConnectedSignIn = () => {
 
   return (
     <Surface padding="lg" aria-labelledby="connected-sign-in-heading">
-      <SectionHeader title={<span id="connected-sign-in-heading">Connected sign-in methods</span>} />
+      <SectionHeader title={<span id="connected-sign-in-heading">{t('connected.title')}</span>} />
 
       {state.methods.length === 0 ? (
         <p className="text-sm text-slate-600">
-          No provider is connected. Sign in once with Google or Microsoft using the email address of this account and it is connected
-          automatically, as long as the provider has verified that address.
+          {t('connected.none')}
         </p>
       ) : (
         <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200">
@@ -63,7 +64,7 @@ export const ConnectedSignIn = () => {
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900">{LABELS[method.provider]}</p>
-                  <p className="break-words text-xs text-slate-600">{method.email ?? 'Email not shared'}</p>
+                  <p className="break-words text-xs text-slate-600">{method.email ?? t('connected.emailNotShared')}</p>
                 </div>
               </div>
               <Button
@@ -71,10 +72,10 @@ export const ConnectedSignIn = () => {
                 variant="outline"
                 disabled={busy || onlyWay}
                 onClick={() => setPending(method)}
-                aria-label={`Remove ${LABELS[method.provider]} sign-in`}
+                aria-label={t('connected.removeLabel', { provider: LABELS[method.provider] })}
                 className="h-11 w-full sm:h-9 sm:w-auto"
               >
-                Remove
+                {t('connected.remove')}
               </Button>
             </li>
           ))}
@@ -83,17 +84,17 @@ export const ConnectedSignIn = () => {
 
       {onlyWay && (
         <p className="mt-4 text-xs text-slate-600">
-          This is the only way to sign in to your account. To remove it, first set a password with &ldquo;Forgot password&rdquo; on the sign-in page.
+          {t('connected.onlyWay')}
         </p>
       )}
 
       <ConfirmActionDialog
         open={pending !== null}
         onOpenChange={(open) => !open && !busy && setPending(null)}
-        title={pending ? `Remove ${LABELS[pending.provider]} sign-in?` : 'Remove sign-in method?'}
-        description="You will no longer be able to sign in with it. Your account and data stay as they are."
-        confirmLabel="Remove"
-        busyLabel="Removing..."
+        title={pending ? t('connected.confirmTitle', { provider: LABELS[pending.provider] }) : t('connected.confirmTitleGeneric')}
+        description={t('connected.confirmDescription')}
+        confirmLabel={t('connected.remove')}
+        busyLabel={t('connected.removing')}
         busy={busy}
         onConfirm={() => pending && void unlink(pending)}
       />

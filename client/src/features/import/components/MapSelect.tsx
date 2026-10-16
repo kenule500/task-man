@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface MapOption {
@@ -20,11 +21,12 @@ interface MapSelectProps {
 
 /** Compact single choice for the mapping tables (Base UI select; keyboard: arrows, type-ahead, Enter). */
 export const MapSelect = ({ value, groups, onChange, id, ...rest }: MapSelectProps) => {
+  const { t } = useTranslation('admin');
   const flat = groups.flatMap(group => group.options);
   return (
     <Select value={value} onValueChange={next => next && onChange(next)} items={flat}>
       <SelectTrigger id={id} aria-label={rest['aria-label']} className="h-11 w-full border-slate-200 bg-white text-sm text-slate-700 shadow-none sm:h-9">
-        <SelectValue>{() => flat.find(option => option.value === value)?.label ?? 'Choose'}</SelectValue>
+        <SelectValue>{() => flat.find(option => option.value === value)?.label ?? t('import.choose')}</SelectValue>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
         {groups.map((group, index) => (

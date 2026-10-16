@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, Zap } from 'lucide-react';
 import { getLandingAuth } from './landingAuth';
 
 const CTA = () => {
+  const { t } = useTranslation('landing');
   const { isLoggedIn, appUrl } = getLandingAuth();
 
   return (
@@ -12,18 +14,16 @@ const CTA = () => {
           <Zap className="size-6 text-white" />
         </div>
         <h2 id="cta-heading" className="mb-4 text-balance text-3xl font-bold text-white md:text-4xl">
-          {isLoggedIn ? 'Ready to get back to work?' : 'Ready to organize your work?'}
+          {isLoggedIn ? t('cta.titleBack') : t('cta.title')}
         </h2>
         <p className="mx-auto mb-8 max-w-xl text-lg text-white/90">
-          {isLoggedIn
-            ? 'Jump back into your workspace and pick up where you left off.'
-            : 'Create an account, name your workspace and add your first task in a couple of minutes.'}
+          {isLoggedIn ? t('cta.descriptionBack') : t('cta.description')}
         </p>
         <Link
           to={appUrl}
           className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3.5 text-lg font-semibold text-primary shadow-lg transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
-          {isLoggedIn ? 'Go to dashboard' : 'Create your account'} <ArrowRight className="size-5" aria-hidden />
+          {isLoggedIn ? t('goToDashboard') : t('createAccount')} <ArrowRight className="size-5 rtl:-scale-x-100" aria-hidden />
         </Link>
       </div>
     </section>

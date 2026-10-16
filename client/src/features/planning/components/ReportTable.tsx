@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Surface } from '@/components/ds';
 import { TaskTypeBadge, taskKey } from '@/features/tasks';
 import { pointsLabel, type ReportItem, type ReportTotal } from '../lib/sprintReport';
@@ -17,13 +18,14 @@ interface ReportTableProps {
 
 /** One list of the sprint report: key, title, type, points and assignee. Wide rows scroll inside the card. */
 const ReportTable = ({ title, total, items, slug, projectKey, empty }: ReportTableProps) => {
+  const { t } = useTranslation('planning');
   const headingId = useId();
   return (
     <Surface as="section" aria-labelledby={headingId} padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pb-3 pt-4 sm:px-5">
         <h2 id={headingId} className="text-sm font-semibold text-slate-900">
           {title}
-          <span className="ml-2 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{total.count}</span>
+          <span className="ms-2 rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{total.count}</span>
         </h2>
         <p className="text-xs tabular-nums text-slate-600">{pointsLabel(total.points)}</p>
       </div>
@@ -33,19 +35,19 @@ const ReportTable = ({ title, total, items, slug, projectKey, empty }: ReportTab
       ) : (
         <div
           role="region"
-          aria-label={`${title} table`}
+          aria-label={t('report.tableLabel', { title })}
           tabIndex={0}
           className="overflow-x-auto border-t border-slate-100 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
         >
-          <table className="w-full min-w-[34rem] text-left text-sm">
+          <table className="w-full min-w-[34rem] text-start text-sm">
             <caption className="sr-only">{title}</caption>
             <thead>
               <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
-                <th scope="col" className="px-4 py-2 font-semibold sm:px-5">Key</th>
-                <th scope="col" className="px-3 py-2 font-semibold">Title</th>
-                <th scope="col" className="px-3 py-2 font-semibold">Type</th>
-                <th scope="col" className="px-3 py-2 text-right font-semibold">Points</th>
-                <th scope="col" className="px-4 py-2 font-semibold sm:px-5">Assignee</th>
+                <th scope="col" className="px-4 py-2 font-semibold sm:px-5">{t('report.key')}</th>
+                <th scope="col" className="px-3 py-2 font-semibold">{t('report.title')}</th>
+                <th scope="col" className="px-3 py-2 font-semibold">{t('report.type')}</th>
+                <th scope="col" className="px-3 py-2 text-end font-semibold">{t('report.points')}</th>
+                <th scope="col" className="px-4 py-2 font-semibold sm:px-5">{t('report.assignee')}</th>
               </tr>
             </thead>
             <tbody>
@@ -61,11 +63,11 @@ const ReportTable = ({ title, total, items, slug, projectKey, empty }: ReportTab
                     </Link>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5"><TaskTypeBadge type={item.type} /></td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
-                    {item.storyPoints ?? <><span aria-hidden>–</span><span className="sr-only">Not estimated</span></>}
+                  <td className="whitespace-nowrap px-3 py-2.5 text-end tabular-nums text-slate-700">
+                    {item.storyPoints ?? <><span aria-hidden>–</span><span className="sr-only">{t('report.notEstimated')}</span></>}
                   </td>
                   <td className="px-4 py-2.5 text-slate-700 sm:px-5">
-                    {item.assignees.length > 0 ? item.assignees.map(user => user.name).join(', ') : <span className="text-slate-600">Unassigned</span>}
+                    {item.assignees.length > 0 ? item.assignees.map(user => user.name).join(', ') : <span className="text-slate-600">{t('report.unassigned')}</span>}
                   </td>
                 </tr>
               ))}

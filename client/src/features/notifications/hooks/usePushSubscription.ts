@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '@/i18n';
 import { pushApi } from '../api';
 import { baseState, isPushSupported, urlBase64ToUint8Array, type PushState } from '../lib/push';
 
@@ -10,7 +11,7 @@ const readyRegistration = (): Promise<ServiceWorkerRegistration> =>
     navigator.serviceWorker.ready,
     new Promise<never>((_resolve, reject) => {
       window.setTimeout(
-        () => reject(new Error('The background service is not ready yet. Reload the page and try again.')),
+        () => reject(new Error(t('settings:push.errors.notReady'))),
         READY_TIMEOUT_MS,
       );
     }),
@@ -81,7 +82,7 @@ export const usePushSubscription = () => {
       const permission = await Notification.requestPermission();
       if (permission === 'denied') { setState('denied'); return; }
       if (permission !== 'granted') {
-        setError('Permission was not granted. Choose Allow when your browser asks.');
+        setError(t('settings:push.errors.denied'));
         return;
       }
       const registration = await readyRegistration();
@@ -99,7 +100,7 @@ export const usePushSubscription = () => {
       }
       setState('on');
     } catch (failure) {
-      setError(errorMessage(failure, 'Could not turn on push notifications. Try again.'));
+      setError(errorMessage(failure, t('settings:push.errors.turnOn')));
     } finally {
       if (mounted.current) setBusy(false);
     }
@@ -117,7 +118,7 @@ export const usePushSubscription = () => {
       }
       setState('off');
     } catch (failure) {
-      setError(errorMessage(failure, 'Could not turn off push notifications. Try again.'));
+      setError(errorMessage(failure, t('settings:push.errors.turnOff')));
     } finally {
       if (mounted.current) setBusy(false);
     }

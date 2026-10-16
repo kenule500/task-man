@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,7 @@ const STRENGTH_BAR = ['bg-slate-200', 'bg-danger-dot', 'bg-warning-dot', 'bg-blu
 const PasswordField = ({
   id, label, value, onChange, onBlur, error, autoComplete, showStrength = false, hint, footerLink, placeholder, className,
 }: PasswordFieldProps) => {
+  const { t } = useTranslation('auth');
   const [shown, setShown] = useState(false);
   const strength = getPasswordStrength(value);
   const describedBy = [error || hint || showStrength ? fieldMessageId(id) : '', showStrength ? `${id}-strength` : '']
@@ -41,7 +43,7 @@ const PasswordField = ({
         label={label}
         htmlFor={id}
         error={error}
-        hint={hint ?? (showStrength ? `At least ${MIN_PASSWORD_LENGTH} characters.` : undefined)}
+        hint={hint ?? (showStrength ? t('password.minHint', { min: MIN_PASSWORD_LENGTH }) : undefined)}
       >
         <div className="relative">
           <Input
@@ -58,20 +60,20 @@ const PasswordField = ({
             aria-invalid={!!error}
             aria-describedby={describedBy}
             placeholder={placeholder}
-            className="h-12 rounded-xl border-slate-300 bg-white pr-12 text-base text-slate-900 shadow-sm placeholder:text-slate-500 md:text-base"
+            className="h-12 rounded-xl border-slate-300 bg-white pe-12 text-base text-slate-900 shadow-sm placeholder:text-slate-500 md:text-base"
           />
           <button
             type="button"
             onClick={() => setShown((current) => !current)}
-            aria-label={shown ? 'Hide password' : 'Show password'}
+            aria-label={shown ? t('password.hide') : t('password.show')}
             aria-pressed={shown}
-            className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-primary"
+            className="absolute end-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 focus-visible:outline-2 focus-visible:outline-primary"
           >
             {shown ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
           </button>
         </div>
       </Field>
-      {footerLink && <div className="mt-1.5 text-right text-sm">{footerLink}</div>}
+      {footerLink && <div className="mt-1.5 text-end text-sm">{footerLink}</div>}
       {showStrength && value && (
         <div id={`${id}-strength`} className="mt-2" aria-live="polite">
           <div className="flex gap-1" aria-hidden>
@@ -82,7 +84,7 @@ const PasswordField = ({
               />
             ))}
           </div>
-          <p className="mt-1 text-xs text-slate-600">Strength: {strength.label}</p>
+          <p className="mt-1 text-xs text-slate-600">{t('password.strength', { label: strength.label })}</p>
         </div>
       )}
     </div>

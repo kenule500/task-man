@@ -231,6 +231,36 @@ Adding a component: build it from tokens and existing primitives, add it to `com
 - Motion stays subtle and purposeful; see the Motion section below. Everything collapses under `prefers-reduced-motion`.
 
 
+## Languages and right-to-left
+
+TaskMan ships in English, French (Français) and Arabic (العربية). The choice is made with `components/LanguageSwitcher.tsx` (app header, landing page, sign-in and
+auth pages) and in Settings → Profile → Language. It applies at once with no reload, is kept in this browser (`taskman.language`, through
+`utils/session.ts`) and on the account (`language` on `PUT /api/profile`, applied again at sign-in). A first visit follows `navigator.languages`.
+
+- **Text:** every visible string, accessible name and toast goes through i18next (`client/src/i18n`, one JSON per namespace per language under
+  `i18n/locales/<lng>/<ns>.json`, registered in `i18n/resources.ts`). Components use `useTranslation('<ns>')`; plain helpers use `t` from `@/i18n`.
+  Use interpolation and plural keys (`_one`/`_other`; Arabic needs `_zero/_one/_two/_few/_many/_other`), never string concatenation. English is the fallback.
+  `i18n/__tests__/translations.test.ts` fails when French or Arabic lack a key, a plural form or a placeholder that English has.
+- **Terms:** tâche / مهمة, sprint / سبرينت, tableau / لوحة (board), backlog / الأعمال المتراكمة. The product name TaskMan is never translated.
+- **Direction:** `<html lang dir>` follows the language (`dir="rtl"` for Arabic). Layout uses **logical** Tailwind utilities only: `ms-/me-`, `ps-/pe-`,
+  `start-/end-`, `text-start/end`, `border-s/e`, `rounded-s/e/ss/se/es/ee`, `float-start/end`. Do not write `ml-`, `pr-`, `left-`, `text-left` for layout.
+  `space-x-*` is already logical in Tailwind 4 (it uses margin-inline), so it needs no `rtl:` variant.
+  Exceptions stay physical on purpose: centring with `left-1/2 -translate-x-1/2`, `env(safe-area-inset-left/right)` (notches are physical), and
+  `data-[side=left|right]` selectors of Base UI popups.
+- **Icons:** icons that point (ChevronLeft/Right, ArrowLeft/Right, MoveRight, CornerDownRight, PanelLeft, LogOut) carry `rtl:-scale-x-100`. An expand
+  chevron that also rotates uses `expanded ? 'rotate-90' : 'rtl:-scale-x-100'` (flip and rotate would otherwise point it up).
+- **Sheets and the sidebar** follow the reading direction: `SheetContent side="right"` and `Sidebar side="left"` mean the end and start edge, and open from
+  the opposite physical edge in Arabic (`physicalSide` in `i18n/useIsRtl.ts`).
+- **What stays left to right (decision):** time and columns read left to right in Arabic product UIs too, so the board's columns (Pending, In progress,
+  Completed), the task timeline (Gantt) and the roadmap are wrapped in `dir="ltr"`, with their text (task names, cards) set back to the
+  language direction (`useDir()`, `dir="auto"`). Charts (SVG) get `[direction:ltr]` so axes and `text-anchor` keep their meaning. Code, ids, URLs,
+  keyboard keys and numbers stay left to right inside Arabic text.
+- **Numbers and dates** follow the language through `i18n/format.ts` (`currentLocale`, `formatNumber`, `localeFormatter`, `formatRelative`);
+  `features/tasks/lib/date.ts` keeps the `YYYY-MM-DD` keys untouched and only the display changes. Arabic uses Western digits (0-9) so keys, counts and
+  tables line up, with the Gregorian calendar. English keeps the US pattern (the audit log keeps en-GB).
+- **Fonts:** Inter for Latin, **Noto Sans Arabic** for `:lang(ar)` (same Google Fonts origin, so the CSP in `vercel.json` is unchanged). Arabic has no case
+  or letter-spacing: `uppercase` and `tracking-*` are reset under `:lang(ar)`.
+
 ## Motion
 
 Motion explains change and confirms actions; it never blocks input and never carries meaning alone. Tokens live in `lib/motion.ts`

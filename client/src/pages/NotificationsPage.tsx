@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Alert, SwitchField, Surface } from '@/components/ds';
@@ -10,6 +11,7 @@ const SwitchRow = ({ id, label, desc, checked, onChange }: { id: string; label: 
 );
 
 const NotificationsPage = () => {
+  const { t } = useTranslation('settings');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -49,36 +51,17 @@ const NotificationsPage = () => {
     setSaving(true);
     try {
       await api.put('/profile/notifications', notifications);
-      showMessage('success', 'Notification preferences saved');
+      showMessage('success', t('notifications.saved'));
     } catch {
-      showMessage('error', 'Failed to save preferences');
+      showMessage('error', t('notifications.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
-  const options: { key: Exclude<keyof typeof notifications, 'push'>; label: string; desc: string }[] = [
-    {
-      key: 'email',
-      label: 'Send me emails',
-      desc: 'The main switch for email. When it is off you get no emails, only notifications in the app.',
-    },
-    {
-      key: 'taskAssigned',
-      label: 'Assignments, mentions and comments',
-      desc: 'Email me when someone assigns me a task, mentions me in a comment, or comments on a task I own or am assigned to.',
-    },
-    {
-      key: 'taskCompleted',
-      label: 'Completed tasks',
-      desc: 'Email me when a task I own or am assigned to is marked completed by someone else.',
-    },
-    {
-      key: 'weeklyDigest',
-      label: 'Weekly digest',
-      desc: 'Not sent yet. Your choice is saved for when the weekly summary launches.',
-    },
-  ];
+  const options: { key: Exclude<keyof typeof notifications, 'push'>; label: string; desc: string }[] = (
+    ['email', 'taskAssigned', 'taskCompleted', 'weeklyDigest'] as const
+  ).map((key) => ({ key, label: t(`notifications.options.${key}.label`), desc: t(`notifications.options.${key}.desc`) }));
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -90,11 +73,9 @@ const NotificationsPage = () => {
             <Bell className="size-4" />
           </span>
           <div>
-            <h2 className="font-semibold text-slate-900">In the app</h2>
+            <h2 className="font-semibold text-slate-900">{t('notifications.inApp.title')}</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Always on. The bell in the top bar and your <span className="font-medium">Inbox</span> show assignments,
-              completed tasks, mentions and comments on your tasks. They are kept for 90 days, and you are never
-              notified about your own actions.
+              <Trans t={t} i18nKey="notifications.inApp.description" components={{ b: <span className="font-medium" /> }} />
             </p>
           </div>
         </div>
@@ -102,10 +83,10 @@ const NotificationsPage = () => {
 
       <Surface padding="lg">
         <div className="mb-6">
-          <h2 className="font-semibold text-slate-900">Email</h2>
+          <h2 className="font-semibold text-slate-900">{t('notifications.email.title')}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Choose which of those notifications also reach your inbox.
-            {!notifications.email && ' Email is off, so nothing below is sent.'}
+            {t('notifications.email.description')}
+            {!notifications.email && ` ${t('notifications.email.off')}`}
           </p>
         </div>
 
@@ -125,9 +106,9 @@ const NotificationsPage = () => {
 
       <Surface padding="lg">
         <div className="mb-4">
-          <h2 className="font-semibold text-slate-900">Push</h2>
+          <h2 className="font-semibold text-slate-900">{t('notifications.push.title')}</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Pop-up notifications from your browser or phone, for the same events as the bell.
+            {t('notifications.push.description')}
           </p>
         </div>
 
@@ -136,8 +117,8 @@ const NotificationsPage = () => {
         <div className="mt-4 divide-y divide-slate-100 border-t border-slate-100">
           <SwitchRow
             id="notif-push"
-            label="Send me push notifications"
-            desc="Applies to every device where push is on. Turn it off to pause push without removing your devices. Saved with the other preferences."
+            label={t('notifications.push.label')}
+            desc={t('notifications.push.desc')}
             checked={notifications.push}
             onChange={value => setNotifications({ ...notifications, push: value })}
           />
@@ -151,7 +132,7 @@ const NotificationsPage = () => {
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
           <Save className="size-4" aria-hidden />
-          {saving ? 'Saving...' : 'Save preferences'}
+          {saving ? t('profile.saving') : t('notifications.save')}
         </Button>
       </div>
     </form>

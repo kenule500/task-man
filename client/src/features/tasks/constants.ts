@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { TaskPriority, TaskSort, TaskStatus, TaskType, TaskView } from './types';
 
 export interface SelectOption<T extends string> {
@@ -25,19 +26,19 @@ interface StatusMeta {
 
 export const STATUS_META: Record<TaskStatus, StatusMeta> = {
   pending: {
-    label: 'Pending',
+    get label() { return i18n.t('tasks:status.pending'); },
     badge: 'bg-slate-100 text-slate-700 border-slate-200',
     dot: 'bg-slate-400',
     surface: 'bg-slate-100 border-slate-300 text-slate-700',
   },
   'in-progress': {
-    label: 'In Progress',
+    get label() { return i18n.t('tasks:status.in-progress'); },
     badge: 'bg-blue-50 text-blue-700 border-blue-100',
     dot: 'bg-blue-600',
     surface: 'bg-blue-50 border-blue-300 text-blue-800',
   },
   completed: {
-    label: 'Completed',
+    get label() { return i18n.t('tasks:status.completed'); },
     badge: 'bg-success-bg text-success-fg border-success-border',
     dot: 'bg-success-dot',
     surface: 'bg-success-bg border-success-border text-success-fg',
@@ -54,29 +55,29 @@ interface PriorityMeta {
 }
 
 export const PRIORITY_META: Record<TaskPriority, PriorityMeta> = {
-  high: { label: 'High', text: 'text-danger-fg', dot: 'bg-danger-dot', accent: 'border-t-danger-dot', rank: 1 },
-  medium: { label: 'Medium', text: 'text-warning-fg', dot: 'bg-warning-dot', accent: 'border-t-warning-dot', rank: 2 },
-  low: { label: 'Low', text: 'text-success-fg', dot: 'bg-success-dot', accent: 'border-t-success-dot', rank: 3 },
+  high: { get label() { return i18n.t('tasks:priority.high'); }, text: 'text-danger-fg', dot: 'bg-danger-dot', accent: 'border-t-danger-dot', rank: 1 },
+  medium: { get label() { return i18n.t('tasks:priority.medium'); }, text: 'text-warning-fg', dot: 'bg-warning-dot', accent: 'border-t-warning-dot', rank: 2 },
+  low: { get label() { return i18n.t('tasks:priority.low'); }, text: 'text-success-fg', dot: 'bg-success-dot', accent: 'border-t-success-dot', rank: 3 },
 };
 
 export const STATUS_OPTIONS: SelectOption<TaskStatus>[] = TASK_STATUSES.map(status => ({
   value: status,
-  label: STATUS_META[status].label,
+  get label() { return STATUS_META[status].label; },
   dot: STATUS_META[status].dot,
   tone: `border ${STATUS_META[status].badge}`,
 }));
 
 export const PRIORITY_OPTIONS: SelectOption<TaskPriority>[] = TASK_PRIORITIES.map(priority => ({
   value: priority,
-  label: PRIORITY_META[priority].label,
+  get label() { return PRIORITY_META[priority].label; },
   dot: PRIORITY_META[priority].dot,
   tone: `font-medium ${PRIORITY_META[priority].text}`,
 }));
 
 export const SORT_OPTIONS: SelectOption<TaskSort>[] = [
-  { value: 'createdAt', label: 'Newest' },
-  { value: 'deadline', label: 'By Deadline' },
-  { value: 'priority', label: 'By Priority' },
+  { value: 'createdAt', get label() { return i18n.t('tasks:sort.createdAt'); } },
+  { value: 'deadline', get label() { return i18n.t('tasks:sort.deadline'); } },
+  { value: 'priority', get label() { return i18n.t('tasks:sort.priority'); } },
 ];
 
 export const TASK_VIEWS: TaskView[] = ['list', 'board', 'calendar', 'timeline'];
@@ -94,17 +95,17 @@ interface TypeMeta {
 }
 
 export const TASK_TYPE_META: Record<TaskType, TypeMeta> = {
-  story: { label: 'Story', text: 'text-success-fg', badge: 'bg-success-bg text-success-fg border-success-border', dot: 'bg-success-dot' },
-  task: { label: 'Task', text: 'text-blue-700', badge: 'bg-blue-50 text-blue-700 border-blue-100', dot: 'bg-blue-600' },
-  bug: { label: 'Bug', text: 'text-danger-fg', badge: 'bg-danger-bg text-danger-fg border-danger-border', dot: 'bg-danger-dot' },
-  spike: { label: 'Spike', text: 'text-violet-700', badge: 'bg-violet-50 text-violet-700 border-violet-100', dot: 'bg-violet-500' },
+  story: { get label() { return i18n.t('tasks:type.story'); }, text: 'text-success-fg', badge: 'bg-success-bg text-success-fg border-success-border', dot: 'bg-success-dot' },
+  task: { get label() { return i18n.t('tasks:type.task'); }, text: 'text-blue-700', badge: 'bg-blue-50 text-blue-700 border-blue-100', dot: 'bg-blue-600' },
+  bug: { get label() { return i18n.t('tasks:type.bug'); }, text: 'text-danger-fg', badge: 'bg-danger-bg text-danger-fg border-danger-border', dot: 'bg-danger-dot' },
+  spike: { get label() { return i18n.t('tasks:type.spike'); }, text: 'text-violet-700', badge: 'bg-violet-50 text-violet-700 border-violet-100', dot: 'bg-violet-500' },
   // Fuchsia stays apart from the blue / violet of tasks and spikes (-700 on -50 is AA)
-  epic: { label: 'Epic', text: 'text-fuchsia-700', badge: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', dot: 'bg-fuchsia-500' },
+  epic: { get label() { return i18n.t('tasks:type.epic'); }, text: 'text-fuchsia-700', badge: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100', dot: 'bg-fuchsia-500' },
 };
 
 export const TASK_TYPE_OPTIONS: SelectOption<TaskType>[] = TASK_TYPES.map(type => ({
   value: type,
-  label: TASK_TYPE_META[type].label,
+  get label() { return TASK_TYPE_META[type].label; },
   dot: TASK_TYPE_META[type].dot,
 }));
 

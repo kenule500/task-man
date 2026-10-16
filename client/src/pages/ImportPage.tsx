@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ShieldAlert } from 'lucide-react';
 import { EmptyState, PageHeader, SkeletonList, Surface } from '@/components/ds';
 import { ImportWizard, useImportWizard } from '@/features/import';
@@ -6,6 +7,7 @@ import { useProjects } from '@/features/projects';
 import { usePermissions } from '../hooks/usePermissions';
 
 const ImportPage = () => {
+  const { t } = useTranslation('admin');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const allowed = can('tasks:write');
@@ -22,12 +24,12 @@ const ImportPage = () => {
         to={`/${workspaceSlug}/settings`}
         className="inline-flex min-h-11 items-center gap-1 rounded-md text-sm text-text-body outline-none hover:text-text-strong focus-visible:ring-2 focus-visible:ring-primary sm:min-h-0"
       >
-        <ChevronLeft aria-hidden className="size-4" /> Workspace settings
+        <ChevronLeft aria-hidden className="size-4 rtl:-scale-x-100" /> {t('import.page.back')}
       </Link>
 
       <PageHeader
-        title="Import"
-        description="Bring tasks over from Trello, Jira or a spreadsheet. You choose where each status, person and type goes before anything is saved."
+        title={t('import.page.title')}
+        description={t('import.page.description')}
       />
 
       {!allowed ? (
@@ -35,8 +37,8 @@ const ImportPage = () => {
           <EmptyState
             headingLevel="h2"
             icon={<ShieldAlert />}
-            title="You cannot import tasks here"
-            description="Importing creates tasks, which needs permission to create and edit them. Ask an owner or admin of this workspace."
+            title={t('import.page.noAccessTitle')}
+            description={t('import.page.noAccessBody')}
           />
         </Surface>
       ) : loading && projects.length === 0 ? (

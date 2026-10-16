@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, Plus, Rocket } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, EmptyState, SkeletonCards, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ interface ReleasesTabProps {
 
 /** The Releases tab of a project: unreleased versions first, then released and archived ones. */
 const ReleasesTab = ({ workspaceSlug, projectId, canManage, onTasksChanged }: ReleasesTabProps) => {
+  const { t } = useTranslation('projects');
   const { releases, loading, error, create, update, remove, release } = useReleases(workspaceSlug);
   const [dialog, setDialog] = useState<ReleaseDialogState>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -54,7 +56,7 @@ const ReleasesTab = ({ workspaceSlug, projectId, canManage, onTasksChanged }: Re
       {canManage && own.length > 0 && (
         <div className="flex justify-end">
           <Button onClick={() => setDialog({ kind: 'create' })} className="h-11 w-full gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover sm:h-9 sm:w-fit">
-            <Plus className="size-4" aria-hidden /> New release
+            <Plus className="size-4" aria-hidden /> {t('releases.tab.newRelease')}
           </Button>
         </div>
       )}
@@ -63,13 +65,13 @@ const ReleasesTab = ({ workspaceSlug, projectId, canManage, onTasksChanged }: Re
         <Surface padding="none">
           <EmptyState
             icon={<Rocket />}
-            title="No releases yet"
+            title={t('releases.tab.emptyTitle')}
             description={canManage
-              ? 'Plan a version, assign tasks to it and release it when the work is done. Release notes are written for you.'
-              : 'Releases will show up here once someone plans them.'}
+              ? t('releases.tab.emptyManage')
+              : t('releases.tab.emptyRead')}
             action={canManage ? (
               <Button onClick={() => setDialog({ kind: 'create' })} className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover">
-                <Plus className="size-4" aria-hidden /> New release
+                <Plus className="size-4" aria-hidden /> {t('releases.tab.newRelease')}
               </Button>
             ) : undefined}
           />
@@ -78,14 +80,14 @@ const ReleasesTab = ({ workspaceSlug, projectId, canManage, onTasksChanged }: Re
         <>
           {upcoming.length > 0 && (
             <section aria-labelledby="unreleased-releases" className="space-y-3">
-              <h2 id="unreleased-releases" className="text-sm font-semibold text-slate-900">Unreleased</h2>
+              <h2 id="unreleased-releases" className="text-sm font-semibold text-slate-900">{t('releases.tab.unreleased')}</h2>
               {upcoming.map(renderCard)}
             </section>
           )}
-          {upcoming.length === 0 && <Alert tone="info">Every release of this project is released or archived.</Alert>}
+          {upcoming.length === 0 && <Alert tone="info">{t('releases.tab.allDone')}</Alert>}
           {released.length > 0 && (
             <section aria-labelledby="released-releases" className="space-y-3">
-              <h2 id="released-releases" className="text-sm font-semibold text-slate-900">Released</h2>
+              <h2 id="released-releases" className="text-sm font-semibold text-slate-900">{t('releases.tab.released')}</h2>
               {released.map(renderCard)}
             </section>
           )}
@@ -100,7 +102,7 @@ const ReleasesTab = ({ workspaceSlug, projectId, canManage, onTasksChanged }: Re
                   className="-mx-2 flex min-h-11 items-center gap-2 rounded-lg px-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary md:min-h-9"
                 >
                   <ChevronDown aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', !showArchived && '-rotate-90')} />
-                  Archived
+                  {t('releases.tab.archived')}
                   <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{archived.length}</span>
                 </button>
               </h2>

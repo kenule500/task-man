@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ interface QuickAddProps {
 
 /** One-line input that creates an item on Enter, keeping focus for fast entry. */
 const QuickAdd = ({ label, onAdd }: QuickAddProps) => {
+  const { t } = useTranslation('projects');
   const [title, setTitle] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -44,11 +46,11 @@ const QuickAdd = ({ label, onAdd }: QuickAddProps) => {
       <Button
         type="submit"
         disabled={busy || !title.trim()}
-        aria-label="Add"
+        aria-label={t('actions.add')}
         className="h-11 shrink-0 gap-1.5 rounded-lg bg-primary px-3 text-sm text-white hover:bg-primary-hover sm:h-9"
       >
         {busy ? <Spinner decorative /> : <Plus className="size-4" aria-hidden />}
-        <span className="hidden sm:inline">Add</span>
+        <span className="hidden sm:inline">{t('actions.add')}</span>
       </Button>
     </form>
   );

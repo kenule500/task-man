@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Archive, ArchiveRestore, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TiltCard } from '@/components/ds';
@@ -30,22 +31,22 @@ const ITEM_CLASS = 'min-h-10 text-slate-700 md:min-h-0';
 /** The back panel, tab and paper sheets that make a card read as a folder. */
 export const FolderBack = ({ backClass, index = 0 }: { backClass: string; index?: number }) => (
   <>
-    <div aria-hidden className={cn('absolute inset-x-0 bottom-0 top-3 rounded-2xl rounded-tl-none', backClass)} />
+    <div aria-hidden className={cn('absolute inset-x-0 bottom-0 top-3 rounded-2xl rounded-ss-none', backClass)} />
     <div
       aria-hidden
       className={cn(
         'absolute top-2 h-10 w-[44%] rounded-md bg-white shadow-sm',
-        index % 2 === 0 ? 'right-4 -rotate-3' : 'right-6 rotate-2',
+        index % 2 === 0 ? 'end-4 -rotate-3' : 'end-6 rotate-2',
       )}
     />
     <div
       aria-hidden
       className={cn(
         'absolute top-3.5 h-10 w-[38%] rounded-md bg-slate-100 shadow-sm',
-        index % 2 === 0 ? 'right-9 rotate-2' : 'right-12 -rotate-2',
+        index % 2 === 0 ? 'end-9 rotate-2' : 'end-12 -rotate-2',
       )}
     />
-    <div aria-hidden className={cn('absolute left-0 top-0 h-6 w-[36%] max-w-24 rounded-t-xl', backClass)} />
+    <div aria-hidden className={cn('absolute start-0 top-0 h-6 w-[36%] max-w-24 rounded-t-xl', backClass)} />
   </>
 );
 
@@ -56,10 +57,11 @@ export const FolderBack = ({ backClass, index = 0 }: { backClass: string; index?
 const ProjectFolderCard = ({
   project, summary, workspaceSlug, index = 0, canWrite, canDelete, onEdit, onToggleArchive, onDelete,
 }: ProjectFolderCardProps) => {
+  const { t } = useTranslation('projects');
   const navigate = useNavigate();
   const style = colorStyleOf(project.color);
   const href = `/${workspaceSlug}/projects/${project._id}`;
-  const taskLabel = `${summary.total} ${summary.total === 1 ? 'task' : 'tasks'}`;
+  const taskLabel = t('sprint.tasksCount', { count: summary.total });
 
   return (
     <TiltCard as="li" sheenClassName="rounded-2xl" className="group relative flex flex-col">
@@ -81,7 +83,7 @@ const ProjectFolderCard = ({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Actions for ${project.name}`}
+                    aria-label={t('tree.actionsFor', { title: project.name })}
                     className="relative z-10 -m-1.5 size-11 text-white hover:bg-white/20 hover:text-white focus-visible:ring-white/70 aria-expanded:bg-white/20 md:size-8"
                   />
                 }
@@ -90,16 +92,16 @@ const ProjectFolderCard = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 md:w-48">
                 <DropdownMenuItem onClick={() => navigate(href)} className={ITEM_CLASS}>
-                  <ExternalLink /> Open
+                  <ExternalLink /> {t('tree.open')}
                 </DropdownMenuItem>
                 {canWrite && (
                   <>
                     <DropdownMenuItem onClick={() => onEdit(project)} className={ITEM_CLASS}>
-                      <Pencil /> Edit
+                      <Pencil /> {t('actions.edit')}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onToggleArchive(project)} className={ITEM_CLASS}>
                       {project.archived ? <ArchiveRestore /> : <Archive />}
-                      {project.archived ? 'Unarchive' : 'Archive'}
+                      {project.archived ? t('folder.unarchive') : t('folder.archive')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -107,7 +109,7 @@ const ProjectFolderCard = ({
                   <>
                     <DropdownMenuSeparator className="bg-slate-100" />
                     <DropdownMenuItem variant="destructive" onClick={() => onDelete(project)} className="min-h-10 md:min-h-0">
-                      <Trash2 /> Delete
+                      <Trash2 /> {t('actions.delete')}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -127,13 +129,13 @@ const ProjectFolderCard = ({
           {taskLabel}
           <span aria-hidden> · </span>
           <span className="font-medium">{project.key}</span>
-          {project.archived && <span className="ml-2 rounded bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">Archived</span>}
+          {project.archived && <span className="ms-2 rounded bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">{t('folder.archived')}</span>}
         </p>
 
         <div className="mt-auto space-y-1.5 pt-4">
           <div
             role="progressbar"
-            aria-label={`${project.name} progress`}
+            aria-label={t('tree.progressOf', { title: project.name })}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={summary.progress}
@@ -142,15 +144,15 @@ const ProjectFolderCard = ({
             <div className="h-full rounded-full bg-white" style={{ width: `${summary.progress}%` }} />
           </div>
           <p className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs tabular-nums">
-            <span>{summary.progress}% done</span>
+            <span>{t('folder.percentDone', { percent: summary.progress })}</span>
             {summary.overdue > 0 && (
-              <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-danger-fg">{summary.overdue} overdue</span>
+              <span className="rounded bg-white px-1.5 py-0.5 font-semibold text-danger-fg">{t('folder.overdue', { n: summary.overdue })}</span>
             )}
           </p>
           <p className="truncate text-xs" title={summary.activeSprint?.name}>
             {summary.activeSprint
               ? `${summary.activeSprint.name} · ${summary.activeProgress?.percent ?? 0}%`
-              : 'No active sprint'}
+              : t('folder.noActiveSprint')}
           </p>
         </div>
       </div>

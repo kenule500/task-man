@@ -1,0 +1,117 @@
+{
+  "greeting": {
+    "morning": "صباح الخير، {{name}}",
+    "afternoon": "مساء الخير، {{name}}",
+    "evening": "مساء الخير، {{name}}"
+  },
+  "subtitle": "إليك لمحة سريعة عن مساحة عملك.",
+  "subtitleWorkspace": "إليك ما يجري في {{name}}.",
+  "yourRole": "دورك:",
+  "goToTasks": "الانتقال إلى المهام",
+  "showing": "عرض {{shown}} من {{total}}.",
+  "viewAll": "عرض الكل",
+  "stats": {
+    "total": "إجمالي المهام",
+    "totalHint": "كل المهام في مساحة العمل هذه",
+    "inProgress": "قيد التنفيذ",
+    "inProgressHint": "يجري العمل عليها حاليًا",
+    "completed": "مكتملة",
+    "completedHint": "المهام المنجزة",
+    "overdue": "متأخرة",
+    "overdueHint": "تجاوزت موعد استحقاقها"
+  },
+  "dueThisWeek": "مستحقة هذا الأسبوع",
+  "dueThisWeekEmpty": "لا شيء مستحق خلال الأيام السبعة القادمة.",
+  "overdueTitle": "متأخرة",
+  "overdueEmpty": "أنت على اطّلاع كامل. لا توجد مهام متأخرة.",
+  "openView": "فتح عرض",
+  "views": {
+    "list": {
+      "label": "قائمة",
+      "hint": "جدول مكثّف مع تعديل مباشر"
+    },
+    "board": {
+      "label": "لوحة",
+      "hint": "كانبان حسب الحالة"
+    },
+    "calendar": {
+      "label": "تقويم",
+      "hint": "المواعيد النهائية حسب الشهر"
+    },
+    "timeline": {
+      "label": "جدول زمني",
+      "hint": "الجدولة والاعتماديات"
+    }
+  },
+  "members": {
+    "one": "عضو (أنت فقط حتى الآن)",
+    "other": "الأعضاء"
+  },
+  "invite": {
+    "title": "ادعُ زملاءك إلى مساحة العمل هذه",
+    "description": "شارك هذا الرمز. يمكنهم الانضمام فورًا.",
+    "copied": "تم النسخ",
+    "copy": "نسخ",
+    "codeSuffix": "رمز الدعوة",
+    "copyFailed": "تعذّر النسخ تلقائيًا. حدّد الرمز وانسخه يدويًا."
+  },
+  "myWork": {
+    "title": "أعمالي",
+    "buckets": {
+      "overdue": "متأخرة",
+      "today": "مستحقة اليوم",
+      "week": "هذا الأسبوع",
+      "later": "لاحقًا"
+    },
+    "empty": "لا يوجد ما أُسند إليك حاليًا. تظهر هنا المهام المسندة إليك.",
+    "groupLabel": "{{label}}، {{count}}",
+    "recent_zero": "لم تُنجز أي مهمة خلال آخر {{days}} أيام",
+    "recent_one": "أنجزتَ مهمة واحدة خلال آخر {{days}} أيام",
+    "recent_two": "أنجزتَ مهمتين خلال آخر {{days}} أيام",
+    "recent_few": "أنجزتَ {{count}} مهام خلال آخر {{days}} أيام",
+    "recent_many": "أنجزتَ {{count}} مهمة خلال آخر {{days}} أيام",
+    "recent_other": "أنجزتَ {{count}} مهمة خلال آخر {{days}} أيام"
+  },
+  "getStarted": {
+    "title": "ابدأ مع TaskMan",
+    "done": "اكتمل {{done}} من {{total}}",
+    "progress": "تقدّم الإعداد: اكتملت {{done}} من {{total}} خطوات",
+    "steps": "خطوات الإعداد",
+    "task": {
+      "title": "أنشئ مهمتك الأولى",
+      "description": "أضِف عنوانًا وموعدًا نهائيًا. كل ما عدا ذلك اختياري.",
+      "action": "إنشاء مهمة"
+    },
+    "invite": {
+      "title": "ادعُ زميلًا",
+      "description": "أرسل دعوة بالبريد الإلكتروني وحدّد ما يمكنه فعله.",
+      "action": "دعوة زميل"
+    },
+    "board": {
+      "title": "جرّب عرض اللوحة",
+      "description": "اعرض مهامك في أعمدة واسحبها بين الحالات.",
+      "action": "فتح اللوحة"
+    }
+  },
+  "activeSprints": {
+    "title": "السبرينتات النشطة",
+    "progress": "تقدّم {{name}}",
+    "itemsDone": "اكتمل {{completed}}/{{total}} من العناصر",
+    "pointsDone": "{{completed}}/{{total}} نقطة"
+  },
+  "sprint": {
+    "endedDaysAgo_zero": "انتهى منذ 0 يوم",
+    "endedDaysAgo_one": "انتهى منذ يوم واحد",
+    "endedDaysAgo_two": "انتهى منذ يومين",
+    "endedDaysAgo_few": "انتهى منذ {{count}} أيام",
+    "endedDaysAgo_many": "انتهى منذ {{count}} يومًا",
+    "endedDaysAgo_other": "انتهى منذ {{count}} يوم",
+    "endsToday": "ينتهي اليوم",
+    "daysLeft_zero": "لم يتبقَّ أي يوم",
+    "daysLeft_one": "تبقّى يوم واحد",
+    "daysLeft_two": "تبقّى يومان",
+    "daysLeft_few": "تبقّت {{count}} أيام",
+    "daysLeft_many": "تبقّى {{count}} يومًا",
+    "daysLeft_other": "تبقّى {{count}} يوم"
+  }
+}

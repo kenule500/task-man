@@ -1,4 +1,5 @@
 import { useId, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ds';
 import { getApiErrorMessage } from '@/utils/api';
 import { useCustomFields } from '../hooks/useCustomFields';
@@ -70,6 +71,7 @@ const FieldRow = ({ field, value, canWrite, members, membersLoading, nameOf, onS
  * Renders nothing when the workspace has none.
  */
 const TaskCustomFields = ({ task, workspaceSlug, canWrite, onChange }: TaskCustomFieldsProps) => {
+  const { t } = useTranslation('tasks');
   const { active } = useCustomFields(workspaceSlug);
   const applicable = useMemo(() => fieldsForProject(active, task.project), [active, task.project]);
   const { members, loading, nameOf } = useFieldMembers(workspaceSlug, applicable.some(field => field.type === 'user'));
@@ -80,19 +82,19 @@ const TaskCustomFields = ({ task, workspaceSlug, canWrite, onChange }: TaskCusto
     try {
       const result = await onChange({ [field.key]: value });
       if (result === null) {
-        toast.error(`Could not save ${field.name}. Try again.`);
+        toast.error(t('fields.saveFailed', { name: field.name }));
         return false;
       }
       return true;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, `Could not save ${field.name}.`));
+      toast.error(getApiErrorMessage(err, t('fields.saveError', { name: field.name })));
       return false;
     }
   };
 
   return (
-    <section aria-label="Fields">
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Fields</h3>
+    <section aria-label={t('fields.section')}>
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{t('fields.section')}</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         {applicable.map(field => (
           <FieldRow

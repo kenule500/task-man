@@ -4,6 +4,7 @@ import {
   ComboboxInput, ComboboxInputGroup, ComboboxItem, ComboboxList, ComboboxTrigger, ComboboxValue, createComboboxItems,
 } from '@/components/ui/combobox';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 
 export interface ComboboxOption {
   /** Stable id; this is what `value` and `onValueChange` carry. */
@@ -59,7 +60,7 @@ export type OptionComboboxProps = SingleProps | MultiProps;
  * Backspace removes the last chip. Values are option ids, not objects.
  */
 export const OptionCombobox = (props: OptionComboboxProps) => {
-  const { options, label, placeholder, emptyText = 'No results.', id, name, disabled, invalid, autoFocus, limit = 100, className } = props;
+  const { options, label, placeholder, emptyText = t('noResults'), id, name, disabled, invalid, autoFocus, limit = 100, className } = props;
   const items = useMemo(
     () => createComboboxItems(options, { getValue: option => option.value, getLabel: option => option.label }),
     [options],
@@ -102,11 +103,11 @@ export const OptionCombobox = (props: OptionComboboxProps) => {
         <ComboboxInputGroup className={className}>
           <ComboboxValue>
             {(selected: string[]) => (
-              <ComboboxChips aria-label={selected.length > 0 ? `Selected: ${label}` : undefined}>
+              <ComboboxChips aria-label={selected.length > 0 ? t('combobox.selected', { label }) : undefined}>
                 {selected.map(value => (
                   <ComboboxChip key={value} aria-label={labelOf(value)}>
                     <span className="truncate">{labelOf(value)}</span>
-                    <ComboboxChipRemove aria-label={`Remove ${labelOf(value)}`} />
+                    <ComboboxChipRemove aria-label={t('combobox.remove', { name: labelOf(value) })} />
                   </ComboboxChip>
                 ))}
                 {input}
@@ -123,8 +124,8 @@ export const OptionCombobox = (props: OptionComboboxProps) => {
     <Combobox items={items} limit={limit} value={props.value} onValueChange={props.onValueChange} disabled={disabled}>
       <ComboboxInputGroup className={cn('flex-nowrap', className)}>
         {input}
-        {props.clearable && props.value && <ComboboxClear aria-label={`Clear ${label}`} />}
-        <ComboboxTrigger aria-label={`Show ${label} options`} />
+        {props.clearable && props.value && <ComboboxClear aria-label={t('combobox.clear', { label })} />}
+        <ComboboxTrigger aria-label={t('combobox.show', { label })} />
       </ComboboxInputGroup>
       {list}
     </Combobox>

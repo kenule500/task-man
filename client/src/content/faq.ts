@@ -1,4 +1,7 @@
 // Help center content. Plain data plus a pure search helper (unit tested).
+// The English text below is the source and the fallback: `faqCategories()` returns it in the interface language
+// (landing:faq.<categoryId>.title and landing:faq.items.<id>.q / .a).
+import { t } from '@/i18n';
 
 export interface FaqItem {
   id: string;
@@ -313,6 +316,18 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
   },
 ];
 
+/** The help content in the current interface language (English text when a translation is missing). */
+export const faqCategories = (): FaqCategory[] =>
+  FAQ_CATEGORIES.map((category) => ({
+    ...category,
+    title: t(`landing:faq.categories.${category.id}`, { defaultValue: category.title }),
+    items: category.items.map((item) => ({
+      ...item,
+      question: t(`landing:faq.items.${item.id}.q`, { defaultValue: item.question }),
+      answer: t(`landing:faq.items.${item.id}.a`, { defaultValue: item.answer }),
+    })),
+  }));
+
 export interface TextSegment {
   text: string;
   match: boolean;
@@ -372,7 +387,7 @@ export const queryTerms = (query: string): string[] => normalizeText(query).spli
  * a whole-phrase match in the question ranks highest. Ties keep source order.
  * An empty query returns every entry in source order.
  */
-export const searchFaq = (query: string, categories: FaqCategory[] = FAQ_CATEGORIES): FaqResult[] => {
+export const searchFaq = (query: string, categories: FaqCategory[] = faqCategories()): FaqResult[] => {
   const terms = queryTerms(query);
   const phrase = terms.join(' ');
   const results: (FaqResult & { order: number })[] = [];

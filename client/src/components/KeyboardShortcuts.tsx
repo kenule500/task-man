@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Keyboard } from 'lucide-react';
 import { Kbd } from '@/components/ds';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -74,7 +76,10 @@ const KeyboardShortcuts = ({ slug }: KeyboardShortcutsProps) => {
       }
       if (key === '/') {
         event.preventDefault();
-        const search = document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]');
+        // The tasks toolbar names its search field in the interface language
+        const searchLabel = i18n.t('tasks:toolbar.searchLabel');
+        const search = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="search"]'))
+          .find((input) => input.getAttribute('aria-label') === searchLabel);
         if (search) {
           search.focus();
           search.select();
@@ -109,15 +114,18 @@ interface ShortcutsDialogProps {
 }
 
 /** The "Keyboard shortcuts" reference, opened with `?`. */
-const ShortcutsDialog = ({ open, onOpenChange }: ShortcutsDialogProps) => (
+const ShortcutsDialog = ({ open, onOpenChange }: ShortcutsDialogProps) => {
+  // Re-render when the language changes: the shortcut table is built from translated text
+  const { t } = useTranslation('nav');
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="flex max-h-[85dvh] w-full max-w-full flex-col gap-0 overflow-hidden border border-slate-200 bg-white p-0 sm:max-w-lg">
-      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-12 sm:px-6">
+      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pe-12 sm:px-6">
         <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          <Keyboard className="size-5 text-primary" aria-hidden /> Keyboard shortcuts
+          <Keyboard className="size-5 text-primary" aria-hidden /> {t('shortcuts.title')}
         </DialogTitle>
         <DialogDescription className="text-sm text-slate-600">
-          Shortcuts work anywhere in the workspace except while you type in a field. Pages you cannot open are skipped.
+          {t('shortcuts.description')}
         </DialogDescription>
       </DialogHeader>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
@@ -131,7 +139,7 @@ const ShortcutsDialog = ({ open, onOpenChange }: ShortcutsDialogProps) => (
                   <span className="flex shrink-0 items-center gap-1 text-xs text-slate-500">
                     {entry.keys.map((key, index) => (
                       <Fragment key={`${key}-${index}`}>
-                        {index > 0 && entry.sequence && <span>then</span>}
+                        {index > 0 && entry.sequence && <span>{t('shortcuts.then')}</span>}
                         <Kbd>{key}</Kbd>
                       </Fragment>
                     ))}
@@ -144,6 +152,7 @@ const ShortcutsDialog = ({ open, onOpenChange }: ShortcutsDialogProps) => (
       </div>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default KeyboardShortcuts;

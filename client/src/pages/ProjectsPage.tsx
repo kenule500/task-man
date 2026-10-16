@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, FolderKanban, Plus, Search } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
@@ -20,6 +21,7 @@ type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; proje
 const GRID = 'grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4';
 
 const ProjectsPage = () => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const canWrite = can('projects:write');
@@ -66,9 +68,9 @@ const ProjectsPage = () => {
   const toggleArchive = async (project: Project) => {
     try {
       await updateProject(project._id, { archived: !project.archived });
-      toast.success(project.archived ? `"${project.name}" restored` : `"${project.name}" archived`);
+      toast.success(project.archived ? t('page.restored', { name: project.name }) : t('page.archived', { name: project.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not update the project.');
+      toast.error(err instanceof Error ? err.message : t('page.updateError'));
     }
   };
 
@@ -77,10 +79,10 @@ const ProjectsPage = () => {
     setDeleting(true);
     try {
       await deleteProject(toDelete._id);
-      toast.success(`"${toDelete.name}" deleted`);
+      toast.success(t('page.deleted', { name: toDelete.name }));
       setToDelete(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not delete the project.');
+      toast.error(err instanceof Error ? err.message : t('page.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -107,20 +109,20 @@ const ProjectsPage = () => {
       disabled={loading || !workspaceSlug}
       className="h-10 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9"
     >
-      <Plus className="size-4" /> New project
+      <Plus className="size-4" /> {t('page.newProject')}
     </Button>
   ) : undefined;
 
   return (
     <AppShell>
       <PageHeader
-        title="Projects"
-        description="Folders for your sprints and tasks. Open one to plan sprints and track progress."
+        title={t('page.title')}
+        description={t('page.description')}
         actions={newProjectButton}
       />
 
       {loading ? (
-        <SkeletonList label="Loading projects" rows={4} />
+        <SkeletonList label={t('page.loading')} rows={4} />
       ) : (
         <>
           {error && (
@@ -131,10 +133,10 @@ const ProjectsPage = () => {
             <Surface padding="none">
               <EmptyState
                 icon={<FolderKanban />}
-                title="No projects yet"
+                title={t('page.emptyTitle')}
                 description={canWrite
-                  ? 'Create a project to plan sprints, keep a backlog and see progress at a glance.'
-                  : 'Projects will appear here once someone with access creates them.'}
+                  ? t('page.emptyWrite')
+                  : t('page.emptyRead')}
                 action={newProjectButton}
               />
             </Surface>
@@ -142,39 +144,39 @@ const ProjectsPage = () => {
             <>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative flex-1 sm:max-w-sm">
-                  <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+                  <Search aria-hidden className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
                   <Input
                     type="search"
                     value={query}
                     onChange={event => setQuery(event.target.value)}
-                    placeholder="Search projects"
-                    aria-label="Search projects"
-                    className="h-11 rounded-lg border-slate-200 bg-white pl-9 text-base shadow-none sm:h-9 sm:text-sm"
+                    placeholder={t('page.search')}
+                    aria-label={t('page.search')}
+                    className="h-11 rounded-lg border-slate-200 bg-white ps-9 text-base shadow-none sm:h-9 sm:text-sm"
                   />
                 </div>
                 <OptionSelect
                   value={sort}
                   options={PROJECT_SORT_OPTIONS}
                   onChange={setSort}
-                  aria-label="Sort projects"
+                  aria-label={t('page.sort')}
                   className="h-11 sm:h-9 sm:w-48"
                 />
               </div>
               <p role="status" className="sr-only">
-                {searching ? `${active.length + archived.length} ${active.length + archived.length === 1 ? 'project matches' : 'projects match'} "${query.trim()}"` : ''}
+                {searching ? t('page.matches', { count: active.length + archived.length, query: query.trim() }) : ''}
               </p>
 
               {active.length === 0 && archived.length === 0 ? (
                 <Surface padding="none">
                   <EmptyState
                     icon={<Search />}
-                    title="No projects match"
-                    description={`Nothing matches "${query.trim()}". Try another name or key.`}
-                    action={<Button variant="outline" onClick={() => setQuery('')} className="h-10 rounded-lg">Clear search</Button>}
+                    title={t('page.noMatchTitle')}
+                    description={t('page.noMatchDescription', { query: query.trim() })}
+                    action={<Button variant="outline" onClick={() => setQuery('')} className="h-10 rounded-lg">{t('page.clearSearch')}</Button>}
                   />
                 </Surface>
               ) : (
-                <ul aria-label="Projects" className={GRID}>
+                <ul aria-label={t('page.projectsList')} className={GRID}>
                   {active.map(renderCard)}
                   {canWrite && !searching && <NewProjectCard onClick={() => setForm({ mode: 'create' })} />}
                 </ul>
@@ -191,12 +193,12 @@ const ProjectsPage = () => {
                       className="-mx-2 flex min-h-11 items-center gap-2 rounded-lg px-2 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary md:min-h-9"
                     >
                       <ChevronDown aria-hidden className={cn('size-4 text-slate-500 transition-transform', showArchived && 'rotate-180')} />
-                      Archived
+                      {t('page.archivedHeading')}
                       <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{archived.length}</span>
                     </button>
                   </h2>
                   {showArchived && (
-                    <ul id="archived-projects" aria-label="Archived projects" className={GRID}>
+                    <ul id="archived-projects" aria-label={t('page.archivedList')} className={GRID}>
                       {archived.map(renderCard)}
                     </ul>
                   )}
@@ -216,7 +218,7 @@ const ProjectsPage = () => {
           onSubmit={async input => {
             if (form.mode === 'edit') await updateProject(form.project._id, input);
             else await createProject(input);
-            toast.success(form.mode === 'edit' ? 'Project saved' : 'Project created');
+            toast.success(form.mode === 'edit' ? t('page.projectSaved') : t('page.projectCreated'));
           }}
         />
       )}
@@ -224,10 +226,10 @@ const ProjectsPage = () => {
       <ConfirmActionDialog
         open={Boolean(toDelete)}
         onOpenChange={open => !open && !deleting && setToDelete(null)}
-        title={`Delete "${toDelete?.name ?? ''}"?`}
-        description="The project and its sprints are deleted. Its tasks are kept, without a project or sprint."
-        confirmLabel="Delete project"
-        busyLabel="Deleting..."
+        title={t('page.deleteTitle', { name: toDelete?.name ?? '' })}
+        description={t('page.deleteBody')}
+        confirmLabel={t('page.deleteConfirm')}
+        busyLabel={t('page.deleting')}
         busy={deleting}
         onConfirm={confirmDelete}
       />

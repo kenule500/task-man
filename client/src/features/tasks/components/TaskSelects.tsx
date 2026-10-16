@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import i18n from '@/i18n';
 import { cn } from '@/lib/utils';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -132,7 +133,7 @@ type StatusSelectProps = PresetSelectProps<TaskStatus> & {
 };
 
 /** Status picker; shows the workspace stages (grouped by status) when the caller can handle them. */
-export const StatusSelect = ({ 'aria-label': label = 'Status', stage, onStageChange, ...props }: StatusSelectProps) => {
+export const StatusSelect = ({ 'aria-label': label = i18n.t('tasks:field.status'), stage, onStageChange, ...props }: StatusSelectProps) => {
   const { loaded } = useWorkflow();
   if (loaded && onStageChange) {
     return (
@@ -151,11 +152,11 @@ export const StatusSelect = ({ 'aria-label': label = 'Status', stage, onStageCha
   return <OptionSelect options={STATUS_OPTIONS} aria-label={label} {...props} />;
 };
 
-export const PrioritySelect = ({ 'aria-label': label = 'Priority', ...props }: PresetSelectProps<TaskPriority>) => (
+export const PrioritySelect = ({ 'aria-label': label = i18n.t('tasks:field.priority'), ...props }: PresetSelectProps<TaskPriority>) => (
   <OptionSelect options={PRIORITY_OPTIONS} aria-label={label} {...props} />
 );
 
-export const TypeSelect = ({ 'aria-label': label = 'Type', ...props }: PresetSelectProps<TaskType>) => (
+export const TypeSelect = ({ 'aria-label': label = i18n.t('tasks:field.type'), ...props }: PresetSelectProps<TaskType>) => (
   <OptionSelect options={TASK_TYPE_OPTIONS} aria-label={label} {...props} />
 );
 
@@ -166,7 +167,7 @@ interface StoryPointsSelectProps extends Omit<PresetSelectProps<string>, 'option
 }
 
 /** Fibonacci estimates; an off-scale value from the API is kept as an extra option. */
-export const StoryPointsSelect = ({ value, onChange, 'aria-label': label = 'Story points', ...props }: StoryPointsSelectProps) => (
+export const StoryPointsSelect = ({ value, onChange, 'aria-label': label = i18n.t('tasks:field.storyPoints'), ...props }: StoryPointsSelectProps) => (
   <OptionSelect
     options={storyPointOptions(value)}
     value={value === null ? NO_ESTIMATE_VALUE : String(value)}
@@ -186,7 +187,7 @@ interface SprintSelectProps extends Omit<PresetSelectProps<string>, 'options' | 
 }
 
 /** Backlog plus the planned and active sprints of the task's project; disabled without a (known) project. */
-export const SprintSelect = ({ projects, project, value, onChange, disabled, 'aria-label': label = 'Sprint', ...props }: SprintSelectProps) => {
+export const SprintSelect = ({ projects, project, value, onChange, disabled, 'aria-label': label = i18n.t('tasks:field.sprint'), ...props }: SprintSelectProps) => {
   const known = Boolean(findProjectByName(projects, project));
   return (
     <OptionSelect

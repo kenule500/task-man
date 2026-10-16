@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { BookmarkPlus, Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -25,6 +26,7 @@ interface SaveViewDialogProps {
 const SaveViewDialog = ({
   open, onOpenChange, mode, initialName = '', initialShared = false, canShare = true, summary, onSubmit,
 }: SaveViewDialogProps) => {
+  const { t } = useTranslation('tasks');
   const uid = useId();
   const nameId = `${uid}-name`;
   const sharedId = `${uid}-shared`;
@@ -38,7 +40,7 @@ const SaveViewDialog = ({
     event.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
-      setFieldError('Give the view a name.');
+      setFieldError(t('views.nameRequired'));
       document.getElementById(nameId)?.focus();
       return;
     }
@@ -56,18 +58,18 @@ const SaveViewDialog = ({
       open={open}
       onOpenChange={onOpenChange}
       icon={mode === 'create' ? <BookmarkPlus aria-hidden /> : <Pencil aria-hidden />}
-      title={mode === 'create' ? 'Save current view' : 'Edit view'}
+      title={mode === 'create' ? t('views.saveTitle') : t('views.editTitle')}
       description={mode === 'create'
-        ? 'Keep the layout and filters you are looking at, and open them again in one click.'
-        : 'Change the name of this view or who can see it.'}
+        ? t('views.saveDescription')
+        : t('views.editDescription')}
       onSubmit={handleSubmit}
-      submitLabel={mode === 'create' ? 'Save view' : 'Save changes'}
-      submittingLabel="Saving..."
+      submitLabel={mode === 'create' ? t('views.saveButton') : t('taskForm.saveChanges')}
+      submittingLabel={t('taskForm.saving')}
       submitting={submitting}
       error={error}
     >
       <Field
-        label="Name"
+        label={t('views.name')}
         htmlFor={nameId}
         required
         error={fieldError || undefined}
@@ -79,7 +81,7 @@ const SaveViewDialog = ({
           onChange={event => setName(event.target.value)}
           aria-invalid={Boolean(fieldError)}
           aria-describedby={summary || fieldError ? fieldMessageId(nameId) : undefined}
-          placeholder="e.g. My open bugs"
+          placeholder={t('views.namePlaceholder')}
           maxLength={MAX_VIEW_NAME}
           autoComplete="off"
           autoFocus
@@ -91,8 +93,8 @@ const SaveViewDialog = ({
         <label htmlFor={sharedId} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <Checkbox id={sharedId} checked={shared} onCheckedChange={checked => setShared(checked === true)} className="mt-0.5" />
           <span className="min-w-0 text-sm">
-            <span className="block font-medium text-slate-900">Share with the workspace</span>
-            <span className="block text-slate-600">Everyone who can see tasks can open it. You and workspace admins can change it.</span>
+            <span className="block font-medium text-slate-900">{t('views.shareLabel')}</span>
+            <span className="block text-slate-600">{t('views.shareHint')}</span>
           </span>
         </label>
       )}

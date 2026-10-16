@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TooltipHint } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { formatAgo } from '../lib/describe';
@@ -25,15 +26,16 @@ const useTicker = (active: boolean): number => {
  * "Up to date · updated 5 s ago", "Reconnecting…" or "Paused" (hidden tab, idle). Renders nothing until polling starts.
  */
 const LiveIndicator = ({ className }: { className?: string }) => {
+  const { t } = useTranslation('tasks');
   const { state, lastSyncAt } = useLiveSnapshot();
   const now = useTicker(state === 'live');
   if (state === 'off') return null;
 
   const label = state === 'reconnecting'
-    ? 'Reconnecting…'
+    ? t('live.reconnecting')
     : state === 'paused'
-      ? 'Paused · updates again when you are back'
-      : `Up to date${lastSyncAt ? ` · updated ${formatAgo(now - lastSyncAt)}` : ''}`;
+      ? t('live.paused')
+      : `${t('live.upToDate')}${lastSyncAt ? t('live.updatedAgo', { ago: formatAgo(now - lastSyncAt) }) : ''}`;
   const dot = state === 'live' ? 'bg-success-dot' : state === 'reconnecting' ? 'bg-warning-dot' : 'bg-slate-400';
 
   return (
@@ -44,12 +46,12 @@ const LiveIndicator = ({ className }: { className?: string }) => {
         aria-label={label}
         data-state={state}
         className={cn(
-          'mr-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 outline-none focus-visible:outline-2 focus-visible:outline-primary md:h-9',
+          'me-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-slate-500 outline-none focus-visible:outline-2 focus-visible:outline-primary md:h-9',
           className,
         )}
       >
         <span aria-hidden className={cn('size-2 rounded-full', dot)} />
-        <span aria-hidden className="hidden lg:inline">{state === 'reconnecting' ? 'Reconnecting' : 'Live'}</span>
+        <span aria-hidden className="hidden lg:inline">{state === 'reconnecting' ? t('live.reconnectingShort') : t('live.liveShort')}</span>
       </span>
     </TooltipHint>
   );

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { fetchCached, getCached, projectsKey, setCached, subscribe } from '@/lib/queryCache';
 import { getApiErrorMessage } from '@/utils/api';
@@ -68,7 +69,7 @@ export const useProjects = (workspaceSlug: string | undefined) => {
       setError('');
     } catch (err) {
       if (!getCached(projectsKey(workspaceSlug))) cacheableRef.current = false;
-      setError(getApiErrorMessage(err, 'Could not load projects'));
+      setError(getApiErrorMessage(err, i18n.t('projects:errors.load')));
     } finally {
       setLoadedSlug(workspaceSlug);
     }
@@ -104,7 +105,7 @@ export const useProjects = (workspaceSlug: string | undefined) => {
 
   /** Runs a request and turns API errors into readable messages. */
   const run = useCallback(async <T,>(request: () => Promise<T>, fallback: string): Promise<T> => {
-    if (!workspaceSlug) throw new Error('No workspace selected');
+    if (!workspaceSlug) throw new Error(i18n.t('projects:errors.noWorkspace'));
     try {
       return await request();
     } catch (err) {
@@ -115,36 +116,36 @@ export const useProjects = (workspaceSlug: string | undefined) => {
   const slug = workspaceSlug ?? '';
 
   const createProject = useCallback(async (input: ProjectInput) => {
-    const project = await run(() => projectsApi.create(slug, input), 'Could not create the project');
+    const project = await run(() => projectsApi.create(slug, input), i18n.t('projects:errors.create'));
     setProjects(current => [...current, project].sort((a, b) => a.name.localeCompare(b.name)));
     return project;
   }, [run, slug, setProjects]);
 
   const updateProject = useCallback(async (id: string, patch: ProjectPatch) => {
-    const project = await run(() => projectsApi.update(slug, id, patch), 'Could not save the project');
+    const project = await run(() => projectsApi.update(slug, id, patch), i18n.t('projects:errors.save'));
     setProjects(current => current.map(item => (item._id === id ? project : item)));
     return project;
   }, [run, slug, setProjects]);
 
   const deleteProject = useCallback(async (id: string) => {
-    await run(() => projectsApi.remove(slug, id), 'Could not delete the project');
+    await run(() => projectsApi.remove(slug, id), i18n.t('projects:errors.delete'));
     setProjects(current => current.filter(item => item._id !== id));
   }, [run, slug, setProjects]);
 
   const createSprint = useCallback(async (projectId: string, input: SprintInput) => {
-    const sprint = await run(() => projectsApi.createSprint(slug, projectId, input), 'Could not create the sprint');
+    const sprint = await run(() => projectsApi.createSprint(slug, projectId, input), i18n.t('projects:errors.createSprint'));
     setProjects(current => replaceSprint(current, sprint));
     return sprint;
   }, [run, slug, setProjects]);
 
   const updateSprint = useCallback(async (projectId: string, sprintId: string, patch: SprintPatch) => {
-    const sprint = await run(() => projectsApi.updateSprint(slug, projectId, sprintId, patch), 'Could not save the sprint');
+    const sprint = await run(() => projectsApi.updateSprint(slug, projectId, sprintId, patch), i18n.t('projects:errors.saveSprint'));
     setProjects(current => replaceSprint(current, sprint));
     return sprint;
   }, [run, slug, setProjects]);
 
   const startSprint = useCallback(async (projectId: string, sprintId: string) => {
-    const sprint = await run(() => projectsApi.startSprint(slug, projectId, sprintId), 'Could not start the sprint');
+    const sprint = await run(() => projectsApi.startSprint(slug, projectId, sprintId), i18n.t('projects:errors.startSprint'));
     setProjects(current => replaceSprint(current, sprint));
     return sprint;
   }, [run, slug, setProjects]);
@@ -152,14 +153,14 @@ export const useProjects = (workspaceSlug: string | undefined) => {
   const completeSprint = useCallback(async (projectId: string, sprintId: string, moveOpenTo: MoveOpenTo = 'backlog') => {
     const result = await run(
       () => projectsApi.completeSprint(slug, projectId, sprintId, moveOpenTo),
-      'Could not complete the sprint',
+      i18n.t('projects:errors.completeSprint'),
     );
     setProjects(current => replaceSprint(current, result.sprint));
     return result;
   }, [run, slug, setProjects]);
 
   const deleteSprint = useCallback(async (projectId: string, sprintId: string) => {
-    await run(() => projectsApi.removeSprint(slug, projectId, sprintId), 'Could not delete the sprint');
+    await run(() => projectsApi.removeSprint(slug, projectId, sprintId), i18n.t('projects:errors.deleteSprint'));
     setProjects(current => current.map(project => (project._id !== projectId
       ? project
       : { ...project, sprints: project.sprints.filter(sprint => sprint._id !== sprintId) })));

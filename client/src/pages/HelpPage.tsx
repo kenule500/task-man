@@ -1,11 +1,12 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { ChevronDown, Keyboard, LifeBuoy, Search, SearchX, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { EmptyState, IconTile, PageHeader, SectionHeader, Surface, Tag } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import {
-  FAQ_CATEGORIES, highlightSegments, queryTerms, searchFaq, type FaqResult,
+  faqCategories, highlightSegments, queryTerms, searchFaq, type FaqResult,
 } from '@/content/faq';
 import { cn } from '@/lib/utils';
 
@@ -15,14 +16,14 @@ const Kbd = ({ children }: { children: ReactNode }) => (
   </kbd>
 );
 
-const SHORTCUTS: { keys: ReactNode; action: string }[] = [
-  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>K</Kbd></>, action: 'Search from anywhere (Cmd+K on Mac)' },
-  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>B</Kbd></>, action: 'Show or hide the sidebar' },
-  { keys: <><Kbd>←</Kbd> <Kbd>→</Kbd></>, action: 'Timeline: move the focused bar one day' },
-  { keys: <><Kbd>Shift</Kbd> + <Kbd>←</Kbd> <Kbd>→</Kbd></>, action: 'Timeline: resize the focused bar' },
-  { keys: <><Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd></>, action: 'Send a comment (Cmd+Enter on Mac)' },
-  { keys: <Kbd>T</Kbd>, action: 'Calendar: jump to today' },
-  { keys: <Kbd>Esc</Kbd>, action: 'Close dialogs and menus' },
+const SHORTCUTS: { id: string; keys: ReactNode }[] = [
+  { id: 'search', keys: <><Kbd>Ctrl</Kbd> + <Kbd>K</Kbd></> },
+  { id: 'sidebar', keys: <><Kbd>Ctrl</Kbd> + <Kbd>B</Kbd></> },
+  { id: 'moveBar', keys: <><Kbd>←</Kbd> <Kbd>→</Kbd></> },
+  { id: 'resizeBar', keys: <><Kbd>Shift</Kbd> + <Kbd>←</Kbd> <Kbd>→</Kbd></> },
+  { id: 'comment', keys: <><Kbd>Ctrl</Kbd> + <Kbd>Enter</Kbd></> },
+  { id: 'today', keys: <Kbd>T</Kbd> },
+  { id: 'close', keys: <Kbd>Esc</Kbd> },
 ];
 
 const Highlighted = ({ text, terms }: { text: string; terms: string[] }) => (
@@ -59,12 +60,12 @@ const FaqEntry = ({ item, terms, open, onToggle, showCategory }: FaqEntryProps) 
           aria-expanded={open}
           aria-controls={panelId}
           onClick={onToggle}
-          className="flex min-h-12 w-full items-start justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-5"
+          className="flex min-h-12 w-full items-start justify-between gap-3 px-4 py-3.5 text-start text-sm font-semibold text-slate-900 hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-5"
         >
           <span className="min-w-0">
             <Highlighted text={item.question} terms={terms} />
             {showCategory && (
-              <Tag size="sm" className="ml-2 align-middle font-normal">{item.categoryTitle}</Tag>
+              <Tag size="sm" className="ms-2 align-middle font-normal">{item.categoryTitle}</Tag>
             )}
           </span>
           <ChevronDown
@@ -94,6 +95,7 @@ const FaqEntry = ({ item, terms, open, onToggle, showCategory }: FaqEntryProps) 
 };
 
 const HelpPage = () => {
+  const { t, i18n } = useTranslation('landing');
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [categoryId, setCategoryId] = useState<string>('all');
@@ -110,7 +112,9 @@ const HelpPage = () => {
   }, [query, searchParams, setSearchParams]);
 
   const terms = useMemo(() => queryTerms(query), [query]);
-  const matches = useMemo(() => searchFaq(query), [query]);
+  // The content is translated when it is read, so it is read again when the language changes
+  const categories = useMemo(() => faqCategories(), [i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
+  const matches = useMemo(() => searchFaq(query, categories), [query, categories]);
   const countByCategory = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const match of matches) counts[match.categoryId] = (counts[match.categoryId] ?? 0) + 1;
@@ -133,14 +137,14 @@ const HelpPage = () => {
     setCategoryId('all');
   };
 
-  const countLabel = `${visible.length} ${visible.length === 1 ? 'answer' : 'answers'}${
-    searching ? ` for "${query.trim()}"` : ''
-  }`;
+  const countLabel = searching
+    ? t('help.countFor', { count: visible.length, query: query.trim() })
+    : t('help.count', { count: visible.length });
 
   // Without a search, group by category; with one, show a single ranked list
   const groups = searching
     ? [{ id: 'results', title: '', items: visible }]
-    : FAQ_CATEGORIES
+    : categories
         .map((category) => ({
           id: category.id,
           title: category.title,
@@ -151,16 +155,16 @@ const HelpPage = () => {
   return (
     <AppShell>
       <div className="w-full max-w-3xl space-y-6">
-        <PageHeader title="Help center" description="Answers to common questions about TaskMan." />
+        <PageHeader title={t('help.title')} description={t('help.description')} />
 
         <Surface padding="md" className="space-y-4 bg-gradient-to-br from-primary/5 to-white">
           <div role="search">
             <label htmlFor="help-search" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Search help
+              {t('help.searchLabel')}
             </label>
             <div className="relative">
               <Search
-                className="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute start-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-500"
                 aria-hidden
               />
               <Input
@@ -174,17 +178,17 @@ const HelpPage = () => {
                     setQuery('');
                   }
                 }}
-                placeholder="Try “sprint”, “invite” or “offline”"
+                placeholder={t('help.searchPlaceholder')}
                 autoComplete="off"
                 enterKeyHint="search"
-                className="h-12 rounded-xl border-slate-300 bg-white pl-11 pr-12 text-base shadow-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none"
+                className="h-12 rounded-xl border-slate-300 bg-white ps-11 pe-12 text-base shadow-none placeholder:text-slate-500 [&::-webkit-search-cancel-button]:appearance-none"
               />
               {query && (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  aria-label="Clear search"
-                  className="absolute right-1.5 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-primary"
+                  aria-label={t('common:clearSearch')}
+                  className="absolute end-1.5 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-primary"
                 >
                   <X className="size-4" aria-hidden />
                 </button>
@@ -195,8 +199,8 @@ const HelpPage = () => {
             </p>
           </div>
 
-          <div role="group" aria-label="Filter by topic" className="flex flex-wrap gap-2">
-            {[{ id: 'all', title: 'All topics', count: matches.length }, ...FAQ_CATEGORIES.map((category) => ({
+          <div role="group" aria-label={t('help.filterByTopic')} className="flex flex-wrap gap-2">
+            {[{ id: 'all', title: t('help.allTopics'), count: matches.length }, ...categories.map((category) => ({
               id: category.id,
               title: category.title,
               count: countByCategory[category.id] ?? 0,
@@ -228,11 +232,11 @@ const HelpPage = () => {
           <Surface padding="none">
             <EmptyState
               icon={<SearchX />}
-              title="No answers found"
+              title={t('help.noAnswers')}
               description={
                 searching
-                  ? `Nothing matches "${query.trim()}". Try fewer or different words, or pick another topic. Still stuck? Contact your workspace owner.`
-                  : 'There are no answers in this topic yet. Contact your workspace owner.'
+                  ? t('help.noMatch', { query: query.trim() })
+                  : t('help.noAnswersInTopic')
               }
               action={
                 <button
@@ -240,7 +244,7 @@ const HelpPage = () => {
                   onClick={clearFilters}
                   className="min-h-10 rounded-lg px-3 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  Clear search and filters
+                  {t('help.clearAll')}
                 </button>
               }
             />
@@ -248,7 +252,7 @@ const HelpPage = () => {
         ) : (
           <div className="space-y-4">
             {groups.map((group) => (
-              <Surface key={group.id} as="section" padding="none" aria-label={group.title || 'Search results'} className="overflow-hidden">
+              <Surface key={group.id} as="section" padding="none" aria-label={group.title || t('help.results')} className="overflow-hidden">
                 {group.title && (
                   <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 sm:px-5">
                     <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-700">{group.title}</h2>
@@ -274,15 +278,15 @@ const HelpPage = () => {
         <Surface as="section" aria-labelledby="shortcuts-heading" className="sm:p-6">
           <SectionHeader
             icon={<Keyboard className="size-4" aria-hidden />}
-            title={<span id="shortcuts-heading">Shortcut reference</span>}
+            title={<span id="shortcuts-heading">{t('help.shortcuts')}</span>}
           />
           <p className="mb-3 text-xs text-slate-600">
-            Shortcuts that need a single key work when you are not typing in a field.
+            {t('help.shortcutsHint')}
           </p>
           <dl className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-            {SHORTCUTS.map(({ keys, action }) => (
-              <div key={action} className="flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                <dt className="text-sm text-slate-700">{action}</dt>
+            {SHORTCUTS.map(({ id, keys }) => (
+              <div key={id} className="flex flex-col gap-1.5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <dt className="text-sm text-slate-700">{t(`help.shortcutList.${id}`)}</dt>
                 <dd className="flex shrink-0 flex-wrap items-center gap-1">{keys}</dd>
               </div>
             ))}
@@ -292,14 +296,13 @@ const HelpPage = () => {
         <Surface as="section" aria-labelledby="contact-heading" className="flex items-start gap-3 sm:p-6">
           <IconTile><LifeBuoy /></IconTile>
           <div className="min-w-0 text-sm leading-relaxed text-slate-700">
-            <h2 id="contact-heading" className="font-semibold text-slate-900">Still need help?</h2>
+            <h2 id="contact-heading" className="font-semibold text-slate-900">{t('help.contactTitle')}</h2>
             <p className="mt-1">
-              Ask a workspace owner first, as they can manage members and invite codes from the Team page. For
-              product questions or bug reports, email{' '}
-              <a href="mailto:support@taskman.io" className="font-medium text-primary hover:underline">
-                support@taskman.io
-              </a>{' '}
-              with the page you were on and what you expected to happen.
+              <Trans
+                t={t}
+                i18nKey="help.contact"
+                components={{ m: <a href="mailto:support@taskman.io" className="font-medium text-primary hover:underline" /> }}
+              />
             </p>
           </div>
         </Surface>

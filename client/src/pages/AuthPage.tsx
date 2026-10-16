@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
+import { t as translate } from '@/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import api, { getApiErrorMessage } from '../utils/api';
 import { saveSession, type StoredUser } from '../utils/session';
+import { applyAccountLanguage } from '@/lib/languageApi';
 import { resolvePostLoginPath } from '../utils/postLogin';
 import { SsoButtons, clearFragment, parseSsoFragment, ssoErrorMessage } from '@/features/sso';
 import { Button } from '@/components/ui/button';
@@ -22,10 +26,10 @@ const INPUT =
 type Mode = 'login' | 'signup';
 
 const FEATURES = [
-  { icon: LayoutGrid, text: 'List, board, calendar and timeline views' },
-  { icon: Shield, text: 'Roles and permissions for every teammate' },
-  { icon: Smartphone, text: 'Installable on your phone as an app' },
-];
+  { icon: LayoutGrid, key: 'views' },
+  { icon: Shield, key: 'roles' },
+  { icon: Smartphone, key: 'install' },
+] as const;
 
 const apiErrorMessage = (error: unknown): string => {
   const axiosError = error as {
@@ -33,12 +37,13 @@ const apiErrorMessage = (error: unknown): string => {
   };
   const data = axiosError.response?.data;
   if (data?.requiresVerification) {
-    return 'Your email is not verified yet. Open the verification link we sent you, then sign in.';
+    return translate('auth:form.errors.unverified');
   }
-  return getApiErrorMessage(error, 'Something went wrong. Please try again.');
+  return getApiErrorMessage(error, translate('auth:form.errors.generic'));
 };
 
 const AuthScreen = ({ mode }: { mode: Mode }) => {
+  const { t } = useTranslation('auth');
   const isLogin = mode === 'login';
   const [showVerifyMessage, setShowVerifyMessage] = useState(false);
   // When the server verifies new accounts itself (no email needed), say so instead of "check your email"
@@ -75,6 +80,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   /** Stores the session and routes by onboarding and workspace state. */
   const finishLogin = (data: StoredUser & { token: string }) => {
     saveSession(data.token, data);
+    void applyAccountLanguage(data.language);
     navigate(ssoRedirect ?? resolvePostLoginPath(data));
   };
 
@@ -152,19 +158,14 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
       <AuthPageShell>
         <AuthStatusHeader
           icon={<CheckCircle2 />}
-          title="Your account is ready"
-          description={
-            <>
-              <span className="font-semibold text-slate-800">{formData.email.trim()}</span> is verified. Sign in to set up
-              your workspace.
-            </>
-          }
+          title={t('form.accountReady.title')}
+          description={<Trans t={t} i18nKey="form.accountReady.description" values={{ email: formData.email.trim() }} components={{ e: <span className="font-semibold text-slate-800" /> }} />}
         />
         <Link
           to="/login"
           className="flex min-h-11 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          Sign in
+          {t('form.signIn')}
         </Link>
       </AuthPageShell>
     );
@@ -175,23 +176,17 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
       <AuthPageShell>
         <AuthStatusHeader
           icon={<Mail />}
-          title="Check your email"
-          description={
-            <>
-              We sent a verification link to{' '}
-              <span className="font-semibold text-slate-800">{formData.email.trim()}</span>. Open it to verify your
-              account, then sign in.
-            </>
-          }
+          title={t('form.checkEmail.title')}
+          description={<Trans t={t} i18nKey="form.checkEmail.description" values={{ email: formData.email.trim() }} components={{ e: <span className="font-semibold text-slate-800" /> }} />}
         />
-        <Alert tone="warning" title="Can't find it?" className="mb-6">
-          Check your spam folder. The link works once and expires after a while.
+        <Alert tone="warning" title={t('form.checkEmail.cantFind')} className="mb-6">
+          {t('form.checkEmail.spam')}
         </Alert>
         <Link
           to="/login"
           className="flex min-h-11 items-center justify-center rounded-lg text-sm font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
         >
-          Back to sign in
+          {t('form.backToSignIn')}
         </Link>
       </AuthPageShell>
     );
@@ -202,13 +197,16 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
   // ============================================================
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 lg:p-8">
+      <div className="absolute end-3 top-3 z-20">
+        <LanguageSwitcher labelFrom="always" />
+      </div>
       {/* Background ambient glows */}
-      <div aria-hidden className="pointer-events-none absolute left-[-10%] top-[-10%] size-[500px] rounded-full bg-blue-200/40 blur-[120px]" />
-      <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[-10%] size-[500px] rounded-full bg-primary/10 blur-[120px]" />
+      <div aria-hidden className="pointer-events-none absolute start-[-10%] top-[-10%] size-[500px] rounded-full bg-blue-200/40 blur-[120px]" />
+      <div aria-hidden className="pointer-events-none absolute bottom-[-10%] end-[-10%] size-[500px] rounded-full bg-primary/10 blur-[120px]" />
 
       <main className="z-10 flex min-h-[min(650px,calc(100dvh-1.5rem))] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white bg-white/70 shadow-2xl shadow-slate-200/50 backdrop-blur-2xl lg:min-h-[650px] lg:flex-row">
         {/* ================= LEFT PANEL - Branding ================= */}
-        <aside className="relative hidden w-1/2 flex-col justify-between border-r border-white/50 bg-gradient-to-br from-white/80 to-slate-50/50 p-12 lg:flex">
+        <aside className="relative hidden w-1/2 flex-col justify-between border-e border-white/50 bg-gradient-to-br from-white/80 to-slate-50/50 p-12 lg:flex">
           <div aria-hidden className="absolute inset-0 z-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
 
           <div className="relative z-10">
@@ -222,21 +220,19 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
 
           <div className="relative z-10 max-w-md">
             <p className="mb-4 text-4xl font-bold leading-[1.1] tracking-tight text-slate-900">
-              Manage your tasks with{' '}
-              <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">clarity</span>{' '}
-              and ease.
+              <Trans t={t} i18nKey="form.headline" components={{ g: <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent" /> }} />
             </p>
             <p className="mb-10 text-lg leading-relaxed text-slate-600">
-              Plan work in the view that fits it, invite your team and decide who can see and change what.
+              {t('form.brandSubtitle')}
             </p>
 
             <ul className="space-y-5">
-              {FEATURES.map(({ icon: Icon, text }) => (
-                <li key={text} className="flex items-center gap-3 text-slate-700">
+              {FEATURES.map(({ icon: Icon, key }) => (
+                <li key={key} className="flex items-center gap-3 text-slate-700">
                   <span aria-hidden className="flex size-8 items-center justify-center rounded-lg border border-slate-100 bg-white shadow-sm">
                     <Icon className="size-5 text-primary" />
                   </span>
-                  <span className="font-medium">{text}</span>
+                  <span className="font-medium">{t(`form.features.${key}`)}</span>
                 </li>
               ))}
             </ul>
@@ -257,15 +253,15 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
             </Link>
             <div className="mb-8 text-center">
               <h1 className="mb-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {isLogin ? 'Welcome back' : 'Create your account'}
+                {isLogin ? t('form.welcomeBack') : t('form.createYourAccount')}
               </h1>
               <p className="text-slate-600">
-                {isLogin ? 'Sign in to open your workspace.' : 'It takes a minute. No card needed.'}
+                {isLogin ? t('form.signInSubtitle') : t('form.signUpSubtitle')}
               </p>
             </div>
 
             {sessionExpired && !error && (
-              <Alert tone="info" className="mb-6">Your session expired. Please sign in again.</Alert>
+              <Alert tone="info" className="mb-6">{t('form.sessionExpired')}</Alert>
             )}
 
             {ssoError && !error && <Alert tone="error" className="mb-6">{ssoError}</Alert>}
@@ -274,14 +270,14 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
 
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {!isLogin && (
-                <Field label="Full name" htmlFor="name" required error={errorFor('name')}>
+                <Field label={t('form.fullName')} htmlFor="name" required error={errorFor('name')}>
                   <Input
                     id="name"
                     name="name"
                     type="text"
                     required
                     autoComplete="name"
-                    placeholder="Ada Lovelace"
+                    placeholder={t('form.namePlaceholder')}
                     value={formData.name}
                     onChange={(e) => setField('name')(e.target.value)}
                     onBlur={() => touch('name')}
@@ -292,7 +288,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
                 </Field>
               )}
 
-              <Field label="Email address" htmlFor="email" required error={errorFor('email')}>
+              <Field label={t('form.email')} htmlFor="email" required error={errorFor('email')}>
                 <Input
                   id="email"
                   name="email"
@@ -302,7 +298,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
                   autoComplete="email"
                   autoCapitalize="none"
                   spellCheck={false}
-                  placeholder="name@company.com"
+                  placeholder={t('form.emailPlaceholder')}
                   value={formData.email}
                   onChange={(e) => setField('email')(e.target.value)}
                   onBlur={() => touch('email')}
@@ -314,7 +310,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
 
               <PasswordField
                 id="password"
-                label="Password"
+                label={t('form.password')}
                 value={formData.password}
                 onChange={setField('password')}
                 onBlur={() => touch('password')}
@@ -327,7 +323,7 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
                       to="/forgot-password"
                       className="inline-flex min-h-8 items-center font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                     >
-                      Forgot password?
+                      {t('form.forgotPassword')}
                     </Link>
                   ) : undefined
                 }
@@ -341,12 +337,12 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
                 {loading ? (
                   <>
                     <Spinner decorative />
-                    {isLogin ? 'Signing in...' : 'Creating account...'}
+                    {isLogin ? t('form.signingIn') : t('form.creatingAccount')}
                   </>
                 ) : (
                   <>
-                    {isLogin ? 'Sign in' : 'Create account'}
-                    <ArrowRight className="size-4" aria-hidden />
+                    {isLogin ? t('form.signIn') : t('form.createAccount')}
+                    <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
                   </>
                 )}
               </Button>
@@ -355,12 +351,12 @@ const AuthScreen = ({ mode }: { mode: Mode }) => {
             <SsoButtons />
 
             <p className="mt-8 text-center text-sm text-slate-600">
-              {isLogin ? 'New to TaskMan? ' : 'Already have an account? '}
+              {isLogin ? t('form.newToTaskMan') : t('form.haveAccount')}{' '}
               <Link
                 to={isLogin ? '/signup' : '/login'}
                 className="inline-flex min-h-10 items-center px-1 font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-primary"
               >
-                {isLogin ? 'Create an account' : 'Sign in'}
+                {isLogin ? t('form.createAnAccount') : t('form.signIn')}
               </Link>
             </p>
           </div>

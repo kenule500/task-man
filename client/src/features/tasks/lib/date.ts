@@ -1,5 +1,8 @@
 // Date-only helpers. Tasks are scheduled by calendar day, so every value is
 // handled as a local date (no time, no timezone drift) and keyed `YYYY-MM-DD`.
+// Display text (formatDate, formatMonth, formatRelativeTime) follows the interface language.
+import { currentLocale } from '@/i18n/format';
+import { t } from '@/i18n';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -40,10 +43,10 @@ export const isWeekend = (date: Date): boolean => date.getDay() === 0 || date.ge
 export const todayKey = (): string => toDateKey(new Date());
 
 export const formatDate = (value: string, options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }) =>
-  parseDateKey(value).toLocaleDateString('en-US', options);
+  parseDateKey(value).toLocaleDateString(currentLocale(), options);
 
 export const formatMonth = (date: Date): string =>
-  date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  date.toLocaleDateString(currentLocale(), { month: 'long', year: 'numeric' });
 
 /** True when the due date is before today and the task is not done. */
 export const isOverdue = (deadline: string, completed: boolean): boolean =>
@@ -54,13 +57,12 @@ export const formatRelativeTime = (iso: string, now: Date = new Date()): string 
   const then = new Date(iso);
   if (Number.isNaN(then.getTime())) return '';
   const seconds = Math.max(0, Math.round((now.getTime() - then.getTime()) / 1000));
-  if (seconds < 45) return 'just now';
-  const plural = (value: number, unit: string) => `${value} ${unit}${value === 1 ? '' : 's'} ago`;
+  if (seconds < 45) return t('common:relative.justNow');
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return plural(minutes, 'minute');
+  if (minutes < 60) return t('common:relative.minutes', { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return plural(hours, 'hour');
+  if (hours < 24) return t('common:relative.hours', { count: hours });
   const days = Math.round(hours / 24);
-  if (days < 30) return plural(days, 'day');
-  return then.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (days < 30) return t('common:relative.days', { count: days });
+  return then.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 };

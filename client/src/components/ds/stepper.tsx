@@ -46,7 +46,7 @@ export const Stepper = ({ steps, current, orientation = 'horizontal', size = 'md
             <li
               key={step.id}
               aria-current={state === 'current' ? 'step' : undefined}
-              className={cn('flex min-w-0', vertical ? 'gap-3' : 'flex-col items-start gap-2 text-left', !vertical && !isLast && 'flex-1')}
+              className={cn('flex min-w-0', vertical ? 'gap-3' : 'flex-col items-start gap-2 text-start', !vertical && !isLast && 'flex-1')}
             >
               <div className={cn('flex items-center', vertical ? 'flex-col self-stretch' : 'w-full')}>
                 <span aria-hidden className={stepperMarkerVariants({ state, size })}>

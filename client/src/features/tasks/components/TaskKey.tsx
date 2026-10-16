@@ -1,4 +1,5 @@
 import { Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { useTaskKey } from '../hooks/useTaskKey';
@@ -17,12 +18,13 @@ interface TaskKeyProps {
 
 /** Small monospace task key like "WEB-12". Renders nothing for tasks without a number. */
 const TaskKey = ({ task, copyable = false, preview, className }: TaskKeyProps) => {
+  const { t } = useTranslation('tasks');
   const key = useTaskKey(task);
   if (!key) return null;
 
   const copy = async () => {
-    if (await copyToClipboard(key)) toast.success(`Copied ${key}`);
-    else toast.error('Could not copy. Select the key and copy it manually.');
+    if (await copyToClipboard(key)) toast.success(t('key.copied', { key }));
+    else toast.error(t('key.copyError'));
   };
 
   return (
@@ -40,8 +42,8 @@ const TaskKey = ({ task, copyable = false, preview, className }: TaskKeyProps) =
       {copyable && (
         <button
           type="button"
-          aria-label="Copy key"
-          title="Copy key"
+          aria-label={t('key.copy')}
+          title={t('key.copy')}
           onClick={() => { void copy(); }}
           className="inline-flex size-8 items-center justify-center rounded text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-primary sm:size-6"
         >

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type SyntheticEvent } from 'react';
 import { MessageSquare, Send, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SectionHeader, UserAvatar, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +14,7 @@ import { getApiErrorMessage } from '../api';
 import { useWorkspaceMembers } from '../hooks/useWorkspaceMembers';
 import { formatRelativeTime } from '../lib/date';
 import type { TaskComment } from '../types';
+import { currentLocale } from '@/i18n/format';
 
 const MAX_COMMENT_LENGTH = 2000;
 const LISTBOX_ID = 'task-comment-mentions';
@@ -43,6 +45,7 @@ const CommentText = ({ text, names }: { text: string; names: string[] }) => {
 };
 
 const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, members: providedMembers }: TaskCommentsProps) => {
+  const { t } = useTranslation('tasks');
   const [text, setText] = useState('');
   const [caret, setCaret] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,9 +109,9 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
       await onAdd(trimmed);
       setText('');
       setCaret(0);
-      toast.success('Comment added');
+      toast.success(t('comments.added'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the comment.'));
+      toast.error(getApiErrorMessage(err, t('comments.addError')));
     } finally {
       setPosting(false);
     }
@@ -118,9 +121,9 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
     setRemovingId(comment._id);
     try {
       await onRemove(comment._id);
-      toast.success('Comment deleted');
+      toast.success(t('comments.deleted'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not delete the comment.'));
+      toast.error(getApiErrorMessage(err, t('comments.deleteError')));
     } finally {
       setRemovingId(null);
     }
@@ -154,22 +157,22 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
   };
 
   return (
-    <section aria-label="Comments">
-      <SectionHeader title="Comments" count={comments.length} icon={<MessageSquare className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
+    <section aria-label={t('comments.title')}>
+      <SectionHeader title={t('comments.title')} count={comments.length} icon={<MessageSquare className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
 
       {comments.length === 0 ? (
-        <p className="text-sm text-slate-500">No comments yet.</p>
+        <p className="text-sm text-slate-500">{t('comments.none')}</p>
       ) : (
         <ul className="space-y-4">
           {comments.map(comment => {
             const own = canWrite && Boolean(currentUserId) && comment.author?._id === currentUserId;
             return (
               <li key={comment._id} className="flex items-start gap-3">
-                <UserAvatar name={comment.author?.name || 'Unknown'} src={comment.author?.avatarUrl || undefined} size="sm" />
+                <UserAvatar name={comment.author?.name || t('comments.unknown')} src={comment.author?.avatarUrl || undefined} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                    <span className="font-medium text-slate-800">{comment.author?.name || 'Unknown'}</span>
-                    <time dateTime={comment.createdAt} title={new Date(comment.createdAt).toLocaleString()} className="text-xs text-slate-500">
+                    <span className="font-medium text-slate-800">{comment.author?.name || t('comments.unknown')}</span>
+                    <time dateTime={comment.createdAt} title={new Date(comment.createdAt).toLocaleString(currentLocale())} className="text-xs text-slate-500">
                       {formatRelativeTime(comment.createdAt)}
                     </time>
                   </p>
@@ -181,7 +184,7 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Delete comment"
+                    aria-label={t('comments.delete')}
                     disabled={removingId === comment._id}
                     onClick={() => void remove(comment)}
                     className="size-10 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
@@ -197,13 +200,13 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
 
       {canWrite && (
         <div className="mt-4 space-y-2">
-          <label htmlFor="task-comment" className="sr-only">Add a comment</label>
+          <label htmlFor="task-comment" className="sr-only">{t('comments.addLabel')}</label>
           <div className="relative">
             {listOpen && (
               <ul
                 id={LISTBOX_ID}
                 role="listbox"
-                aria-label="Mention a teammate"
+                aria-label={t('comments.mentionList')}
                 className="absolute inset-x-0 bottom-full z-10 mb-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
               >
                 {suggestions.map((member, index) => (
@@ -239,24 +242,24 @@ const TaskComments = ({ comments, currentUserId, canWrite, onAdd, onRemove, memb
               aria-controls={listOpen ? LISTBOX_ID : undefined}
               aria-activedescendant={listOpen ? optionId(activeOption) : undefined}
               aria-autocomplete="list"
-              placeholder="Write a comment... Type @ to mention a teammate"
+              placeholder={t('comments.placeholder')}
               maxLength={MAX_COMMENT_LENGTH}
               rows={2}
               className="min-h-16 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:text-sm"
             />
           </div>
           <p role="status" className="sr-only">
-            {listOpen ? `${suggestions.length} ${suggestions.length === 1 ? 'person' : 'people'} to mention. Use the arrow keys and Enter.` : ''}
+            {listOpen ? t('comments.mentionStatus', { count: suggestions.length }) : ''}
           </p>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-slate-500">Ctrl or Cmd + Enter to send</p>
+            <p className="text-xs text-slate-500">{t('comments.sendHint')}</p>
             <Button
               type="button"
               disabled={!trimmed || posting}
               onClick={() => void post()}
               className="h-10 gap-1.5 bg-primary text-white hover:bg-primary-hover sm:h-9"
             >
-              <Send className="size-4" aria-hidden /> {posting ? 'Sending...' : 'Comment'}
+              <Send className="size-4" aria-hidden /> {posting ? t('comments.sending') : t('comments.send')}
             </Button>
           </div>
         </div>

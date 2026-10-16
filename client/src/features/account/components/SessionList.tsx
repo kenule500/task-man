@@ -1,8 +1,10 @@
 import { Monitor, Smartphone, Tablet, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Tag, Spinner } from '@/components/ds';
 import type { AccountSession } from '../types';
 import { deviceLabel, describeUserAgent, formatRelativeTime, type DeviceKind } from '../lib/userAgent';
+import { currentLocale } from '@/i18n/format';
 
 const ICONS: Record<DeviceKind, LucideIcon> = { desktop: Monitor, mobile: Smartphone, tablet: Tablet };
 
@@ -16,6 +18,7 @@ interface SessionListProps {
 
 /** Accessible list of signed-in devices; the current one is shown first with a tag. */
 export const SessionList = ({ sessions, busyId = null, onSignOut, now }: SessionListProps) => {
+  const { t } = useTranslation('settings');
   const ordered = [...sessions].sort((a, b) => Number(b.current) - Number(a.current));
 
   return (
@@ -35,13 +38,13 @@ export const SessionList = ({ sessions, busyId = null, onSignOut, now }: Session
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
                   <span className="break-words">{label}</span>
-                  {session.current && <Tag tone="success" size="sm">This device</Tag>}
+                  {session.current && <Tag tone="success" size="sm">{t('devices.thisDevice')}</Tag>}
                 </p>
                 <p className="mt-0.5 break-words text-xs text-slate-600">
-                  {session.ipAddress || 'IP unknown'}
+                  {session.ipAddress || t('devices.ipUnknown')}
                   <span aria-hidden> · </span>
-                  <span title={Number.isNaN(absolute.getTime()) ? undefined : absolute.toLocaleString()}>
-                    Signed in {formatRelativeTime(when, now) || 'at an unknown time'}
+                  <span title={Number.isNaN(absolute.getTime()) ? undefined : absolute.toLocaleString(currentLocale())}>
+                    {t('devices.signedIn', { when: formatRelativeTime(when, now) || t('devices.unknownTime') })}
                   </span>
                 </p>
               </div>
@@ -51,11 +54,11 @@ export const SessionList = ({ sessions, busyId = null, onSignOut, now }: Session
               variant="outline"
               disabled={busy}
               onClick={() => onSignOut(session)}
-              aria-label={`Sign out ${label}`}
+              aria-label={t('devices.signOutDevice', { device: label })}
               className="h-11 w-full gap-2 sm:h-9 sm:w-auto"
             >
               {busy && <Spinner decorative />}
-              Sign out
+              {t('devices.signOut')}
             </Button>
           </li>
         );

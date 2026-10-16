@@ -1,4 +1,6 @@
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { formatDate } from '@/features/tasks';
 import { useActiveIndex } from '../hooks/useActiveIndex';
 import { useChartWidth } from '../hooks/useChartWidth';
@@ -12,10 +14,11 @@ const PAD = { left: 30, right: 10, top: 20, bottom: 30 };
 
 const weekOf = (week: ThroughputWeek) => formatDate(week.start, { month: 'short', day: 'numeric' });
 const describe = (week: ThroughputWeek) =>
-  `Week of ${formatDate(week.start, { month: 'long', day: 'numeric' })} (${week.week}): ${week.count} ${week.count === 1 ? 'task' : 'tasks'} completed`;
+  i18n.t('reports:flow.weekDescribe', { date: formatDate(week.start, { month: 'long', day: 'numeric' }), week: week.week, count: week.count });
 
 /** Tasks completed in each ISO week of the range. */
 const ThroughputChart = ({ weeks }: { weeks: ThroughputWeek[] }) => {
+  const { t } = useTranslation('reports');
   const id = useId();
   const [box, W] = useChartWidth(MIN_W);
   const { active, setActive, handlers } = useActiveIndex(weeks.length, 'last');
@@ -30,13 +33,13 @@ const ThroughputChart = ({ weeks }: { weeks: ThroughputWeek[] }) => {
 
   return (
     <figure className="m-0">
-      <ScrollFrame label="Throughput chart. Use the left and right arrow keys to read each week." aria-describedby={`${id}-live`} {...handlers}>
+      <ScrollFrame label={t('flow.throughputLabel')} aria-describedby={`${id}-live`} {...handlers}>
         <div ref={box} className="relative min-w-[420px]">
           <svg
             viewBox={`0 0 ${W} ${H}`}
             role="img"
-            aria-label={`Throughput: ${total} ${total === 1 ? 'task' : 'tasks'} completed over ${weeks.length} ${weeks.length === 1 ? 'week' : 'weeks'}.`}
-            className="block h-auto w-full text-slate-500"
+            aria-label={t('flow.throughputSummary', { count: total, weeks: t('flow.weeksCount', { count: weeks.length }) })}
+            className="block h-auto w-full text-slate-500 [direction:ltr]"
           >
             {scale.ticks.map(tick => (
               <g key={tick}>
@@ -70,8 +73,8 @@ const ThroughputChart = ({ weeks }: { weeks: ThroughputWeek[] }) => {
           </svg>
           {active !== null && (
             <ChartTooltip left={(cx(active) / W) * 100}>
-              <p className="font-semibold">Week of {weekOf(weeks[active])}</p>
-              <p><span className="tabular-nums">{weeks[active].count}</span> completed</p>
+              <p className="font-semibold">{t('flow.weekOf', { date: weekOf(weeks[active]) })}</p>
+              <p>{t('flow.tooltipCompleted', { n: weeks[active].count })}</p>
             </ChartTooltip>
           )}
         </div>
@@ -80,9 +83,9 @@ const ThroughputChart = ({ weeks }: { weeks: ThroughputWeek[] }) => {
 
       <div className="sr-only">
         <table>
-          <caption>Tasks completed per week</caption>
+          <caption>{t('flow.throughputCaption')}</caption>
           <thead>
-            <tr><th scope="col">Week</th><th scope="col">Starts</th><th scope="col">Completed</th></tr>
+            <tr><th scope="col">{t('flow.week')}</th><th scope="col">{t('flow.starts')}</th><th scope="col">{t('flow.completedColumn')}</th></tr>
           </thead>
           <tbody>
             {weeks.map(week => (

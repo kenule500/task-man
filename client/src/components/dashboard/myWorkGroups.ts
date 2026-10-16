@@ -1,13 +1,9 @@
+import { t } from '@/i18n';
 import { addDays, dateKeyOf, parseDateKey, toDateKey, todayKey, PRIORITY_META, type Task } from '@/features/tasks';
 
 export type MyWorkBucket = 'overdue' | 'today' | 'week' | 'later';
 
-export const MY_WORK_LABELS: Record<MyWorkBucket, string> = {
-  overdue: 'Overdue',
-  today: 'Due today',
-  week: 'This week',
-  later: 'Later',
-};
+const bucketLabel = (bucket: MyWorkBucket): string => t(`dashboard:myWork.buckets.${bucket}`);
 
 const BUCKET_ORDER: MyWorkBucket[] = ['overdue', 'today', 'week', 'later'];
 
@@ -70,7 +66,7 @@ export const buildMyWork = (
     if (sorted.length === 0) continue;
     const shownTasks = sorted.slice(0, remaining);
     remaining -= shownTasks.length;
-    if (shownTasks.length > 0) groups.push({ bucket, label: MY_WORK_LABELS[bucket], tasks: shownTasks, total: sorted.length });
+    if (shownTasks.length > 0) groups.push({ bucket, label: bucketLabel(bucket), tasks: shownTasks, total: sorted.length });
   }
 
   const since = now.getTime() - RECENT_DAYS * 24 * 60 * 60 * 1000;

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { fetchCached, getCached, setCached, subscribe } from '@/lib/queryCache';
 import { getApiErrorMessage } from '@/utils/api';
@@ -30,7 +31,7 @@ export const useReleases = (slug: string | undefined, enabled = true) => {
         if (!cancelled) setFailure(null);
       })
       .catch(err => {
-        if (!cancelled) setFailure({ key, message: getApiErrorMessage(err, 'Could not load releases') });
+        if (!cancelled) setFailure({ key, message: getApiErrorMessage(err, i18n.t('projects:releases.errors.load')) });
       });
     return () => { cancelled = true; };
   }, [key, slug]);
@@ -53,11 +54,11 @@ export const useReleases = (slug: string | undefined, enabled = true) => {
     return result;
   }, [slug, refresh]);
 
-  const create = useCallback((input: ReleaseInput) => mutate(workspace => releasesApi.create(workspace, input), 'Could not create the release.'), [mutate]);
-  const update = useCallback((id: string, patch: ReleasePatch) => mutate(workspace => releasesApi.update(workspace, id, patch), 'Could not save the release.'), [mutate]);
-  const remove = useCallback((id: string) => mutate(workspace => releasesApi.remove(workspace, id), 'Could not delete the release.'), [mutate]);
+  const create = useCallback((input: ReleaseInput) => mutate(workspace => releasesApi.create(workspace, input), i18n.t('projects:releases.errors.create')), [mutate]);
+  const update = useCallback((id: string, patch: ReleasePatch) => mutate(workspace => releasesApi.update(workspace, id, patch), i18n.t('projects:releases.errors.save')), [mutate]);
+  const remove = useCallback((id: string) => mutate(workspace => releasesApi.remove(workspace, id), i18n.t('projects:releases.errors.delete')), [mutate]);
   const release = useCallback(
-    (id: string, moveOpenTo?: MoveOpenTo) => mutate(workspace => releasesApi.release(workspace, id, moveOpenTo), 'Could not release.'),
+    (id: string, moveOpenTo?: MoveOpenTo) => mutate(workspace => releasesApi.release(workspace, id, moveOpenTo), i18n.t('projects:releases.errors.release')),
     [mutate],
   );
 

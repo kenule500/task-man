@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage, timeApi, type TimesheetQuery } from '../api';
 import { TIME_CHANGED_EVENT } from '../timerStore';
 import type { Timesheet } from '../types';
@@ -33,7 +34,7 @@ export const useTimesheet = (slug: string | undefined, query: TimesheetQuery) =>
           setState(prev => ({
             key,
             data: prev && prev.key === key ? prev.data : null,
-            error: getApiErrorMessage(err, 'Could not load the timesheet.'),
+            error: getApiErrorMessage(err, i18n.t('tasks:time.loadSheetError')),
           }));
         });
     };

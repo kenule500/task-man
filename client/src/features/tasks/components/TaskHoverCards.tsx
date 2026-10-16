@@ -1,4 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { UserAvatar } from '@/components/ds';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { useTaskKey } from '../hooks/useTaskKey';
@@ -17,7 +19,7 @@ interface UserHoverCardProps {
  * Preview of a person on hover or focus of their avatar. Supplementary: the name is always available
  * in text next to (or screen-reader text for) the avatar, so the card is never the only way to get it.
  */
-export const UserHoverCard = ({ user, children, role = 'Assignee' }: UserHoverCardProps) => (
+export const UserHoverCard = ({ user, children, role = i18n.t('tasks:hover.assignee') }: UserHoverCardProps) => (
   <HoverCard>
     <HoverCardTrigger render={<span className="inline-flex" />} delay={400}>{children}</HoverCardTrigger>
     <HoverCardContent width="sm" side="top" align="center">
@@ -33,6 +35,7 @@ export const UserHoverCard = ({ user, children, role = 'Assignee' }: UserHoverCa
 );
 
 const TaskPreview = ({ task }: { task: Task }) => {
+  const { t } = useTranslation('tasks');
   const key = useTaskKey(task);
   return (
     <div className="space-y-2.5">
@@ -50,7 +53,7 @@ const TaskPreview = ({ task }: { task: Task }) => {
       </div>
       {(task.assignees ?? []).length > 0 && (
         <p className="truncate text-xs text-muted-foreground">
-          Assigned to {(task.assignees ?? []).map(user => user.name).join(', ')}
+          {t('assignees.assignedTo', { names: (task.assignees ?? []).map(user => user.name).join(', ') })}
         </p>
       )}
     </div>

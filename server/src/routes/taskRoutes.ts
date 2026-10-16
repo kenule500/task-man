@@ -40,6 +40,7 @@ import {
   stopTimer,
   validateTimeEntry,
 } from '../controllers/timeController.js';
+import { getAiReview, listAiReviews, runAiReview, validateRunReview } from '../controllers/aiReviewController.js';
 import { getTaskActivity } from '../controllers/activityController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
@@ -73,6 +74,11 @@ router.post('/:id/move', requirePermission('tasks:write'), validateMoveTask, mov
 
 // History of field changes, comments and files
 router.get('/:id/activity', requirePermission('tasks:read'), getTaskActivity);
+
+// AI code review of the linked pull request (needs the workspace to opt in; runs after the 202 response)
+router.post('/:id/ai-review', requirePermission('tasks:write'), validateRunReview, runAiReview);
+router.get('/:id/ai-reviews', requirePermission('tasks:read'), listAiReviews);
+router.get('/:id/ai-reviews/:reviewId', requirePermission('tasks:read'), getAiReview);
 
 // Time tracking: entries, manual logging, one running timer per user (delete: author or settings:manage)
 router.get('/:id/time', requirePermission('tasks:read'), getTaskTime);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage, timeApi } from '../api';
 import { TIME_CHANGED_EVENT, notifyTimeChanged } from '../timerStore';
 import type { LogTimeInput, TaskTime } from '../types';
@@ -29,7 +30,7 @@ export const useTaskTime = (slug: string | undefined, taskId: string) => {
           setState(prev => ({
             scope,
             data: prev && prev.scope === scope ? prev.data : null,
-            error: getApiErrorMessage(err, 'Could not load the time entries.'),
+            error: getApiErrorMessage(err, i18n.t('tasks:time.loadEntriesError')),
           }));
         });
     };

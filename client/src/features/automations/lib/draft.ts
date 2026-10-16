@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import {
   MAX_ACTIONS, MAX_COMMENT, MAX_CONDITIONS, MAX_RULE_NAME, MAX_VALUE,
   type Automation, type AutomationAction, type AutomationCondition, type AutomationInput, type AutomationTemplate,
@@ -74,19 +75,19 @@ export interface DraftErrors {
 
 const labelError = (value: string): string | undefined => {
   const text = value.trim();
-  if (!text) return 'Enter a label';
-  return text.length > MAX_VALUE ? `Labels can have up to ${MAX_VALUE} characters` : undefined;
+  if (!text) return i18n.t('admin:automations.errors.labelEmpty');
+  return text.length > MAX_VALUE ? i18n.t('admin:automations.errors.labelLong', { max: MAX_VALUE }) : undefined;
 };
 
 /** Checks a draft the way the server does, so the form can point at the field to fix. */
 export const validateDraft = (draft: RuleDraft): DraftErrors => {
   const errors: DraftErrors = { conditions: [], actions: [] };
   const name = draft.name.trim();
-  if (!name) errors.name = 'Give the rule a name';
-  else if (name.length > MAX_RULE_NAME) errors.name = `Names can have up to ${MAX_RULE_NAME} characters`;
+  if (!name) errors.name = i18n.t('admin:automations.errors.nameEmpty');
+  else if (name.length > MAX_RULE_NAME) errors.name = i18n.t('admin:automations.errors.nameLong', { max: MAX_RULE_NAME });
 
   if (triggerValueKind(draft.trigger.type) === 'label' && draft.trigger.to.trim().length > MAX_VALUE) {
-    errors.trigger = `Labels can have up to ${MAX_VALUE} characters`;
+    errors.trigger = i18n.t('admin:automations.errors.labelLong', { max: MAX_VALUE });
   }
 
   errors.conditions = draft.conditions.map(condition =>
@@ -95,18 +96,18 @@ export const validateDraft = (draft: RuleDraft): DraftErrors => {
   errors.actions = draft.actions.map(action => {
     const kind = actionValueKind(action.type);
     if (kind === 'label') return labelError(action.value);
-    if (kind === 'member') return action.value ? undefined : 'Choose a member';
+    if (kind === 'member') return action.value ? undefined : i18n.t('admin:automations.errors.chooseMember');
     if (kind === 'comment') {
       const text = action.value.trim();
-      if (!text) return 'Write the comment';
-      return text.length > MAX_COMMENT ? `Comments can have up to ${MAX_COMMENT} characters` : undefined;
+      if (!text) return i18n.t('admin:automations.errors.commentEmpty');
+      return text.length > MAX_COMMENT ? i18n.t('admin:automations.errors.commentLong', { max: MAX_COMMENT }) : undefined;
     }
     return undefined;
   });
 
-  if (draft.actions.length === 0) errors.form = 'Add at least one action';
-  else if (draft.actions.length > MAX_ACTIONS) errors.form = `A rule can have up to ${MAX_ACTIONS} actions`;
-  else if (draft.conditions.length > MAX_CONDITIONS) errors.form = `A rule can have up to ${MAX_CONDITIONS} conditions`;
+  if (draft.actions.length === 0) errors.form = i18n.t('admin:automations.errors.noAction');
+  else if (draft.actions.length > MAX_ACTIONS) errors.form = i18n.t('admin:automations.errors.tooManyActions', { max: MAX_ACTIONS });
+  else if (draft.conditions.length > MAX_CONDITIONS) errors.form = i18n.t('admin:automations.errors.tooManyConditions', { max: MAX_CONDITIONS });
   return errors;
 };
 

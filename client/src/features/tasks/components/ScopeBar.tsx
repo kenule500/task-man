@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { CalendarDays, ChevronRight, FileBarChart, Flag, Inbox, X } from 'lucide-react';
 import { Banner, Tag } from '@/components/ds';
 import { cn } from '@/lib/utils';
@@ -19,9 +21,9 @@ interface ScopeBarProps {
 }
 
 const STATUS_TAG = {
-  planned: { tone: 'neutral', label: 'Planned' },
-  active: { tone: 'primary', label: 'Active' },
-  completed: { tone: 'success', label: 'Completed' },
+  planned: { tone: 'neutral' },
+  active: { tone: 'primary' },
+  completed: { tone: 'success' },
 } as const;
 
 /** Days left at which the scope bar adds a "this sprint ends" banner. */
@@ -29,9 +31,9 @@ const ENDING_SOON_DAYS = 3;
 
 /** "This sprint ends in 2 days.", "This sprint ends today." or "This sprint ended 1 day ago." */
 const describeEnding = (days: number): string => {
-  if (days === 0) return 'This sprint ends today.';
-  if (days > 0) return `This sprint ends in ${days} ${days === 1 ? 'day' : 'days'}.`;
-  return `This sprint ended ${-days} ${days === -1 ? 'day' : 'days'} ago.`;
+  if (days === 0) return i18n.t('tasks:scope.endsToday');
+  if (days > 0) return i18n.t('tasks:scope.endsIn', { count: days });
+  return i18n.t('tasks:scope.endedAgo', { count: -days });
 };
 
 const linkClass = 'inline-flex min-h-11 min-w-0 items-center gap-1.5 rounded-md px-1 text-sm font-semibold text-slate-900 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8';
@@ -41,6 +43,7 @@ const linkClass = 'inline-flex min-h-11 min-w-0 items-center gap-1.5 rounded-md 
  * project (links to its page) › sprint with status, dates, goal and time left, a sprint report link and a clear button.
  */
 const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
+  const { t } = useTranslation('tasks');
   if (!hasScope(filters)) return null;
 
   const project = scopeProjectOf(filters, projects);
@@ -53,16 +56,16 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
   return (
     <>
     <section
-      aria-label="Scope"
+      aria-label={t('scope.region')}
       data-testid="scope-bar"
       className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm"
     >
-      <nav aria-label="Scope path" className="min-w-0 max-w-full">
+      <nav aria-label={t('scope.path')} className="min-w-0 max-w-full">
         <ol className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
           {projectName && (
             <li className="flex min-w-0 items-center gap-1.5">
               {full ? (
-                <Link to={`/${slug}/projects/${full._id}`} title={`Open project ${full.name}`} className={linkClass}>
+                <Link to={`/${slug}/projects/${full._id}`} title={t('scope.openProject', { name: full.name })} className={linkClass}>
                   <ProjectFolderIcon size="sm" color={full.color} icon={full.icon} />
                   <span className="truncate">{full.name}</span>
                 </Link>
@@ -72,19 +75,19 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
                   <span className="truncate">{projectName}</span>
                 </span>
               )}
-              {wantsSprint && <ChevronRight aria-hidden className="size-3.5 shrink-0 text-slate-400" />}
+              {wantsSprint && <ChevronRight aria-hidden className="size-3.5 shrink-0 text-slate-400 rtl:-scale-x-100" />}
             </li>
           )}
           {wantsSprint && (
             <li className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
               {filters.sprint === 'backlog' ? (
                 <span className="inline-flex min-h-8 items-center gap-1.5 text-sm font-semibold text-slate-900">
-                  <Inbox aria-hidden className="size-4 text-slate-500" /> Backlog
+                  <Inbox aria-hidden className="size-4 text-slate-500" /> {t('form.backlog')}
                 </span>
               ) : sprint ? (
                 <>
                   <span aria-current="page" className="min-w-0 truncate text-sm font-semibold text-slate-900" title={sprint.name}>{sprint.name}</span>
-                  <Tag tone={STATUS_TAG[sprint.status].tone} size="sm">{STATUS_TAG[sprint.status].label}</Tag>
+                  <Tag tone={STATUS_TAG[sprint.status].tone} size="sm">{t(`scope.status.${sprint.status}`)}</Tag>
                   {sprint.startDate && sprint.endDate && (
                     <span className="inline-flex items-center gap-1 text-xs tabular-nums text-slate-600">
                       <CalendarDays aria-hidden className="size-3.5" />
@@ -99,13 +102,13 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
                   )}
                   {sprint.goal && (
                     <span className="max-w-full truncate text-xs text-slate-600 sm:max-w-md" title={sprint.goal}>
-                      <span className="font-semibold">Goal:</span> {sprint.goal}
+                      <span className="font-semibold">{t('scope.goal')}</span> {sprint.goal}
                     </span>
                   )}
                 </>
               ) : (
                 <span className="text-sm text-slate-600">
-                  {filters.sprint === 'active' ? 'No sprint is running' : 'Sprint not found'}
+                  {filters.sprint === 'active' ? t('scope.noSprintRunning') : t('scope.sprintNotFound')}
                 </span>
               )}
             </li>
@@ -113,21 +116,21 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
         </ol>
       </nav>
 
-      <div className="ml-auto flex shrink-0 items-center gap-1">
+      <div className="ms-auto flex shrink-0 items-center gap-1">
         {sprint && sprint.status !== 'planned' && (
           <Link
             to={`/${slug}/projects/${sprint.project}/sprints/${sprint._id}/report`}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-primary outline-none hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
           >
             <FileBarChart aria-hidden className="size-3.5" />
-            Sprint report<span className="sr-only"> for {sprint.name}</span>
+            {t('scope.sprintReport')}<span className="sr-only">{t('scope.sprintReportFor', { name: sprint.name })}</span>
           </Link>
         )}
         <button
           type="button"
           onClick={onClear}
-          aria-label="Clear project and sprint scope"
-          title="Clear scope"
+          aria-label={t('scope.clearAria')}
+          title={t('scope.clearTitle')}
           className="inline-flex size-11 items-center justify-center rounded-md text-slate-600 outline-none hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary md:size-8"
         >
           <X aria-hidden className="size-4" />
@@ -140,10 +143,10 @@ const ScopeBar = ({ slug, filters, projects, onClear }: ScopeBarProps) => {
           to={`/${slug}/projects/${sprint.project}/sprints/${sprint._id}/report`}
           className="inline-flex min-h-11 items-center rounded-md px-2 text-sm font-semibold underline outline-none focus-visible:outline-2 focus-visible:outline-focus md:min-h-8"
         >
-          Review sprint<span className="sr-only"> {sprint.name}</span>
+          {t('scope.reviewSprint')}<span className="sr-only"> {sprint.name}</span>
         </Link>
       }>
-        {describeEnding(daysLeft)} Finish or move open work.
+        {describeEnding(daysLeft)} {t('scope.finishOrMove')}
       </Banner>
     )}
     </>

@@ -139,13 +139,15 @@ export const invitationTemplate = (
 // ================================================================
 // Task notifications (assigned, completed, @mention, comment on my task)
 // ================================================================
-export type NotificationEmailKind = 'task.assigned' | 'task.completed' | 'comment.mention' | 'comment.reply_on_my_task';
+export type NotificationEmailKind = 'task.assigned' | 'task.completed' | 'comment.mention' | 'comment.reply_on_my_task' | 'ai.review_completed' | 'chat.mention';
 
 const NOTIFICATION_SENTENCES: Record<NotificationEmailKind, (actor: string, task: string) => string> = {
   'task.assigned': (actor, task) => `${actor} assigned you "${task}".`,
   'task.completed': (actor, task) => `${actor} completed "${task}".`,
   'comment.mention': (actor, task) => `${actor} mentioned you in a comment on "${task}".`,
   'comment.reply_on_my_task': (actor, task) => `${actor} commented on "${task}".`,
+  'ai.review_completed': (_actor, task) => `The AI code review of "${task}" is ready.`,
+  'chat.mention': (actor, task) => `${actor} mentioned you in ${task}.`,
 };
 
 const NOTIFICATION_SUBJECTS: Record<NotificationEmailKind, (actor: string, task: string) => string> = {
@@ -153,6 +155,8 @@ const NOTIFICATION_SUBJECTS: Record<NotificationEmailKind, (actor: string, task:
   'task.completed': (_actor, task) => `Completed: ${task}`,
   'comment.mention': (actor, task) => `${actor} mentioned you on ${task}`,
   'comment.reply_on_my_task': (actor, task) => `New comment on ${task}`,
+  'ai.review_completed': (_actor, task) => `AI code review ready: ${task}`,
+  'chat.mention': (actor, task) => `${actor} mentioned you in ${task}`,
 };
 
 export const notificationTemplate = (

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/utils/api';
 import { automationsApi } from '../api';
@@ -32,7 +33,7 @@ export const useAutomations = (slug: string | undefined, enabled: boolean) => {
         setError('');
       })
       .catch(err => {
-        if (!cancelled) setError(getApiErrorMessage(err, 'We could not load the automation rules.'));
+        if (!cancelled) setError(getApiErrorMessage(err, i18n.t('admin:automations.errors.load')));
       })
       .finally(() => {
         if (!cancelled) setLoadedKey(currentKey);
@@ -54,22 +55,22 @@ export const useAutomations = (slug: string | undefined, enabled: boolean) => {
   }, []);
 
   const createRule = useCallback(async (input: AutomationInput) => {
-    if (!slug) throw new Error('No workspace selected');
-    const rule = await run(() => automationsApi.create(slug, input), 'We could not save the rule.');
+    if (!slug) throw new Error(i18n.t('admin:automations.errors.noWorkspace'));
+    const rule = await run(() => automationsApi.create(slug, input), i18n.t('admin:automations.errors.save'));
     setRules(current => [...current, rule]);
     return rule;
   }, [slug, run]);
 
   const updateRule = useCallback(async (id: string, patch: Partial<AutomationInput>) => {
-    if (!slug) throw new Error('No workspace selected');
-    const rule = await run(() => automationsApi.update(slug, id, patch), 'We could not save the rule.');
+    if (!slug) throw new Error(i18n.t('admin:automations.errors.noWorkspace'));
+    const rule = await run(() => automationsApi.update(slug, id, patch), i18n.t('admin:automations.errors.save'));
     setRules(current => current.map(item => (item._id === id ? rule : item)));
     return rule;
   }, [slug, run]);
 
   const deleteRule = useCallback(async (id: string) => {
-    if (!slug) throw new Error('No workspace selected');
-    await run(() => automationsApi.remove(slug, id), 'We could not delete the rule.');
+    if (!slug) throw new Error(i18n.t('admin:automations.errors.noWorkspace'));
+    await run(() => automationsApi.remove(slug, id), i18n.t('admin:automations.errors.delete'));
     setRules(current => current.filter(item => item._id !== id));
   }, [slug, run]);
 

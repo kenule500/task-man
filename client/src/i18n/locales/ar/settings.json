@@ -1,0 +1,812 @@
+{
+  "layout": {
+    "title": "الإعدادات",
+    "description": "أدِر حسابك وتفضيلاتك",
+    "sections": "أقسام الإعدادات",
+    "profile": {
+      "label": "الملف الشخصي",
+      "description": "معلوماتك العامة"
+    },
+    "notifications": {
+      "label": "الإشعارات",
+      "description": "تفضيلات البريد والإشعارات الفورية"
+    },
+    "security": {
+      "label": "الأمان",
+      "description": "كلمة المرور وسلامة الحساب"
+    }
+  },
+  "profile": {
+    "loading": "جارٍ تحميل الملف الشخصي",
+    "loadFailed": "تعذّر تحميل الملف الشخصي",
+    "loadFailedHint": "يُرجى تحديث الصفحة أو تسجيل الدخول مرة أخرى.",
+    "updated": "تم تحديث الملف الشخصي بنجاح",
+    "updateFailed": "تعذّر تحديث الملف الشخصي",
+    "fullName": "الاسم الكامل",
+    "jobTitle": "المسمى الوظيفي",
+    "jobTitlePlaceholder": "مثال: مصمم منتجات",
+    "phone": "الهاتف",
+    "timezone": "المنطقة الزمنية",
+    "timezones": {
+      "newYork": "توقيت الساحل الشرقي",
+      "losAngeles": "توقيت المحيط الهادئ",
+      "london": "لندن",
+      "paris": "باريس",
+      "lagos": "لاغوس",
+      "tokyo": "طوكيو",
+      "dubai": "دبي"
+    },
+    "bio": "نبذة تعريفية",
+    "bioPlaceholder": "حدّثنا قليلًا عن نفسك...",
+    "appearance": "المظهر",
+    "appearanceHint": "اختر مظهر TaskMan. خيار «النظام» يتبع إعداد جهازك. يُحفظ اختيارك في حسابك.",
+    "theme": "السمة",
+    "themes": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "النظام"
+    },
+    "themeSaveFailed": "تعذّر حفظ السمة. تُطبَّق على هذا الجهاز فقط. حاول مرة أخرى لاحقًا.",
+    "saving": "جارٍ الحفظ...",
+    "save": "حفظ التغييرات"
+  },
+  "security": {
+    "changePassword": "تغيير كلمة المرور",
+    "changePasswordHint": "حدّث كلمة المرور للحفاظ على أمان حسابك.",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور الجديدة",
+    "passwordChanged": "تم تغيير كلمة المرور. سُجّل خروج أجهزتك الأخرى.",
+    "passwordFailed": "تعذّر تغيير كلمة المرور. تحقّق من كلمة المرور الحالية وحاول مرة أخرى.",
+    "updating": "جارٍ التحديث...",
+    "update": "تحديث كلمة المرور"
+  },
+  "twoFactor": {
+    "title": "المصادقة الثنائية",
+    "description": "أضِف خطوة ثانية لتسجيل الدخول: رمز من 6 أرقام من تطبيق مصادقة على هاتفك. عندها لا تكفي كلمة المرور المسروقة وحدها.",
+    "yourAccount": "حسابك",
+    "on": "مفعّلة",
+    "off": "معطّلة",
+    "loadFailed": "تعذّر تحميل هذا الإعداد",
+    "turnedOn": "مفعّلة.",
+    "turnedOnDate": "فُعّلت في {{date}}.",
+    "codesLeft_zero": "لا توجد رموز استرداد متبقية.",
+    "codesLeft_one": "تبقّى رمز استرداد واحد.",
+    "codesLeft_two": "تبقّى رمزا استرداد.",
+    "codesLeft_few": "تبقّت {{count}} رموز استرداد.",
+    "codesLeft_many": "تبقّى {{count}} رمز استرداد.",
+    "codesLeft_other": "تبقّى {{count}} رمز استرداد.",
+    "lowCodes": "رموز الاسترداد لديك على وشك النفاد. أنشئ رموزًا جديدة واحفظها في مكان آمن.",
+    "newCodes": "رموز استرداد جديدة",
+    "turnOff": "إيقاف",
+    "setUp": "إعداد المصادقة الثنائية",
+    "isOff": "المصادقة الثنائية معطّلة.",
+    "setup": {
+      "steps": {
+        "scan": "المسح",
+        "verify": "التحقق",
+        "codes": "حفظ الرموز",
+        "done": "تم"
+      },
+      "startFailed": "تعذّر بدء الإعداد. حاول مرة أخرى.",
+      "passwordRequired": "أدخل كلمة المرور.",
+      "codeRequired": "أدخل الرمز المكوّن من 6 أرقام من تطبيقك.",
+      "verifyFailed": "تعذّر التحقق من هذا الرمز. حاول مرة أخرى.",
+      "title": "تفعيل المصادقة الثنائية",
+      "description": "سيطلب تسجيل الدخول رمزًا من تطبيق مصادقة مثل Google Authenticator أو 1Password أو Authy.",
+      "progress": "تقدّم إعداد المصادقة الثنائية",
+      "preparing": "جارٍ تجهيز مفتاحك...",
+      "scan": "امسح رمز QR هذا بتطبيق المصادقة. على الهاتف نفسه؟ استخدم المفتاح أدناه بدلًا من ذلك.",
+      "qrLabel": "رمز QR لـ TaskMan، الحساب {{account}}",
+      "qrFailed": "تعذّر رسم رمز QR. استخدم المفتاح أدناه بدلًا من ذلك.",
+      "setupKey": "مفتاح الإعداد (أدخله يدويًا)",
+      "keyCopied": "تم نسخ مفتاح الإعداد إلى الحافظة",
+      "codeLabel": "الرمز المكوّن من 6 أرقام من تطبيقك",
+      "passwordLabel": "كلمة المرور",
+      "passwordHint": "نسألك مجددًا للتأكد من أنه أنت.",
+      "saved": "لقد حفظت رموز الاسترداد هذه",
+      "doneTitle": "المصادقة الثنائية مفعّلة",
+      "doneDescription": "في المرة القادمة التي تسجّل فيها الدخول، سيطلب TaskMan رمزًا من تطبيقك. تعمل رموز الاسترداد إذا فقدت هاتفك.",
+      "next": "التالي",
+      "back": "رجوع",
+      "verifying": "جارٍ التحقق...",
+      "turnOn": "تفعيل",
+      "continue": "متابعة",
+      "done": "تم"
+    },
+    "action": {
+      "disable": {
+        "title": "إيقاف المصادقة الثنائية",
+        "description": "أكّد بكلمة المرور ورمز. سيُحمى حسابك بكلمة المرور وحدها.",
+        "submit": "إيقاف",
+        "submitting": "جارٍ الإيقاف..."
+      },
+      "regenerate": {
+        "title": "الحصول على رموز استرداد جديدة",
+        "description": "تتوقف رموز الاسترداد القديمة عن العمل. أكّد بكلمة المرور ورمز من تطبيقك.",
+        "submit": "إنشاء رموز جديدة",
+        "submitting": "جارٍ الإنشاء..."
+      },
+      "recoveryRequired": "أدخل رمز الاسترداد المكوّن من 8 أحرف، مثل abcd-efgh.",
+      "failed": "لم تنجح العملية. تحقّق من كلمة المرور والرمز ثم حاول مرة أخرى.",
+      "recoveryLabel": "رمز الاسترداد",
+      "recoveryHint": "يعمل كل رمز استرداد مرة واحدة فقط.",
+      "useApp": "استخدم تطبيق المصادقة بدلًا من ذلك",
+      "useRecovery": "استخدم رمز استرداد بدلًا من ذلك"
+    },
+    "newCodesDialog": {
+      "title": "رموز الاسترداد الجديدة",
+      "description": "لم تعد الرموز القديمة تعمل."
+    },
+    "codes": {
+      "saveNow": "احفظها الآن",
+      "onlyOnce": "نعرضها مرة واحدة فقط. يسجّل كل رمز دخولك مرة واحدة إذا فقدت هاتفك.",
+      "list": "رموز الاسترداد",
+      "copy": "نسخ الرموز",
+      "download": "تنزيل ملف .txt",
+      "copiedStatus": "تم نسخ رموز الاسترداد إلى الحافظة"
+    },
+    "file": {
+      "title": "رموز استرداد TaskMan",
+      "account": "الحساب: {{account}}",
+      "created": "تاريخ الإنشاء: {{date}}",
+      "hint": "يعمل كل رمز مرة واحدة. احتفظ بهذا الملف في مكان آمن بعيدًا عن هاتفك."
+    }
+  },
+  "devices": {
+    "title": "الأجهزة المسجّلة الدخول",
+    "signOutOthers": "تسجيل خروج كل الأجهزة الأخرى",
+    "loadFailed": "تعذّر تحميل الأجهزة",
+    "emptyTitle": "لا توجد أجهزة نشطة",
+    "emptyDescription": "تظهر الأجهزة هنا ما دام تسجيل دخولها صالحًا.",
+    "footer": "تبقى مسجّل الدخول 7 أيام على كل جهاز ما لم تُسجّل خروجه من هنا. يؤدي تغيير كلمة المرور إلى تسجيل خروج الأجهزة الأخرى.",
+    "confirmOthersTitle": "تسجيل خروج كل الأجهزة الأخرى؟",
+    "confirmOthersDescription": "سيُسجَّل خروج كل جهاز عدا هذا الجهاز وسيحتاج إلى تسجيل الدخول مجددًا.",
+    "confirmOthersConfirm": "تسجيل خروج الأجهزة الأخرى",
+    "confirmCurrentTitle": "تسجيل خروج هذا الجهاز؟",
+    "confirmCurrentDescription": "سيؤدي هذا إلى تسجيل خروج هذا المتصفح. ستُنقل إلى صفحة تسجيل الدخول.",
+    "signOut": "تسجيل الخروج",
+    "signingOut": "جارٍ تسجيل الخروج...",
+    "signedOutDevice": "تم تسجيل خروج {{device}}.",
+    "signedOutOthers_zero": "لم يُسجَّل خروج أي جهاز آخر.",
+    "signedOutOthers_one": "تم تسجيل خروج جهاز آخر واحد.",
+    "signedOutOthers_two": "تم تسجيل خروج جهازين آخرين.",
+    "signedOutOthers_few": "تم تسجيل خروج {{count}} أجهزة أخرى.",
+    "signedOutOthers_many": "تم تسجيل خروج {{count}} جهازًا آخر.",
+    "signedOutOthers_other": "تم تسجيل خروج {{count}} جهاز آخر.",
+    "signOutFailed": "تعذّر تسجيل خروج ذلك الجهاز. حاول مرة أخرى.",
+    "signOutOthersFailed": "تعذّر تسجيل خروج أجهزتك الأخرى. حاول مرة أخرى.",
+    "thisDevice": "هذا الجهاز",
+    "ipUnknown": "عنوان IP غير معروف",
+    "signedIn": "سُجّل الدخول {{when}}",
+    "unknownTime": "في وقت غير معروف",
+    "signOutDevice": "تسجيل خروج {{device}}",
+    "browserOnOs": "{{browser}} على {{os}}",
+    "unknownDevice": "جهاز غير معروف",
+    "relative": {
+      "justNow": "الآن",
+      "minutes_zero": "منذ {{count}} دقيقة",
+      "minutes_one": "منذ دقيقة",
+      "minutes_two": "منذ دقيقتين",
+      "minutes_few": "منذ {{count}} دقائق",
+      "minutes_many": "منذ {{count}} دقيقة",
+      "minutes_other": "منذ {{count}} دقيقة",
+      "hours_zero": "منذ {{count}} ساعة",
+      "hours_one": "منذ ساعة",
+      "hours_two": "منذ ساعتين",
+      "hours_few": "منذ {{count}} ساعات",
+      "hours_many": "منذ {{count}} ساعة",
+      "hours_other": "منذ {{count}} ساعة",
+      "days_zero": "منذ {{count}} يوم",
+      "days_one": "منذ يوم",
+      "days_two": "منذ يومين",
+      "days_few": "منذ {{count}} أيام",
+      "days_many": "منذ {{count}} يومًا",
+      "days_other": "منذ {{count}} يوم"
+    }
+  },
+  "connected": {
+    "title": "طرق تسجيل الدخول المرتبطة",
+    "none": "لا يوجد مزوّد مرتبط. سجّل الدخول مرة واحدة باستخدام Google أو Microsoft بعنوان البريد الإلكتروني لهذا الحساب وسيُربط تلقائيًا، ما دام المزوّد قد تحقق من هذا العنوان.",
+    "emailNotShared": "لم يُشارَك البريد الإلكتروني",
+    "remove": "إزالة",
+    "removing": "جارٍ الإزالة...",
+    "removeLabel": "إزالة تسجيل الدخول عبر {{provider}}",
+    "removed": "أُزيل تسجيل الدخول عبر {{provider}}.",
+    "removeFailed": "تعذّرت إزالة طريقة تسجيل الدخول تلك. حاول مرة أخرى.",
+    "onlyWay": "هذه هي الطريقة الوحيدة لتسجيل الدخول إلى حسابك. لإزالتها، عيّن كلمة مرور أولًا عبر «نسيت كلمة المرور» في صفحة تسجيل الدخول.",
+    "confirmTitle": "إزالة تسجيل الدخول عبر {{provider}}؟",
+    "confirmTitleGeneric": "إزالة طريقة تسجيل الدخول؟",
+    "confirmDescription": "لن تتمكن من تسجيل الدخول بها بعد الآن. يبقى حسابك وبياناتك كما هي."
+  },
+  "notifications": {
+    "saved": "تم حفظ تفضيلات الإشعارات",
+    "saveFailed": "تعذّر حفظ التفضيلات",
+    "options": {
+      "email": {
+        "label": "أرسل لي رسائل بريد إلكتروني",
+        "desc": "المفتاح الرئيسي للبريد الإلكتروني. عند إيقافه لا تصلك أي رسائل بريد، بل إشعارات داخل التطبيق فقط."
+      },
+      "taskAssigned": {
+        "label": "الإسنادات والإشارات والتعليقات",
+        "desc": "راسلني عندما يُسند إليّ أحدهم مهمة، أو يشير إليّ في تعليق، أو يعلّق على مهمة أملكها أو مُسندة إليّ."
+      },
+      "taskCompleted": {
+        "label": "المهام المكتملة",
+        "desc": "راسلني عندما يضع شخص آخر علامة اكتمال على مهمة أملكها أو مُسندة إليّ."
+      },
+      "weeklyDigest": {
+        "label": "الملخص الأسبوعي",
+        "desc": "لم يُرسَل بعد. يُحفظ اختيارك لحين إطلاق الملخص الأسبوعي."
+      }
+    },
+    "inApp": {
+      "title": "داخل التطبيق",
+      "description": "مفعّلة دائمًا. يعرض الجرس في الشريط العلوي و<b>صندوق الوارد</b> الإسنادات والمهام المكتملة والإشارات والتعليقات على مهامك. تُحفظ 90 يومًا، ولا تُرسَل إليك إشعارات عن إجراءاتك أنت."
+    },
+    "email": {
+      "title": "البريد الإلكتروني",
+      "description": "اختر أي هذه الإشعارات تصل أيضًا إلى بريدك الوارد.",
+      "off": "البريد الإلكتروني متوقف، لذلك لا يُرسَل شيء مما يلي."
+    },
+    "push": {
+      "title": "الإشعارات الفورية",
+      "description": "إشعارات منبثقة من متصفحك أو هاتفك، للأحداث نفسها التي يعرضها الجرس.",
+      "label": "أرسل لي إشعارات فورية",
+      "desc": "تنطبق على كل جهاز فعّلت عليه الإشعارات الفورية. أوقفها لإيقاف الإشعارات الفورية مؤقتًا دون إزالة أجهزتك. تُحفظ مع التفضيلات الأخرى."
+    },
+    "save": "حفظ التفضيلات"
+  },
+  "push": {
+    "title": "الإشعارات الفورية على هذا الجهاز",
+    "description": "احصل على إشعار من النظام عند الإسناد والإشارات والتعليقات، حتى عندما يكون TaskMan مغلقًا. يُعدّ كل جهاز ومتصفح على حدة.",
+    "checking": "جارٍ فحص هذا الجهاز...",
+    "unsupportedTitle": "غير متاحة في هذا المتصفح",
+    "unsupported": "الإشعارات الفورية غير مدعومة هنا. على iPhone وiPad تعمل بعد إضافة TaskMan إلى الشاشة الرئيسية (مشاركة، ثم إضافة إلى الشاشة الرئيسية) وفتحه منها.",
+    "unavailableTitle": "غير مُعدّة على هذا الخادم",
+    "unavailable": "الإشعارات الفورية متوقفة على خادم TaskMan هذا. تبقى الإشعارات داخل التطبيق ورسائل البريد تعمل.",
+    "deniedTitle": "الإشعارات محظورة",
+    "denied": "يحظر متصفحك إشعارات TaskMan. لتفعيلها، اسمح بالإشعارات لهذا الموقع في إعدادات المتصفح (عادةً الأيقونة بجوار شريط العنوان)، ثم أعد تحميل هذه الصفحة.",
+    "off": "الإشعارات الفورية متوقفة على هذا الجهاز.",
+    "on": "الإشعارات الفورية مفعّلة على هذا الجهاز.",
+    "turningOff": "جارٍ الإيقاف...",
+    "turningOn": "جارٍ التفعيل...",
+    "turnOff": "إيقاف على هذا الجهاز",
+    "turnOn": "تفعيل على هذا الجهاز",
+    "errors": {
+      "notReady": "خدمة الخلفية ليست جاهزة بعد. أعد تحميل الصفحة وحاول مرة أخرى.",
+      "denied": "لم يُمنح الإذن. اختر «سماح» عندما يسألك المتصفح.",
+      "turnOn": "تعذّر تفعيل الإشعارات الفورية. حاول مرة أخرى.",
+      "turnOff": "تعذّر إيقاف الإشعارات الفورية. حاول مرة أخرى."
+    }
+  },
+  "github": {
+    "title": "التكاملات",
+    "intro": "اربط GitHub لرؤية طلبات السحب والالتزامات والفروع على كل مهمة. اذكر مفتاح مهمة مثل <c>WEB-12</c> في اسم فرع أو رسالة التزام أو طلب سحب.",
+    "connected": "متصل. يرسل GitHub الأحداث إلى العنوان أدناه.",
+    "notConnected": "غير متصل.",
+    "loading": "جارٍ تحميل التكامل...",
+    "loadFailed": "تعذّر تحميل تكامل GitHub.",
+    "enableHint": "يؤدي تفعيله إلى إنشاء عنوان webhook خاص ومفتاح سري لمساحة العمل هذه. لا يُقرأ شيء من مستودعاتك.",
+    "enable": "تفعيل تكامل GitHub",
+    "enabling": "جارٍ التفعيل...",
+    "enableFailed": "تعذّر تفعيل التكامل.",
+    "payloadUrl": "عنوان الحمولة (Payload URL)",
+    "secret": "السر (Secret)",
+    "show": "إظهار",
+    "hide": "إخفاء",
+    "copyFailed": "تعذّر النسخ تلقائيًا. حدّد النص وانسخه يدويًا.",
+    "copiedStatus": "تم نسخ {{label}} إلى الحافظة",
+    "regenerate": "إعادة إنشاء السر",
+    "regenerated": "أُعيد إنشاء السر. حدّثه في GitHub.",
+    "regenerateFailed": "تعذّرت إعادة إنشاء السر.",
+    "saveFailed": "تعذّر حفظ هذا الإعداد.",
+    "autoLabel": "نقل المهام تلقائيًا",
+    "autoDescription": "ينقل طلب السحب الذي يذكر مهمة إلى «قيد التنفيذ» عند فتحه وإلى «مكتملة» عند دمجه. لا تُعاد فتح المهام المكتملة أبدًا.",
+    "setUp": "إعداد الـ webhook",
+    "steps": {
+      "open": "في GitHub، افتح مستودعك، ثم <b>Settings</b> ثم <b>Webhooks</b> ثم <b>Add webhook</b>.",
+      "url": "الصق <b>عنوان الحمولة (Payload URL)</b> أعلاه.",
+      "type": "عيّن <b>Content type</b> إلى <c>application/json</c>.",
+      "secret": "الصق <b>السر (Secret)</b> أعلاه.",
+      "events": "ضمن <b>Which events</b>، اختر <b>Let me select individual events</b> وحدّد <b>Pull requests</b> و<b>Pushes</b> و<b>Branch or tag creation</b>.",
+      "save": "احفظ. يرسل GitHub إشارة اختبار؛ علامة صح خضراء بجوار عملية التسليم تعني أنه يعمل."
+    },
+    "turnOff": "إيقاف تكامل GitHub",
+    "disabled": "تم إيقاف تكامل GitHub.",
+    "disableFailed": "تعذّر إيقاف التكامل.",
+    "confirmRegenerate": {
+      "title": "إعادة إنشاء سر الـ webhook؟",
+      "description": "يتوقف السر الحالي عن العمل فورًا. الصق السر الجديد في webhook على GitHub، وإلا سيُرفض التسليم."
+    },
+    "confirmDisable": {
+      "title": "إيقاف تكامل GitHub؟",
+      "description": "يُحذف عنوان الـ webhook والسر ويُرفض التسليم من GitHub. تبقى الروابط الموجودة على المهام."
+    }
+  },
+  "workspace": {
+    "title": "إعدادات مساحة العمل",
+    "description": "أدِر اسم مساحة العمل هذه ورمز الدعوة والأدوار.",
+    "links": {
+      "audit": {
+        "title": "سجل التدقيق",
+        "description": "اعرف من غيّر ماذا ومتى ومن أين. صدّره بصيغة CSV."
+      },
+      "workflow": {
+        "title": "سير العمل",
+        "description": "مراحل اللوحة مثل «قيد المراجعة» أو «ضمان الجودة» وحدود العمل الجاري (WIP) لها."
+      },
+      "automations": {
+        "title": "الأتمتة",
+        "description": "قواعد تغيّر المهام نيابةً عنك عندما يحدث أمر ما."
+      },
+      "fields": {
+        "title": "الحقول المخصصة",
+        "description": "معلومات إضافية للمهام مثل العميل أو الميزانية أو رابط."
+      },
+      "import": {
+        "title": "استيراد",
+        "description": "انقل المهام من Trello أو Jira أو ملف CSV."
+      },
+      "developers": {
+        "title": "المطوّرون",
+        "description": "رموز API للبرامج النصية وwebhooks موقّعة لخدماتك."
+      }
+    },
+    "loading": "جارٍ تحميل الإعدادات",
+    "notFound": "مساحة العمل غير موجودة.",
+    "readOnly": "ليست لديك صلاحية تغيير هذه الإعدادات. هذا العرض للقراءة فقط.",
+    "general": "عام",
+    "name": "اسم مساحة العمل",
+    "nameHint": "لا يتغيّر مُعرّف الرابط <c>{{slug}}</c> عند إعادة التسمية.",
+    "nameUpdated": "تم تحديث اسم مساحة العمل.",
+    "updateFailed": "تعذّر تحديث مساحة العمل.",
+    "inviteCode": "رمز الدعوة",
+    "inviteHint": "ينضم الزملاء بهذا الرمز. إعادة إنشائه تبطل الرمز والروابط القديمة.",
+    "copyCode": "نسخ الرمز",
+    "copyFailed": "تعذّر النسخ تلقائيًا. حدّد الرمز وانسخه يدويًا.",
+    "codeCopiedStatus": "تم نسخ رمز الدعوة إلى الحافظة",
+    "regenerate": "إعادة إنشاء الرمز",
+    "regenerating": "جارٍ إعادة الإنشاء...",
+    "codeRegenerated": "أُعيد إنشاء رمز الدعوة. لم يعد الرمز السابق يعمل.",
+    "regenerateFailed": "تعذّرت إعادة إنشاء رمز الدعوة.",
+    "confirmRegenerate": {
+      "title": "إعادة إنشاء رمز الدعوة؟",
+      "description": "يتوقف الرمز الحالي وأي روابط دعوة مشتركة عن العمل فورًا. يحتفظ الأعضاء الحاليون بوصولهم."
+    },
+    "system": "النظام",
+    "noDescription": "لا يوجد وصف",
+    "permissionCount_zero": "لا صلاحيات",
+    "permissionCount_one": "صلاحية واحدة",
+    "permissionCount_two": "صلاحيتان",
+    "permissionCount_few": "{{count}} صلاحيات",
+    "permissionCount_many": "{{count}} صلاحية",
+    "permissionCount_other": "{{count}} صلاحية",
+    "editRole": "تعديل الدور {{name}}",
+    "deleteRole": "حذف الدور {{name}}",
+    "rolesLoadFailed": "تعذّر تحميل الأدوار.",
+    "roleDeleted": "تم حذف الدور «{{name}}».",
+    "roleDeleteFailed": "تعذّر حذف الدور.",
+    "confirmDeleteRole": {
+      "title": "حذف الدور «{{name}}»؟",
+      "description": "قد يفقد الأعضاء الذين لديهم هذا الدور وصولهم. لا يمكن التراجع عن هذا.",
+      "confirm": "حذف الدور"
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "description": "عرّف أدوارًا مخصصة وصلاحياتها لمساحة العمل هذه.",
+      "new": "دور جديد",
+      "search": "البحث في الأدوار",
+      "view": "عرض الأدوار",
+      "cards": "بطاقات",
+      "matrix": "مصفوفة",
+      "cardsRegion": "بطاقات الأدوار",
+      "none": "لا توجد أدوار بعد.",
+      "noMatch": "لا توجد أدوار تطابق «{{query}}».",
+      "noCatalog": "قائمة الصلاحيات غير متاحة حاليًا، لذلك لا يمكن عرض المصفوفة. انتقل إلى عرض البطاقات أو أعد تحميل الصفحة.",
+      "systemRoles": "أدوار النظام",
+      "customRoles": "أدوار مخصصة",
+      "noCustomMatch": "لا توجد أدوار مخصصة تطابق «{{query}}».",
+      "noCustom": "لا توجد أدوار مخصصة بعد",
+      "noCustomHint": "أنشئ أدوارًا مصمّمة لفريقك، مثل «قائد التسويق» أو «متعاقد» أو «مدقق».",
+      "createFirst": "أنشئ دورك الأول",
+      "system": {
+        "ProductOwner": {
+          "name": "مالك المنتج",
+          "description": "تحكم كامل في المنتج والأعمال المتراكمة والفريق والإعدادات."
+        },
+        "ScrumMaster": {
+          "name": "سكرم ماستر",
+          "description": "ييسّر عمل الفريق ويزيل العوائق."
+        },
+        "Developer": {
+          "name": "مطوّر",
+          "description": "ينفّذ ويحدّث المهام والمشاريع المسندة إليه."
+        },
+        "TeamMember": {
+          "name": "عضو فريق",
+          "description": "يعمل على المهام المسندة إليه."
+        },
+        "Viewer": {
+          "name": "مشاهد",
+          "description": "وصول للقراءة فقط إلى مساحة العمل."
+        }
+      }
+    },
+    "security": {
+      "title": "الأمان",
+      "ownFirstTitle": "فعّل المصادقة الثنائية لحسابك أنت أولًا",
+      "ownFirst": "وإلا فستُحرم من الدخول إلى مساحة العمل هذه.",
+      "setItUp": "أعدّها من إعدادات الأمان",
+      "requireLabel": "اشتراط المصادقة الثنائية",
+      "requireDescription": "لا يستطيع الأعضاء الذين ليست لديهم مصادقة ثنائية فتح مساحة العمل هذه حتى يفعّلوها. يمكنهم فعل ذلك من إعدادات الأمان الخاصة بهم، ولا يمكنهم إيقافها ما دام هذا الخيار مفعّلًا.",
+      "ownersOnly": "يمكن للمالكين والمشرفين فقط تغيير هذا الإعداد.",
+      "changeFailed": "تعذّر تغيير هذا الإعداد. حاول مرة أخرى."
+    }
+  },
+  "roles": {
+    "system": {
+      "ProductOwner": {
+        "name": "مالك المنتج",
+        "description": "تحكم كامل في المنتج والأعمال المتراكمة والفريق والإعدادات."
+      },
+      "ScrumMaster": {
+        "name": "سكرم ماستر",
+        "description": "ييسّر عمل الفريق ويزيل العوائق."
+      },
+      "Developer": {
+        "name": "مطوّر",
+        "description": "ينفّذ ويحدّث المهام والمشاريع المسندة إليه."
+      },
+      "TeamMember": {
+        "name": "عضو فريق",
+        "description": "يعمل على المهام المسندة إليه."
+      },
+      "Viewer": {
+        "name": "مشاهد",
+        "description": "وصول للقراءة فقط إلى مساحة العمل."
+      }
+    }
+  },
+  "permissionGroups": {
+    "Projects": "المشاريع",
+    "Tasks": "المهام",
+    "Users": "المستخدمون",
+    "Reports": "التقارير",
+    "Settings": "الإعدادات"
+  },
+  "permissions": {
+    "projects_read": "عرض المشاريع",
+    "projects_write": "إنشاء المشاريع وتعديلها",
+    "projects_delete": "حذف المشاريع",
+    "tasks_read": "عرض المهام",
+    "tasks_write": "إنشاء المهام وتعديلها",
+    "tasks_delete": "حذف المهام",
+    "users_read": "عرض أعضاء الفريق",
+    "users_write": "دعوة الأعضاء وإزالتهم",
+    "reports_read": "عرض التحليلات",
+    "settings_manage": "تغيير إعدادات مساحة العمل"
+  },
+  "matrix": {
+    "label": "مصفوفة الصلاحيات",
+    "caption": "الصلاحيات الممنوحة لكل دور. الأعمدة هي الأدوار والصفوف هي الصلاحيات مجمّعة حسب المجال.",
+    "permission": "الصلاحية",
+    "members_zero": "لا أعضاء",
+    "members_one": "عضو واحد",
+    "members_two": "عضوان",
+    "members_few": "{{count}} أعضاء",
+    "members_many": "{{count}} عضوًا",
+    "members_other": "{{count}} عضو",
+    "allowed": "مسموح",
+    "notAllowed": "غير مسموح"
+  },
+  "roleEditor": {
+    "nameRequired": "أعطِ الدور اسمًا.",
+    "permissionsFailed": "تعذّر تحميل قائمة الصلاحيات. أغلق هذه النافذة وحاول مرة أخرى.",
+    "saveFailed": "تعذّر حفظ الدور. حاول مرة أخرى.",
+    "editTitle": "تعديل الدور",
+    "createTitle": "إنشاء دور مخصص",
+    "editDescription": "حدّث اسم هذا الدور وصلاحياته.",
+    "createDescription": "عرّف دورًا جديدًا لمساحة عملك.",
+    "create": "إنشاء الدور",
+    "name": "اسم الدور",
+    "namePlaceholder": "مثل: قائد التسويق، متعاقد، مدقق",
+    "descriptionLabel": "الوصف",
+    "descriptionHint": "اختياري. يظهر عند دعوة الأشخاص.",
+    "permissions": "الصلاحيات",
+    "loadingPermissions": "جارٍ تحميل الصلاحيات...",
+    "deselectAll": "إلغاء تحديد الكل",
+    "selectAll": "تحديد الكل",
+    "groupPermissions": "صلاحيات {{group}}",
+    "selected_zero": "لم تُحدَّد أي صلاحية",
+    "selected_one": "حُدّدت صلاحية واحدة",
+    "selected_two": "حُدّدت صلاحيتان",
+    "selected_few": "حُدّدت {{count}} صلاحيات",
+    "selected_many": "حُدّدت {{count}} صلاحية",
+    "selected_other": "حُدّدت {{count}} صلاحية"
+  },
+  "team": {
+    "title": "الفريق",
+    "description": "أدِر من لديه صلاحية الوصول إلى مساحة العمل هذه وأدواره.",
+    "invite": "دعوة عضو",
+    "members": "الأعضاء",
+    "membersList": "قائمة الأعضاء",
+    "loadingMembers": "جارٍ تحميل الأعضاء",
+    "loadFailed": "تعذّر تحميل الفريق. حدّث الصفحة للمحاولة مرة أخرى.",
+    "noRole": "بلا دور",
+    "changeRole": "تغيير الدور",
+    "changeRoleFor": "تغيير دور {{name}}، الدور الحالي {{role}}",
+    "changeRoleFailed": "تعذّر تغيير الدور. حاول مرة أخرى.",
+    "emptyTitle": "لا يوجد أعضاء بعد",
+    "emptyManage": "ادعُ أول زميل لك للبدء.",
+    "emptyView": "لا يوجد أعضاء فريق لعرضهم.",
+    "you": "أنت",
+    "owner": "المالك",
+    "removeMemberLabel": "إزالة {{name}} من مساحة العمل هذه",
+    "pendingInvitations": "الدعوات المعلّقة",
+    "invitationsList": "قائمة الدعوات المعلّقة",
+    "invitationMeta": "بدور {{role}} · تنتهي في {{date}}",
+    "cancelInvitationLabel": "إلغاء الدعوة المرسلة إلى {{email}}",
+    "removeFailed": "تعذّرت إزالة العضو. حاول مرة أخرى.",
+    "cancelFailed": "تعذّر إلغاء الدعوة. حاول مرة أخرى.",
+    "confirmRemove": {
+      "title": "إزالة هذا العضو؟",
+      "description": "يفقد {{name}} الوصول إلى مساحة العمل هذه فورًا. يمكنك دعوته مرة أخرى لاحقًا.",
+      "confirm": "إزالة العضو"
+    },
+    "confirmCancel": {
+      "title": "إلغاء هذه الدعوة؟",
+      "description": "ستتوقف الدعوة المرسلة إلى {{email}} عن العمل.",
+      "confirm": "إلغاء الدعوة"
+    }
+  },
+  "invite": {
+    "title": "دعوة عضو",
+    "description": "أرسل دعوة للانضمام إلى مساحة العمل هذه.",
+    "submit": "إرسال الدعوة",
+    "sending": "جارٍ الإرسال...",
+    "sent": "تم إرسال الدعوة.",
+    "email": "عنوان البريد الإلكتروني",
+    "emailPlaceholder": "colleague@company.com",
+    "role": "الدور",
+    "rolesFailed": "تعذّر تحميل الأدوار. أغلق هذه النافذة وحاول مرة أخرى.",
+    "sendFailed": "تعذّر إرسال الدعوة. حاول مرة أخرى."
+  },
+  "createWorkspace": {
+    "title": "إنشاء مساحة عمل جديدة",
+    "description": "مساحات العمل أماكن مشتركة يتعاون فيها فريقك.",
+    "submit": "إنشاء مساحة العمل",
+    "creating": "جارٍ الإنشاء...",
+    "hint": "يُنشأ مُعرّف صالح للروابط تلقائيًا.",
+    "placeholder": "مثل: شركة أكمي، فريق التسويق، شخصي",
+    "nameRequired": "أعطِ مساحة العمل اسمًا.",
+    "failed": "تعذّر إنشاء مساحة العمل. حاول مرة أخرى."
+  },
+  "audit": {
+    "title": "سجل التدقيق",
+    "description_zero": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة {{count}} يوم.",
+    "description_one": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة يوم واحد.",
+    "description_two": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة يومين.",
+    "description_few": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة {{count}} أيام.",
+    "description_many": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة {{count}} يومًا.",
+    "description_other": "كل تغيير في مساحة العمل هذه: من فعل ماذا ومتى ومن أين. تُحفظ السجلات لمدة {{count}} يوم.",
+    "restrictedTitle": "فقط من يديرون الإعدادات يمكنهم رؤية سجل التدقيق",
+    "restrictedDescription": "اسأل مالك مساحة العمل هذه أو مشرفها إذا كنت بحاجة إلى رؤية سجل التدقيق.",
+    "exportCsv": "تصدير CSV",
+    "exporting": "جارٍ التصدير…",
+    "exported": "تم تصدير سجل التدقيق",
+    "exportFailed": "تعذّر تصدير سجل التدقيق.",
+    "exportHint": "يتضمن التصدير السجلات المطابقة لهذه المرشحات.",
+    "loading": "جارٍ تحميل سجل التدقيق",
+    "loadFailed": "تعذّر تحميل سجل التدقيق",
+    "loadFailedNext": "تحقّق من اتصالك وحاول مرة أخرى.",
+    "noMatchTitle": "لا توجد سجلات تطابق هذه المرشحات",
+    "noMatchDescription": "جرّب مجالًا أو فاعلًا آخر، أو امسح المرشحات لعرض كل شيء.",
+    "emptyTitle": "لا توجد سجلات بعد",
+    "emptyDescription": "ستظهر هنا التغييرات التي تطرأ على المهام والمشاريع والسبرينتات والأعضاء والإعدادات.",
+    "clearFilters": "مسح المرشحات",
+    "filters": {
+      "all": "الكل",
+      "everyone": "الجميع",
+      "formerMember": "عضو سابق",
+      "byArea": "تصفية حسب المجال"
+    },
+    "table": {
+      "entries": "سجلات التدقيق",
+      "caption": "سجل التدقيق، الأحدث أولًا. حدّد صفًا لعرض التفاصيل.",
+      "time": "الوقت",
+      "ip": "عنوان IP",
+      "openDetails": "فتح التفاصيل: {{description}}"
+    },
+    "pagination": {
+      "label": "صفحات سجل التدقيق",
+      "showing": "عرض السجلات {{range}}",
+      "none": "لا توجد سجلات في هذه الصفحة",
+      "newer": "الأحدث",
+      "older": "الأقدم"
+    },
+    "sheet": {
+      "when": "الوقت",
+      "actor": "الفاعل",
+      "action": "الإجراء",
+      "area": "المجال",
+      "subject": "الموضوع",
+      "ip": "عنوان IP",
+      "device": "الجهاز",
+      "notRecorded": "غير مسجّل",
+      "changes": "التغييرات",
+      "noChanges": "لم يغيّر هذا الإجراء أي حقل متتبَّع.",
+      "from": "من",
+      "to": "إلى",
+      "identifiers": "المعرّفات",
+      "entry": "السجل",
+      "task": "المهمة",
+      "project": "المشروع",
+      "sprint": "السبرينت"
+    },
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "range": "من {{from}} إلى {{to}}",
+    "openTask": "فتح المهمة",
+    "openProject": "فتح المشروع",
+    "openSprintProject": "فتح مشروع السبرينت",
+    "removedUser": "مستخدم محذوف",
+    "arrow": "←",
+    "quote": "«{{text}}»",
+    "areas": {
+      "task": "المهام",
+      "project": "المشاريع",
+      "sprint": "السبرينتات",
+      "member": "الأعضاء",
+      "invitation": "الدعوات",
+      "workspace": "مساحة العمل",
+      "audit": "عمليات التصدير",
+      "automation": "الأتمتة",
+      "workflow": "سير العمل",
+      "webhook": "Webhooks",
+      "token": "رموز API",
+      "time": "الوقت",
+      "release": "الإصدارات",
+      "field": "الحقول المخصصة",
+      "import": "عمليات الاستيراد",
+      "page": "صفحات الويكي",
+      "role": "الأدوار",
+      "integration": "التكاملات"
+    },
+    "fields": {
+      "startDate": "تاريخ البدء",
+      "deadline": "تاريخ الاستحقاق",
+      "storyPoints": "نقاط القصة",
+      "completedPoints": "النقاط المكتملة",
+      "movedTasks": "المهام المنقولة",
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "title": "العنوان",
+      "description": "الوصف",
+      "assignees": "المُسنَد إليهم",
+      "labels": "التسميات",
+      "sprint": "السبرينت",
+      "project": "المشروع",
+      "parent": "الأصل",
+      "role": "الدور",
+      "name": "الاسم",
+      "file": "الملف",
+      "type": "النوع",
+      "epic": "الملحمة"
+    },
+    "change": {
+      "edited": "{{label}}: تم التعديل",
+      "changed": "{{label}}: تغيّر",
+      "none": "لا شيء",
+      "sprint": "سبرينت",
+      "backlog": "الأعمال المتراكمة",
+      "separator": "؛ ",
+      "listSeparator": "، ",
+      "more": "+{{count}} أخرى"
+    },
+    "sentence": {
+      "aTask": "مهمة",
+      "aFile": "ملفًا",
+      "aSprint": "سبرينت",
+      "aMember": "عضو",
+      "someone": "شخصًا ما",
+      "points_zero": "لا نقاط",
+      "points_one": "نقطة واحدة",
+      "points_two": "نقطتان",
+      "points_few": "{{count}} نقاط",
+      "points_many": "{{count}} نقطة",
+      "points_other": "{{count}} نقطة",
+      "taskUpdated": "حدّث {{name}} {{subject}}",
+      "taskFieldsUpdated": "حدّث {{name}} {{fields}} في {{subject}}",
+      "descriptionEdited": "عدّل {{name}} وصف {{subject}}",
+      "movedToSprint": "نقل {{name}} {{subject}} إلى سبرينت آخر",
+      "movedToBacklog": "نقل {{name}} {{subject}} إلى الأعمال المتراكمة",
+      "fieldChanged": "غيّر {{name}} {{field}} في {{subject}} من {{from}} إلى {{to}}",
+      "fieldSet": "عيّن {{name}} {{field}} في {{subject}} إلى {{to}}",
+      "fieldCleared": "مسح {{name}} {{field}} في {{subject}}",
+      "taskCreated": "أنشأ {{name}} المهمة {{subject}}",
+      "subtaskCreated": "أنشأ {{name}} المهمة الفرعية {{subject}}",
+      "taskDeleted": "حذف {{name}} المهمة {{subject}}",
+      "taskCommented": "علّق {{name}} على {{task}}",
+      "attachmentAdded": "أرفق {{name}} {{file}} بـ {{task}}",
+      "attachmentRemoved": "أزال {{name}} {{file}} من {{task}}",
+      "projectCreated": "أنشأ {{name}} المشروع {{subject}}",
+      "projectUpdated": "حدّث {{name}} المشروع {{subject}}",
+      "projectDeleted": "حذف {{name}} المشروع {{subject}}",
+      "sprintCreatedIn": "أنشأ {{name}} {{sprint}} في {{project}}",
+      "sprintCreated": "أنشأ {{name}} {{sprint}}",
+      "sprintStarted": "بدأ {{name}} {{sprint}}",
+      "sprintCompleted": "أكمل {{name}} {{sprint}}",
+      "sprintCompletedPoints": "أكمل {{name}} {{sprint}} ({{points}})",
+      "sprintUpdated": "حدّث {{name}} {{sprint}}",
+      "sprintDeleted": "حذف {{name}} {{sprint}}",
+      "roleChangedFromTo": "غيّر {{name}} دور {{who}} من {{from}} إلى {{to}}",
+      "roleChangedTo": "غيّر {{name}} دور {{who}} إلى {{to}}",
+      "roleChanged": "غيّر {{name}} دور {{who}}",
+      "memberRemoved": "أزال {{name}} {{who}} من مساحة العمل",
+      "memberJoined": "انضم {{who}} إلى مساحة العمل",
+      "invitedAs": "دعا {{name}} {{who}} بدور {{role}}",
+      "invited": "دعا {{name}} {{who}}",
+      "invitationCancelled": "ألغى {{name}} الدعوة المرسلة إلى {{who}}",
+      "workspaceRenamed": "أعاد {{name}} تسمية مساحة العمل من {{from}} إلى {{to}}",
+      "workspaceUpdated": "حدّث {{name}} إعدادات مساحة العمل",
+      "inviteCodeRegenerated": "أعاد {{name}} إنشاء رمز الدعوة",
+      "auditExported": "صدّر {{name}} سجل التدقيق",
+      "auditExportedWith": "صدّر {{name}} سجل التدقيق ({{summary}})"
+    },
+    "actions": {
+      "task_created": "أُنشئت مهمة",
+      "task_updated": "حُدّثت مهمة",
+      "task_deleted": "حُذفت مهمة",
+      "task_commented": "أُضيف تعليق",
+      "task_attachment_added": "أُضيف ملف",
+      "task_attachment_removed": "أُزيل ملف",
+      "project_created": "أُنشئ مشروع",
+      "project_updated": "حُدّث مشروع",
+      "project_deleted": "حُذف مشروع",
+      "sprint_created": "أُنشئ سبرينت",
+      "sprint_updated": "حُدّث سبرينت",
+      "sprint_started": "بدأ سبرينت",
+      "sprint_completed": "اكتمل سبرينت",
+      "sprint_deleted": "حُذف سبرينت",
+      "member_role_changed": "تغيّر دور",
+      "member_removed": "أُزيل عضو",
+      "member_joined": "انضم عضو",
+      "invitation_sent": "أُرسلت دعوة",
+      "invitation_cancelled": "أُلغيت دعوة",
+      "workspace_updated": "حُدّثت مساحة العمل",
+      "workspace_invite_code_regenerated": "أُعيد ضبط رمز الدعوة",
+      "audit_exported": "صُدّر السجل",
+      "member_left": "غادر عضو",
+      "role_created": "أُنشئ دور",
+      "role_updated": "حُدّث دور",
+      "role_deleted": "حُذف دور",
+      "task_comment_deleted": "حُذف تعليق",
+      "integration_updated": "حُدّث تكامل",
+      "task_duplicated": "تكرّرت مهمة",
+      "automation_created": "أُنشئت أتمتة",
+      "automation_updated": "حُدّثت أتمتة",
+      "automation_deleted": "حُذفت أتمتة",
+      "automation_ran": "عملت أتمتة",
+      "workflow_updated": "حُدّث سير العمل",
+      "webhook_created": "أُضيف webhook",
+      "webhook_updated": "حُدّث webhook",
+      "webhook_deleted": "أُزيل webhook",
+      "token_created": "أُنشئ رمز API",
+      "token_revoked": "أُلغي رمز API",
+      "time_logged": "سُجّل وقت",
+      "time_deleted": "أُزيل سجل وقت",
+      "release_created": "أُنشئ إصدار",
+      "release_updated": "حُدّث إصدار",
+      "release_deleted": "حُذف إصدار",
+      "release_released": "صدر إصدار",
+      "field_created": "أُضيف حقل مخصص",
+      "field_updated": "حُدّث حقل مخصص",
+      "field_deleted": "أُزيل حقل مخصص",
+      "import_completed": "اكتمل الاستيراد",
+      "page_created": "أُنشئت صفحة",
+      "page_updated": "حُدّثت صفحة",
+      "page_deleted": "حُذفت صفحة"
+    }
+  }
+}

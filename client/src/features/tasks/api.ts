@@ -23,7 +23,7 @@ export interface UploadOptions {
 
 export type TaskActivityAction =
   | 'task.created' | 'task.updated' | 'task.deleted' | 'task.commented'
-  | 'task.attachment_added' | 'task.attachment_removed' | 'task.duplicated';
+  | 'task.attachment_added' | 'task.attachment_removed' | 'task.duplicated' | 'ai.review_completed';
 
 export interface TaskActivityChange {
   field: string;

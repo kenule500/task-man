@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { ActionType, ConditionField, ConditionOp, TriggerType } from '../types';
 
 export interface Option<T extends string = string> {
@@ -5,16 +6,27 @@ export interface Option<T extends string = string> {
   label: string;
 }
 
+// Labels are read when needed, so they follow the interface language.
 export const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  'in-progress': 'In progress',
-  completed: 'Completed',
+  get pending() { return i18n.t('tasks:status.pending'); },
+  get 'in-progress'() { return i18n.t('admin:automations.statusInProgress'); },
+  get completed() { return i18n.t('tasks:status.completed'); },
 };
-export const PRIORITY_LABELS: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
-export const TYPE_LABELS: Record<string, string> = { story: 'Story', task: 'Task', bug: 'Bug', spike: 'Spike', epic: 'Epic' };
+export const PRIORITY_LABELS: Record<string, string> = {
+  get high() { return i18n.t('tasks:priority.high'); },
+  get medium() { return i18n.t('tasks:priority.medium'); },
+  get low() { return i18n.t('tasks:priority.low'); },
+};
+export const TYPE_LABELS: Record<string, string> = {
+  get story() { return i18n.t('tasks:type.story'); },
+  get task() { return i18n.t('tasks:type.task'); },
+  get bug() { return i18n.t('tasks:type.bug'); },
+  get spike() { return i18n.t('tasks:type.spike'); },
+  get epic() { return i18n.t('tasks:type.epic'); },
+};
 
 const toOptions = (labels: Record<string, string>): Option[] =>
-  Object.entries(labels).map(([value, label]) => ({ value, label }));
+  Object.keys(labels).map(value => ({ value, get label() { return labels[value]; } }));
 
 export const STATUS_CHOICES = toOptions(STATUS_LABELS);
 export const PRIORITY_CHOICES = toOptions(PRIORITY_LABELS);
@@ -24,35 +36,35 @@ export const TYPE_CHOICES = toOptions(TYPE_LABELS);
 export type ValueKind = 'status' | 'priority' | 'type' | 'label' | 'member' | 'comment' | null;
 
 export const TRIGGER_OPTIONS: (Option<TriggerType> & { valueKind: ValueKind })[] = [
-  { value: 'task.created', label: 'A task is created', valueKind: null },
-  { value: 'task.status_changed', label: 'A task changes status', valueKind: 'status' },
-  { value: 'task.assigned', label: 'Someone is assigned to a task', valueKind: null },
-  { value: 'task.priority_changed', label: 'A task changes priority', valueKind: 'priority' },
-  { value: 'task.commented', label: 'A comment is added', valueKind: null },
-  { value: 'task.labeled', label: 'A label is added to a task', valueKind: 'label' },
+  { value: 'task.created', get label() { return i18n.t('admin:automations.triggers.task.created'); }, valueKind: null },
+  { value: 'task.status_changed', get label() { return i18n.t('admin:automations.triggers.task.status_changed'); }, valueKind: 'status' },
+  { value: 'task.assigned', get label() { return i18n.t('admin:automations.triggers.task.assigned'); }, valueKind: null },
+  { value: 'task.priority_changed', get label() { return i18n.t('admin:automations.triggers.task.priority_changed'); }, valueKind: 'priority' },
+  { value: 'task.commented', get label() { return i18n.t('admin:automations.triggers.task.commented'); }, valueKind: null },
+  { value: 'task.labeled', get label() { return i18n.t('admin:automations.triggers.task.labeled'); }, valueKind: 'label' },
 ];
 
 export const ANY_VALUE = 'any';
 
 export const CONDITION_OPTIONS: Record<ConditionField, { label: string; valueKind: ValueKind; ops: Option<ConditionOp>[] }> = {
-  type: { label: 'Type', valueKind: 'type', ops: [{ value: 'is', label: 'is' }, { value: 'is_not', label: 'is not' }] },
-  priority: { label: 'Priority', valueKind: 'priority', ops: [{ value: 'is', label: 'is' }, { value: 'is_not', label: 'is not' }] },
-  status: { label: 'Status', valueKind: 'status', ops: [{ value: 'is', label: 'is' }, { value: 'is_not', label: 'is not' }] },
-  label: { label: 'Label', valueKind: 'label', ops: [{ value: 'has', label: 'has' }, { value: 'has_not', label: 'does not have' }] },
-  assignee: { label: 'Assignee', valueKind: null, ops: [{ value: 'is_empty', label: 'is empty' }, { value: 'is_not_empty', label: 'is not empty' }] },
-  sprint: { label: 'Sprint', valueKind: null, ops: [{ value: 'is_set', label: 'is set' }, { value: 'is_empty', label: 'is empty' }] },
+  type: { get label() { return i18n.t('admin:automations.conditionFields.type'); }, valueKind: 'type', ops: [{ value: 'is', get label() { return i18n.t('admin:automations.ops.is'); } }, { value: 'is_not', get label() { return i18n.t('admin:automations.ops.is_not'); } }] },
+  priority: { get label() { return i18n.t('admin:automations.conditionFields.priority'); }, valueKind: 'priority', ops: [{ value: 'is', get label() { return i18n.t('admin:automations.ops.is'); } }, { value: 'is_not', get label() { return i18n.t('admin:automations.ops.is_not'); } }] },
+  status: { get label() { return i18n.t('admin:automations.conditionFields.status'); }, valueKind: 'status', ops: [{ value: 'is', get label() { return i18n.t('admin:automations.ops.is'); } }, { value: 'is_not', get label() { return i18n.t('admin:automations.ops.is_not'); } }] },
+  label: { get label() { return i18n.t('admin:automations.conditionFields.label'); }, valueKind: 'label', ops: [{ value: 'has', get label() { return i18n.t('admin:automations.ops.has'); } }, { value: 'has_not', get label() { return i18n.t('admin:automations.ops.has_not'); } }] },
+  assignee: { get label() { return i18n.t('admin:automations.conditionFields.assignee'); }, valueKind: null, ops: [{ value: 'is_empty', get label() { return i18n.t('admin:automations.ops.is_empty'); } }, { value: 'is_not_empty', get label() { return i18n.t('admin:automations.ops.is_not_empty'); } }] },
+  sprint: { get label() { return i18n.t('admin:automations.conditionFields.sprint'); }, valueKind: null, ops: [{ value: 'is_set', get label() { return i18n.t('admin:automations.ops.is_set'); } }, { value: 'is_empty', get label() { return i18n.t('admin:automations.ops.is_empty'); } }] },
 };
 
 export const ACTION_OPTIONS: (Option<ActionType> & { valueKind: ValueKind })[] = [
-  { value: 'set_status', label: 'Set status', valueKind: 'status' },
-  { value: 'set_priority', label: 'Set priority', valueKind: 'priority' },
-  { value: 'add_label', label: 'Add label', valueKind: 'label' },
-  { value: 'remove_label', label: 'Remove label', valueKind: 'label' },
-  { value: 'assign_to', label: 'Assign to a member', valueKind: 'member' },
-  { value: 'assign_to_actor', label: 'Assign to the person who triggered it', valueKind: null },
-  { value: 'unassign_all', label: 'Remove all assignees', valueKind: null },
-  { value: 'add_comment', label: 'Add a comment', valueKind: 'comment' },
-  { value: 'move_to_backlog', label: 'Move to the backlog', valueKind: null },
+  { value: 'set_status', get label() { return i18n.t('admin:automations.actions.set_status'); }, valueKind: 'status' },
+  { value: 'set_priority', get label() { return i18n.t('admin:automations.actions.set_priority'); }, valueKind: 'priority' },
+  { value: 'add_label', get label() { return i18n.t('admin:automations.actions.add_label'); }, valueKind: 'label' },
+  { value: 'remove_label', get label() { return i18n.t('admin:automations.actions.remove_label'); }, valueKind: 'label' },
+  { value: 'assign_to', get label() { return i18n.t('admin:automations.actions.assign_to'); }, valueKind: 'member' },
+  { value: 'assign_to_actor', get label() { return i18n.t('admin:automations.actions.assign_to_actor'); }, valueKind: null },
+  { value: 'unassign_all', get label() { return i18n.t('admin:automations.actions.unassign_all'); }, valueKind: null },
+  { value: 'add_comment', get label() { return i18n.t('admin:automations.actions.add_comment'); }, valueKind: 'comment' },
+  { value: 'move_to_backlog', get label() { return i18n.t('admin:automations.actions.move_to_backlog'); }, valueKind: null },
 ];
 
 export const triggerValueKind = (type: TriggerType): ValueKind =>

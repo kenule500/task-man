@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { actorName, areaLabel, describeEntry, formatDateTime, summarizeChanges } from '../lib/format';
@@ -14,23 +15,25 @@ const HEAD = 'sticky top-0 z-(--z-sticky) border-b border-slate-200 bg-slate-50 
 const CELL = 'px-4 py-3 align-top';
 
 /** Desktop view: one row per entry inside a scroll region with a sticky header. A row opens the detail sheet. */
-export const AuditTable = ({ entries, selectedId, onSelect }: AuditTableProps) => (
+export const AuditTable = ({ entries, selectedId, onSelect }: AuditTableProps) => {
+  const { t } = useTranslation('settings');
+  return (
   <div
     role="region"
-    aria-label="Audit log entries"
+    aria-label={t('audit.table.entries')}
     tabIndex={0}
     className="relative max-h-[65dvh] overflow-auto overscroll-contain rounded-xl border border-slate-200 bg-white outline-none [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
   >
-    <table className="w-full min-w-[60rem] border-collapse text-left text-sm">
-      <caption className="sr-only">Audit log, newest first. Select a row for details.</caption>
+    <table className="w-full min-w-[60rem] border-collapse text-start text-sm">
+      <caption className="sr-only">{t('audit.table.caption')}</caption>
       <thead>
         <tr>
-          <th scope="col" className={cn(HEAD, 'w-44')}>Time</th>
-          <th scope="col" className={cn(HEAD, 'w-48')}>Actor</th>
-          <th scope="col" className={cn(HEAD, 'w-48')}>Action</th>
-          <th scope="col" className={HEAD}>Subject</th>
-          <th scope="col" className={HEAD}>Changes</th>
-          <th scope="col" className={cn(HEAD, 'w-36')}>IP</th>
+          <th scope="col" className={cn(HEAD, 'w-44')}>{t('audit.table.time')}</th>
+          <th scope="col" className={cn(HEAD, 'w-48')}>{t('audit.sheet.actor')}</th>
+          <th scope="col" className={cn(HEAD, 'w-48')}>{t('audit.sheet.action')}</th>
+          <th scope="col" className={HEAD}>{t('audit.sheet.subject')}</th>
+          <th scope="col" className={HEAD}>{t('audit.sheet.changes')}</th>
+          <th scope="col" className={cn(HEAD, 'w-36')}>{t('audit.table.ip')}</th>
         </tr>
       </thead>
       <tbody>
@@ -51,10 +54,10 @@ export const AuditTable = ({ entries, selectedId, onSelect }: AuditTableProps) =
                 <button
                   type="button"
                   onClick={event => { event.stopPropagation(); onSelect(entry); }}
-                  className="rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  className="rounded text-start outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
                   <time dateTime={entry.createdAt}>{formatDateTime(entry.createdAt)}</time>
-                  <span className="sr-only">. Open details: {describeEntry(entry)}</span>
+                  <span className="sr-only">. {t('audit.table.openDetails', { description: describeEntry(entry) })}</span>
                 </button>
               </td>
               <td className={CELL}>
@@ -78,4 +81,5 @@ export const AuditTable = ({ entries, selectedId, onSelect }: AuditTableProps) =
       </tbody>
     </table>
   </div>
-);
+  );
+};

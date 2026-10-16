@@ -41,6 +41,8 @@ const SENTENCES: Record<string, (actor: string, task: string) => string> = {
   'task.completed': (actor, task) => `${actor} completed "${task}"`,
   'comment.mention': (actor, task) => `${actor} mentioned you in a comment on "${task}"`,
   'comment.reply_on_my_task': (actor, task) => `${actor} commented on "${task}"`,
+  'ai.review_completed': (_actor, task) => `AI code review finished for "${task}"`,
+  'chat.mention': (actor, task) => `${actor} mentioned you in ${task}`,
 };
 
 export const pushSentence = (type: string, actorName: string, taskTitle: string): string => {

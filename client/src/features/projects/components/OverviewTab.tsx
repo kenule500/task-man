@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { BarChart3, CalendarClock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { EmptyState, SectionHeader, Surface } from '@/components/ds';
 import {
   DueDate, STATUS_META, StatusBadge, TASK_STATUSES, type Task,
@@ -30,12 +31,13 @@ const BarRow = ({ label, count, total, barClass }: BarRowProps) => (
     <span aria-hidden className="h-2 overflow-hidden rounded-full bg-slate-100">
       <span className={`block h-full rounded-full ${barClass}`} style={{ width: `${total === 0 ? 0 : Math.round((count / total) * 100)}%` }} />
     </span>
-    <span className="text-right font-semibold tabular-nums text-slate-900">{count}</span>
+    <span className="text-end font-semibold tabular-nums text-slate-900">{count}</span>
   </li>
 );
 
 /** Velocity per sprint, how work splits by status and type, and what is due next. */
 const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
+  const { t } = useTranslation('projects');
   const topLevel = tasks.filter(task => !task.parent);
   const velocities = sprintVelocities(sprints);
   const average = averageVelocity(sprints);
@@ -46,13 +48,13 @@ const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       <Surface as="section" aria-labelledby="overview-velocity" className="lg:col-span-2">
-        <SectionHeader title={<span id="overview-velocity">Velocity</span>} icon={<BarChart3 aria-hidden className="size-4 text-slate-500" />} />
+        <SectionHeader title={<span id="overview-velocity">{t('overview.velocity')}</span>} icon={<BarChart3 aria-hidden className="size-4 text-slate-500" />} />
         {velocities.length === 0 ? (
           <EmptyState
             className="py-8"
             icon={<BarChart3 />}
-            title="No completed sprints yet"
-            description="Velocity shows the story points each sprint delivered. Complete a sprint to start the chart."
+            title={t('overview.noCompleted')}
+            description={t('overview.velocityDescription')}
           />
         ) : (
           <VelocityChart velocities={velocities} average={average} />
@@ -60,16 +62,16 @@ const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
       </Surface>
 
       <Surface as="section" aria-labelledby="overview-status">
-        <SectionHeader title={<span id="overview-status">By status</span>} count={topLevel.length} />
+        <SectionHeader title={<span id="overview-status">{t('overview.byStatus')}</span>} count={topLevel.length} />
         <ul className="space-y-3">
           {TASK_STATUSES.map(status => (
-            <BarRow key={status} label={STATUS_META[status].label} count={byStatus[status]} total={topLevel.length} barClass={STATUS_META[status].dot} />
+            <BarRow key={status} label={t(`tasks:status.${status}`)} count={byStatus[status]} total={topLevel.length} barClass={STATUS_META[status].dot} />
           ))}
         </ul>
       </Surface>
 
       <Surface as="section" aria-labelledby="overview-type">
-        <SectionHeader title={<span id="overview-type">By type</span>} count={topLevel.length} />
+        <SectionHeader title={<span id="overview-type">{t('overview.byType')}</span>} count={topLevel.length} />
         <ul className="space-y-3">
           {TASK_TYPES.map(type => {
             const meta = TASK_TYPE_META[type];
@@ -77,7 +79,7 @@ const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
             return (
               <BarRow
                 key={type}
-                label={<span className="inline-flex items-center gap-1.5"><Icon aria-hidden className={`size-4 ${meta.color}`} />{meta.label}</span>}
+                label={<span className="inline-flex items-center gap-1.5"><Icon aria-hidden className={`size-4 ${meta.color}`} />{t(`tasks:type.${type}`)}</span>}
                 count={byType[type]}
                 total={topLevel.length}
                 barClass={meta.bar}
@@ -88,9 +90,9 @@ const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
       </Surface>
 
       <Surface as="section" aria-labelledby="overview-deadlines" className="lg:col-span-2">
-        <SectionHeader title={<span id="overview-deadlines">Upcoming deadlines</span>} icon={<CalendarClock aria-hidden className="size-4 text-slate-500" />} />
+        <SectionHeader title={<span id="overview-deadlines">{t('overview.upcoming')}</span>} icon={<CalendarClock aria-hidden className="size-4 text-slate-500" />} />
         {upcoming.length === 0 ? (
-          <p className="text-sm text-slate-600">Nothing is waiting. Every task in this project is done.</p>
+          <p className="text-sm text-slate-600">{t('overview.nothingWaiting')}</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {upcoming.map(task => (
@@ -98,7 +100,7 @@ const OverviewTab = ({ tasks, sprints, onOpenTask }: OverviewTabProps) => {
                 <button
                   type="button"
                   onClick={() => onOpenTask(task)}
-                  className="min-h-11 min-w-0 flex-1 truncate rounded text-left text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-0"
+                  className="min-h-11 min-w-0 flex-1 truncate rounded text-start text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-0"
                 >
                   {task.title}
                 </button>

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Users } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, Field, PageHeader, SectionHeader, SegmentedControl, SkeletonList, Surface, fieldMessageId } from '@/components/ds';
@@ -18,14 +20,15 @@ import { addDays, resolveTaskKey, toDateKey, useTasks, type Task } from '@/featu
 type ScopeKind = 'sprint' | 'range';
 
 const SCOPE_OPTIONS = [
-  { value: 'sprint', label: 'Sprint' },
-  { value: 'range', label: 'Date range' },
+  { value: 'sprint', get label() { return i18n.t('planning:workloadPage.scopeSprint'); } },
+  { value: 'range', get label() { return i18n.t('planning:workloadPage.scopeRange'); } },
 ] as const;
 
 const nameKey = (name: string | undefined) => (name ?? '').trim().toLowerCase();
 
 /** Story points and items per assignee against a capacity, for a sprint or a date range. */
 const WorkloadPage = () => {
+  const { t } = useTranslation('planning');
   const { workspaceSlug = '' } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const { tasks, loading: tasksLoading, error: tasksError, clearError } = useTasks(can('tasks:read') ? workspaceSlug : undefined);
@@ -42,7 +45,7 @@ const WorkloadPage = () => {
   const capacity = stored.slug === workspaceSlug ? stored.value : loadCapacity(workspaceSlug);
   const [capacityText, setCapacityText] = useState(String(capacity));
   const capacityError = parseCapacity(capacityText) === null
-    ? `Enter a whole number from ${MIN_CAPACITY} to ${MAX_CAPACITY}.`
+    ? t('workloadPage.capacityError', { min: MIN_CAPACITY, max: MAX_CAPACITY })
     : '';
   const changeCapacity = (text: string) => {
     setCapacityText(text);
@@ -82,30 +85,30 @@ const WorkloadPage = () => {
   const error = tasksError || projectsError;
 
   const projectOptions = [
-    ...(kind === 'range' ? [{ value: '', label: 'All projects' }] : []),
+    ...(kind === 'range' ? [{ value: '', label: t('workloadPage.allProjects') }] : []),
     ...openProjects.map(item => ({ value: item._id, label: item.name })),
   ];
-  const sprintOptions = (project?.sprints ?? []).map(item => ({ value: item._id, label: `${item.name} (${item.status})` }));
+  const sprintOptions = (project?.sprints ?? []).map(item => ({ value: item._id, label: t('workloadPage.sprintOption', { name: item.name, status: t(`roadmap.status.${item.status}`) }) }));
 
   return (
     <AppShell>
       <PageHeader
-        title="Workload"
-        description="Story points and items per person against their capacity. Select a person to see their tasks."
+        title={t('workloadPage.title')}
+        description={t('workloadPage.description')}
       />
 
       {loading ? (
-        <SkeletonList label="Loading workload" rows={4} />
+        <SkeletonList label={t('workloadPage.loading')} rows={4} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={tasksError ? clearError : undefined}>{error}</Alert>}
 
-          <Surface as="section" aria-label="Workload scope" padding="sm" className="sm:p-5">
+          <Surface as="section" aria-label={t('workloadPage.scopeRegion')} padding="sm" className="sm:p-5">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_9rem] lg:items-end">
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-600">Scope</span>
+                <span className="text-xs font-medium text-slate-600">{t('workloadPage.scope')}</span>
                 <SegmentedControl
-                  aria-label="Scope"
+                  aria-label={t('workloadPage.scope')}
                   options={SCOPE_OPTIONS.map(option => ({ ...option }))}
                   value={kind}
                   onValueChange={value => { setKind(value); setOpenId(null); }}
@@ -114,7 +117,7 @@ const WorkloadPage = () => {
 
               {projectOptions.length > 0 && (
                 <SelectField
-                  label="Project"
+                  label={t('workloadPage.project')}
                   value={kind === 'sprint' ? project?._id ?? '' : projectChoice}
                   onValueChange={value => { setProjectChoice(value); setSprintChoice(''); setOpenId(null); }}
                   options={projectOptions}
@@ -123,27 +126,27 @@ const WorkloadPage = () => {
 
               {kind === 'sprint' ? (
                 <SelectField
-                  label="Sprint"
+                  label={t('workloadPage.sprint')}
                   value={sprint?._id ?? ''}
                   onValueChange={value => { setSprintChoice(value); setOpenId(null); }}
-                  options={sprintOptions.length > 0 ? sprintOptions : [{ value: '', label: 'No sprints' }]}
+                  options={sprintOptions.length > 0 ? sprintOptions : [{ value: '', label: t('workloadPage.noSprints') }]}
                 />
               ) : (
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="From" htmlFor="workload-from" className="text-xs">
+                  <Field label={t('workloadPage.from')} htmlFor="workload-from" className="text-xs">
                     <Input id="workload-from" type="date" value={range.from} onChange={event => setRange(current => ({ ...current, from: event.target.value }))} className="h-11 bg-white md:h-9" />
                   </Field>
-                  <Field label="To" htmlFor="workload-to" className="text-xs">
+                  <Field label={t('workloadPage.to')} htmlFor="workload-to" className="text-xs">
                     <Input id="workload-to" type="date" value={range.to} onChange={event => setRange(current => ({ ...current, to: event.target.value }))} className="h-11 bg-white md:h-9" />
                   </Field>
                 </div>
               )}
 
               <Field
-                label="Capacity (points)"
+                label={t('workloadPage.capacity')}
                 htmlFor="workload-capacity"
                 error={capacityError || undefined}
-                hint="Per person for this scope"
+                hint={t('workloadPage.capacityHint')}
               >
                 <Input
                   id="workload-capacity"
@@ -159,39 +162,39 @@ const WorkloadPage = () => {
                 />
               </Field>
             </div>
-            {rangeInvalid && <p role="alert" className="mt-3 text-sm text-danger-fg">The start date must be on or before the end date.</p>}
+            {rangeInvalid && <p role="alert" className="mt-3 text-sm text-danger-fg">{t('workloadPage.rangeInvalid')}</p>}
           </Surface>
 
           {workload === null ? (
             <Surface padding="none">
               <EmptyState
                 icon={<Users />}
-                title={kind === 'sprint' ? 'No sprint to show' : 'Choose a valid date range'}
+                title={kind === 'sprint' ? t('workloadPage.noSprintTitle') : t('workloadPage.invalidRangeTitle')}
                 description={kind === 'sprint'
-                  ? 'Plan a sprint in a project and assign its tasks. Or switch to a date range to see work by due date.'
-                  : 'Pick a start date that is on or before the end date.'}
+                  ? t('workloadPage.noSprintBody')
+                  : t('workloadPage.invalidRangeBody')}
               />
             </Surface>
           ) : workload.itemCount === 0 ? (
             <Surface padding="none">
               <EmptyState
                 icon={<Users />}
-                title="No work in this scope"
+                title={t('workloadPage.noWorkTitle')}
                 description={kind === 'sprint'
-                  ? 'This sprint has no tasks yet. Add tasks to it from the project page, then assign them to see who carries what.'
-                  : 'No tasks fall between these dates. Widen the range or pick another project.'}
+                  ? t('workloadPage.noWorkSprint')
+                  : t('workloadPage.noWorkRange')}
               />
             </Surface>
           ) : (
             <Surface as="section" aria-labelledby="workload-people" padding="none" className="overflow-hidden">
               <div className="border-b border-slate-100 px-3 pt-4 sm:px-4">
                 <SectionHeader
-                  title={<span id="workload-people">{kind === 'sprint' && sprint ? `${sprint.name} · ${formatSprintRange(sprint)}` : 'Load by person'}</span>}
+                  title={<span id="workload-people">{kind === 'sprint' && sprint ? `${sprint.name} · ${formatSprintRange(sprint)}` : t('workloadPage.byPerson')}</span>}
                   count={workload.people.length + (workload.unassigned.items.total > 0 ? 1 : 0)}
                   className="mb-3"
                 />
                 <p className="-mt-1 mb-3 text-xs tabular-nums text-slate-600">
-                  {workload.itemCount} {workload.itemCount === 1 ? 'item' : 'items'} · {workload.pointCount} pts. A task with several assignees counts for each person.
+                  {t('workloadPage.summary', { items: t('workload.items', { count: workload.itemCount }), points: workload.pointCount })}
                 </p>
               </div>
               <WorkloadList workload={workload} capacity={capacity} slug={workspaceSlug} openId={openId} onToggle={toggle} keyOf={keyOf} />

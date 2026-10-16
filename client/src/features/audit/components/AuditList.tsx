@@ -24,7 +24,7 @@ export const AuditList = ({ entries, onSelect, now }: AuditListProps) => (
               <button
                 type="button"
                 onClick={() => onSelect(entry)}
-                className="flex min-h-14 w-full items-start gap-3 px-3 py-3 text-left outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                className="flex min-h-14 w-full items-start gap-3 px-3 py-3 text-start outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
                 <UserAvatar name={actorName(entry)} src={entry.actor?.avatarUrl} size="md" className="mt-0.5" />
                 <span className="min-w-0 flex-1">

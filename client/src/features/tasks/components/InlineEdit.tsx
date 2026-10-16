@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 import { CalendarDays } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { formatDate } from '../lib/date';
 
@@ -19,6 +20,7 @@ interface InlineTextProps {
  * Empty values are rejected (the previous value is kept).
  */
 export const InlineText = ({ value, onSave, label, className, inputClassName, readOnly = false, onOpen }: InlineTextProps) => {
+  const { t } = useTranslation('tasks');
   const [draft, setDraft] = useState<string | null>(null);
 
   const commit = () => {
@@ -37,8 +39,8 @@ export const InlineText = ({ value, onSave, label, className, inputClassName, re
       <button
         type="button"
         onClick={onOpen}
-        title="Open details"
-        className={cn('block w-full truncate rounded-md px-2 py-1 -mx-2 text-left hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary', className)}
+        title={t('inline.openDetails')}
+        className={cn('block w-full truncate rounded-md px-2 py-1 -mx-2 text-start hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary', className)}
       >
         {value}
       </button>
@@ -64,8 +66,8 @@ export const InlineText = ({ value, onSave, label, className, inputClassName, re
     <button
       type="button"
       onClick={() => setDraft(value)}
-      title="Click to rename"
-      className={cn('block w-full truncate rounded-md px-2 py-1 -mx-2 text-left hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary', className)}
+      title={t('inline.clickToRename')}
+      className={cn('block w-full truncate rounded-md px-2 py-1 -mx-2 text-start hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary', className)}
     >
       {value}
     </button>

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { PermissionProvider } from './context/PermissionProvider';
 import { PageLoader, SkeletonCards, Toaster, TopProgressBar } from './components/ds';
@@ -36,6 +37,7 @@ const RoadmapPage = lazy(loaders.roadmap);
 const WorkloadPage = lazy(loaders.workload);
 const TimesheetPage = lazy(() => import('./pages/TimesheetPage'));
 const WikiPage = lazy(() => import('./pages/WikiPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 const SprintReportPage = lazy(() => import('./pages/SprintReportPage'));
 const ReleasePage = lazy(() => import('./pages/ReleasePage'));
 const TeamMembersPage = lazy(loaders.team);
@@ -113,6 +115,8 @@ const IdlePrefetch = () => {
 };
 
 function App() {
+  // Re-render the whole tree when the language changes, so helpers that call i18n.t() directly refresh too
+  useTranslation();
   return (
     <Router>
       <PermissionProvider>
@@ -245,6 +249,24 @@ function App() {
                 element={
                   <PermissionRoute permission="tasks:read">
                     <Lazy><WikiPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Team chat (channels and direct messages): requires tasks:read; the chunk holds the Socket.IO client */}
+              <Route
+                path="/:workspaceSlug/chat"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><ChatPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/:workspaceSlug/chat/:channelId"
+                element={
+                  <PermissionRoute permission="tasks:read">
+                    <Lazy><ChatPage /></Lazy>
                   </PermissionRoute>
                 }
               />

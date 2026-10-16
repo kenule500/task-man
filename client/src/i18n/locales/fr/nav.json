@@ -1,0 +1,227 @@
+{
+  "items": {
+    "dashboard": "Tableau de bord",
+    "tasks": "Tâches",
+    "projects": "Projets",
+    "roadmap": "Feuille de route",
+    "workload": "Charge de travail",
+    "timesheet": "Feuille de temps",
+    "wiki": "Wiki",
+    "chat": "Messagerie",
+    "team": "Équipe",
+    "calendar": "Calendrier",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "help": "Centre d’aide"
+  },
+  "groups": {
+    "main": "Menu principal",
+    "general": "Général"
+  },
+  "skipToContent": "Aller au contenu",
+  "chatUnread": "{{unread}} messages de discussion non lus",
+  "workspaceNav": "Espace de travail",
+  "switchWorkspace": "Changer d’espace de travail",
+  "loading": "Chargement…",
+  "noWorkspace": "Aucun espace de travail",
+  "workspaceCount_one": "{{count}} espace de travail",
+  "workspaceCount_many": "{{count}} d’espaces de travail",
+  "workspaceCount_other": "{{count}} espaces de travail",
+  "myWorkspaces": "Mes espaces de travail",
+  "current": "(actuel)",
+  "createWorkspace": "Créer un espace de travail",
+  "leaveWorkspace": "Quitter {{name}}",
+  "accountMenu": "Menu du compte",
+  "user": "Utilisateur",
+  "profile": "Profil",
+  "logOut": "Se déconnecter",
+  "search": "Rechercher",
+  "searchPlaceholder": "Rechercher des tâches, des pages…",
+  "leave": {
+    "title": "Quitter {{name}} ?",
+    "description": "Vous perdez l’accès à ses tâches et à ses projets, et vous n’êtes plus assigné à vos tâches dans cet espace. Un administrateur peut vous réinviter.",
+    "confirm": "Quitter l’espace de travail",
+    "busy": "Départ en cours…",
+    "success": "Vous avez quitté {{name}}",
+    "error": "Impossible de quitter l’espace de travail."
+  },
+  "tabs": {
+    "primary": "Navigation principale",
+    "home": "Accueil",
+    "newTask": "Nouvelle tâche",
+    "more": "Plus"
+  },
+  "pages": {
+    "dashboard": "Tableau de bord",
+    "tasks": "Tâches",
+    "board": "Tableau",
+    "calendar": "Calendrier",
+    "timeline": "Chronologie",
+    "projects": "Projets",
+    "roadmap": "Feuille de route",
+    "workload": "Charge de travail",
+    "timesheet": "Feuille de temps",
+    "wiki": "Wiki",
+    "chat": "Messagerie",
+    "reports": "Rapports",
+    "team": "Équipe",
+    "settings": "Paramètres",
+    "audit": "Journal d’audit",
+    "automations": "Automatisations",
+    "import": "Importer",
+    "developers": "Développeurs",
+    "help": "Aide"
+  },
+  "palette": {
+    "taskCount_one": "{{count}} tâche",
+    "taskCount_many": "{{count}} de tâches",
+    "taskCount_other": "{{count}} tâches",
+    "archived": "archivé",
+    "sprintStatus": {
+      "planned": "planifié",
+      "active": "actif",
+      "completed": "terminé"
+    },
+    "projectBoard": "Tableau de {{name}}",
+    "activeSprint": "Sprint actif · {{name}}",
+    "allSprints": "Tous les sprints",
+    "projectBacklog": "Backlog de {{name}}",
+    "planAndGroom": "Planifier et affiner",
+    "results_one": "{{count}} résultat",
+    "results_many": "{{count}} de résultats",
+    "results_other": "{{count}} résultats",
+    "noResultsFor": "Aucun résultat pour {{query}}",
+    "noResults": "Aucun résultat pour <q>« {{query}} »</q>",
+    "description": "Trouvez des pages, des tâches et des projets. Utilisez les flèches pour naviguer et Entrée pour ouvrir.",
+    "inputLabel": "Rechercher des tâches et des pages",
+    "resultsLabel": "Résultats",
+    "groups": {
+      "Pages": "Pages",
+      "Go to": "Aller à",
+      "Tasks": "Tâches",
+      "Projects": "Projets",
+      "Sprints": "Sprints",
+      "Help": "Aide"
+    },
+    "loadingTasks": "Chargement des tâches…",
+    "loadFailed": "Impossible de charger les tâches. Les pages restent disponibles.",
+    "toMove": "pour naviguer",
+    "toOpen": "pour ouvrir"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "description": "Les raccourcis fonctionnent partout dans l’espace de travail, sauf pendant la saisie dans un champ. Les pages auxquelles vous n’avez pas accès sont ignorées.",
+    "then": "puis",
+    "groups": {
+      "goTo": "Aller à",
+      "actions": "Actions",
+      "inView": "Dans une vue"
+    },
+    "go": {
+      "dashboard": "Aller au tableau de bord",
+      "tasks": "Aller aux tâches",
+      "projects": "Aller aux projets",
+      "board": "Aller au tableau",
+      "calendar": "Aller au calendrier",
+      "reports": "Aller aux rapports"
+    },
+    "createTask": "Créer une tâche",
+    "searchTasks": "Rechercher des tâches, ou ouvrir la recherche depuis d’autres pages",
+    "openSearch": "Ouvrir la recherche depuis n’importe où",
+    "showShortcuts": "Afficher les raccourcis clavier",
+    "jumpToday": "Aller à aujourd’hui (Calendrier)",
+    "moveBar": "Déplacer une barre d’un jour (Chronologie, barre sélectionnée)",
+    "resizeBar": "Redimensionner une barre (Chronologie, barre sélectionnée)",
+    "sendComment": "Envoyer un commentaire",
+    "close": "Fermer une boîte de dialogue ou un menu",
+    "keys": {
+      "shift": "Maj",
+      "enter": "Entrée",
+      "esc": "Échap"
+    }
+  },
+  "twoFactorGate": {
+    "title": "Activez l’authentification à deux facteurs",
+    "description": "Cet espace de travail exige l’authentification à deux facteurs. Cela prend environ deux minutes avec une application d’authentification, puis vous revenez directement ici.",
+    "action": "Ouvrir les paramètres de sécurité"
+  },
+  "workspaceError": {
+    "title": "Impossible d’ouvrir cet espace de travail",
+    "description": "{{error}}. Il n’existe peut-être pas, ou vous n’en êtes pas membre.",
+    "back": "Retour à l’accueil"
+  },
+  "forbidden": {
+    "title": "Vous n’avez pas accès à cette page",
+    "descriptionRole": "Votre rôle <r>{{role}}</r> n’inclut pas l’autorisation nécessaire à cette page. Demandez à un propriétaire ou à un administrateur de l’espace de travail de modifier votre rôle.",
+    "description": "Votre rôle n’inclut pas l’autorisation nécessaire à cette page. Demandez à un propriétaire ou à un administrateur de l’espace de travail de modifier votre rôle.",
+    "requiredPermission": "Autorisation requise",
+    "back": "Retour au tableau de bord"
+  },
+  "sidebar": {
+    "title": "Barre latérale",
+    "description": "Affiche la barre latérale mobile.",
+    "toggle": "Afficher ou masquer la barre latérale"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread_one": "Notifications, {{count}} non lue",
+    "bellUnread_many": "Notifications, {{count}} de non lues",
+    "bellUnread_other": "Notifications, {{count}} non lues",
+    "markAllRead": "Tout marquer comme lu",
+    "close": "Fermer les notifications",
+    "description": "Vos dernières notifications. Choisissez-en une pour ouvrir sa tâche.",
+    "loading": "Chargement des notifications",
+    "loadFailed": "Impossible de charger vos notifications.",
+    "emptyTitle": "Vous êtes à jour",
+    "emptyDescription": "Les assignations, les mentions et les commentaires sur vos tâches apparaissent ici.",
+    "latest": "Dernières notifications",
+    "viewAll": "Tout afficher",
+    "unread": "Non lue",
+    "someone": "Quelqu’un",
+    "directMessage": "un message direct",
+    "chat": "discussion",
+    "sentence": {
+      "task_assigned": "{{actor}} vous a assigné {{target}}",
+      "task_completed": "{{actor}} a terminé {{target}}",
+      "comment_mention": "{{actor}} vous a mentionné dans {{target}}",
+      "comment_reply_on_my_task": "{{actor}} a commenté {{target}}",
+      "chat_mention": "{{actor}} vous a mentionné dans {{target}}",
+      "updated": "{{actor}} a mis à jour {{target}}"
+    }
+  },
+  "pwa": {
+    "offline": "Vous êtes hors ligne. Les modifications ne peuvent pas être enregistrées tant que vous n’êtes pas reconnecté.",
+    "updateTitle": "Nouvelle version disponible",
+    "updateDescription": "Rechargez pour obtenir la dernière version de TaskMan.",
+    "reload": "Recharger",
+    "later": "Me le rappeler plus tard",
+    "offlineReady": "Prêt à fonctionner hors ligne"
+  },
+  "theme": {
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système",
+    "current": "Thème : {{mode}}",
+    "switch": "Thème : {{mode}}. Passer à : {{next}}",
+    "saveFailed": "Impossible d’enregistrer votre thème. Il s’applique uniquement sur cet appareil. Réessayez plus tard."
+  },
+  "inbox": {
+    "title": "Boîte de réception",
+    "description": "Assignations, tâches terminées, mentions et commentaires sur vos tâches. Les notifications sont conservées 90 jours.",
+    "show": "Afficher les notifications",
+    "filters": {
+      "all": "Toutes",
+      "unread": "Non lues"
+    },
+    "unreadCount": "Non lues ({{count}})",
+    "loadFailed": "Impossible de charger vos notifications",
+    "loadFailedReason": "Le serveur n’a pas répondu.",
+    "loadFailedNext": "Vérifiez votre connexion et réessayez.",
+    "emptyUnreadTitle": "Rien de non lu",
+    "emptyUnreadDescription": "Vous avez tout lu. Les nouvelles notifications apparaissent ici.",
+    "emptyTitle": "Aucune notification pour le moment",
+    "emptyDescription": "Quand quelqu’un vous assigne une tâche ou vous mentionne dans un commentaire, cela apparaît ici.",
+    "loadOlderFailed": "Impossible de charger les notifications plus anciennes. Réessayez.",
+    "loadOlder": "Charger les plus anciennes"
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { ChevronDown, ChevronUp, ListChecks, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SectionHeader, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -24,6 +25,7 @@ const ICON_BUTTON = 'size-9 shrink-0 text-slate-500 hover:bg-slate-100 hover:tex
 
 /** Progress "3/5" with a thin bar. */
 const Progress = ({ items }: { items: ChecklistItem[] }) => {
+  const { t } = useTranslation('tasks');
   const { done, total } = checklistProgress(items);
   if (total === 0) return null;
   return (
@@ -35,13 +37,14 @@ const Progress = ({ items }: { items: ChecklistItem[] }) => {
         />
       </span>
       <span aria-hidden>{done}/{total}</span>
-      <span className="sr-only">{done} of {total} checklist items done</span>
+      <span className="sr-only">{t('badges.checklistDone', { done, total })}</span>
     </span>
   );
 };
 
 /** Checklist of a task: progress, tick, click-to-rename, move up/down, delete and an "add item" input. */
 const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
+  const { t } = useTranslation('tasks');
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   // Button to focus once a reorder has been applied (the moved row re-renders in a new place)
@@ -73,7 +76,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
     const next = addChecklistItem(items, text);
     if (next.length === items.length) return;
     setText('');
-    void apply(next, 'Could not add the item.');
+    void apply(next, t('checklist.addError'));
   };
 
   const commitRename = () => {
@@ -82,7 +85,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
     setEditing(null);
     const clean = cleanChecklistText(draft);
     if (clean && clean !== items.find(item => item._id === id)?.text) {
-      void apply(renameChecklistItem(items, id, clean), 'Could not rename the item.');
+      void apply(renameChecklistItem(items, id, clean), t('checklist.renameError'));
     }
   };
 
@@ -99,22 +102,22 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
 
   const move = (id: string, direction: -1 | 1) => {
     focusAfterMove.current = `${id}:${direction === -1 ? 'up' : 'down'}`;
-    void apply(moveChecklistItem(items, id, direction), 'Could not move the item.');
+    void apply(moveChecklistItem(items, id, direction), t('checklist.moveError'));
   };
 
   const full = !canAddChecklistItem(items);
 
   return (
-    <section aria-label="Checklist">
+    <section aria-label={t('badges.checklist')}>
       <SectionHeader
-        title="Checklist"
+        title={t('badges.checklist')}
         icon={<ListChecks className="size-4 text-slate-500" aria-hidden />}
         action={<Progress items={items} />}
         className="mb-2"
       />
 
       {items.length === 0 ? (
-        <p className="text-sm text-slate-500">No checklist items yet.</p>
+        <p className="text-sm text-slate-500">{t('checklist.none')}</p>
       ) : (
         <ul ref={listRef} className="divide-y divide-slate-100 rounded-lg border border-slate-200">
           {items.map((item, index) => (
@@ -122,14 +125,14 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
               <Checkbox
                 checked={item.done}
                 disabled={!canWrite}
-                onCheckedChange={checked => { void apply(toggleChecklistItem(items, item._id, checked), 'Could not save your change.'); }}
-                aria-label={item.done ? `Mark "${item.text}" as not done` : `Mark "${item.text}" as done`}
+                onCheckedChange={checked => { void apply(toggleChecklistItem(items, item._id, checked), t('checklist.saveError')); }}
+                aria-label={t(item.done ? 'checklist.markNotDone' : 'checklist.markDone', { text: item.text })}
                 className="mt-3 sm:mt-2.5"
               />
               <div className="min-w-0 flex-1">
                 {editing?.id === item._id ? (
                   <Input
-                    aria-label={`Rename checklist item "${item.text}"`}
+                    aria-label={t('checklist.renameLabel', { text: item.text })}
                     value={editing.draft}
                     onChange={event => setEditing({ id: item._id, draft: event.target.value })}
                     onBlur={commitRename}
@@ -141,10 +144,10 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
                 ) : canWrite ? (
                   <button
                     type="button"
-                    title="Click to rename"
+                    title={t('inline.clickToRename')}
                     onClick={() => setEditing({ id: item._id, draft: item.text })}
                     className={cn(
-                      'block min-h-10 w-full rounded px-1 py-2 text-left text-sm [overflow-wrap:anywhere] hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary sm:min-h-8 sm:py-1.5',
+                      'block min-h-10 w-full rounded px-1 py-2 text-start text-sm [overflow-wrap:anywhere] hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-primary sm:min-h-8 sm:py-1.5',
                       item.done ? 'text-slate-500 line-through' : 'text-slate-900',
                     )}
                   >
@@ -163,7 +166,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
                     variant="ghost"
                     size="icon-sm"
                     data-move="up"
-                    aria-label={`Move "${item.text}" up`}
+                    aria-label={t('checklist.moveUp', { text: item.text })}
                     disabled={index === 0}
                     onClick={() => move(item._id, -1)}
                     className={ICON_BUTTON}
@@ -175,7 +178,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
                     variant="ghost"
                     size="icon-sm"
                     data-move="down"
-                    aria-label={`Move "${item.text}" down`}
+                    aria-label={t('checklist.moveDown', { text: item.text })}
                     disabled={index === items.length - 1}
                     onClick={() => move(item._id, 1)}
                     className={ICON_BUTTON}
@@ -186,8 +189,8 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Delete checklist item "${item.text}"`}
-                    onClick={() => { void apply(removeChecklistItem(items, item._id), 'Could not delete the item.'); }}
+                    aria-label={t('checklist.delete', { text: item.text })}
+                    onClick={() => { void apply(removeChecklistItem(items, item._id), t('checklist.deleteError')); }}
                     className={cn(ICON_BUTTON, 'hover:bg-danger-bg hover:text-danger-fg')}
                   >
                     <Trash2 />
@@ -201,14 +204,14 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
 
       {canWrite && (
         full ? (
-          <p className="mt-3 text-xs text-slate-500">A checklist can have at most {MAX_CHECKLIST_ITEMS} items.</p>
+          <p className="mt-3 text-xs text-slate-500">{t('checklist.full', { max: MAX_CHECKLIST_ITEMS })}</p>
         ) : (
           <form onSubmit={add} className="mt-3 flex items-center gap-2">
             <Input
-              aria-label="Add checklist item"
+              aria-label={t('checklist.addLabel')}
               value={text}
               onChange={event => setText(event.target.value)}
-              placeholder="Add an item and press Enter"
+              placeholder={t('checklist.addPlaceholder')}
               maxLength={MAX_CHECKLIST_TEXT}
               className="h-11 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:h-9 sm:text-sm"
             />
@@ -218,7 +221,7 @@ const TaskChecklist = ({ items, canWrite, onChange }: TaskChecklistProps) => {
               disabled={!cleanChecklistText(text)}
               className="h-11 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
             >
-              <Plus className="size-4" aria-hidden /> Add
+              <Plus className="size-4" aria-hidden /> {t('actions.add')}
             </Button>
           </form>
         )

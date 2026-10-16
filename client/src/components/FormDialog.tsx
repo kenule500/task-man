@@ -1,4 +1,5 @@
 import type { FormEvent, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, IconTile, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +34,9 @@ interface FormDialogProps {
 const FormDialog = ({
   open, onOpenChange, icon, title, description, children, onSubmit, submitLabel, submittingLabel,
   submitting = false, submitDisabled = false, error, size = 'sm',
-}: FormDialogProps) => (
+}: FormDialogProps) => {
+  const { t } = useTranslation();
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
       className={cn(
@@ -42,7 +45,7 @@ const FormDialog = ({
         size === 'md' ? 'sm:max-w-[560px]' : 'sm:max-w-[460px]',
       )}
     >
-      <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pr-12 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
+      <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pe-12 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
         <div className="flex items-start gap-3">
           <IconTile>{icon}</IconTile>
           <DialogHeader className="min-w-0 space-y-0 p-0">
@@ -69,7 +72,7 @@ const FormDialog = ({
             onClick={() => onOpenChange(false)}
             className="h-11 rounded-lg border-slate-300 text-sm font-medium text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
           >
-            Cancel
+            {t('cancel')}
           </Button>
           <Button
             type="submit"
@@ -88,6 +91,7 @@ const FormDialog = ({
       </form>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default FormDialog;

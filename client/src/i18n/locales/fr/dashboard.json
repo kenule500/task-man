@@ -1,0 +1,108 @@
+{
+  "greeting": {
+    "morning": "Bonjour, {{name}}",
+    "afternoon": "Bon après-midi, {{name}}",
+    "evening": "Bonsoir, {{name}}"
+  },
+  "subtitle": "Voici un aperçu de votre espace de travail.",
+  "subtitleWorkspace": "Voici ce qui se passe dans {{name}}.",
+  "yourRole": "Votre rôle :",
+  "goToTasks": "Aller aux tâches",
+  "showing": "{{shown}} affichés sur {{total}}.",
+  "viewAll": "Tout afficher",
+  "stats": {
+    "total": "Total des tâches",
+    "totalHint": "Toutes les tâches de cet espace de travail",
+    "inProgress": "En cours",
+    "inProgressHint": "En cours de traitement",
+    "completed": "Terminées",
+    "completedHint": "Tâches terminées",
+    "overdue": "En retard",
+    "overdueHint": "Échéance dépassée"
+  },
+  "dueThisWeek": "À échéance cette semaine",
+  "dueThisWeekEmpty": "Rien à rendre dans les 7 prochains jours.",
+  "overdueTitle": "En retard",
+  "overdueEmpty": "Vous êtes à jour. Aucune tâche en retard.",
+  "openView": "Ouvrir une vue",
+  "views": {
+    "list": {
+      "label": "Liste",
+      "hint": "Tableau dense avec modification en ligne"
+    },
+    "board": {
+      "label": "Tableau",
+      "hint": "Kanban par statut"
+    },
+    "calendar": {
+      "label": "Calendrier",
+      "hint": "Échéances par mois"
+    },
+    "timeline": {
+      "label": "Chronologie",
+      "hint": "Planning et dépendances"
+    }
+  },
+  "members": {
+    "one": "Membre (vous seul pour l’instant)",
+    "other": "Membres"
+  },
+  "invite": {
+    "title": "Invitez des collègues dans cet espace de travail",
+    "description": "Partagez ce code. Ils pourront rejoindre l’espace immédiatement.",
+    "copied": "Copié",
+    "copy": "Copier",
+    "codeSuffix": "le code d’invitation",
+    "copyFailed": "Impossible de copier automatiquement. Sélectionnez le code et copiez-le manuellement."
+  },
+  "myWork": {
+    "title": "Mon travail",
+    "buckets": {
+      "overdue": "En retard",
+      "today": "Pour aujourd’hui",
+      "week": "Cette semaine",
+      "later": "Plus tard"
+    },
+    "empty": "Rien ne vous est assigné pour le moment. Les tâches qui vous sont assignées apparaissent ici.",
+    "groupLabel": "{{label}}, {{count}}",
+    "recent_one": "{{count}} tâche terminée par vous au cours des {{days}} derniers jours",
+    "recent_many": "{{count}} de tâches terminées par vous au cours des {{days}} derniers jours",
+    "recent_other": "{{count}} tâches terminées par vous au cours des {{days}} derniers jours"
+  },
+  "getStarted": {
+    "title": "Prenez en main TaskMan",
+    "done": "{{done}} sur {{total}} terminées",
+    "progress": "Progression de la configuration : {{done}} étapes sur {{total}} terminées",
+    "steps": "Étapes de configuration",
+    "task": {
+      "title": "Créez votre première tâche",
+      "description": "Ajoutez un titre et une échéance. Le reste est facultatif.",
+      "action": "Créer une tâche"
+    },
+    "invite": {
+      "title": "Invitez un collègue",
+      "description": "Envoyez une invitation par e-mail et choisissez ce qu’il peut faire.",
+      "action": "Inviter un collègue"
+    },
+    "board": {
+      "title": "Essayez la vue tableau",
+      "description": "Affichez vos tâches en colonnes et déplacez-les d’un statut à l’autre.",
+      "action": "Ouvrir le tableau"
+    }
+  },
+  "activeSprints": {
+    "title": "Sprints actifs",
+    "progress": "Progression de {{name}}",
+    "itemsDone": "{{completed}}/{{total}} éléments terminés",
+    "pointsDone": "{{completed}}/{{total}} points"
+  },
+  "sprint": {
+    "endedDaysAgo_one": "Terminé il y a {{count}} jour",
+    "endedDaysAgo_many": "Terminé il y a {{count}} de jours",
+    "endedDaysAgo_other": "Terminé il y a {{count}} jours",
+    "endsToday": "Se termine aujourd’hui",
+    "daysLeft_one": "{{count}} jour restant",
+    "daysLeft_many": "{{count}} de jours restants",
+    "daysLeft_other": "{{count}} jours restants"
+  }
+}

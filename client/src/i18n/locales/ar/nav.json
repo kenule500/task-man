@@ -1,0 +1,239 @@
+{
+  "items": {
+    "dashboard": "لوحة التحكم",
+    "tasks": "المهام",
+    "projects": "المشاريع",
+    "roadmap": "خارطة الطريق",
+    "workload": "عبء العمل",
+    "timesheet": "سجل الوقت",
+    "wiki": "الويكي",
+    "chat": "الدردشة",
+    "team": "الفريق",
+    "calendar": "التقويم",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "help": "مركز المساعدة"
+  },
+  "groups": {
+    "main": "القائمة الرئيسية",
+    "general": "عام"
+  },
+  "skipToContent": "تخطَّ إلى المحتوى",
+  "chatUnread": "{{unread}} رسائل دردشة غير مقروءة",
+  "workspaceNav": "مساحة العمل",
+  "switchWorkspace": "تبديل مساحة العمل",
+  "loading": "جارٍ التحميل…",
+  "noWorkspace": "لا توجد مساحة عمل",
+  "workspaceCount_zero": "لا توجد مساحات عمل",
+  "workspaceCount_one": "مساحة عمل واحدة",
+  "workspaceCount_two": "مساحتا عمل",
+  "workspaceCount_few": "{{count}} مساحات عمل",
+  "workspaceCount_many": "{{count}} مساحة عمل",
+  "workspaceCount_other": "{{count}} مساحة عمل",
+  "myWorkspaces": "مساحات عملي",
+  "current": "(الحالية)",
+  "createWorkspace": "إنشاء مساحة عمل",
+  "leaveWorkspace": "مغادرة {{name}}",
+  "accountMenu": "قائمة الحساب",
+  "user": "مستخدم",
+  "profile": "الملف الشخصي",
+  "logOut": "تسجيل الخروج",
+  "search": "بحث",
+  "searchPlaceholder": "ابحث في المهام والصفحات…",
+  "leave": {
+    "title": "مغادرة {{name}}؟",
+    "description": "ستفقد الوصول إلى مهامها ومشاريعها وسيُلغى إسنادك من مهامك فيها. يمكن للمشرف دعوتك مجددًا.",
+    "confirm": "مغادرة مساحة العمل",
+    "busy": "جارٍ المغادرة…",
+    "success": "غادرتَ {{name}}",
+    "error": "تعذّرت مغادرة مساحة العمل."
+  },
+  "tabs": {
+    "primary": "التنقل الرئيسي",
+    "home": "الرئيسية",
+    "newTask": "مهمة جديدة",
+    "more": "المزيد"
+  },
+  "pages": {
+    "dashboard": "لوحة التحكم",
+    "tasks": "المهام",
+    "board": "اللوحة",
+    "calendar": "التقويم",
+    "timeline": "الجدول الزمني",
+    "projects": "المشاريع",
+    "roadmap": "خارطة الطريق",
+    "workload": "عبء العمل",
+    "timesheet": "سجل الوقت",
+    "wiki": "الويكي",
+    "chat": "الدردشة",
+    "reports": "التقارير",
+    "team": "الفريق",
+    "settings": "الإعدادات",
+    "audit": "سجل التدقيق",
+    "automations": "الأتمتة",
+    "import": "استيراد",
+    "developers": "المطوّرون",
+    "help": "المساعدة"
+  },
+  "palette": {
+    "taskCount_zero": "لا مهام",
+    "taskCount_one": "مهمة واحدة",
+    "taskCount_two": "مهمتان",
+    "taskCount_few": "{{count}} مهام",
+    "taskCount_many": "{{count}} مهمة",
+    "taskCount_other": "{{count}} مهمة",
+    "archived": "مؤرشف",
+    "sprintStatus": {
+      "planned": "مخطَّط",
+      "active": "نشط",
+      "completed": "مكتمل"
+    },
+    "projectBoard": "لوحة {{name}}",
+    "activeSprint": "السبرينت النشط · {{name}}",
+    "allSprints": "كل السبرينتات",
+    "projectBacklog": "الأعمال المتراكمة في {{name}}",
+    "planAndGroom": "التخطيط والتنقيح",
+    "results_zero": "لا نتائج",
+    "results_one": "نتيجة واحدة",
+    "results_two": "نتيجتان",
+    "results_few": "{{count}} نتائج",
+    "results_many": "{{count}} نتيجة",
+    "results_other": "{{count}} نتيجة",
+    "noResultsFor": "لا نتائج لـ {{query}}",
+    "noResults": "لا نتائج لـ <q>«{{query}}»</q>",
+    "description": "ابحث عن الصفحات والمهام والمشاريع. استخدم الأسهم للتنقل وEnter للفتح.",
+    "inputLabel": "البحث في المهام والصفحات",
+    "resultsLabel": "النتائج",
+    "groups": {
+      "Pages": "الصفحات",
+      "Go to": "انتقال إلى",
+      "Tasks": "المهام",
+      "Projects": "المشاريع",
+      "Sprints": "السبرينتات",
+      "Help": "المساعدة"
+    },
+    "loadingTasks": "جارٍ تحميل المهام…",
+    "loadFailed": "تعذّر تحميل المهام. تبقى الصفحات متاحة.",
+    "toMove": "للتنقل",
+    "toOpen": "للفتح"
+  },
+  "shortcuts": {
+    "title": "اختصارات لوحة المفاتيح",
+    "description": "تعمل الاختصارات في أي مكان داخل مساحة العمل ما عدا أثناء الكتابة في حقل. تُتجاهل الصفحات التي لا يمكنك فتحها.",
+    "then": "ثم",
+    "groups": {
+      "goTo": "انتقال إلى",
+      "actions": "إجراءات",
+      "inView": "داخل عرض"
+    },
+    "go": {
+      "dashboard": "الانتقال إلى لوحة التحكم",
+      "tasks": "الانتقال إلى المهام",
+      "projects": "الانتقال إلى المشاريع",
+      "board": "الانتقال إلى اللوحة",
+      "calendar": "الانتقال إلى التقويم",
+      "reports": "الانتقال إلى التقارير"
+    },
+    "createTask": "إنشاء مهمة",
+    "searchTasks": "البحث في المهام، أو فتح البحث من صفحات أخرى",
+    "openSearch": "فتح البحث من أي مكان",
+    "showShortcuts": "عرض اختصارات لوحة المفاتيح",
+    "jumpToday": "الانتقال إلى اليوم (التقويم)",
+    "moveBar": "تحريك شريط يومًا واحدًا (الجدول الزمني، الشريط محدَّد)",
+    "resizeBar": "تغيير حجم شريط (الجدول الزمني، الشريط محدَّد)",
+    "sendComment": "إرسال تعليق",
+    "close": "إغلاق نافذة حوار أو قائمة",
+    "keys": {
+      "shift": "Shift",
+      "enter": "Enter",
+      "esc": "Esc"
+    }
+  },
+  "twoFactorGate": {
+    "title": "فعّل المصادقة الثنائية",
+    "description": "تتطلب مساحة العمل هذه المصادقة الثنائية. يستغرق الأمر نحو دقيقتين باستخدام تطبيق مصادقة، ثم تعود مباشرة.",
+    "action": "فتح إعدادات الأمان"
+  },
+  "workspaceError": {
+    "title": "تعذّر فتح مساحة العمل هذه",
+    "description": "{{error}}. قد لا تكون موجودة، أو لست عضوًا فيها.",
+    "back": "العودة إلى الصفحة الرئيسية"
+  },
+  "forbidden": {
+    "title": "لا تملك صلاحية الوصول إلى هذه الصفحة",
+    "descriptionRole": "لا يتضمن دورك <r>{{role}}</r> الصلاحية التي تحتاجها هذه الصفحة. اطلب من مالك مساحة العمل أو مشرفها تعديل دورك.",
+    "description": "لا يتضمن دورك الصلاحية التي تحتاجها هذه الصفحة. اطلب من مالك مساحة العمل أو مشرفها تعديل دورك.",
+    "requiredPermission": "الصلاحية المطلوبة",
+    "back": "العودة إلى لوحة التحكم"
+  },
+  "sidebar": {
+    "title": "الشريط الجانبي",
+    "description": "يعرض الشريط الجانبي للجوال.",
+    "toggle": "إظهار الشريط الجانبي أو إخفاؤه"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "bellUnread_zero": "الإشعارات، لا إشعارات غير مقروءة",
+    "bellUnread_one": "الإشعارات، إشعار واحد غير مقروء",
+    "bellUnread_two": "الإشعارات، إشعاران غير مقروءين",
+    "bellUnread_few": "الإشعارات، {{count}} إشعارات غير مقروءة",
+    "bellUnread_many": "الإشعارات، {{count}} إشعارًا غير مقروء",
+    "bellUnread_other": "الإشعارات، {{count}} إشعار غير مقروء",
+    "markAllRead": "تعليم الكل كمقروء",
+    "close": "إغلاق الإشعارات",
+    "description": "أحدث إشعاراتك. اختر واحدًا لفتح مهمته.",
+    "loading": "جارٍ تحميل الإشعارات",
+    "loadFailed": "تعذّر تحميل إشعاراتك.",
+    "emptyTitle": "لا جديد لديك",
+    "emptyDescription": "تظهر هنا الإسنادات والإشارات والتعليقات على مهامك.",
+    "latest": "أحدث الإشعارات",
+    "viewAll": "عرض الكل",
+    "unread": "غير مقروء",
+    "someone": "شخص ما",
+    "directMessage": "رسالة مباشرة",
+    "chat": "الدردشة",
+    "sentence": {
+      "task_assigned": "أسند إليك {{actor}} {{target}}",
+      "task_completed": "أكمل {{actor}} {{target}}",
+      "comment_mention": "أشار إليك {{actor}} في {{target}}",
+      "comment_reply_on_my_task": "علّق {{actor}} على {{target}}",
+      "chat_mention": "أشار إليك {{actor}} في {{target}}",
+      "updated": "حدّث {{actor}} {{target}}"
+    }
+  },
+  "pwa": {
+    "offline": "أنت غير متصل. لا يمكن حفظ التغييرات حتى تعيد الاتصال.",
+    "updateTitle": "إصدار جديد متاح",
+    "updateDescription": "أعد التحميل للحصول على أحدث إصدار من TaskMan.",
+    "reload": "إعادة التحميل",
+    "later": "ذكّرني لاحقًا",
+    "offlineReady": "جاهز للعمل دون اتصال"
+  },
+  "theme": {
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "النظام",
+    "current": "السمة: {{mode}}",
+    "switch": "السمة: {{mode}}. التبديل إلى: {{next}}",
+    "saveFailed": "تعذّر حفظ السمة. تُطبَّق على هذا الجهاز فقط. حاول مرة أخرى لاحقًا."
+  },
+  "inbox": {
+    "title": "صندوق الوارد",
+    "description": "الإسنادات والمهام المكتملة والإشارات والتعليقات على مهامك. تُحفظ الإشعارات 90 يومًا.",
+    "show": "عرض الإشعارات",
+    "filters": {
+      "all": "الكل",
+      "unread": "غير المقروءة"
+    },
+    "unreadCount": "غير المقروءة ({{count}})",
+    "loadFailed": "تعذّر تحميل إشعاراتك",
+    "loadFailedReason": "لم يستجب الخادم.",
+    "loadFailedNext": "تحقّق من اتصالك وحاول مرة أخرى.",
+    "emptyUnreadTitle": "لا شيء غير مقروء",
+    "emptyUnreadDescription": "قرأت كل شيء. تظهر الإشعارات الجديدة هنا.",
+    "emptyTitle": "لا توجد إشعارات بعد",
+    "emptyDescription": "عندما يسند إليك أحدهم مهمة أو يشير إليك في تعليق، يظهر هنا.",
+    "loadOlderFailed": "تعذّر تحميل الإشعارات الأقدم. حاول مرة أخرى.",
+    "loadOlder": "تحميل الأقدم"
+  }
+}

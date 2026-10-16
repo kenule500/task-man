@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import { body, validationResult } from 'express-validator';
 import Task, {
   ITask,
+  MAX_ACCEPTANCE_CRITERIA,
   MAX_CHECKLIST_ITEMS,
   MAX_CHECKLIST_TEXT,
+  MAX_CRITERION_TEXT,
   MAX_ESTIMATE_MINUTES,
   MAX_LABELS,
   MAX_LABEL_LENGTH,
@@ -16,6 +18,7 @@ import Task, {
 } from '../models/taskModel.js';
 import Project from '../models/projectModel.js';
 import TimeEntry from '../models/timeEntryModel.js';
+import AiReview from '../models/aiReviewModel.js';
 import Sprint from '../models/sprintModel.js';
 import Release from '../models/releaseModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
@@ -45,7 +48,7 @@ import {
 // Fields a client is allowed to change on a task
 const EDITABLE_FIELDS = [
   'title', 'description', 'project', 'status', 'priority', 'startDate', 'deadline', 'position', 'dependencies',
-  'labels', 'assignees', 'type', 'storyPoints', 'estimateMinutes', 'sprint', 'parent', 'epic', 'release', 'checklist', 'recurrence',
+  'labels', 'assignees', 'type', 'storyPoints', 'estimateMinutes', 'sprint', 'parent', 'epic', 'release', 'checklist', 'recurrence', 'acceptanceCriteria',
 ] as const;
 
 // People shown on tasks: never expose email, password hashes or tokens
@@ -108,6 +111,37 @@ export const normalizeChecklist = (value: unknown): ChecklistInput[] =>
     done: item.done === true,
   }));
 
+// ================================================================
+// Acceptance criteria (what the AI code review checks the pull request against)
+// ================================================================
+/** Why a request value is not a valid list of acceptance criteria, or null when it is one. */
+export const criteriaProblem = (value: unknown): string | null => {
+  if (!Array.isArray(value)) return 'Acceptance criteria must be a list';
+  if (value.length > MAX_ACCEPTANCE_CRITERIA) return `A task can have at most ${MAX_ACCEPTANCE_CRITERIA} acceptance criteria`;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isRecord(item)) return 'Acceptance criteria must be objects';
+    if (typeof item.text !== 'string' || item.text.trim().length === 0) return 'Acceptance criteria need text';
+    if (item.text.trim().length > MAX_CRITERION_TEXT) return `Acceptance criteria can be at most ${MAX_CRITERION_TEXT} characters`;
+    if (item._id !== undefined) {
+      if (typeof item._id !== 'string' || !mongoose.isValidObjectId(item._id)) return 'Invalid acceptance criterion id';
+      if (seen.has(item._id)) return 'Acceptance criterion ids must be unique';
+      seen.add(item._id);
+    }
+  }
+  return null;
+};
+
+/** Trimmed criteria with only the known keys (call `criteriaProblem` first). Items without an id get one on save. */
+export const normalizeCriteria = (value: unknown): { _id?: string; text: string }[] =>
+  (Array.isArray(value) ? value : []).map(item => ({
+    ...(item._id ? { _id: String(item._id) } : {}),
+    text: String(item.text).trim(),
+  }));
+
+const criteriaTexts = (items: unknown): string[] =>
+  Array.isArray(items) ? items.map(item => String((item as { text?: unknown })?.text ?? '')) : [];
+
 const validatorFrom = (problem: (value: unknown) => string | null) => (value: unknown) => {
   const message = problem(value);
   if (message) throw new Error(message);
@@ -119,6 +153,7 @@ const validatorFrom = (problem: (value: unknown) => string | null) => (value: un
 // ================================================================
 const optionalFieldRules = [
   body('checklist').optional().custom(validatorFrom(checklistProblem)),
+  body('acceptanceCriteria').optional().custom(validatorFrom(criteriaProblem)),
   body('recurrence').optional({ values: 'null' }).custom(validatorFrom(recurrenceProblem)),
   body('custom').optional().isObject().withMessage('Custom fields must be an object of key and value'),
   body('description').optional().isString().isLength({ max: 2000 }).withMessage('Description is too long'),
@@ -405,6 +440,15 @@ export const describeTaskChanges = (before: Record<string, unknown>, after: Reco
   const progressBefore = checklistProgress(before.checklist);
   const progressAfter = checklistProgress(after.checklist);
   if (progressBefore !== progressAfter) changes.push({ field: 'checklist', from: progressBefore, to: progressAfter });
+  const criteriaBefore = criteriaTexts(before.acceptanceCriteria);
+  const criteriaAfter = criteriaTexts(after.acceptanceCriteria);
+  if (JSON.stringify(criteriaBefore) !== JSON.stringify(criteriaAfter)) {
+    changes.push({
+      field: 'acceptanceCriteria',
+      from: criteriaBefore.length > 0 ? String(criteriaBefore.length) : undefined,
+      to: criteriaAfter.length > 0 ? String(criteriaAfter.length) : undefined,
+    });
+  }
   const repeatBefore = describeRecurrence(before.recurrence as Recurrence | null | undefined);
   const repeatAfter = describeRecurrence(after.recurrence as Recurrence | null | undefined);
   if (repeatBefore !== repeatAfter) changes.push({ field: 'recurrence', from: repeatBefore, to: repeatAfter });
@@ -472,6 +516,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
     const assignees = normalizeIds(req.body.assignees);
     const labels = normalizeLabels(req.body.labels);
     const checklist = normalizeChecklist(req.body.checklist ?? []);
+    const acceptanceCriteria = normalizeCriteria(req.body.acceptanceCriteria ?? []);
     const recurrence = normalizeRecurrence(req.body.recurrence ?? null);
 
     const start = startDate ? new Date(startDate) : undefined;
@@ -540,6 +585,7 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       assignees,
       labels,
       checklist,
+      acceptanceCriteria,
       recurrence,
       custom: customPlan.plan.set,
       // Whoever creates a task follows it
@@ -595,6 +641,8 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
         task.set('labels', normalizeLabels(value));
       } else if (field === 'checklist') {
         task.set('checklist', normalizeChecklist(value));
+      } else if (field === 'acceptanceCriteria') {
+        task.set('acceptanceCriteria', normalizeCriteria(value));
       } else if (field === 'recurrence') {
         task.set('recurrence', normalizeRecurrence(value));
       } else if (field === 'startDate') {
@@ -706,6 +754,7 @@ export const cleanUpRemovedTasks = async (workspaceId: mongoose.Types.ObjectId, 
   await Task.updateMany({ workspace: workspaceId, epic: { $in: removedIds } }, { $set: { epic: null } });
   // Logged time goes with the task (a timer running on it disappears too)
   await TimeEntry.deleteMany({ workspace: workspaceId, task: { $in: removedIds } });
+  await AiReview.deleteMany({ workspace: workspaceId, task: { $in: removedIds } });
   // Attachments live in GridFS, so they are removed explicitly
   await deleteFiles(removed.flatMap(item => (item.attachments ?? []).map(attachment => attachment.fileId)));
 };
@@ -774,6 +823,7 @@ const copiedFields = (source: ITask) => {
     labels: [...(plain.labels ?? [])],
     assignees: [...(plain.assignees ?? [])],
     checklist: (plain.checklist ?? []).map(item => ({ text: item.text, done: false })),
+    acceptanceCriteria: (plain.acceptanceCriteria ?? []).map(item => ({ text: item.text })),
     recurrence: plain.parent ? null : plain.recurrence ?? null,
     custom: plainCustom(plain.custom),
     // The estimate carries over; logged time belongs to the original

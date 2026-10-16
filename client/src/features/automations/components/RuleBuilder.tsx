@@ -1,5 +1,6 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Plus, Trash2, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Field } from '@/components/ds';
 import { fieldMessageId } from '@/components/ds/variants';
 import { Button } from '@/components/ui/button';
@@ -54,9 +55,10 @@ interface ValueFieldProps {
 
 /** The value editor of a trigger, condition or action: a select, a text field or a comment box. */
 const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange }: ValueFieldProps) => {
+  const { t } = useTranslation('admin');
   const describedBy = error ? fieldMessageId(id) : undefined;
   if (kind === 'status' || kind === 'priority' || kind === 'type') {
-    const choices: Option[] = allowAny ? [{ value: ANY_VALUE, label: 'Any' }, ...choicesFor(kind)] : choicesFor(kind);
+    const choices: Option[] = allowAny ? [{ value: ANY_VALUE, label: t('automations.builder.any') }, ...choicesFor(kind)] : choicesFor(kind);
     return (
       <div className="min-w-0 flex-1">
         <OptionSelect
@@ -72,11 +74,11 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
   }
   if (kind === 'member') {
     const options: Option[] = [
-      { value: CHOOSE_MEMBER, label: 'Choose a member' },
+      { value: CHOOSE_MEMBER, label: t('automations.builder.chooseMember') },
       ...members.map(member => ({ value: member._id, label: member.name })),
     ];
     // A member who has since left stays visible so the rule can be fixed
-    if (value && !options.some(option => option.value === value)) options.push({ value, label: 'Former member' });
+    if (value && !options.some(option => option.value === value)) options.push({ value, label: t('automations.builder.formerMember') });
     return (
       <div className="min-w-0 flex-1">
         <OptionSelect
@@ -100,7 +102,7 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
           value={value}
           maxLength={MAX_COMMENT}
           onChange={event => onChange(event.target.value)}
-          placeholder="What should the comment say?"
+          placeholder={t('automations.builder.commentPlaceholder')}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
           className="min-h-20 bg-white text-base sm:text-sm"
@@ -118,7 +120,7 @@ const ValueField = ({ id, label, kind, value, members, allowAny, error, onChange
           value={value}
           maxLength={MAX_VALUE}
           onChange={event => onChange(event.target.value)}
-          placeholder={allowAny ? 'Any label' : 'Label'}
+          placeholder={allowAny ? t('automations.builder.anyLabel') : t('automations.builder.label')}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
           className={CONTROL}
@@ -141,6 +143,7 @@ const RemoveButton = ({ label, onClick }: { label: string; onClick: () => void }
  * Mount it only while it is open; it keeps its own draft.
  */
 export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose }: RuleBuilderProps) => {
+  const { t } = useTranslation('admin');
   const [draft, setDraft] = useState<RuleDraft>(initial);
   const [errors, setErrors] = useState<DraftErrors | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -170,7 +173,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
     change({ ...draft, actions: draft.actions.map(row => (row.key === key ? update(row) : row)) });
 
   const projectOptions: Option[] = [
-    { value: ALL_PROJECTS, label: 'All projects' },
+    { value: ALL_PROJECTS, label: t('automations.builder.allProjects') },
     ...projects.map(name => ({ value: name, label: name })),
   ];
   if (draft.project && !projects.includes(draft.project)) projectOptions.push({ value: draft.project, label: draft.project });
@@ -196,7 +199,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
         initialFocus={nameRef}
         className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[640px] sm:rounded-xl"
       >
-        <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pr-12 pt-5 sm:px-6 sm:pt-6">
+        <div className="shrink-0 border-b border-slate-200 px-4 pb-4 pe-12 pt-5 sm:px-6 sm:pt-6">
           <div className="flex items-start gap-3">
             <div aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Zap className="size-5" />
@@ -204,7 +207,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
             <DialogHeader className="min-w-0 gap-1 p-0">
               <DialogTitle className="text-lg font-bold leading-tight text-slate-900">{title}</DialogTitle>
               <DialogDescription className="text-sm text-slate-600">
-                When something happens to a task, check a few conditions and let TaskMan make the changes.
+                {t('automations.builder.description')}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -215,23 +218,23 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
             {failure && <p role="alert" className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-fg">{failure}</p>}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" htmlFor={`${uid}-name`} required error={errors?.name}>
+              <Field label={t('automations.builder.name')} htmlFor={`${uid}-name`} required error={errors?.name}>
                 <Input
                   ref={nameRef}
                   id={`${uid}-name`}
                   value={draft.name}
                   maxLength={MAX_RULE_NAME}
                   onChange={event => change({ ...draft, name: event.target.value })}
-                  placeholder="e.g. Bugs start as high priority"
+                  placeholder={t('automations.builder.namePlaceholder')}
                   aria-invalid={Boolean(errors?.name)}
                   aria-describedby={errors?.name ? fieldMessageId(`${uid}-name`) : undefined}
                   className={CONTROL}
                 />
               </Field>
-              <Field label="Applies to" htmlFor={`${uid}-project`}>
+              <Field label={t('automations.builder.appliesTo')} htmlFor={`${uid}-project`}>
                 <OptionSelect
                   id={`${uid}-project`}
-                  aria-label="Applies to"
+                  aria-label={t('automations.builder.appliesTo')}
                   value={draft.project || ALL_PROJECTS}
                   options={projectOptions}
                   onChange={next => change({ ...draft, project: next === ALL_PROJECTS ? '' : next })}
@@ -241,12 +244,12 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
             </div>
 
             <section aria-labelledby={`${uid}-when`} className="space-y-3">
-              <h3 id={`${uid}-when`} className="text-xs font-semibold uppercase tracking-wide text-slate-600">When</h3>
+              <h3 id={`${uid}-when`} className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t('automations.builder.when')}</h3>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="sm:w-1/2">
                   <OptionSelect
                     id={`${uid}-trigger`}
-                    aria-label="Trigger"
+                    aria-label={t('automations.builder.trigger')}
                     value={draft.trigger.type}
                     options={TRIGGER_OPTIONS}
                     onChange={(type: TriggerType) => change({ ...draft, trigger: { type, to: '' } })}
@@ -256,7 +259,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                 {triggerKind && (
                   <ValueField
                     id={`${uid}-trigger-to`}
-                    label={triggerKind === 'label' ? 'Label added' : triggerKind === 'status' ? 'New status' : 'New priority'}
+                    label={triggerKind === 'label' ? t('automations.builder.labelAdded') : triggerKind === 'status' ? t('automations.builder.newStatus') : t('automations.builder.newPriority')}
                     kind={triggerKind}
                     value={draft.trigger.to}
                     members={members}
@@ -271,7 +274,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
             <section aria-labelledby={`${uid}-if`} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 id={`${uid}-if`} className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  If <span className="font-normal normal-case tracking-normal">(all must match, optional)</span>
+                  {t('automations.builder.if')} <span className="font-normal normal-case tracking-normal">{t('automations.builder.ifHint')}</span>
                 </h3>
                 <Button
                   type="button"
@@ -280,20 +283,20 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                   onClick={() => change({ ...draft, conditions: [...draft.conditions, newConditionRow()] })}
                   className="h-10 gap-1.5 px-3 text-sm md:h-8"
                 >
-                  <Plus aria-hidden />Add condition
+                  <Plus aria-hidden />{t('automations.builder.addCondition')}
                 </Button>
               </div>
-              {draft.conditions.length === 0 && <p className="text-sm text-slate-600">No conditions: the rule runs every time.</p>}
+              {draft.conditions.length === 0 && <p className="text-sm text-slate-600">{t('automations.builder.noConditions')}</p>}
               <ul className="space-y-3">
                 {draft.conditions.map((row, index) => {
                   const config = CONDITION_OPTIONS[row.field];
                   const rowId = `${uid}-cond-${row.key}`;
                   return (
                     <li key={row.key}>
-                      <div role="group" aria-label={`Condition ${index + 1}`} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                      <div role="group" aria-label={t('automations.builder.condition', { n: index + 1 })} className="flex flex-col gap-2 sm:flex-row sm:items-start">
                         <div className="sm:w-32">
                           <OptionSelect
-                            aria-label={`Condition ${index + 1} field`}
+                            aria-label={t('automations.builder.conditionField', { n: index + 1 })}
                             value={row.field}
                             options={Object.entries(CONDITION_OPTIONS).map(([value, item]) => ({ value: value as ConditionField, label: item.label }))}
                             onChange={(field: ConditionField) => setCondition(row.key, () => ({ ...newConditionRow(field), key: row.key }))}
@@ -302,7 +305,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                         </div>
                         <div className="sm:w-36">
                           <OptionSelect
-                            aria-label={`Condition ${index + 1} operator`}
+                            aria-label={t('automations.builder.conditionOperator', { n: index + 1 })}
                             value={row.op}
                             options={config.ops}
                             onChange={op => setCondition(row.key, current => ({ ...current, op }))}
@@ -312,7 +315,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                         {config.valueKind && (
                           <ValueField
                             id={rowId}
-                            label={`Condition ${index + 1} value`}
+                            label={t('automations.builder.conditionValue', { n: index + 1 })}
                             kind={config.valueKind}
                             value={row.value}
                             members={members}
@@ -321,7 +324,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                           />
                         )}
                         <RemoveButton
-                          label={`Remove condition ${index + 1}`}
+                          label={t('automations.builder.removeCondition', { n: index + 1 })}
                           onClick={() => change({ ...draft, conditions: draft.conditions.filter(item => item.key !== row.key) })}
                         />
                       </div>
@@ -333,7 +336,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
 
             <section aria-labelledby={`${uid}-then`} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h3 id={`${uid}-then`} className="text-xs font-semibold uppercase tracking-wide text-slate-600">Then</h3>
+                <h3 id={`${uid}-then`} className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t('automations.builder.then')}</h3>
                 <Button
                   type="button"
                   variant="outline"
@@ -341,7 +344,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                   onClick={() => change({ ...draft, actions: [...draft.actions, newActionRow()] })}
                   className="h-10 gap-1.5 px-3 text-sm md:h-8"
                 >
-                  <Plus aria-hidden />Add action
+                  <Plus aria-hidden />{t('automations.builder.addAction')}
                 </Button>
               </div>
               {errors?.form && <p role="alert" className="text-sm text-danger-fg">{errors.form}</p>}
@@ -351,10 +354,10 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                   const rowId = `${uid}-act-${row.key}`;
                   return (
                     <li key={row.key}>
-                      <div role="group" aria-label={`Action ${index + 1}`} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                      <div role="group" aria-label={t('automations.builder.action', { n: index + 1 })} className="flex flex-col gap-2 sm:flex-row sm:items-start">
                         <div className="sm:w-64">
                           <OptionSelect
-                            aria-label={`Action ${index + 1} type`}
+                            aria-label={t('automations.builder.actionType', { n: index + 1 })}
                             value={row.type}
                             options={ACTION_OPTIONS}
                             onChange={(type: ActionType) => setAction(row.key, () => ({ key: row.key, type, value: defaultValueFor(actionValueKind(type)) }))}
@@ -364,7 +367,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                         {kind && (
                           <ValueField
                             id={rowId}
-                            label={`Action ${index + 1} value`}
+                            label={t('automations.builder.actionValue', { n: index + 1 })}
                             kind={kind}
                             value={row.value}
                             members={members}
@@ -373,7 +376,7 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
                           />
                         )}
                         <RemoveButton
-                          label={`Remove action ${index + 1}`}
+                          label={t('automations.builder.removeAction', { n: index + 1 })}
                           onClick={() => change({ ...draft, actions: draft.actions.filter(item => item.key !== row.key) })}
                         />
                       </div>
@@ -384,14 +387,14 @@ export const RuleBuilder = ({ title, initial, members, projects, onSave, onClose
             </section>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">In words</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{t('automations.builder.inWords')}</p>
               <p aria-live="polite" className="mt-1 text-sm text-slate-800">{sentence}</p>
             </div>
           </div>
 
           <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
-            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-9">Cancel</Button>
-            <Button type="submit" disabled={saving} className="h-11 sm:h-9">{saving ? 'Saving…' : 'Save rule'}</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-9">{t('actions.cancel')}</Button>
+            <Button type="submit" disabled={saving} className="h-11 sm:h-9">{saving ? t('actions.saving') : t('automations.builder.saveRule')}</Button>
           </div>
         </form>
       </DialogContent>

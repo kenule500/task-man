@@ -1,5 +1,6 @@
 // Custom field filters of the task toolbar (`cf.<key>=<value>` in the URL): which fields can be filtered
 // and the choices each one offers. Matching a task lives in `features/tasks/lib/filters.ts`.
+import i18n from '@/i18n';
 import type { SelectOption } from '@/features/tasks/constants';
 import { MAX_CUSTOM_FILTERS } from '@/features/tasks/lib/filters';
 import { FIELD_COLOR_META, appliesToProject } from './fields';
@@ -15,12 +16,12 @@ export const filterableFields = (fields: readonly CustomField[], project?: strin
 /** Choices of one field's filter; `all` leaves the field out of the filter. A value the field no longer has stays selectable. */
 export const filterOptions = (field: CustomField, members: readonly { _id: string; name: string }[], current = 'all'): SelectOption<string>[] => {
   const name = field.name;
-  const head: SelectOption<string>[] = [{ value: 'all', label: `Any ${name.toLowerCase()}` }];
-  const none: SelectOption<string> = { value: 'none', label: `No ${name.toLowerCase()}` };
+  const head: SelectOption<string>[] = [{ value: 'all', label: i18n.t('tasks:fields.filter.any', { name: name.toLowerCase() }) }];
+  const none: SelectOption<string> = { value: 'none', label: i18n.t('tasks:fields.filter.none', { name: name.toLowerCase() }) };
   let choices: SelectOption<string>[];
   switch (field.type) {
     case 'checkbox':
-      return [...head, { value: 'true', label: `${name}: yes` }, { value: 'false', label: `${name}: no` }, { value: 'none', label: `${name}: not set` }];
+      return [...head, { value: 'true', label: i18n.t('tasks:fields.filter.yes', { name }) }, { value: 'false', label: i18n.t('tasks:fields.filter.no', { name }) }, { value: 'none', label: i18n.t('tasks:fields.filter.notSet', { name }) }];
     case 'user':
       choices = members.map(member => ({ value: member._id, label: member.name }));
       break;
@@ -28,7 +29,7 @@ export const filterOptions = (field: CustomField, members: readonly { _id: strin
       choices = field.options.map(option => ({ value: option.id, label: option.label, dot: FIELD_COLOR_META[option.color].dot }));
   }
   const known = current === 'all' || current === 'none' || choices.some(choice => choice.value === current);
-  return [...head, none, ...choices, ...(known ? [] : [{ value: current, label: field.type === 'user' ? 'Member' : 'Unknown option' }])];
+  return [...head, none, ...choices, ...(known ? [] : [{ value: current, label: field.type === 'user' ? i18n.t('tasks:fields.member') : i18n.t('tasks:fields.filter.unknownOption') }])];
 };
 
 /** `custom` with the filter of `key` set to `value` (`all` removes it). */

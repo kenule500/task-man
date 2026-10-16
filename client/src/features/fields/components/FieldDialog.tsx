@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Field, OptionCombobox, SwitchField } from '@/components/ds';
 import { fieldMessageId } from '@/components/ds/variants';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ interface FieldDialogProps {
 }
 
 const CONTROL = 'h-11 text-base sm:h-9 sm:text-sm';
-const TYPE_OPTIONS = FIELD_TYPES.map(type => ({ value: type, label: FIELD_TYPE_META[type].label }));
+const TYPE_OPTIONS = FIELD_TYPES.map(type => ({ value: type, get label() { return FIELD_TYPE_META[type].label; } }));
 
 interface OptionRowProps {
   index: number;
@@ -39,32 +40,33 @@ interface OptionRowProps {
 }
 
 const OptionRow = ({ index, label, color, onChange, onRemove }: OptionRowProps) => {
+  const { t } = useTranslation('admin');
   const id = useId();
-  const name = label.trim() || `Option ${index + 1}`;
+  const name = label.trim() || t('fields.dialog.option', { n: index + 1 });
   return (
     <li className="space-y-2 rounded-lg border border-slate-200 p-2.5">
       <div className="flex items-center gap-2">
-        <label htmlFor={id} className="sr-only">Name of option {index + 1}</label>
+        <label htmlFor={id} className="sr-only">{t('fields.dialog.optionName', { n: index + 1 })}</label>
         <Input
           id={id}
           value={label}
           maxLength={MAX_OPTION_LABEL + 10}
           onChange={event => onChange({ label: event.target.value })}
-          placeholder={`Option ${index + 1}`}
+          placeholder={t('fields.dialog.option', { n: index + 1 })}
           className={CONTROL}
         />
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={`Remove ${name}`}
+          aria-label={t('fields.dialog.removeOption', { name })}
           onClick={onRemove}
           className="size-11 shrink-0 text-danger-fg hover:bg-danger-bg sm:size-8"
         >
           <Trash2 aria-hidden />
         </Button>
       </div>
-      <div role="group" aria-label={`Color of ${name}`} className="flex flex-wrap items-center gap-0.5">
+      <div role="group" aria-label={t('fields.dialog.colorOf', { name })} className="flex flex-wrap items-center gap-0.5">
         {FIELD_COLORS.map(item => {
           const selected = item === color;
           return (
@@ -94,6 +96,7 @@ const OptionRow = ({ index, label, color, onChange, onRemove }: OptionRowProps) 
 };
 
 const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogProps, 'open'>) => {
+  const { t } = useTranslation('admin');
   const id = useId();
   const nameId = `${id}-name`;
   const editing = field !== null;
@@ -122,7 +125,7 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
       await onSave(draft);
       onOpenChange(false);
     } catch (err) {
-      setError(getApiErrorMessage(err, 'We could not save the field. Check your connection and try again.'));
+      setError(getApiErrorMessage(err, t('fields.dialog.saveError')));
     } finally {
       setSaving(false);
     }
@@ -130,12 +133,12 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
 
   return (
     <DialogContent className="flex max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden p-0 sm:max-h-[90dvh] sm:max-w-xl">
-      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 pt-5 pb-4 pr-12 sm:px-6">
-        <DialogTitle className="text-lg font-bold text-slate-900">{editing ? `Edit ${field.name}` : 'New field'}</DialogTitle>
+      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 pt-5 pb-4 pe-12 sm:px-6">
+        <DialogTitle className="text-lg font-bold text-slate-900">{editing ? t('fields.dialog.editTitle', { name: field.name }) : t('fields.dialog.newTitle')}</DialogTitle>
         <DialogDescription className="text-sm text-slate-600">
           {editing
-            ? 'The type and key never change. Removing an option clears it from every task that uses it.'
-            : 'Fields show up on every task of the projects you choose.'}
+            ? t('fields.dialog.editDescription')
+            : t('fields.dialog.newDescription')}
         </DialogDescription>
       </DialogHeader>
 
@@ -143,7 +146,7 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {error && <Alert tone="error">{error}</Alert>}
 
-          <Field label="Name" htmlFor={nameId} required error={shownErrors.name}>
+          <Field label={t('fields.dialog.name')} htmlFor={nameId} required error={shownErrors.name}>
             <Input
               id={nameId}
               value={draft.name}
@@ -152,15 +155,15 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
               onChange={event => patch({ name: event.target.value })}
               aria-invalid={shownErrors.name ? true : undefined}
               aria-describedby={shownErrors.name ? fieldMessageId(nameId) : undefined}
-              placeholder="For example, Customer or Budget"
+              placeholder={t('fields.dialog.namePlaceholder')}
               className={CONTROL}
             />
           </Field>
 
           <div className="space-y-1.5">
-            <p className="text-sm font-medium text-slate-700">Type</p>
+            <p className="text-sm font-medium text-slate-700">{t('fields.dialog.type')}</p>
             <OptionSelect
-              aria-label="Field type"
+              aria-label={t('fields.dialog.fieldType')}
               value={draft.type}
               options={TYPE_OPTIONS}
               disabled={editing}
@@ -173,10 +176,10 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
           {hasOptions(draft.type) && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-700">
-                Options <span className="font-normal text-slate-600 tabular-nums">({draft.options.length}/{MAX_OPTIONS})</span>
+                {t('fields.dialog.options')} <span className="font-normal text-slate-600 tabular-nums">({draft.options.length}/{MAX_OPTIONS})</span>
               </p>
               {draft.options.length > 0 && (
-                <ul aria-label="Options" className="space-y-2">
+                <ul aria-label={t('fields.dialog.options')} className="space-y-2">
                   {draft.options.map((option, index) => (
                     <OptionRow
                       // New options have no id yet, so the position identifies them while editing
@@ -198,28 +201,28 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
                 onClick={() => patch({ options: [...draft.options, { label: '', color: FIELD_COLORS[draft.options.length % FIELD_COLORS.length] }] })}
                 className="h-11 gap-2 px-4 text-sm sm:h-9"
               >
-                <Plus aria-hidden /> Add option
+                <Plus aria-hidden /> {t('fields.dialog.addOption')}
               </Button>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <p className="text-sm font-medium text-slate-700">Projects</p>
+            <p className="text-sm font-medium text-slate-700">{t('fields.dialog.projects')}</p>
             <OptionCombobox
               multiple
-              label="Projects"
+              label={t('fields.dialog.projects')}
               options={projectOptions}
               value={draft.projects}
               onValueChange={projects => patch({ projects })}
-              placeholder={draft.projects.length === 0 ? 'Every project' : 'Add another'}
-              emptyText="No project matches."
+              placeholder={draft.projects.length === 0 ? t('fields.dialog.everyProject') : t('fields.dialog.addAnother')}
+              emptyText={t('fields.dialog.noProject')}
             />
-            <p className="text-xs text-slate-600">Leave empty to use the field in every project.</p>
+            <p className="text-xs text-slate-600">{t('fields.dialog.leaveEmpty')}</p>
           </div>
 
           <SwitchField
-            label="Required"
-            description="Asked when a task is created. Existing tasks are not affected, and checkboxes are never required."
+            label={t('fields.dialog.required')}
+            description={t('fields.dialog.requiredBody')}
             checked={draft.required}
             onCheckedChange={required => patch({ required })}
           />
@@ -227,10 +230,10 @@ const Body = ({ field, projectNames, onOpenChange, onSave }: Omit<FieldDialogPro
 
         <DialogFooter className="m-0 shrink-0 flex-row justify-end gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 [&>button]:flex-1 sm:[&>button]:flex-none">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-10 border-slate-300 text-slate-700">
-            Cancel
+            {t('actions.cancel')}
           </Button>
           <Button type="submit" disabled={saving} className="h-10 px-5">
-            {saving ? 'Saving…' : editing ? 'Save changes' : 'Create field'}
+            {saving ? t('actions.saving') : editing ? t('fields.dialog.saveChanges') : t('fields.dialog.create')}
           </Button>
         </DialogFooter>
       </form>

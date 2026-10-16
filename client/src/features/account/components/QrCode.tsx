@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface QrCodeProps {
@@ -23,6 +24,7 @@ const toPath = (size: number, isDark: (row: number, col: number) => boolean): st
 
 /** QR code for `value`; the `qrcode` library loads only when this renders. Always black on white so scanners read it in dark mode. */
 export const QrCode = ({ value, label, className }: QrCodeProps) => {
+  const { t } = useTranslation('settings');
   const [code, setCode] = useState<{ value: string; size: number; path: string } | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -43,7 +45,7 @@ export const QrCode = ({ value, label, className }: QrCodeProps) => {
   }, [value]);
 
   if (failed) {
-    return <p className="text-sm text-danger-fg">The QR code could not be drawn. Use the key below instead.</p>;
+    return <p className="text-sm text-danger-fg">{t('twoFactor.setup.qrFailed')}</p>;
   }
   if (!code || code.value !== value) return <Skeleton className={className ?? 'size-48 rounded-xl'} />;
 

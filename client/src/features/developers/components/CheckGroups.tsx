@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export interface CheckItem { key: string; label: string }
@@ -14,6 +15,7 @@ interface CheckGroupsProps {
 
 /** Checklist split into labelled fieldsets, each with a "Select all / Deselect all" shortcut. */
 export const CheckGroups = ({ groups, selected, disabled, showKeys, onChange }: CheckGroupsProps) => {
+  const { t } = useTranslation('admin');
   const toggle = (key: string) =>
     onChange(selected.includes(key) ? selected.filter(item => item !== key) : [...selected, key]);
 
@@ -30,14 +32,14 @@ export const CheckGroups = ({ groups, selected, disabled, showKeys, onChange }: 
         return (
           <fieldset key={group.id} disabled={disabled} className="min-w-0 rounded-xl border border-slate-200 disabled:opacity-60">
             <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-1.5">
-              <legend className="float-left text-xs font-semibold uppercase tracking-wide text-slate-600">{group.label}</legend>
+              <legend className="float-start text-xs font-semibold uppercase tracking-wide text-slate-600">{group.label}</legend>
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => toggleGroup(group)}
                 className="min-h-10 rounded-md px-2 text-xs font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary md:min-h-8"
               >
-                {allSelected ? 'Deselect all' : 'Select all'}
+                {allSelected ? t('developers.deselectAll') : t('developers.selectAll')}
                 <span className="sr-only"> {group.label}</span>
               </button>
             </div>

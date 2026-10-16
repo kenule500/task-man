@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage, tasksApi, type TaskActivityEntry } from '../api';
 
 const PAGE_SIZE = 20;
@@ -59,7 +60,7 @@ export const useTaskActivity = (slug: string | undefined, taskId: string, { enab
           key,
           items: prev && prev.scope === scope ? prev.items : [],
           nextBefore: prev && prev.scope === scope ? prev.nextBefore : null,
-          error: getApiErrorMessage(err, 'Could not load the activity.'),
+          error: getApiErrorMessage(err, i18n.t('tasks:errors.loadActivity')),
         }));
       });
     return () => { cancelled = true; };
@@ -80,7 +81,7 @@ export const useTaskActivity = (slug: string | undefined, taskId: string, { enab
         return { ...prev, items: [...prev.items, ...page.items.filter(item => !known.has(item._id))], nextBefore: page.nextBefore };
       });
     } catch (err) {
-      setMoreError(getApiErrorMessage(err, 'Could not load older activity.'));
+      setMoreError(getApiErrorMessage(err, i18n.t('tasks:errors.loadOlderActivity')));
     } finally {
       setLoadingMore(false);
     }

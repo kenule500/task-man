@@ -1,9 +1,11 @@
+import i18n from '@/i18n';
 // Roadmap: epics on a time axis. Pure helpers (grouping, axis, bar placement), no UI.
 import {
   addDays, dateKeyOf, diffInDays, epicProgress, formatDate, parseDateKey, toDateKey,
   type Task,
 } from '@/features/tasks';
 import type { Project, Sprint } from '@/features/projects';
+import { currentLocale } from '@/i18n/format';
 
 export type RoadmapZoom = 'months' | 'weeks';
 
@@ -40,10 +42,10 @@ export interface RoadmapGroup {
 }
 
 export const HEALTH_LABEL: Record<EpicHealth, string> = {
-  done: 'Done',
-  overdue: 'Overdue',
-  'in-progress': 'In progress',
-  upcoming: 'Upcoming',
+  get done() { return i18n.t('planning:health.done'); },
+  get overdue() { return i18n.t('planning:health.overdue'); },
+  get 'in-progress'() { return i18n.t('planning:health.in-progress'); },
+  get upcoming() { return i18n.t('planning:health.upcoming'); },
 };
 
 const nameKey = (name: string | undefined | null) => (name ?? '').trim().toLowerCase();
@@ -106,7 +108,7 @@ export const buildRoadmap = (tasks: Task[], projects: Project[], options: Roadma
   if (!selected) {
     // Epics of a project the workspace no longer lists (or of none) stay visible; archived projects are hidden
     const loose = epics.filter(epic => !known.has(nameKey(epic.project))).map(toRow);
-    if (loose.length > 0) groups.push({ id: 'none', name: 'No project', epics: sortRows(loose) });
+    if (loose.length > 0) groups.push({ id: 'none', name: i18n.t('planning:roadmap.noProject'), epics: sortRows(loose) });
   }
   return groups;
 };
@@ -180,7 +182,7 @@ export const buildAxis = (spans: DateSpan[], zoom: RoadmapZoom, today: Date = ne
     for (let cursor = start; cursor <= end; cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)) {
       ticks.push({
         key: toDateKey(cursor),
-        label: cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        label: cursor.toLocaleDateString(currentLocale(), { month: 'short', year: 'numeric' }),
         left: diffInDays(start, cursor) * dayPx,
         width: endOfMonth(cursor).getDate() * dayPx,
       });
@@ -189,7 +191,7 @@ export const buildAxis = (spans: DateSpan[], zoom: RoadmapZoom, today: Date = ne
     for (let cursor = start; cursor <= end; cursor = addDays(cursor, 7)) {
       ticks.push({
         key: toDateKey(cursor),
-        label: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        label: cursor.toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric' }),
         left: diffInDays(start, cursor) * dayPx,
         width: 7 * dayPx,
       });
@@ -234,10 +236,11 @@ export const sprintBands = (sprints: Sprint[], axis: RoadmapAxis): SprintBand[] 
 
 /** Text alternative of one epic bar. */
 export const describeEpic = (epic: RoadmapEpic): string => {
+  const items = i18n.t('planning:roadmap.itemsDone', { done: epic.doneItems, count: epic.items });
   const work = epic.items === 0
-    ? 'no items yet'
-    : `${epic.doneItems} of ${epic.items} ${epic.items === 1 ? 'item' : 'items'} done${epic.points > 0 ? `, ${epic.donePoints} of ${epic.points} points` : ''}`;
-  return `${epic.title}, ${formatSpan(epic.start, epic.end)}, ${epic.percent}% complete, ${work}, ${HEALTH_LABEL[epic.health].toLowerCase()}`;
+    ? i18n.t('planning:roadmap.noItemsYet')
+    : epic.points > 0 ? i18n.t('planning:roadmap.withPoints', { items, done: epic.donePoints, total: epic.points }) : items;
+  return i18n.t('planning:roadmap.describeEpic', { title: epic.title, span: formatSpan(epic.start, epic.end), percent: epic.percent, work, health: HEALTH_LABEL[epic.health].toLowerCase() });
 };
 
 export interface ReleaseMarker {
@@ -265,4 +268,4 @@ export const releaseMarkers = (
 
 /** Text alternative of one release marker. */
 export const describeReleaseMarker = (marker: Pick<ReleaseMarker, 'name' | 'status' | 'date'>): string =>
-  `Release ${marker.name}, ${marker.status === 'released' ? 'released' : 'due'} ${formatSpan(marker.date, marker.date)}`;
+  i18n.t(marker.status === 'released' ? 'planning:roadmap.releaseReleased' : 'planning:roadmap.releaseDue', { name: marker.name, date: formatSpan(marker.date, marker.date) });

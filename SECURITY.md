@@ -18,6 +18,7 @@ We acknowledge reports within 3 working days.
 | Input | express-validator on every write; NoSQL operator injection rejected; request bodies limited to 100 kB |
 | Abuse | Rate limits on authentication, sensitive actions and the whole API |
 | Transport and browser | HTTPS with HSTS, strict Content Security Policy, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` |
+| Realtime chat | Sockets authenticate with the session JWT and a valid database session (API tokens refused), re-check access every 30 seconds, and are rate limited. See below |
 | Files | Upload type allow-list (no SVG/HTML), size limit, members-only downloads served as attachments |
 | Audit | Append-only activity log (who, what, when, IP, device) for tasks, projects, sprints, members, invitations, settings and exports, kept 365 days; owners and admins can filter and export it |
 | Data exposure | Users never serialize password or token hashes; public user fields only (name, avatar) on tasks |
@@ -154,6 +155,76 @@ the HTTP flow is covered by `__integration__/sso.test.ts` with a fake provider).
   address is loopback, private (10/8, 172.16/12, 192.168/16), link-local (169.254/16, including cloud metadata), CGNAT
   (100.64/10), multicast/reserved, or IPv6 unique-local/link-local/multicast, including IPv4-mapped, NAT64 and 6to4 forms. The
   same check runs as the socket `lookup`, so the address that was checked is the one connected to (no DNS rebinding gap).
+
+## AI code review
+
+The AI code review agent (`server/src/utils/ai/*`, `controllers/aiReviewController.ts`) sends pull request code to a third party,
+so it is built to be off by default and to send as little as possible.
+
+- **Third-party processing and opt-in.** The diff of the reviewed pull request, its title and description, and the ticket's title,
+  description, acceptance criteria and checklist are sent to Alibaba Cloud Model Studio (DashScope), an outside processor, through its
+  OpenAI-compatible endpoint. Nothing is sent unless the server has `DASHSCOPE_API_KEY` **and** the workspace opted in
+  (`workspace.ai.enabled`, set by `settings:manage` through `PATCH /api/workspaces/:slug/ai`, never with an API token). The
+  settings card states this before the switch; with the switch off every review route answers `503 { code: 'AI_DISABLED' }` and no
+  request leaves the server. Opting out takes effect at once, including for reviews already queued. Choose the endpoint region
+  (`DASHSCOPE_BASE_URL`, https only; anything else falls back to the default) to match your data-residency needs and review the
+  provider's terms before turning it on for confidential code. Other tasks, member data, tokens and secrets are never included: the
+  prompt is built from the one ticket and the one pull request only (a test checks that the API key and the GitHub token never appear in it).
+- **Prompt injection.** Ticket text, the pull request text and the diff are untrusted. The system prompt declares everything between
+  two random per-request boundary lines (`<<<BEGIN DATA-<16 hex>`) to be data, orders the model to ignore instructions inside it,
+  never to repeat secrets, and to report instructions found in a diff as a high-severity security issue; the boundary string is
+  stripped from the data so it cannot close the fence early. The model's answer is never trusted either: it must be JSON that passes a
+  `zod` schema (one retry with the validation error), statuses and categories are whitelisted, the text of listed criteria always
+  comes from the ticket (not from the model), evidence paths that are not files of the pull request are dropped, a "met" criterion
+  without evidence counts as partial, and the verdict is capped by rules in code (`Match` only when every criterion is met, no
+  high-severity issue and the review was complete). Output is rendered as plain text by the web app. The answer is never executed,
+  and the model has no tools.
+- **GitHub token.** The optional token for private repositories is encrypted with AES-256-GCM (`utils/secretBox.ts`, bound to the
+  workspace id), stored in `workspace.integrations.github.accessTokenEncrypted` (`select: false`), written only through the
+  settings route and never returned: the API exposes only `githubTokenSet`. Setting and clearing it is audited
+  (`ai.settings_updated`) without the value. It is sent only to `api.github.com`, and only for repositories that tasks of the same
+  workspace already link to, so a member who can start a review cannot use it to read an unrelated private repository. Pull request
+  addresses are validated strictly (`https://github.com/<owner>/<repo>/pull/<n>`); the owner, repository and number are the only
+  parts that reach the GitHub URL, redirects are refused and requests time out after 20 seconds.
+- **Abuse and cost.** A review needs `tasks:write` (API tokens with that scope work). One review runs per task (`409`), each
+  workspace has a daily limit (`AI_REVIEW_DAILY_LIMIT`, default 50, `429`), requests to the model time out after 120 seconds with
+  two retries on 429 and 5xx only, and the diff is capped (`AI_REVIEW_MAX_DIFF_CHARS`). Anything cut is listed in the result and the
+  review is labelled partial. Reviews are always filtered by the workspace and task of the request. Token usage is stored per review.
+- **Errors and logs.** Failures are stored as short, fixed messages; the provider's response body, the API key and the GitHub token
+  are never put in a stored error, a response or a log line. The API key lives only in the server environment.
+- **Retention and audit.** Results (summary, per-criterion evidence, issues, file paths) are stored with the review and deleted
+  with the task; they follow the database's backup policy. `ai.review_completed` is written to the activity log and shown in the
+  task's activity; the requester is notified. Automatic reviews (webhook) run only when the workspace turned on both options and only
+  once per commit.
+
+## Team chat and realtime
+
+- **Socket authentication.** The browser sends the session JWT in `auth.token` of the Socket.IO handshake (never in the URL).
+  The server verifies it exactly like the `protect` middleware: valid signature, a session row that is still `isValid`
+  (matched by the SHA-256 hash of the token) and an existing user. Personal API tokens (`tm_...`) are refused, as are empty,
+  oversized (over 2 kB) and non-string tokens. Failures all answer `unauthorized`. A person can hold at most 10 sockets per
+  server instance.
+- **Rooms and access.** A socket joins `user:<id>` and `ws:<workspaceId>` for the workspaces it belongs to. A channel room
+  (`channel:<id>`) is joined only through `chat:join`, which checks workspace membership, the `tasks:read` permission,
+  `projects:read` for project channels and membership of private channels and direct messages. Workspace rooms only
+  receive short previews (100 characters); private channels and direct messages are announced to their members' `user:`
+  rooms only. The REST API applies the same rule (`canAccessChannel`), answers 404 for channels that are not visible and
+  always filters by the workspace of the request.
+- **Staying authorized.** Every 30 seconds each live socket is re-checked: a signed-out or revoked session is
+  disconnected, workspaces the person left are dropped from its rooms, and channel rooms they can no longer read are left.
+  A socket also ends when the function's maximum duration is reached.
+- **Limits.** At most 10 messages per 10 seconds per socket (`chat:send`) and 30 per 10 seconds per user on the REST route;
+  at most 60 events per 10 seconds per socket; typing events are accepted once every 2 seconds per channel and only from
+  sockets that joined the channel; payloads over 32 kB close the connection; at most 50 joined channels per socket;
+  messages are 1 to 4000 characters; every payload must be a plain object (anything else is answered `invalid_payload`).
+- **Content.** Messages are plain text, stored as typed and rendered by the web app as text (never as HTML). A deleted
+  message keeps only a tombstone; its text and mentions are erased. People can only edit and delete their own messages.
+- **Injection.** Channel and message ids are validated as ObjectIds and cast before they reach a query; free text uses
+  `$eq`; cursors only accept `<ms>_<24 hex>` or an ISO date. The channel slug is built from letters and digits only.
+- **Cross-instance events.** Events travel through the capped collection `socket_io_events` in the application database;
+  anyone with write access to that collection could inject events, so database credentials stay server-side as before.
+- **Audit.** Creating, renaming and archiving a channel is written to the activity log (`chat.channel_created`,
+  `chat.channel_updated`, `chat.channel_deleted`). Messages are not audited.
 
 ## Operating notes
 

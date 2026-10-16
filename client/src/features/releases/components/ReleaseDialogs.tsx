@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { toast } from '@/components/ds';
 import { suggestReleaseDates, suggestReleaseName } from '../lib/progress';
@@ -31,6 +32,7 @@ interface ReleaseDialogsProps {
 
 /** Create / edit / release / delete dialogs of a release, shared by the project tab and the release page. */
 const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone }: ReleaseDialogsProps) => {
+  const { t } = useTranslation('projects');
   const [deleting, setDeleting] = useState(false);
   const closeIf = (open: boolean) => { if (!open) onClose(); };
   const ofProject = releases.filter(item => item.project === projectId);
@@ -39,11 +41,11 @@ const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone 
     setDeleting(true);
     try {
       await actions.remove(release._id);
-      toast.success(`${release.name} deleted`);
+      toast.success(t('releases.deleted', { name: release.name }));
       onClose();
       onDone?.('delete');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not delete the release.');
+      toast.error(err instanceof Error ? err.message : t('releases.deleteError'));
     } finally {
       setDeleting(false);
     }
@@ -59,7 +61,7 @@ const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone 
           defaults={{ name: suggestReleaseName(ofProject), ...suggestReleaseDates() }}
           onSubmit={async values => {
             await actions.create({ project: projectId, ...values });
-            toast.success('Release created');
+            toast.success(t('releases.created'));
             onDone?.('create');
           }}
         />
@@ -73,7 +75,7 @@ const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone 
           release={dialog.release}
           onSubmit={async values => {
             await actions.update(dialog.release._id, values);
-            toast.success('Release saved');
+            toast.success(t('releases.saved'));
             onDone?.('edit');
           }}
         />
@@ -89,8 +91,8 @@ const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone 
           onConfirm={async moveOpenTo => {
             const { movedTasks } = await actions.release(dialog.release._id, moveOpenTo);
             toast.success(movedTasks > 0
-              ? `${dialog.release.name} released. ${movedTasks} unfinished ${movedTasks === 1 ? 'task' : 'tasks'} moved.`
-              : `${dialog.release.name} released.`);
+              ? t('releases.releasedMoved', { name: dialog.release.name, count: movedTasks })
+              : t('releases.released', { name: dialog.release.name }));
             onDone?.('release');
           }}
         />
@@ -99,10 +101,10 @@ const ReleaseDialogs = ({ dialog, onClose, projectId, releases, actions, onDone 
       <ConfirmActionDialog
         open={dialog?.kind === 'delete'}
         onOpenChange={open => !open && !deleting && onClose()}
-        title={`Delete "${dialog?.kind === 'delete' ? dialog.release.name : ''}"?`}
-        description="The release is deleted. Its tasks stay in the project without a release."
-        confirmLabel="Delete release"
-        busyLabel="Deleting..."
+        title={t('releases.deleteTitle', { name: dialog?.kind === 'delete' ? dialog.release.name : '' })}
+        description={t('releases.deleteBody')}
+        confirmLabel={t('releases.deleteConfirm')}
+        busyLabel={t('releases.deleting')}
         busy={deleting}
         onConfirm={() => { if (dialog?.kind === 'delete') void confirmDelete(dialog.release); }}
       />

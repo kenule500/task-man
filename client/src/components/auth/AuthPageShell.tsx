@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react';
 import { IconTile, Surface } from '@/components/ds';
 import type { IconTileVariants } from '@/components/ds/variants';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { cn } from '@/lib/utils';
 
 /** Centered card used by every single-purpose auth screen (one `main` landmark per page). */
 export const AuthPageShell = ({ children, wide = false }: { children: ReactNode; wide?: boolean }) => (
-  <main className="flex min-h-dvh items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+  <main className="relative flex min-h-dvh items-center justify-center bg-slate-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="absolute end-3 top-3">
+      <LanguageSwitcher labelFrom="always" />
+    </div>
     <Surface padding="lg" className={cn('w-full border-slate-200 shadow-xl', wide ? 'max-w-2xl rounded-3xl' : 'max-w-md')}>
       {children}
     </Surface>

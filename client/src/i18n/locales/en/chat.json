@@ -1,0 +1,134 @@
+{
+  "title": "Chat",
+  "conversation": "Conversation",
+  "list": {
+    "label": "Conversations",
+    "team": "Channels",
+    "projects": "Projects",
+    "direct": "Direct messages",
+    "noDirect": "No direct messages yet",
+    "newChannel": "New channel",
+    "newMessage": "New message",
+    "unread": "{{unread}} unread",
+    "loading": "Loading conversations",
+    "errorTitle": "We could not load your conversations",
+    "errorNext": "Check your connection, then try again.",
+    "retry": "Try again"
+  },
+  "channel": {
+    "general": "general",
+    "directMessage": "Direct message",
+    "private": "Private",
+    "actions": "Channel actions",
+    "rename": "Rename channel",
+    "renameTitle": "Rename channel",
+    "renameDescription": "Everyone who can see the channel will see the new name.",
+    "renameFailed": "Could not rename the channel.",
+    "archive": "Archive channel",
+    "archiving": "Archiving...",
+    "archiveTitle": "Archive {{name}}?",
+    "archiveDescription": "The channel disappears from everyone's list. Its messages are kept.",
+    "archiveFailed": "Could not archive the channel."
+  },
+  "header": {
+    "back": "Back to conversations",
+    "members": "{{members}} members",
+    "onlineCount": "{{online}} online"
+  },
+  "presence": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "status": {
+    "connected": "Live",
+    "connectedHint": "Messages arrive instantly.",
+    "connecting": "Connecting",
+    "connectingHint": "Opening the live connection.",
+    "offline": "Refreshing",
+    "offlineHint": "The live connection is down. Messages refresh every few seconds.",
+    "idle": "Not connected",
+    "idleHint": "Chat is not connected.",
+    "offlineBanner": "Live connection lost. Messages refresh every few seconds until it comes back."
+  },
+  "messages": {
+    "listLabel": "Messages",
+    "loading": "Loading messages",
+    "loadOlder": "Load earlier messages",
+    "loadingOlder": "Loading...",
+    "newDivider": "New messages",
+    "jumpToLatest": "New messages ({{pending}})",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "edited": "edited",
+    "edit": "Edit",
+    "editAction": "Edit message from {{name}}",
+    "editLabel": "Edit your message",
+    "editHint": "Enter to save, Escape to cancel",
+    "editFailed": "Could not edit the message.",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "deleteAction": "Delete message from {{name}}",
+    "deleteTitle": "Delete this message?",
+    "deleteDescription": "It is removed for everyone. This cannot be undone.",
+    "deleteFailed": "Could not delete the message.",
+    "emptyTitle": "No messages yet",
+    "emptyDescription": "Say hello in {{channel}} to start the conversation.",
+    "errorTitle": "We could not load this conversation",
+    "errorNext": "Check your connection, then try again."
+  },
+  "composer": {
+    "label": "Write a message in {{channel}}",
+    "placeholder": "Message {{channel}}",
+    "send": "Send",
+    "hint": "Enter to send, Shift+Enter for a new line, @ to mention",
+    "counter": "{{length}} / {{max}}",
+    "tooLong": "{{over}} characters too many",
+    "mentionList": "Mention a member",
+    "sendFailed": "Could not send the message. Your text is still in the box."
+  },
+  "typing": {
+    "one": "{{name}} is typing...",
+    "two": "{{first}} and {{second}} are typing...",
+    "many": "Several people are typing..."
+  },
+  "newChannel": {
+    "title": "New channel",
+    "description": "Channels keep a topic in one place. Everyone in the workspace can join a public channel.",
+    "nameLabel": "Channel name",
+    "nameHint": "For example design, launch or random.",
+    "namePlaceholder": "design",
+    "nameRequired": "Give the channel a name.",
+    "privateLabel": "Private channel",
+    "privateHelp": "Only the people you pick can see and read it.",
+    "membersLabel": "Members",
+    "noMembers": "There is nobody else in this workspace yet.",
+    "create": "Create channel",
+    "creating": "Creating...",
+    "failed": "Could not create the channel."
+  },
+  "newDm": {
+    "title": "New message",
+    "description": "Pick a colleague. Direct messages are private to the two of you.",
+    "search": "Search people",
+    "listLabel": "People",
+    "empty": "Nobody matches that search.",
+    "failed": "Could not open the conversation."
+  },
+  "project": {
+    "open": "Project chat",
+    "opening": "Opening...",
+    "failed": "Could not open the project chat."
+  },
+  "notFound": {
+    "title": "Conversation not found",
+    "description": "It may have been archived, or you may not have access to it.",
+    "back": "Back to chat"
+  },
+  "pick": {
+    "title": "Pick a conversation",
+    "description": "Choose a channel or a person on the left to start chatting."
+  }
+}
