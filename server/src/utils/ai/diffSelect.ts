@@ -13,17 +13,33 @@ const LOCKFILES = new Set([
   'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock', 'bun.lockb', 'composer.lock',
   'gemfile.lock', 'cargo.lock', 'poetry.lock', 'pipfile.lock', 'go.sum', 'packages.lock.json', 'pubspec.lock', 'podfile.lock',
 ]);
-const GENERATED = /(^|\/)(dist|build|out|coverage|\.next|\.nuxt|__snapshots__|generated)\/|\.min\.(js|css)$|\.map$|\.snap$|\.pb\.go$|_pb2?\.py$|\.generated\./i;
-const VENDORED = /(^|\/)(node_modules|vendor|third_party|third-party|bower_components|Pods)\//i;
-const TESTS = /(^|\/)(__tests__|__integration__|tests?|spec|e2e|cypress)\/|\.(test|spec)\.[a-z0-9]+$/i;
-const DOCS_AND_CONFIG = /\.(md|mdx|txt|rst|json|ya?ml|toml|ini|cfg|conf|env\.example|lock|svg|csv)$|(^|\/)(\.github|\.vscode|docs?)\/|(^|\/)(dockerfile|makefile|license|\.gitignore|\.eslintrc[^/]*|\.prettierrc[^/]*)$/i;
+// One pattern per rule, each anchored on its own (one alternation mixing anchored and unanchored parts is easy to misread)
+const GENERATED: readonly RegExp[] = [
+  /(?:^|\/)(?:dist|build|out|coverage|\.next|\.nuxt|__snapshots__|generated)\//i,
+  /\.min\.(?:js|css)$/i,
+  /\.(?:map|snap)$/i,
+  /\.pb\.go$/i,
+  /_pb2?\.py$/i,
+  /\.generated\./i,
+];
+const VENDORED: readonly RegExp[] = [/(?:^|\/)(?:node_modules|vendor|third_party|third-party|bower_components|Pods)\//i];
+const TESTS: readonly RegExp[] = [
+  /(?:^|\/)(?:__tests__|__integration__|tests?|spec|e2e|cypress)\//i,
+  /\.(?:test|spec)\.[a-z0-9]+$/i,
+];
+const DOCS_AND_CONFIG: readonly RegExp[] = [
+  /\.(?:md|mdx|txt|rst|json|ya?ml|toml|ini|cfg|conf|env\.example|lock|svg|csv)$/i,
+  /(?:^|\/)(?:\.github|\.vscode|docs?)\//i,
+  /(?:^|\/)(?:dockerfile|makefile|license|\.gitignore|\.eslintrc[^/]*|\.prettierrc[^/]*)$/i,
+];
+const matchesAny = (patterns: readonly RegExp[], filename: string): boolean => patterns.some(pattern => pattern.test(filename));
 
 /** Lower comes first: source code, then tests, then docs and configuration, then lockfiles, generated and vendored files. */
 export const fileRank = (filename: string): number => {
   const base = filename.split('/').pop()?.toLowerCase() ?? '';
-  if (LOCKFILES.has(base) || GENERATED.test(filename) || VENDORED.test(filename)) return 3;
-  if (TESTS.test(filename)) return 1;
-  if (DOCS_AND_CONFIG.test(filename)) return 2;
+  if (LOCKFILES.has(base) || matchesAny(GENERATED, filename) || matchesAny(VENDORED, filename)) return 3;
+  if (matchesAny(TESTS, filename)) return 1;
+  if (matchesAny(DOCS_AND_CONFIG, filename)) return 2;
   return 0;
 };
 
