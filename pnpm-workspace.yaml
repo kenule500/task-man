@@ -16,8 +16,12 @@ overrides:
   '@istanbuljs/load-nyc-config>js-yaml': ^4.1.0
 
 # Hoist type packages to the root so the Vercel function compiler (which does not follow pnpm symlinks)
-# can resolve transitive types: @types/express-serve-static-core, and mongodb/bson behind mongoose
+# can resolve transitive types: @types/express-serve-static-core, mongodb/bson behind mongoose, and the
+# engine.io / socket.io-adapter types behind socket.io (ServerOptions extends engine.io's options)
 publicHoistPattern:
   - "@types/*"
   - mongodb
   - bson
+  - engine.io
+  - socket.io-adapter
+  - socket.io-parser
