@@ -86,6 +86,8 @@ class ChatClient {
   private connect(): void {
     const socket = io(socketOrigin(API_URL, window.location.origin), {
       path: SOCKET_PATH,
+      // Same as the server: /api/socket?EIO=4… (the Vercel function's own path, no sub-path)
+      addTrailingSlash: false,
       // Vercel Functions accept WebSocket upgrades but not long polling
       transports: ['websocket'],
       // Read on every attempt, so a reconnect after sign-in again uses the current token

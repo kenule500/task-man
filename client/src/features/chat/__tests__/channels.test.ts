@@ -92,7 +92,7 @@ describe('socket configuration', () => {
   });
 
   it('polls the open channel faster than the channel list and uses the Vercel path', () => {
-    expect(SOCKET_PATH).toBe('/api/socket/socket.io');
+    expect(SOCKET_PATH).toBe('/api/socket');
     expect(POLL_INTERVAL_MS).toBeLessThan(CHANNEL_POLL_INTERVAL_MS);
     expect(POLL_INTERVAL_MS).toBe(4000);
   });

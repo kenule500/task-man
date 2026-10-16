@@ -316,7 +316,7 @@ tasks can create team channels (optionally private) and "Project chat" on a proj
 Everyone can read and write messages and start direct messages (viewers included); only the author edits or deletes a message.
 Typing `@` suggests members; a tagged member gets a bell notification (and a device push when enabled).
 
-**How realtime works.** The web app opens one Socket.IO connection per signed-in session (`path: /api/socket/socket.io`,
+**How realtime works.** The web app opens one Socket.IO connection per signed-in session (`path: /api/socket`, no trailing slash,
 `transports: ['websocket']`) and sends the session token in `auth.token`. Messages are written through the REST API
 (`/api/workspaces/:slug/chat`) and then pushed to the other people in the channel. Events: `chat:message`,
 `chat:message_updated`, `chat:message_deleted`, `chat:activity` (unread badges), `chat:channel`, `chat:typing` and

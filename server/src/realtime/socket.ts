@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { Server, type Socket } from 'socket.io';
+import { Server, type ServerOptions, type Socket } from 'socket.io';
 import { createAdapter } from '@socket.io/mongo-adapter';
 import { getConfig } from '../config/env.js';
 import ChatChannel from '../models/chatChannelModel.js';
@@ -19,7 +19,8 @@ import { eventsCollection, hasBackplane, rooms, setLocalServer } from './publish
 import { createSocketLimiter, createThrottle, isPlainObject } from './rateLimiter.js';
 
 /** Where the browser reaches the socket server (one path for local dev and the Vercel function). */
-export const SOCKET_PATH = '/api/socket/socket.io';
+// Exactly the Vercel function's path: requests to sub-paths are not routed to the function
+export const SOCKET_PATH = '/api/socket';
 
 // Budgets and caps (documented in SECURITY.md)
 export const MAX_MESSAGES_PER_WINDOW = 10;
@@ -76,8 +77,10 @@ export const createChatServer = (httpServer: HttpServer, options: ChatServerOpti
 
   const io = new Server(httpServer, {
     path: options.path ?? SOCKET_PATH,
+    // No trailing slash: the client connects to /api/socket?EIO=4… which the function receives as is
+    addTrailingSlash: false,
     // Vercel Functions accept WebSocket upgrades only (no long-polling)
-    transports: ['websocket'],
+    transports: ['websocket'] as ServerOptions['transports'],
     serveClient: false,
     maxHttpBufferSize: MAX_PAYLOAD_BYTES,
     connectTimeout: 10_000,

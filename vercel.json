@@ -8,7 +8,6 @@
     "api/socket.ts": { "maxDuration": 300 }
   },
   "rewrites": [
-    { "source": "/api/socket/:path*", "destination": "/api/socket" },
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

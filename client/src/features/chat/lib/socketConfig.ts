@@ -1,5 +1,5 @@
 /** Where the socket server answers (must match the server's SOCKET_PATH and the Vercel function route). */
-export const SOCKET_PATH = '/api/socket/socket.io';
+export const SOCKET_PATH = '/api/socket';
 
 /** While the socket is down the open channel polls the REST history this often. */
 export const POLL_INTERVAL_MS = 4000;

@@ -413,7 +413,7 @@ describe('socket server', () => {
   });
 
   const client = (token: unknown): Socket => {
-    const socket = connectClient(url, { path: SOCKET_PATH, transports: ['websocket'], auth: { token }, reconnection: false, forceNew: true });
+    const socket = connectClient(url, { path: SOCKET_PATH, addTrailingSlash: false, transports: ['websocket'], auth: { token }, reconnection: false, forceNew: true });
     open.push(socket);
     return socket;
   };
