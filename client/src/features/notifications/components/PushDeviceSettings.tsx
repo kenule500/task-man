@@ -1,4 +1,5 @@
 import { BellRing, Smartphone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { usePushSubscription } from '../hooks/usePushSubscription';
@@ -8,6 +9,7 @@ import { usePushSubscription } from '../hooks/usePushSubscription';
  * never on load. Changes apply at once (unlike the preference switches, which wait for Save).
  */
 const PushDeviceSettings = () => {
+  const { t } = useTranslation('settings');
   const { state, busy, error, enable, disable } = usePushSubscription();
 
   return (
@@ -17,39 +19,36 @@ const PushDeviceSettings = () => {
           <Smartphone className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <h3 id="push-device-title" className="text-sm font-medium text-slate-900">Push notifications on this device</h3>
+          <h3 id="push-device-title" className="text-sm font-medium text-slate-900">{t('push.title')}</h3>
           <p className="mt-0.5 text-xs text-slate-600">
-            Get a system notification for assignments, mentions and comments, even when TaskMan is closed.
-            Each device and browser is set up on its own.
+            {t('push.description')}
           </p>
         </div>
       </div>
 
       <div aria-live="polite" className="text-sm">
-        {state === 'checking' && <p className="text-slate-600">Checking this device...</p>}
+        {state === 'checking' && <p className="text-slate-600">{t('push.checking')}</p>}
 
         {state === 'unsupported' && (
-          <Alert tone="info" title="Not available in this browser">
-            Push notifications are not supported here. On iPhone and iPad they work once TaskMan is added to the Home
-            Screen (Share, then Add to Home Screen) and opened from there.
+          <Alert tone="info" title={t('push.unsupportedTitle')}>
+            {t('push.unsupported')}
           </Alert>
         )}
 
         {state === 'unavailable' && (
-          <Alert tone="info" title="Not set up on this server">
-            Push notifications are turned off for this TaskMan server. In-app notifications and emails still work.
+          <Alert tone="info" title={t('push.unavailableTitle')}>
+            {t('push.unavailable')}
           </Alert>
         )}
 
         {state === 'denied' && (
-          <Alert tone="warning" title="Notifications are blocked">
-            Your browser blocks notifications for TaskMan. To turn them on, allow notifications for this site in your
-            browser settings (usually the icon next to the address bar), then reload this page.
+          <Alert tone="warning" title={t('push.deniedTitle')}>
+            {t('push.denied')}
           </Alert>
         )}
 
-        {state === 'off' && <p className="text-slate-700">Push is off on this device.</p>}
-        {state === 'on' && <p className="font-medium text-success-fg">Push is on for this device.</p>}
+        {state === 'off' && <p className="text-slate-700">{t('push.off')}</p>}
+        {state === 'on' && <p className="font-medium text-success-fg">{t('push.on')}</p>}
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
@@ -64,8 +63,8 @@ const PushDeviceSettings = () => {
         >
           <BellRing className="size-4" aria-hidden />
           {busy
-            ? (state === 'on' ? 'Turning off...' : 'Turning on...')
-            : (state === 'on' ? 'Turn off on this device' : 'Turn on for this device')}
+            ? (state === 'on' ? t('push.turningOff') : t('push.turningOn'))
+            : (state === 'on' ? t('push.turnOff') : t('push.turnOn'))}
         </Button>
       )}
     </div>

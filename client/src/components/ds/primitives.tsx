@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnimatedNumber } from './motion';
@@ -94,7 +95,7 @@ export const Alert = ({ tone = 'info', title, children, onDismiss, className }: 
         <div>{children}</div>
       </div>
       {onDismiss && (
-        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="-m-1 rounded p-1 opacity-70 hover:opacity-100">
+        <button type="button" onClick={onDismiss} aria-label={t('dismiss')} className="-m-1 rounded p-1 opacity-70 hover:opacity-100">
           <X className="size-4" />
         </button>
       )}
@@ -133,7 +134,7 @@ interface SkeletonCardsProps {
 
 /** Placeholder cards shown while a page loads (prefer over spinners). */
 export const SkeletonCards = ({ count = 4, columns = 'md:grid-cols-2 lg:grid-cols-4', className }: SkeletonCardsProps) => (
-  <div role="status" aria-busy="true" aria-label="Loading" className={cn('grid grid-cols-1 gap-5', columns, className)}>
+  <div role="status" aria-busy="true" aria-label={t('loading')} className={cn('grid grid-cols-1 gap-5', columns, className)}>
     {Array.from({ length: count }, (_, index) => (
       <Surface key={index} className="space-y-3">
         <Skeleton className="h-4 w-24 bg-slate-200" />
@@ -171,7 +172,7 @@ export const ProgressBar = ({ value, label, showValue = false, className }: Prog
           style={{ width: `${clamped}%` }}
         />
       </div>
-      {showValue && <span className="w-9 text-right text-xs font-medium tabular-nums text-slate-600">{clamped}%</span>}
+      {showValue && <span className="w-9 text-end text-xs font-medium tabular-nums text-slate-600">{clamped}%</span>}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowRight, ChevronRight, Inbox, LayoutGrid, Zap } from 'lucide-react';
 import {
   SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub,
@@ -40,6 +41,7 @@ const isCurrent = (href: string, pathname: string, search: string): boolean => {
  * In the icon-only sidebar the group label disappears and only the folders remain, with tooltips.
  */
 const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
+  const { t } = useTranslation('projects');
   const { projects } = useProjectDirectory();
   const { pathname, search } = useLocation();
   const { isMobile, state, setOpenMobile } = useSidebar();
@@ -71,8 +73,8 @@ const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
           />
         }
       >
-        <span>Projects</span>
-        <ChevronRight aria-hidden className={showList ? 'rotate-90 transition-transform' : 'transition-transform'} />
+        <span>{t('sidebar.projects')}</span>
+        <ChevronRight aria-hidden className={showList ? 'rotate-90 transition-transform' : 'transition-transform rtl:-scale-x-100'} />
       </SidebarGroupLabel>
 
       {showList && (
@@ -83,11 +85,11 @@ const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
             const activeSprint = project.sprints.find(sprint => sprint.status === 'active');
             const links: ProjectLink[] = [
               ...(activeSprint ? [{
-                key: 'board', label: 'Active sprint board', icon: LayoutGrid,
+                key: 'board', label: t('workspace.activeBoard'), icon: LayoutGrid,
                 href: scopeHref(slug, { view: 'board', project: project.name, sprint: 'active' }),
               }] : []),
-              { key: 'backlog', label: 'Backlog', icon: Inbox, href: `${href}?tab=backlog` },
-              { key: 'epics', label: 'Epics', icon: Zap, href: `${href}?tab=epics` },
+              { key: 'backlog', label: t('workspace.tabs.backlog'), icon: Inbox, href: `${href}?tab=backlog` },
+              { key: 'epics', label: t('workspace.tabs.epics'), icon: Zap, href: `${href}?tab=epics` },
             ];
             const linksOpen = opened[project._id] ?? isActive;
             const linksId = `sidebar-project-links-${project._id}`;
@@ -112,14 +114,14 @@ const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
                 <SidebarMenuAction
                   aria-expanded={linksOpen}
                   aria-controls={linksOpen ? linksId : undefined}
-                  aria-label={`${linksOpen ? 'Hide' : 'Show'} ${project.name} links`}
+                  aria-label={t(linksOpen ? 'sidebar.hideLinks' : 'sidebar.showLinks', { name: project.name })}
                   onClick={() => setOpened(current => ({ ...current, [project._id]: !linksOpen }))}
                   className="size-6 max-md:top-2.5"
                 >
-                  <ChevronRight aria-hidden className={linksOpen ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                  <ChevronRight aria-hidden className={linksOpen ? 'rotate-90 transition-transform' : 'transition-transform rtl:-scale-x-100'} />
                 </SidebarMenuAction>
                 {linksOpen && (
-                  <SidebarMenuSub id={linksId} aria-label={`${project.name} shortcuts`}>
+                  <SidebarMenuSub id={linksId} aria-label={t('sidebar.shortcuts', { name: project.name })}>
                     {links.map(({ key, label, icon: Icon, href: to }) => {
                       const current = isCurrent(to, pathname, search);
                       return (
@@ -153,8 +155,8 @@ const SidebarProjects = ({ slug, canRead }: SidebarProjectsProps) => {
                   onClick={closeSheet}
                   className="w-full"
                 >
-                  <ArrowRight aria-hidden />
-                  <span>All projects</span>
+                  <ArrowRight className="rtl:-scale-x-100" aria-hidden />
+                  <span>{t('sidebar.allProjects')}</span>
                 </Link>
               }
             />

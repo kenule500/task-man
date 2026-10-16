@@ -1,6 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 
 // ---------------------------------------------------------------------------
 // Breadcrumbs
@@ -24,7 +25,7 @@ interface BreadcrumbsProps {
 const CRUMB_LINK = 'rounded-sm text-text-subtle outline-none hover:text-text-strong hover:underline focus-visible:outline-2 focus-visible:outline-focus';
 
 /** Path to the current page. The last item is plain text with `aria-current="page"`. */
-export const Breadcrumbs = ({ items, label = 'Breadcrumb', renderLink, className }: BreadcrumbsProps) => (
+export const Breadcrumbs = ({ items, label = t('breadcrumb'), renderLink, className }: BreadcrumbsProps) => (
   <nav aria-label={label} className={className}>
     <ol className="flex flex-wrap items-center gap-1.5 text-sm">
       {items.map((item, index) => {
@@ -38,7 +39,7 @@ export const Breadcrumbs = ({ items, label = 'Breadcrumb', renderLink, className
             ) : (
               <a href={item.href} className={CRUMB_LINK}>{item.label}</a>
             )}
-            {!isLast && <ChevronRight aria-hidden className="size-3.5 shrink-0 text-text-faint" />}
+            {!isLast && <ChevronRight aria-hidden className="size-3.5 shrink-0 text-text-faint rtl:-scale-x-100" />}
           </li>
         );
       })}
@@ -82,7 +83,7 @@ export const Disclosure = ({ title, children, defaultOpen = false, open, onOpenC
           aria-expanded={expanded}
           aria-controls={`${id}-panel`}
           onClick={toggle}
-          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md py-3 text-left outline-none hover:text-primary focus-visible:outline-2 focus-visible:outline-focus"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md py-3 text-start outline-none hover:text-primary focus-visible:outline-2 focus-visible:outline-focus"
         >
           <span>{title}</span>
           <ChevronDown aria-hidden className={cn('size-4 shrink-0 text-text-subtle transition-transform duration-(--duration-base) ease-standard', expanded && 'rotate-180')} />

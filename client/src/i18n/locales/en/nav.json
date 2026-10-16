@@ -1,0 +1,223 @@
+{
+  "items": {
+    "dashboard": "Dashboard",
+    "tasks": "Tasks",
+    "projects": "Projects",
+    "roadmap": "Roadmap",
+    "workload": "Workload",
+    "timesheet": "Timesheet",
+    "wiki": "Wiki",
+    "chat": "Chat",
+    "team": "Team",
+    "calendar": "Calendar",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help center"
+  },
+  "groups": {
+    "main": "Main Menu",
+    "general": "General"
+  },
+  "skipToContent": "Skip to content",
+  "chatUnread": "{{unread}} unread chat messages",
+  "workspaceNav": "Workspace",
+  "switchWorkspace": "Switch workspace",
+  "loading": "Loading...",
+  "noWorkspace": "No workspace",
+  "workspaceCount_one": "{{count}} workspace",
+  "workspaceCount_other": "{{count}} workspaces",
+  "myWorkspaces": "My workspaces",
+  "current": "(current)",
+  "createWorkspace": "Create workspace",
+  "leaveWorkspace": "Leave {{name}}",
+  "accountMenu": "Account menu",
+  "user": "User",
+  "profile": "Profile",
+  "logOut": "Log out",
+  "search": "Search",
+  "searchPlaceholder": "Search tasks, pages…",
+  "leave": {
+    "title": "Leave {{name}}?",
+    "description": "You lose access to its tasks and projects and are unassigned from your tasks there. An admin can invite you again.",
+    "confirm": "Leave workspace",
+    "busy": "Leaving...",
+    "success": "You left {{name}}",
+    "error": "Could not leave the workspace."
+  },
+  "tabs": {
+    "primary": "Primary",
+    "home": "Home",
+    "newTask": "New task",
+    "more": "More"
+  },
+  "pages": {
+    "dashboard": "Dashboard",
+    "tasks": "Tasks",
+    "board": "Board",
+    "calendar": "Calendar",
+    "timeline": "Timeline",
+    "projects": "Projects",
+    "roadmap": "Roadmap",
+    "workload": "Workload",
+    "timesheet": "Timesheet",
+    "wiki": "Wiki",
+    "chat": "Chat",
+    "reports": "Reports",
+    "team": "Team",
+    "settings": "Settings",
+    "audit": "Audit log",
+    "automations": "Automations",
+    "import": "Import",
+    "developers": "Developers",
+    "help": "Help"
+  },
+  "palette": {
+    "taskCount_one": "{{count}} task",
+    "taskCount_other": "{{count}} tasks",
+    "archived": "archived",
+    "sprintStatus": {
+      "planned": "planned",
+      "active": "active",
+      "completed": "completed"
+    },
+    "projectBoard": "{{name}} board",
+    "activeSprint": "Active sprint · {{name}}",
+    "allSprints": "All sprints",
+    "projectBacklog": "{{name}} backlog",
+    "planAndGroom": "Plan and groom",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "noResultsFor": "No results for {{query}}",
+    "noResults": "No results for <q>“{{query}}”</q>",
+    "description": "Find pages, tasks and projects. Use the arrow keys to move and Enter to open.",
+    "inputLabel": "Search tasks and pages",
+    "resultsLabel": "Results",
+    "groups": {
+      "Pages": "Pages",
+      "Go to": "Go to",
+      "Tasks": "Tasks",
+      "Projects": "Projects",
+      "Sprints": "Sprints",
+      "Help": "Help"
+    },
+    "loadingTasks": "Loading tasks…",
+    "loadFailed": "Tasks could not be loaded. Pages are still available.",
+    "toMove": "to move",
+    "toOpen": "to open"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Shortcuts work anywhere in the workspace except while you type in a field. Pages you cannot open are skipped.",
+    "then": "then",
+    "groups": {
+      "goTo": "Go to",
+      "actions": "Actions",
+      "inView": "In a view"
+    },
+    "go": {
+      "dashboard": "Go to dashboard",
+      "tasks": "Go to tasks",
+      "projects": "Go to projects",
+      "board": "Go to board",
+      "calendar": "Go to calendar",
+      "reports": "Go to reports"
+    },
+    "createTask": "Create a task",
+    "searchTasks": "Search tasks, or open search from other pages",
+    "openSearch": "Open search from anywhere",
+    "showShortcuts": "Show keyboard shortcuts",
+    "jumpToday": "Jump to today (Calendar)",
+    "moveBar": "Move a bar one day (Timeline, bar focused)",
+    "resizeBar": "Resize a bar (Timeline, bar focused)",
+    "sendComment": "Send a comment",
+    "close": "Close a dialog or menu",
+    "keys": {
+      "shift": "Shift",
+      "enter": "Enter",
+      "esc": "Esc"
+    }
+  },
+  "twoFactorGate": {
+    "title": "Turn on two-factor authentication",
+    "description": "This workspace requires two-factor authentication. It takes about two minutes with an authenticator app, and you can come straight back.",
+    "action": "Open Security settings"
+  },
+  "workspaceError": {
+    "title": "We couldn't open this workspace",
+    "description": "{{error}}. It may not exist, or you may not be a member.",
+    "back": "Back to home"
+  },
+  "forbidden": {
+    "title": "You do not have access to this page",
+    "descriptionRole": "Your role <r>{{role}}</r> does not include the permission this page needs. Ask a workspace owner or admin to update your role.",
+    "description": "Your role does not include the permission this page needs. Ask a workspace owner or admin to update your role.",
+    "requiredPermission": "Required permission",
+    "back": "Back to dashboard"
+  },
+  "sidebar": {
+    "title": "Sidebar",
+    "description": "Displays the mobile sidebar.",
+    "toggle": "Toggle Sidebar"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "bellUnread_one": "Notifications, {{count}} unread",
+    "bellUnread_other": "Notifications, {{count}} unread",
+    "markAllRead": "Mark all as read",
+    "close": "Close notifications",
+    "description": "Your latest notifications. Choose one to open its task.",
+    "loading": "Loading notifications",
+    "loadFailed": "We could not load your notifications.",
+    "emptyTitle": "You are all caught up",
+    "emptyDescription": "Assignments, mentions and comments on your tasks show up here.",
+    "latest": "Latest notifications",
+    "viewAll": "View all",
+    "unread": "Unread",
+    "someone": "Someone",
+    "directMessage": "a direct message",
+    "chat": "chat",
+    "sentence": {
+      "task_assigned": "{{actor}} assigned you {{target}}",
+      "task_completed": "{{actor}} completed {{target}}",
+      "comment_mention": "{{actor}} mentioned you in {{target}}",
+      "comment_reply_on_my_task": "{{actor}} commented on {{target}}",
+      "chat_mention": "{{actor}} mentioned you in {{target}}",
+      "updated": "{{actor}} updated {{target}}"
+    }
+  },
+  "pwa": {
+    "offline": "You're offline. Changes can't be saved until you reconnect.",
+    "updateTitle": "New version available",
+    "updateDescription": "Reload to get the latest TaskMan.",
+    "reload": "Reload",
+    "later": "Remind me later",
+    "offlineReady": "Ready to work offline"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "current": "Theme: {{mode}}",
+    "switch": "Theme: {{mode}}. Switch to {{next}}",
+    "saveFailed": "We could not save your theme. It applies on this device only. Try again later."
+  },
+  "inbox": {
+    "title": "Inbox",
+    "description": "Assignments, completed tasks, mentions and comments on your tasks. Notifications are kept for 90 days.",
+    "show": "Show notifications",
+    "filters": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "unreadCount": "Unread ({{count}})",
+    "loadFailed": "We could not load your notifications",
+    "loadFailedReason": "The server did not answer.",
+    "loadFailedNext": "Check your connection and try again.",
+    "emptyUnreadTitle": "Nothing unread",
+    "emptyUnreadDescription": "You have read everything. New notifications show up here.",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "When someone assigns you a task or mentions you in a comment, it shows up here.",
+    "loadOlderFailed": "We could not load older notifications. Try again.",
+    "loadOlder": "Load older"
+  }
+}

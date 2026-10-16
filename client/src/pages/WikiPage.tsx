@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, FolderKanban, PanelLeft, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
@@ -40,6 +41,7 @@ interface NewPageTarget {
  * `?project=<name>`, for one project. Reading is tasks:read, writing tasks:write, deleting tasks:delete.
  */
 const WikiPage = () => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug = '', pageId } = useParams<{ workspaceSlug: string; pageId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const WikiPage = () => {
 
   const project = searchParams.get('project') ?? '';
   const projectId = project ? directory.byName(project)?._id : undefined;
-  const scopeLabel = project || 'Wiki';
+  const scopeLabel = project || t('wikiPage.title');
 
   const tree = useWikiTree(workspaceSlug, project);
   const { page, loading: pageLoading, error: pageError, notFound, setPage, reload: reloadPage } = useWikiPage(workspaceSlug, pageId);
@@ -151,7 +153,7 @@ const WikiPage = () => {
       setDraft({ id: created._id, title: created.title, content: '', baseVersion: created.version });
       navigate(pathFor(created._id));
     } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'We could not create the page. Check your connection and try again.'), { cause: err });
+      throw new Error(getApiErrorMessage(err, t('wikiPage.createError')), { cause: err });
     }
   };
 
@@ -175,9 +177,9 @@ const WikiPage = () => {
       syncSummary(result.page);
       setDraft(null);
       setConflict(null);
-      toast.success('Page saved');
+      toast.success(t('wikiPage.saved'));
     } catch (err) {
-      setSaveError(getApiErrorMessage(err, 'We could not save the page. Check your connection and try again.'));
+      setSaveError(getApiErrorMessage(err, t('wikiPage.saveError')));
     } finally {
       setSaving(false);
     }
@@ -189,7 +191,7 @@ const WikiPage = () => {
     syncSummary(conflict);
     setDraft(null);
     setConflict(null);
-    toast.info('Showing the latest version');
+    toast.info(t('wikiPage.latest'));
   };
 
   // ---------------------------------------------------------------- page actions
@@ -205,7 +207,7 @@ const WikiPage = () => {
         setExpanded(previous => new Set([...previous, target]));
       }
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'We could not move the page. Try again.'));
+      toast.error(getApiErrorMessage(err, t('wikiPage.moveError')));
     }
   };
 
@@ -215,10 +217,10 @@ const WikiPage = () => {
       const result = await wikiApi.update(workspaceSlug, page._id, page.version, { archived: !page.archived });
       setPage(result.page);
       syncSummary(result.page);
-      if (result.kind === 'conflict') toast.error('Someone else changed this page. Showing their version; try again.');
-      else toast.success(result.page.archived ? 'Page archived' : 'Page restored from the archive');
+      if (result.kind === 'conflict') toast.error(t('wikiPage.conflictToast'));
+      else toast.success(result.page.archived ? t('wikiPage.archived') : t('wikiPage.restoredFromArchive'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'We could not change the page. Try again.'));
+      toast.error(getApiErrorMessage(err, t('wikiPage.changeError')));
     }
   };
 
@@ -228,13 +230,13 @@ const WikiPage = () => {
     try {
       await wikiApi.remove(workspaceSlug, deleting._id);
       const parent = ancestorsOf(tree.pages, deleting._id).at(-1);
-      toast.success(`Deleted "${deleting.title}"`);
+      toast.success(t('wikiPage.deleted', { title: deleting.title }));
       setDeleting(null);
       setDraft(null);
       tree.reload();
       navigate(parent ? pathFor(parent._id) : rootPath);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'We could not delete the page. Try again.'));
+      toast.error(getApiErrorMessage(err, t('wikiPage.deleteError')));
     } finally {
       setDeleteBusy(false);
     }
@@ -263,14 +265,14 @@ const WikiPage = () => {
   let main;
   if (!pageId) {
     main = tree.loading || firstPageId
-      ? <Surface><SkeletonDetail label="Loading the wiki" fields={2} lines={4} /></Surface>
+      ? <Surface><SkeletonDetail label={t('wikiPage.loadingWiki')} fields={2} lines={4} /></Surface>
       : tree.error
         ? (
           <ErrorState
-            title="We could not load the wiki"
+            title={t('wikiPage.loadWikiFailed')}
             reason={tree.error}
-            nextStep="Check your connection, then try again."
-            action={<Button type="button" onClick={tree.reload}>Try again</Button>}
+            nextStep={t('wikiPage.checkConnection')}
+            action={<Button type="button" onClick={tree.reload}>{t('actions.retry')}</Button>}
           />
         )
         : (
@@ -278,35 +280,35 @@ const WikiPage = () => {
             <EmptyState
               headingLevel="h2"
               icon={<BookOpen />}
-              title={project ? `No pages in ${project} yet` : 'Your wiki is empty'}
+              title={project ? t('wikiPage.noPagesInProject', { project }) : t('wikiPage.emptyWiki')}
               description={canWrite
-                ? 'Write down how your team works: guides, decisions, meeting notes. Pages can be nested three levels deep.'
-                : 'Nothing has been written here yet.'}
-              action={canWrite ? <Button type="button" onClick={() => openNew(null)}><Plus aria-hidden /> Create the first page</Button> : undefined}
+                ? t('wikiPage.emptyWrite')
+                : t('wiki.noPagesRead')}
+              action={canWrite ? <Button type="button" onClick={() => openNew(null)}><Plus aria-hidden /> {t('wiki.createFirst')}</Button> : undefined}
             />
           </Surface>
         );
   } else if (pageLoading) {
-    main = <Surface><SkeletonDetail label="Loading the page" fields={2} lines={5} /></Surface>;
+    main = <Surface><SkeletonDetail label={t('wikiPage.loadingPage')} fields={2} lines={5} /></Surface>;
   } else if (notFound) {
     main = (
       <Surface>
         <EmptyState
           headingLevel="h2"
           icon={<BookOpen />}
-          title="Page not found"
-          description="It may have been deleted, or the link is wrong. Pick a page from the list."
-          action={<Link to={rootPath} className={buttonVariants({ variant: 'outline' })}>Back to the wiki</Link>}
+          title={t('wikiPage.notFound')}
+          description={t('wikiPage.notFoundBody')}
+          action={<Link to={rootPath} className={buttonVariants({ variant: 'outline' })}>{t('wikiPage.backToWiki')}</Link>}
         />
       </Surface>
     );
   } else if (pageError || !page) {
     main = (
       <ErrorState
-        title="We could not load this page"
+        title={t('wikiPage.loadPageFailed')}
         reason={pageError}
-        nextStep="Check your connection, then try again."
-        action={<Button type="button" onClick={reloadPage}>Try again</Button>}
+        nextStep={t('wikiPage.checkConnection')}
+        action={<Button type="button" onClick={reloadPage}>{t('actions.retry')}</Button>}
       />
     );
   } else if (editing) {
@@ -355,21 +357,21 @@ const WikiPage = () => {
   return (
     <AppShell>
       <PageHeader
-        title={project ? `${project} wiki` : 'Wiki'}
-        description={project ? 'Pages for this project.' : 'Guides, decisions and notes for the whole workspace.'}
+        title={project ? t('wikiPage.projectTitle', { project }) : t('wikiPage.title')}
+        description={project ? t('wikiPage.projectDescription') : t('wikiPage.workspaceDescription')}
         actions={(
           <>
             <Button type="button" variant="outline" onClick={() => setNavOpen(true)} className="h-11 gap-1.5 lg:hidden">
-              <PanelLeft aria-hidden /> Pages
+              <PanelLeft className="rtl:-scale-x-100" aria-hidden /> {t('wikiPage.pages')}
             </Button>
             {projectId && (
               <Link to={`/${workspaceSlug}/projects/${projectId}?tab=wiki`} className={cn(buttonVariants({ variant: 'outline' }), 'h-11 gap-1.5 md:h-9')}>
-                <FolderKanban aria-hidden /> Back to project
+                <FolderKanban aria-hidden /> {t('wikiPage.backToProject')}
               </Link>
             )}
             {canWrite && (
               <Button type="button" onClick={() => openNew(null)} className="hidden h-9 gap-1.5 bg-primary text-white hover:bg-primary-hover lg:inline-flex">
-                <Plus aria-hidden /> New page
+                <Plus aria-hidden /> {t('wiki.newPage')}
               </Button>
             )}
           </>
@@ -377,7 +379,7 @@ const WikiPage = () => {
       />
 
       <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside aria-label="Wiki navigation" className="hidden lg:block">
+        <aside aria-label={t('wikiPage.navigation')} className="hidden lg:block">
           <Surface padding="sm" className="sticky top-4 max-h-[calc(100dvh-7rem)] overflow-y-auto">
             {nav()}
           </Surface>
@@ -387,9 +389,9 @@ const WikiPage = () => {
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-[88%] gap-0 sm:max-w-sm">
-          <SheetHeader className="border-b border-slate-200 pr-12">
-            <SheetTitle className="text-base font-bold text-text-strong">{scopeLabel} pages</SheetTitle>
-            <SheetDescription className="sr-only">Search and browse the pages of this wiki.</SheetDescription>
+          <SheetHeader className="border-b border-slate-200 pe-12">
+            <SheetTitle className="text-base font-bold text-text-strong">{t('wikiPage.sheetTitle', { scope: scopeLabel })}</SheetTitle>
+            <SheetDescription className="sr-only">{t('wikiPage.sheetDescription')}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {nav(() => setNavOpen(false))}
@@ -427,10 +429,10 @@ const WikiPage = () => {
       <ConfirmActionDialog
         open={deleting !== null}
         onOpenChange={open => { if (!open) setDeleting(null); }}
-        title="Delete this page?"
-        description={`"${deleting?.title ?? ''}" and its history will be removed. Its subpages move up one level.`}
-        confirmLabel="Delete page"
-        busyLabel="Deleting"
+        title={t('wikiPage.deleteTitle')}
+        description={t('wikiPage.deleteBody', { title: deleting?.title ?? '' })}
+        confirmLabel={t('wiki.doc.deletePage')}
+        busyLabel={t('wikiPage.deleting')}
         busy={deleteBusy}
         onConfirm={() => { void confirmDelete(); }}
       />
@@ -438,9 +440,9 @@ const WikiPage = () => {
       <ConfirmActionDialog
         open={pendingPath !== null}
         onOpenChange={open => { if (!open) setPendingPath(null); }}
-        title="Discard your changes?"
-        description="You have unsaved changes on this page. If you leave now they are lost."
-        confirmLabel="Discard changes"
+        title={t('wikiPage.discardTitle')}
+        description={t('wikiPage.discardBody')}
+        confirmLabel={t('wikiPage.discardConfirm')}
         onConfirm={() => {
           const path = pendingPath;
           setPendingPath(null);

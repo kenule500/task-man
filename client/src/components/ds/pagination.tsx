@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Trans } from 'react-i18next';
+import { t } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPageCount, getPageItems, getPageRange } from './paginationUtils';
 import { paginationButtonVariants } from './variants';
@@ -40,8 +42,8 @@ interface PaginationProps {
  */
 export const Pagination = ({
   page = 1, total = 0, pageSize = 10, onPageSizeChange, pageSizeOptions, onPageChange, compact = false,
-  hasPrevious, hasNext, onPrevious, onNext, summary, label = 'Pagination', previousLabel = 'Previous',
-  nextLabel = 'Next', className,
+  hasPrevious, hasNext, onPrevious, onNext, summary, label = t('pagination.label'), previousLabel = t('pagination.previous'),
+  nextLabel = t('pagination.next'), className,
 }: PaginationProps) => {
   const pageCount = getPageCount(total, pageSize);
   const current = Math.min(Math.max(page, 1), pageCount);
@@ -53,7 +55,7 @@ export const Pagination = ({
 
   const text = summary ?? (
     <>
-      <span className="font-medium text-text-strong">{start}–{end}</span> of <span className="font-medium text-text-strong">{total}</span>
+      <Trans t={t} i18nKey="pagination.summary" values={{ start, end, total }} components={{ b: <span className="font-medium text-text-strong" /> }} />
     </>
   );
 
@@ -63,7 +65,7 @@ export const Pagination = ({
         <p className="text-sm tabular-nums text-text-body" aria-live="polite">{text}</p>
         {onPageSizeChange && pageSizeOptions && (
           <div className="flex items-center gap-2 text-sm text-text-body">
-            <span id={`${label}-page-size`}>Rows per page</span>
+            <span id={`${label}-page-size`}>{t('pagination.rowsPerPage')}</span>
             <Select value={String(pageSize)} onValueChange={value => value && onPageSizeChange(Number(value))}>
               <SelectTrigger aria-labelledby={`${label}-page-size`} className="h-9 w-20 bg-white md:h-8">
                 <SelectValue />
@@ -84,7 +86,7 @@ export const Pagination = ({
             onClick={goPrevious}
             className={cn(paginationButtonVariants({ current: false }), 'border border-border px-3', compact && 'w-full')}
           >
-            <ChevronLeft aria-hidden className="size-4" />
+            <ChevronLeft aria-hidden className="size-4 rtl:-scale-x-100" />
             <span className={cn(!compact && 'max-sm:sr-only')}>{previousLabel}</span>
           </button>
         </li>
@@ -93,7 +95,7 @@ export const Pagination = ({
             <li key={item}>
               <button
                 type="button"
-                aria-label={`Page ${item}`}
+                aria-label={t('pagination.page', { page: item })}
                 aria-current={item === current ? 'page' : undefined}
                 onClick={() => item !== current && onPageChange?.(item)}
                 className={paginationButtonVariants({ current: item === current })}
@@ -113,7 +115,7 @@ export const Pagination = ({
             className={cn(paginationButtonVariants({ current: false }), 'border border-border px-3', compact && 'w-full')}
           >
             <span className={cn(!compact && 'max-sm:sr-only')}>{nextLabel}</span>
-            <ChevronRight aria-hidden className="size-4" />
+            <ChevronRight aria-hidden className="size-4 rtl:-scale-x-100" />
           </button>
         </li>
       </ul>

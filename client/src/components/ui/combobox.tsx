@@ -99,7 +99,7 @@ function ComboboxChip({ className, children, ...props }: ComboboxPrimitive.Chip.
     <ComboboxPrimitive.Chip
       data-slot="combobox-chip"
       className={cn(
-        "flex h-6 max-w-full items-center gap-1 rounded-md border border-border bg-muted pr-0.5 pl-1.5 text-xs font-medium text-foreground outline-none focus-within:ring-3 focus-within:ring-ring/50 data-highlighted:ring-3 data-highlighted:ring-ring/50",
+        "flex h-6 max-w-full items-center gap-1 rounded-md border border-border bg-muted pe-0.5 ps-1.5 text-xs font-medium text-foreground outline-none focus-within:ring-3 focus-within:ring-ring/50 data-highlighted:ring-3 data-highlighted:ring-ring/50",
         className
       )}
       {...props}
@@ -185,7 +185,7 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        "relative flex min-h-9 w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 md:min-h-8",
+        "relative flex min-h-9 w-full cursor-default items-center gap-2 rounded-md py-1.5 pe-8 ps-2 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 md:min-h-8",
         className
       )}
       {...props}
@@ -193,7 +193,7 @@ function ComboboxItem({
       {children}
       <ComboboxPrimitive.ItemIndicator
         render={
-          <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center" />
+          <span className="pointer-events-none absolute end-2 flex size-4 items-center justify-center" />
         }
       >
         <CheckIcon className="size-4" aria-hidden />

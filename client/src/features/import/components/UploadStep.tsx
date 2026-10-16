@@ -1,5 +1,6 @@
 import { useId, useState, type DragEvent } from 'react';
 import { FileUp, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ interface UploadStepProps {
 
 /** Step 2: drop a file or pick one. The text is read in the browser and checked by the server (nothing is saved yet). */
 export const UploadStep = ({ source, file, reading, error, onFile, onClear }: UploadStepProps) => {
+  const { t } = useTranslation('admin');
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
   const info = sourceInfo(source);
@@ -43,8 +45,8 @@ export const UploadStep = ({ source, file, reading, error, onFile, onClear }: Up
         )}
       >
         <FileUp aria-hidden className="size-8 text-text-subtle" />
-        <span className="text-sm font-medium text-text-strong">Drop your {info.fileKind.toLowerCase()} here, or choose a file</span>
-        <span className="text-xs text-text-subtle">{info.extensions.join(', ')} up to 2 MB, at most 2,000 items</span>
+        <span className="text-sm font-medium text-text-strong">{t('import.dropFile', { kind: info.fileKind.toLowerCase() })}</span>
+        <span className="text-xs text-text-subtle">{t('import.fileLimits', { extensions: info.extensions.join(', ') })}</span>
         <input
           id={inputId}
           type="file"
@@ -61,7 +63,7 @@ export const UploadStep = ({ source, file, reading, error, onFile, onClear }: Up
 
       {reading && (
         <div role="status" className="flex items-center gap-2 text-sm text-text-body">
-          <Spinner decorative /> Reading {file?.name ?? 'the file'}…
+          <Spinner decorative /> {t('import.reading', { name: file?.name ?? t('import.theFile') })}
         </div>
       )}
 
@@ -71,13 +73,13 @@ export const UploadStep = ({ source, file, reading, error, onFile, onClear }: Up
             <span className="block truncate text-sm font-medium text-text-strong">{file.name}</span>
             <span className="block text-xs text-text-subtle tabular-nums">{formatBytes(file.size)}</span>
           </span>
-          <Button type="button" variant="ghost" size="icon" onClick={onClear} aria-label={`Remove ${file.name}`}>
+          <Button type="button" variant="ghost" size="icon" onClick={onClear} aria-label={t('import.removeFile', { name: file.name })}>
             <X aria-hidden />
           </Button>
         </div>
       )}
 
-      {error && <Alert tone="error" title="This file cannot be imported">{error}</Alert>}
+      {error && <Alert tone="error" title={t('import.cannotImport')}>{error}</Alert>}
     </div>
   );
 };

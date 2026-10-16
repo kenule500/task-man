@@ -26,6 +26,7 @@ jest.mock('../utils/activity.js', () => ({
 }));
 
 jest.mock('../models/timeEntryModel.js', () => ({ __esModule: true, default: { deleteMany: jest.fn().mockResolvedValue({}) } }));
+jest.mock('../models/aiReviewModel.js', () => ({ __esModule: true, default: { deleteMany: jest.fn().mockResolvedValue({}) } }));
 jest.mock('../models/taskModel.js', () => ({
   __esModule: true,
   TASK_STATUSES: ['pending', 'in-progress', 'completed'],

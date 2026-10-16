@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { CheckCircle2, CircleAlert, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { useReducedMotionSafe } from '@/lib/motion';
 import { useToast, type ToastItem, type ToastTone } from './toastStore';
 
@@ -134,8 +135,8 @@ const ToastCard = ({ item, onDismiss }: ToastCardProps) => {
       <button
         type="button"
         onClick={close}
-        aria-label="Dismiss notification"
-        className="-my-1 -mr-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-inverse-text focus-visible:outline-2 focus-visible:outline-blue-300"
+        aria-label={t('dismissNotification')}
+        className="-my-1 -me-1 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-white/10 hover:text-inverse-text focus-visible:outline-2 focus-visible:outline-blue-300"
       >
         <X className="size-4" aria-hidden />
       </button>
@@ -154,7 +155,7 @@ export const Toaster = () => {
   return (
     <div
       aria-live="polite"
-      aria-label="Notifications"
+      aria-label={t('notifications')}
       role="region"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-center gap-2 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-end sm:px-6"
     >

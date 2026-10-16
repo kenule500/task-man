@@ -1,0 +1,186 @@
+{
+  "notification": "The AI code review of {{target}} is ready",
+  "verdict": {
+    "match": "Match",
+    "partial": "Partial",
+    "mismatch": "Mismatch"
+  },
+  "verdictHeadline": {
+    "match": "The pull request implements this ticket",
+    "partial": "The pull request implements part of this ticket",
+    "mismatch": "The pull request does not implement this ticket"
+  },
+  "status": {
+    "queued": "Waiting",
+    "running": "Running",
+    "completed": "Done",
+    "failed": "Failed"
+  },
+  "activity": {
+    "criteria": {
+      "updated_one": "updated the acceptance criteria ({{count}} item)",
+      "updated_other": "updated the acceptance criteria ({{count}} items)",
+      "cleared": "removed all acceptance criteria"
+    },
+    "reviewCompleted": "finished an AI code review: {{verdict}}",
+    "reviewCompletedPlain": "finished an AI code review"
+  },
+  "criteria": {
+    "title": "Acceptance criteria",
+    "none": "No acceptance criteria yet. They tell the AI code review what the pull request must do.",
+    "addLabel": "Add an acceptance criterion",
+    "addPlaceholder": "e.g. A wrong password shows an error message",
+    "add": "Add",
+    "clickToEdit": "Click to edit",
+    "editLabel": "Edit criterion: {{text}}",
+    "moveUp": "Move criterion up: {{text}}",
+    "moveDown": "Move criterion down: {{text}}",
+    "delete": "Delete criterion: {{text}}",
+    "full": "A task can have at most {{max}} acceptance criteria.",
+    "saveError": "We could not save the acceptance criteria."
+  },
+  "panel": {
+    "title": "AI code review",
+    "subtitle": "Checks whether the linked pull request really implements this ticket.",
+    "run": "Run AI review",
+    "rerun": "Run again",
+    "starting": "Starting...",
+    "runningShort": "Review in progress",
+    "unavailable": "AI code review is not set up on this server. An administrator must add the Alibaba Cloud Model Studio key.",
+    "disabled": "AI code review is turned off for this workspace.",
+    "disabledManage": "Turn it on in the workspace settings.",
+    "openSettings": "Open settings",
+    "noPr": "No pull request is linked yet. Mention {{key}} in a pull request or branch, or paste a pull request address below.",
+    "readOnly": "You need permission to edit tasks to run a review.",
+    "noCriteria": "This task has no acceptance criteria, so the review will use the description and the checklist.",
+    "loadError": "We could not load the AI reviews.",
+    "retry": "Try again",
+    "runError": "We could not start the review.",
+    "loading": "Loading reviews...",
+    "empty": "No review has been run for this task yet.",
+    "pr": {
+      "label": "Pull request",
+      "other": "Another pull request...",
+      "urlLabel": "Pull request address",
+      "urlPlaceholder": "https://github.com/owner/repo/pull/123",
+      "urlInvalid": "Use an address like https://github.com/owner/repo/pull/123",
+      "paste": "Paste an address",
+      "useLinked": "Use a linked pull request",
+      "option": "#{{number}} {{title}}",
+      "optionNoTitle": "Pull request #{{number}}"
+    },
+    "progress": {
+      "queued": "Waiting to start...",
+      "running": "Reading the pull request and checking each criterion. This can take a minute or two."
+    },
+    "failed": {
+      "title": "The review could not be completed",
+      "fallback": "Something went wrong. Try again."
+    },
+    "history": {
+      "title": "Previous runs",
+      "itemFailed": "Failed on {{date}}",
+      "itemRunning": "In progress since {{date}}",
+      "show": "Show this review",
+      "showing": "Showing"
+    }
+  },
+  "result": {
+    "title": "Review result",
+    "summary": "Summary",
+    "detailed": "Detailed analysis",
+    "stat": {
+      "completed": "Completed",
+      "missing": "Missing",
+      "issues": "Issues",
+      "ofTotal": "of {{total}}",
+      "partly_one": "{{count}} partly met",
+      "partly_other": "{{count}} partly met"
+    },
+    "criterion": {
+      "met": "Completed",
+      "partial": "Partial",
+      "missing": "Missing",
+      "expand": "Show details",
+      "collapse": "Hide details",
+      "evidence": "Evidence",
+      "noEvidence": "Nothing in the pull request shows this.",
+      "explanation": "Explanation"
+    },
+    "issues": {
+      "title": "Code issues",
+      "none": "No code issues were found.",
+      "line": "line {{line}}",
+      "severity": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "category": {
+        "security": "Security",
+        "bug": "Bug",
+        "quality": "Quality",
+        "tests": "Tests",
+        "performance": "Performance"
+      },
+      "group_one": "{{severity}} severity ({{count}})",
+      "group_other": "{{severity}} severity ({{count}})"
+    },
+    "partial": {
+      "title": "Partial review",
+      "body": "Not all of this pull request could be sent to the model, so the result may miss problems. These files were left out or cut:",
+      "more_one": "and {{count}} more",
+      "more_other": "and {{count}} more"
+    },
+    "meta": {
+      "model": "Model {{model}}",
+      "reviewedAt": "Reviewed {{date}}",
+      "requestedBy": "Requested by {{name}}",
+      "automatic": "Automatic review of a new commit",
+      "tokens": "{{input}} tokens in, {{output}} tokens out",
+      "pullRequest": "Pull request {{repo}}#{{number}}"
+    }
+  },
+  "settings": {
+    "title": "AI code review",
+    "description": "An AI agent reads a ticket's pull request and tells you whether it implements the acceptance criteria, with evidence and code issues.",
+    "loading": "Loading AI settings...",
+    "loadError": "We could not load the AI code review settings.",
+    "retry": "Try again",
+    "saveError": "We could not save this setting.",
+    "unavailable": "This server has no Alibaba Cloud Model Studio key (DASHSCOPE_API_KEY), so the feature cannot be turned on yet.",
+    "notice": {
+      "title": "Your code is sent to a third party",
+      "body": "When this is on, the changes of the pull requests you review (the diff) and the ticket text are sent to Alibaba Cloud Model Studio (DashScope), an outside processor, to produce the review. Nothing is sent while it is off. Do not turn it on for code that your agreements do not allow to leave."
+    },
+    "enable": {
+      "label": "Enable AI code review",
+      "description": "Lets members with edit permission run a review from a task."
+    },
+    "auto": {
+      "label": "Review new commits automatically",
+      "description": "When a linked pull request is opened, updated or marked ready, a review starts without anyone asking. Each commit is reviewed once."
+    },
+    "token": {
+      "label": "GitHub access token (private repositories)",
+      "help": "Optional. A read-only token (Pull requests: read) lets the review read private repositories. It is stored encrypted, only used for repositories your tasks already link to, and never shown again.",
+      "placeholder": "Paste a token",
+      "isSet": "A token is saved.",
+      "notSet": "No token saved. Public repositories work without one.",
+      "save": "Save token",
+      "saving": "Saving...",
+      "remove": "Remove token",
+      "saved": "GitHub token saved.",
+      "removed": "GitHub token removed.",
+      "show": "Show token",
+      "hide": "Hide token",
+      "invalid": "That does not look like a GitHub token."
+    },
+    "usage": {
+      "label": "Used today",
+      "value": "{{used}} of {{limit}} reviews",
+      "reset": "The count restarts at midnight UTC."
+    },
+    "model": "Model: {{model}}"
+  }
+}

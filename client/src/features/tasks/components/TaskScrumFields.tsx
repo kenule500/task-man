@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Project } from '@/features/projects';
 import { Label } from '@/components/ui/label';
 import TaskReleaseField from '@/features/releases/components/TaskReleaseField';
@@ -20,12 +21,13 @@ const labelClass = 'text-sm font-medium text-slate-700';
 
 /** Type, story points, epic and sprint of a task, as used by the task form. */
 const TaskScrumFields = ({ values, onChange, projects, epics = [], isSubtask = false }: TaskScrumFieldsProps) => {
+  const { t } = useTranslation('tasks');
   const isEpic = values.type === 'epic';
   const hasProject = Boolean(findProjectByName(projects, values.project));
   const sprintHintId = 'task-sprint-hint';
   const sprintHint = isSubtask
-    ? 'Subtasks follow the sprint of their parent task.'
-    : !hasProject ? 'Pick one of your projects to plan this task into a sprint.' : '';
+    ? t('scrum.sprintSubtaskHint')
+    : !hasProject ? t('scrum.sprintNoProjectHint') : '';
   const showEpic = !isEpic && epics.length > 0;
 
   const changeType = (type: TaskFormValues['type']) => {
@@ -48,25 +50,25 @@ const TaskScrumFields = ({ values, onChange, projects, epics = [], isSubtask = f
 
   const current = epics.find(item => item._id === values.epic);
   const epicHint = isSubtask
-    ? 'Subtasks belong to the epic of their parent task.'
-    : current && !epicFitsProject(current, values.project) ? 'This epic belongs to another project.' : '';
+    ? t('scrum.epicSubtaskHint')
+    : current && !epicFitsProject(current, values.project) ? t('scrum.epicOtherProject') : '';
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="space-y-1.5">
-        <Label htmlFor="task-type" className={labelClass}>Type</Label>
+        <Label htmlFor="task-type" className={labelClass}>{t('field.type')}</Label>
         <TypeSelect id="task-type" value={values.type} onChange={changeType} className={selectClass} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="task-points" className={labelClass}>Story points</Label>
+        <Label htmlFor="task-points" className={labelClass}>{t('field.storyPoints')}</Label>
         <StoryPointsSelect id="task-points" value={values.storyPoints} onChange={value => onChange('storyPoints', value)} className={selectClass} />
       </div>
       {showEpic && (
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="task-epic" className={labelClass}>Epic</Label>
+          <Label htmlFor="task-epic" className={labelClass}>{t('field.epic')}</Label>
           <OptionSelect
             id="task-epic"
-            aria-label="Epic"
+            aria-label={t('field.epic')}
             value={values.epic || NO_EPIC_VALUE}
             options={epicOptionsFor(epics, values.project, values.epic)}
             onChange={changeEpic}
@@ -78,11 +80,11 @@ const TaskScrumFields = ({ values, onChange, projects, epics = [], isSubtask = f
       )}
       {isEpic ? (
         <p className="text-xs text-slate-500 sm:col-span-2">
-          An epic groups stories, tasks, bugs and spikes of its project across sprints. It is not planned into a sprint itself.
+          {t('scrum.epicExplainer')}
         </p>
       ) : (
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="task-sprint" className={labelClass}>Sprint</Label>
+          <Label htmlFor="task-sprint" className={labelClass}>{t('field.sprint')}</Label>
           <SprintSelect
             id="task-sprint"
             projects={projects}

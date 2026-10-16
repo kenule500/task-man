@@ -1,11 +1,13 @@
+import i18n from '@/i18n';
+
 /** Server limit for one attachment. */
 /** Matches the API default (ATTACHMENT_MAX_MB=4), which fits serverless request limits. */
 export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
 
 export const formatFileSize = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024) return i18n.t('tasks:files.bytes', { size: bytes });
+  if (bytes < 1024 * 1024) return i18n.t('tasks:files.kilobytes', { size: Math.round(bytes / 1024) });
+  return i18n.t('tasks:files.megabytes', { size: (bytes / (1024 * 1024)).toFixed(1) });
 };
 
 export type FileKind = 'image' | 'pdf' | 'spreadsheet' | 'presentation' | 'document' | 'archive' | 'other';
@@ -24,8 +26,8 @@ export const fileKindFromMimetype = (mimetype: string): FileKind => {
 
 /** Client-side check before uploading; returns an error message or `null`. */
 export const validateAttachment = (file: { name: string; size: number }): string | null => {
-  if (file.size === 0) return `"${file.name}" is empty.`;
-  if (file.size > MAX_ATTACHMENT_BYTES) return `"${file.name}" is larger than ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB.`;
+  if (file.size === 0) return i18n.t('tasks:files.empty', { name: file.name });
+  if (file.size > MAX_ATTACHMENT_BYTES) return i18n.t('tasks:files.tooLarge', { name: file.name, mb: MAX_ATTACHMENT_BYTES / (1024 * 1024) });
   return null;
 };
 

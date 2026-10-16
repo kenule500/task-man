@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/features/tasks';
 import { describeBurndown, type Burndown } from '../lib/burndown';
 
@@ -19,7 +20,9 @@ interface BurndownChartProps {
  * (`role="img"` + summary) and the same numbers are available in a visually hidden table.
  */
 const BurndownChart = ({ burndown, title, today = new Date() }: BurndownChartProps) => {
-  const { points, total, unit } = burndown;
+  const { t } = useTranslation('reports');
+  const { points, total, unit: unitKey } = burndown;
+  const unit = t(`projects:units.${unitKey}`);
   const max = Math.max(total, 1);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
@@ -41,7 +44,7 @@ const BurndownChart = ({ burndown, title, today = new Date() }: BurndownChartPro
         viewBox={`0 0 ${W} ${H}`}
         role="img"
         aria-label={`${title}. ${summary}`}
-        className="h-auto w-full max-w-md text-slate-500"
+        className="h-auto w-full max-w-md text-slate-500 [direction:ltr]"
       >
         {ticks.map(tick => (
           <g key={tick}>
@@ -79,26 +82,26 @@ const BurndownChart = ({ burndown, title, today = new Date() }: BurndownChartPro
       <figcaption className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
         <span className="inline-flex items-center gap-1.5">
           <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-blue-600" strokeWidth={2.5} /></svg>
-          Remaining {unit}
+          {t('charts.remaining', { unit })}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-slate-400" strokeWidth={2} strokeDasharray="5 4" /></svg>
-          Ideal
+          {t('charts.ideal')}
         </span>
       </figcaption>
 
       <div className="sr-only">
         <table>
-          <caption>{title}: remaining {unit} per day</caption>
+          <caption>{t('charts.burndownCaption', { title, unit })}</caption>
           <thead>
-            <tr><th scope="col">Date</th><th scope="col">Ideal</th><th scope="col">Remaining</th></tr>
+            <tr><th scope="col">{t('charts.date')}</th><th scope="col">{t('charts.ideal')}</th><th scope="col">{t('charts.remainingColumn')}</th></tr>
           </thead>
           <tbody>
             {points.map(point => (
               <tr key={point.date}>
                 <th scope="row">{shortDate(point.date)}</th>
                 <td>{point.ideal}</td>
-                <td>{point.remaining ?? 'not yet'}</td>
+                <td>{point.remaining ?? t('charts.notYet')}</td>
               </tr>
             ))}
           </tbody>

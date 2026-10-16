@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { addDays, dateKeyOf, diffInDays, formatDate, parseDateKey, toDateKey } from '@/features/tasks/lib/date';
 import type { TaskStatus } from '@/features/tasks/types';
 import type { Release, ReleaseProgress, ReleaseStatus, ReleaseTask } from '../types';
@@ -6,9 +7,9 @@ import type { Release, ReleaseProgress, ReleaseStatus, ReleaseTask } from '../ty
 export const NO_RELEASE_VALUE = 'none';
 
 export const RELEASE_STATUS_META: Record<ReleaseStatus, { label: string; tone: 'primary' | 'success' | 'neutral' }> = {
-  unreleased: { label: 'Unreleased', tone: 'primary' },
-  released: { label: 'Released', tone: 'success' },
-  archived: { label: 'Archived', tone: 'neutral' },
+  unreleased: { get label() { return i18n.t('projects:releases.status.unreleased'); }, tone: 'primary' },
+  released: { get label() { return i18n.t('projects:releases.status.released'); }, tone: 'success' },
+  archived: { get label() { return i18n.t('projects:releases.status.archived'); }, tone: 'neutral' },
 };
 
 const SHORT = { month: 'short', day: 'numeric' } as const;
@@ -23,9 +24,9 @@ export const releasePercent = (progress: ReleaseProgress): number => {
 /** "3 of 5 tasks · 8 of 13 points done" (points are left out when nothing is estimated). */
 export const describeReleaseProgress = (progress: ReleaseProgress): string => {
   const { counts, points } = progress;
-  if (counts.total === 0) return 'No tasks yet';
-  const tasks = `${counts.completed} of ${counts.total} ${counts.total === 1 ? 'task' : 'tasks'}`;
-  return points.total > 0 ? `${tasks} · ${points.completed} of ${points.total} pts` : tasks;
+  if (counts.total === 0) return i18n.t('projects:releases.noTasksYet');
+  const tasks = i18n.t('projects:releases.progressTasks', { done: counts.completed, count: counts.total });
+  return points.total > 0 ? i18n.t('projects:releases.progressWithPoints', { tasks, done: points.completed, total: points.total }) : tasks;
 };
 
 /** "Oct 1 – Oct 14, 2026", "Due Oct 14, 2026", "Starts Oct 1, 2026" or "No dates set". */
@@ -33,19 +34,18 @@ export const formatReleaseDates = (release: Pick<Release, 'startDate' | 'release
   const start = release.startDate ? dateKeyOf(release.startDate) : '';
   const end = release.releaseDate ? dateKeyOf(release.releaseDate) : '';
   if (start && end) return `${formatDate(start, SHORT)} – ${formatDate(end)}`;
-  if (end) return `Due ${formatDate(end)}`;
-  if (start) return `Starts ${formatDate(start)}`;
-  return 'No dates set';
+  if (end) return i18n.t('projects:releases.due', { date: formatDate(end) });
+  if (start) return i18n.t('projects:releases.starts', { date: formatDate(start) });
+  return i18n.t('projects:releases.noDates');
 };
 
 /** Days-left sentence of an unreleased release: "Due in 5 days", "Due today", "Overdue by 3 days". */
 export const describeReleaseDue = (release: Pick<Release, 'status' | 'releaseDate'>, today: Date = new Date()): string => {
   if (release.status !== 'unreleased' || !release.releaseDate) return '';
   const days = diffInDays(today, parseDateKey(release.releaseDate));
-  const plural = (value: number) => `${value} ${value === 1 ? 'day' : 'days'}`;
-  if (days < 0) return `Overdue by ${plural(-days)}`;
-  if (days === 0) return 'Due today';
-  return `Due in ${plural(days)}`;
+  if (days < 0) return i18n.t('projects:releases.overdueBy', { count: -days });
+  if (days === 0) return i18n.t('projects:releases.dueToday');
+  return i18n.t('projects:releases.dueIn', { count: days });
 };
 
 /** Default dates of a new release: starts today and ships two weeks later. */
@@ -77,10 +77,10 @@ export const releaseOptionsFor = (
 ): { value: string; label: string }[] => {
   const usable = releases.filter(release => release._id === currentId || (release.project === projectId && release.status === 'unreleased'));
   return [
-    { value: NO_RELEASE_VALUE, label: 'No release' },
+    { value: NO_RELEASE_VALUE, label: i18n.t('projects:releases.noRelease') },
     ...usable.map(release => ({
       value: release._id,
-      label: release.status === 'unreleased' ? release.name : `${release.name} (${release.status})`,
+      label: release.status === 'unreleased' ? release.name : `${release.name} (${i18n.t(`projects:releases.statusLower.${release.status}`, { defaultValue: release.status })})`,
     })),
   ];
 };
@@ -92,9 +92,9 @@ export interface ReleaseTaskGroup {
 }
 
 const GROUP_ORDER: { status: TaskStatus; label: string }[] = [
-  { status: 'in-progress', label: 'In progress' },
-  { status: 'pending', label: 'To do' },
-  { status: 'completed', label: 'Done' },
+  { status: 'in-progress', get label() { return i18n.t('projects:releases.group.in-progress'); } },
+  { status: 'pending', get label() { return i18n.t('projects:releases.group.pending'); } },
+  { status: 'completed', get label() { return i18n.t('projects:releases.group.completed'); } },
 ];
 
 /** Tasks of a release by status group (in progress, to do, done); empty groups are left out. */

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Waypoints, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { OptionCombobox, SectionHeader, toast, type ComboboxOption } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { useProjectDirectory } from '@/features/projects/context/ProjectsContext';
@@ -28,6 +29,7 @@ export interface TaskRelationsProps {
 
 /** "Linked work" of a task: links grouped by type, a "Link work" form and an undoable remove button. */
 const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRelationsProps) => {
+  const { t } = useTranslation('tasks');
   const extras = useTaskExtras(workspaceSlug);
   const { byName } = useProjectDirectory();
   const [adding, setAdding] = useState(false);
@@ -61,10 +63,10 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
     setBusy(true);
     try {
       await extras.addRelation(task, type, other);
-      toast.success(`${LINK_TYPE_LABEL[type]} ${keyOf(other) || other.title}`);
+      toast.success(t('relations.linked', { type: LINK_TYPE_LABEL[type], target: keyOf(other) || other.title }));
       closeForm();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not link the tasks.'));
+      toast.error(getApiErrorMessage(err, t('relations.linkError')));
     } finally {
       setBusy(false);
     }
@@ -76,27 +78,27 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
     try {
       await extras.removeRelation(task, linkType, other);
       toast({
-        title: `Removed link to ${keyOf(other) || other.title}`,
+        title: t('relations.removedLink', { target: keyOf(other) || other.title }),
         action: {
-          label: 'Undo',
+          label: t('actions.undo'),
           onClick: () => {
             extras.addRelation(task, linkType, other).catch(err => {
-              toast.error(getApiErrorMessage(err, 'Could not restore the link.'));
+              toast.error(getApiErrorMessage(err, t('relations.restoreError')));
             });
           },
         },
       });
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not remove the link.'));
+      toast.error(getApiErrorMessage(err, t('relations.removeError')));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section aria-label="Linked work">
+    <section aria-label={t('relations.linkedWork')}>
       <SectionHeader
-        title="Linked work"
+        title={t('relations.linkedWork')}
         count={total}
         icon={<Waypoints className="size-4 text-slate-500" aria-hidden />}
         action={canEdit && !adding ? (
@@ -107,13 +109,13 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
             disabled={atLimit}
             className="h-10 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-8"
           >
-            <Plus className="size-4" aria-hidden /> Link work
+            <Plus className="size-4" aria-hidden /> {t('relations.linkWork')}
           </Button>
         ) : undefined}
         className="mb-2"
       />
 
-      {total === 0 && !adding && <p className="text-sm text-slate-500">No linked work yet.</p>}
+      {total === 0 && !adding && <p className="text-sm text-slate-500">{t('relations.none')}</p>}
 
       {groups.length > 0 && (
         <div className="space-y-3">
@@ -128,7 +130,7 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
                       <button
                         type="button"
                         onClick={() => onOpen(other)}
-                        className="min-h-8 min-w-0 flex-1 truncate rounded text-left text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                        className="min-h-8 min-w-0 flex-1 truncate rounded text-start text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                       >
                         {other.title}
                       </button>
@@ -141,7 +143,7 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={`Remove link: ${LINK_TYPE_LABEL[group.type].toLowerCase()} ${other.title}`}
+                        aria-label={t('relations.removeLink', { type: LINK_TYPE_LABEL[group.type].toLowerCase(), title: other.title })}
                         disabled={busy}
                         onClick={() => { void unlink(group.type, other); }}
                         className="size-10 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
@@ -164,27 +166,27 @@ const TaskRelations = ({ task, tasks, canWrite, workspaceSlug, onOpen }: TaskRel
               value={type}
               options={LINK_TYPE_OPTIONS}
               onChange={setType}
-              aria-label="Link type"
+              aria-label={t('relations.linkType')}
               className="h-11 sm:h-9 sm:w-44"
             />
             <div className="min-w-0 sm:flex-1">
               <OptionCombobox
-                label="Search tasks to link"
+                label={t('relations.searchToLink')}
                 options={options}
                 value={null}
                 onValueChange={id => {
                   const other = tasks.find(item => item._id === id);
                   if (other) void link(other);
                 }}
-                placeholder="Search by key or title"
-                emptyText="No matching tasks."
+                placeholder={t('convert.searchPlaceholder')}
+                emptyText={t('relations.noMatch')}
                 disabled={busy}
                 autoFocus
               />
             </div>
           </div>
           <div className="flex justify-end">
-            <Button type="button" variant="ghost" onClick={closeForm} className="h-10 text-slate-600 sm:h-8">Cancel</Button>
+            <Button type="button" variant="ghost" onClick={closeForm} className="h-10 text-slate-600 sm:h-8">{t('actions.cancel')}</Button>
           </div>
         </div>
       )}

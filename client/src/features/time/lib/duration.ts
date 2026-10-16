@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 /** Largest estimate the API accepts. */
 export const MAX_ESTIMATE_MINUTES = 100000;
 /** Largest single entry. */
@@ -57,9 +59,9 @@ export const describeDuration = (minutes: number): string => {
   const hours = Math.floor(total / 60);
   const rest = total % 60;
   const parts: string[] = [];
-  if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
-  if (rest > 0 || hours === 0) parts.push(`${rest} ${rest === 1 ? 'minute' : 'minutes'}`);
-  return parts.join(' ');
+  if (hours > 0) parts.push(i18n.t('tasks:time.hours', { count: hours }));
+  if (rest > 0 || hours === 0) parts.push(i18n.t('tasks:time.minutes', { count: rest }));
+  return parts.length === 2 ? i18n.t('tasks:time.durationPair', { first: parts[0], second: parts[1] }) : parts.join('');
 };
 
 /** Clock face of a running timer: "4:05" under an hour, "1:02:05" after. */
@@ -96,7 +98,9 @@ export const timeProgress = (logged: number, estimate: number | null | undefined
 /** One line summary: "3h 15m of 2h 30m (45m over)", "1h logged", "Nothing logged yet". */
 export const describeProgress = (logged: number, estimate: number | null | undefined): string => {
   const progress = timeProgress(logged, estimate);
-  if (!progress || !estimate) return logged > 0 ? `${formatDuration(logged)} logged` : 'Nothing logged yet';
-  const base = `${formatDuration(logged)} of ${formatDuration(estimate)}`;
-  return progress.over ? `${base} (${formatDuration(progress.overBy)} over)` : `${base} (${formatDuration(progress.remaining)} left)`;
+  if (!progress || !estimate) return logged > 0 ? i18n.t('tasks:badges.logged', { logged: formatDuration(logged) }) : i18n.t('tasks:time.nothingLogged');
+  const base = i18n.t('tasks:time.progress.base', { logged: formatDuration(logged), estimate: formatDuration(estimate) });
+  return progress.over
+    ? i18n.t('tasks:time.progress.over', { base, over: formatDuration(progress.overBy) })
+    : i18n.t('tasks:time.progress.left', { base, left: formatDuration(progress.remaining) });
 };

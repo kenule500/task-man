@@ -1,4 +1,5 @@
 import { History } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { EmptyState, SkeletonList, Timeline, UserAvatar } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import type { TaskActivityEntry } from '../api';
@@ -15,8 +16,9 @@ interface TaskActivityProps {
 }
 
 const ActivityRow = ({ entry, sprintName }: { entry: TaskActivityEntry; sprintName?: ActivityTextOptions['sprintName'] }) => {
+  const { t } = useTranslation('tasks');
   const { headline, details } = describeActivity(entry, { sprintName });
-  const actor = entry.actor?.name ?? 'Someone';
+  const actor = entry.actor?.name ?? t('activityPanel.someone');
 
   return (
     <li className="flex gap-3">
@@ -26,7 +28,7 @@ const ActivityRow = ({ entry, sprintName }: { entry: TaskActivityEntry; sprintNa
           <span className="font-semibold text-slate-900">{actor}</span> {headline}
         </p>
         {details.length > 0 && (
-          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-600 [overflow-wrap:anywhere]">
+          <ul className="mt-1 list-disc space-y-0.5 ps-5 text-slate-600 [overflow-wrap:anywhere]">
             {details.map(line => <li key={line}>{line}</li>)}
           </ul>
         )}
@@ -38,10 +40,14 @@ const ActivityRow = ({ entry, sprintName }: { entry: TaskActivityEntry; sprintNa
   );
 };
 
-const ActivitySkeleton = () => <SkeletonList bare trailing={false} rows={3} label="Loading activity" />;
+const ActivitySkeleton = () => {
+  const { t } = useTranslation('tasks');
+  return <SkeletonList bare trailing={false} rows={3} label={t('activityPanel.loading')} />;
+};
 
 /** Task history: who changed what and when, newest first, with "Load older". Mount it when its tab opens. */
 const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskActivityProps) => {
+  const { t } = useTranslation('tasks');
   const { items, nextBefore, loading, error, loadingMore, moreError, loadMore, retry } = useTaskActivity(workspaceSlug, taskId, {
     enabled: true,
     refreshKey,
@@ -54,7 +60,7 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
       <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-danger-border bg-danger-bg p-4 text-sm text-danger-fg">
         <p>{error}</p>
         <Button type="button" variant="outline" onClick={retry} className="h-10 border-danger-border bg-white text-danger-fg sm:h-9">
-          Try again
+          {t('actions.retry')}
         </Button>
       </div>
     );
@@ -64,8 +70,8 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
     return (
       <EmptyState
         icon={<History />}
-        title="No activity yet"
-        description="Changes, comments and files for this task will show up here."
+        title={t('activityPanel.emptyTitle')}
+        description={t('activityPanel.emptyDescription')}
         className="py-8"
       />
     );
@@ -73,8 +79,8 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
 
   return (
     <div className="space-y-4">
-      {error && <p role="alert" className="text-xs text-danger-fg">Could not refresh: {error}</p>}
-      <Timeline aria-label="Task activity">
+      {error && <p role="alert" className="text-xs text-danger-fg">{t('activityPanel.refreshError', { error })}</p>}
+      <Timeline aria-label={t('activityPanel.timeline')}>
         {items.map(entry => <ActivityRow key={entry._id} entry={entry} sprintName={sprintName} />)}
       </Timeline>
       {moreError && <p role="alert" className="text-xs text-danger-fg">{moreError}</p>}
@@ -87,7 +93,7 @@ const TaskActivity = ({ workspaceSlug, taskId, refreshKey, sprintName }: TaskAct
           aria-busy={loadingMore}
           className="h-10 w-full border-slate-300 text-slate-700 sm:h-9 sm:w-auto"
         >
-          {loadingMore ? 'Loading…' : 'Load older'}
+          {loadingMore ? t('actions.loading') : t('activityPanel.loadOlder')}
         </Button>
       )}
     </div>

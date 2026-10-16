@@ -43,7 +43,7 @@ export const Specimen = ({ label, children, className, bare }: { label: string; 
 );
 
 export const Prose = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <div className={cn('max-w-3xl space-y-3 text-sm leading-6 text-text-body [&_code]:rounded [&_code]:bg-surface-sunken [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5', className)}>
+  <div className={cn('max-w-3xl space-y-3 text-sm leading-6 text-text-body [&_code]:rounded [&_code]:bg-surface-sunken [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:ps-5', className)}>
     {children}
   </div>
 );
@@ -63,7 +63,7 @@ interface DataTableProps {
 export const DataTable = ({ caption, columns, rows, className }: DataTableProps) => (
   // Focusable so keyboard users can scroll the table sideways
   <div tabIndex={0} role="region" aria-label={caption} className={cn('overflow-x-auto rounded-xl border border-border bg-white outline-none focus-visible:outline-2 focus-visible:outline-focus', className)}>
-    <table className="w-full min-w-[32rem] text-left text-sm">
+    <table className="w-full min-w-[32rem] text-start text-sm">
       <caption className="sr-only">{caption}</caption>
       <thead className="bg-surface-sunken text-xs font-semibold uppercase tracking-wider text-text-subtle">
         <tr>
@@ -245,7 +245,7 @@ export const ComponentDoc = ({
 
         <div className="space-y-2">
           <SubHeading>Accessibility</SubHeading>
-          <ul className="max-w-3xl list-disc space-y-1 pl-5 text-sm text-text-body">
+          <ul className="max-w-3xl list-disc space-y-1 ps-5 text-sm text-text-body">
             {a11y.map(note => <li key={note}>{note}</li>)}
           </ul>
         </div>

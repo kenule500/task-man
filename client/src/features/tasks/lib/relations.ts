@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Task, TaskLinkType } from '../types';
 
 export const MAX_TASK_RELATIONS = 50;
@@ -9,16 +10,16 @@ export const LINK_TYPE_ORDER: readonly TaskLinkType[] = [
 
 /** Sentence fragment that follows "this task" ("this task blocks ..."). */
 export const LINK_TYPE_LABEL: Record<TaskLinkType, string> = {
-  blocks: 'Blocks',
-  blocked_by: 'Is blocked by',
-  relates: 'Relates to',
-  duplicates: 'Duplicates',
-  duplicated_by: 'Is duplicated by',
-  clones: 'Clones',
-  cloned_by: 'Is cloned by',
+  get blocks() { return i18n.t('tasks:links.blocks'); },
+  get blocked_by() { return i18n.t('tasks:links.blocked_by'); },
+  get relates() { return i18n.t('tasks:links.relates'); },
+  get duplicates() { return i18n.t('tasks:links.duplicates'); },
+  get duplicated_by() { return i18n.t('tasks:links.duplicated_by'); },
+  get clones() { return i18n.t('tasks:links.clones'); },
+  get cloned_by() { return i18n.t('tasks:links.cloned_by'); },
 };
 
-export const LINK_TYPE_OPTIONS = LINK_TYPE_ORDER.map(value => ({ value, label: LINK_TYPE_LABEL[value] }));
+export const LINK_TYPE_OPTIONS = LINK_TYPE_ORDER.map(value => ({ value, get label() { return LINK_TYPE_LABEL[value]; } }));
 
 export interface LinkedTask {
   type: TaskLinkType;

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CalendarDays } from 'lucide-react';
 import { ProgressBar, Tag } from '@/components/ds';
 import { ProjectFolderIcon } from '@/features/projects';
-import { HEALTH_LABEL, formatSpan, type EpicHealth, type RoadmapEpic, type RoadmapGroup } from '../lib/roadmap';
+import { formatSpan, type EpicHealth, type RoadmapEpic, type RoadmapGroup } from '../lib/roadmap';
 
 const HEALTH_TONE: Record<EpicHealth, 'neutral' | 'primary' | 'success' | 'danger'> = {
   done: 'success',
@@ -17,8 +18,10 @@ interface RoadmapListProps {
 }
 
 /** Phone roadmap: a vertical list per project with the date range and progress of each epic. */
-const RoadmapList = ({ groups, slug }: RoadmapListProps) => (
-  <div aria-label="Roadmap list" role="region" className="space-y-5 md:hidden">
+const RoadmapList = ({ groups, slug }: RoadmapListProps) => {
+  const { t } = useTranslation('planning');
+  return (
+  <div aria-label={t('roadmap.listLabel')} role="region" className="space-y-5 md:hidden">
     {groups.map(group => (
       <section key={group.id} aria-label={group.name}>
         <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -35,17 +38,17 @@ const RoadmapList = ({ groups, slug }: RoadmapListProps) => (
                 >
                   <span className="min-w-0 break-words">{epic.title}</span>
                 </Link>
-                <Tag tone={HEALTH_TONE[epic.health]} size="sm" className="shrink-0">{HEALTH_LABEL[epic.health]}</Tag>
+                <Tag tone={HEALTH_TONE[epic.health]} size="sm" className="shrink-0">{t(`health.${epic.health}`)}</Tag>
               </div>
               <p className="mt-1 flex items-center gap-1.5 text-xs tabular-nums text-slate-600">
                 <CalendarDays aria-hidden className="size-3.5" />
                 {formatSpan(epic.start, epic.end)}
               </p>
-              <ProgressBar className="mt-3" value={epic.percent} label={`${epic.title} progress`} showValue />
+              <ProgressBar className="mt-3" value={epic.percent} label={t('roadmap.progressOf', { title: epic.title })} showValue />
               <p className="mt-1 text-xs tabular-nums text-slate-600">
                 {epic.items === 0
-                  ? 'No items yet'
-                  : `${epic.doneItems} of ${epic.items} ${epic.items === 1 ? 'item' : 'items'} done${epic.points > 0 ? ` · ${epic.donePoints} of ${epic.points} pts` : ''}`}
+                  ? t('roadmap.noItems')
+                  : `${t('roadmap.itemsDone', { done: epic.doneItems, count: epic.items })}${epic.points > 0 ? t('roadmap.listPoints', { done: epic.donePoints, total: epic.points }) : ''}`}
               </p>
             </li>
           ))}
@@ -53,6 +56,7 @@ const RoadmapList = ({ groups, slug }: RoadmapListProps) => (
       </section>
     ))}
   </div>
-);
+  );
+};
 
 export default RoadmapList;

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Alert, Tag, Spinner } from '@/components/ds';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { Loader2, XCircle, Users, ArrowRight } from 'lucide-react';
+import { currentLocale } from '@/i18n/format';
+import { roleDisplayDescription, roleDisplayName } from '../components/settings/rbac';
 
 interface Invitation {
   workspace: { _id: string; name: string; slug: string };
@@ -19,13 +22,14 @@ const formatExpiry = (iso: string): string => {
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    : date.toLocaleDateString(currentLocale(), { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 const getErrorMessage = (err: unknown, fallback: string): string =>
   (err as { response?: { data?: { message?: string } } }).response?.data?.message || fallback;
 
 const AcceptInvitePage = () => {
+  const { t } = useTranslation('auth');
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
@@ -41,13 +45,13 @@ const AcceptInvitePage = () => {
         const response = await api.get(`/invitations/${token}`);
         setInvitation(response.data);
       } catch (err: unknown) {
-        setLoadError(getErrorMessage(err, 'Failed to load invitation.'));
+        setLoadError(getErrorMessage(err, t('invite.loadFailed')));
       } finally {
         setLoading(false);
       }
     };
     fetchInvitation();
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAccept = async () => {
     if (!getToken()) {
@@ -70,7 +74,7 @@ const AcceptInvitePage = () => {
 
       navigate(`/${workspace.slug}/dashboard`);
     } catch (err: unknown) {
-      setActionError(getErrorMessage(err, 'Failed to accept the invitation. Try again.'));
+      setActionError(getErrorMessage(err, t('invite.acceptFailed')));
       setSubmitting(false);
     }
   };
@@ -82,7 +86,7 @@ const AcceptInvitePage = () => {
       await api.post(`/invitations/${token}/decline`);
       navigate('/');
     } catch (err: unknown) {
-      setActionError(getErrorMessage(err, 'Failed to decline the invitation. Try again.'));
+      setActionError(getErrorMessage(err, t('invite.declineFailed')));
       setSubmitting(false);
     }
   };
@@ -90,7 +94,7 @@ const AcceptInvitePage = () => {
   if (loading) {
     return (
       <AuthPageShell>
-        <AuthStatusHeader icon={<Loader2 />} spin title="Loading invitation" description="Please wait..." />
+        <AuthStatusHeader icon={<Loader2 />} spin title={t('invite.loadingTitle')} description={t('invite.wait')} />
       </AuthPageShell>
     );
   }
@@ -101,11 +105,11 @@ const AcceptInvitePage = () => {
         <AuthStatusHeader
           icon={<XCircle />}
           tone="danger"
-          title="Invitation not valid"
-          description={loadError || 'This invitation is no longer valid. Ask the person who invited you to send a new one.'}
+          title={t('invite.invalidTitle')}
+          description={loadError || t('invite.invalidDescription')}
         />
         <Link to="/" className={buttonVariants({ variant: 'outline', className: 'h-11 w-full rounded-xl' })}>
-          Back to home
+          {t('invite.backHome')}
         </Link>
       </AuthPageShell>
     );
@@ -117,21 +121,16 @@ const AcceptInvitePage = () => {
     <AuthPageShell>
       <AuthStatusHeader
         icon={<Users />}
-        title="You have been invited"
-        description={
-          <>
-            <span className="font-semibold text-slate-800">{invitation.invitedBy.name}</span> invited you to join{' '}
-            <span className="font-semibold text-slate-800">{invitation.workspace.name}</span>.
-          </>
-        }
+        title={t('invite.title')}
+        description={<Trans t={t} i18nKey="invite.description" values={{ inviter: invitation.invitedBy.name, workspace: invitation.workspace.name }} components={{ b: <span className="font-semibold text-slate-800" /> }} />}
       />
 
       <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-600">Your role</span>
-          <Tag tone="primary">{invitation.role.name}</Tag>
+          <span className="text-xs font-medium uppercase tracking-wider text-slate-600">{t('invite.yourRole')}</span>
+          <Tag tone="primary">{roleDisplayName(invitation.role)}</Tag>
         </div>
-        {invitation.role.description && <p className="text-sm text-slate-600">{invitation.role.description}</p>}
+        {invitation.role.description && <p className="text-sm text-slate-600">{roleDisplayDescription(invitation.role)}</p>}
       </div>
 
       {actionError && <Alert tone="error" className="mb-4">{actionError}</Alert>}
@@ -144,20 +143,20 @@ const AcceptInvitePage = () => {
         >
           {submitting ? (
             <>
-              <Spinner decorative /> Joining...
+              <Spinner decorative /> {t('invite.joining')}
             </>
           ) : (
             <>
-              Accept invitation <ArrowRight className="size-4" aria-hidden />
+              {t('invite.accept')} <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
             </>
           )}
         </Button>
         <Button onClick={handleDecline} disabled={submitting} variant="outline" className="h-11 w-full rounded-xl">
-          Decline
+          {t('invite.decline')}
         </Button>
       </div>
 
-      {expiry && <p className="mt-6 text-center text-xs text-slate-600">This invitation expires on {expiry}.</p>}
+      {expiry && <p className="mt-6 text-center text-xs text-slate-600">{t('invite.expires', { date: expiry })}</p>}
     </AuthPageShell>
   );
 };

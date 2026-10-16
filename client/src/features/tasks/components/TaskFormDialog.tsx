@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { AlertCircle, ListTodo } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,7 @@ const TaskFormDialog = ({
   open, onOpenChange, task, defaults, tasks, onSubmit,
   members = [], membersLoading = false, canListMembers = false, currentUser, projects = NO_PROJECTS,
 }: TaskFormDialogProps) => {
+  const { t } = useTranslation('tasks');
   const { stages } = useWorkflow();
   const [values, setValues] = useState<TaskFormValues>(() => toFormValues(task, defaults));
   const [errors, setErrors] = useState<TaskFormErrors>({});
@@ -109,7 +111,7 @@ const TaskFormDialog = ({
     setErrors(nextErrors);
     // Required custom fields are only enforced when a task is created (as the API does)
     const missing = isEdit ? [] : missingRequired(customFields, values.project.trim(), custom);
-    setCustomErrors(Object.fromEntries(missing.map(field => [field.key, `${field.name} is required.`])));
+    setCustomErrors(Object.fromEntries(missing.map(field => [field.key, t('taskForm.required', { name: field.name })])));
     if (Object.keys(nextErrors).length > 0 || missing.length > 0) return;
 
     setSaving(true);
@@ -121,12 +123,12 @@ const TaskFormDialog = ({
       if (customInput) input.custom = customInput;
       const result = await onSubmit(input);
       if (result === null) {
-        setSubmitError('Your changes could not be saved. Please try again.');
+        setSubmitError(t('taskForm.notSaved'));
         return;
       }
       onOpenChange(false);
     } catch (err) {
-      setSubmitError(getApiErrorMessage(err, 'Could not save the task.'));
+      setSubmitError(getApiErrorMessage(err, t('taskForm.saveError')));
     } finally {
       setSaving(false);
     }
@@ -135,17 +137,17 @@ const TaskFormDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[560px] sm:rounded-xl">
-        <div className="shrink-0 px-4 pt-5 pb-4 pr-12 border-b border-slate-200 sm:px-6 sm:pt-6 sm:pb-5">
+        <div className="shrink-0 px-4 pt-5 pb-4 pe-12 border-b border-slate-200 sm:px-6 sm:pt-6 sm:pb-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
               <ListTodo className="w-5 h-5 text-primary" />
             </div>
             <DialogHeader className="p-0 space-y-0 min-w-0">
               <DialogTitle className="text-lg font-bold text-slate-900 leading-tight">
-                {isEdit ? 'Edit task' : 'Create a new task'}
+                {isEdit ? t('taskForm.editTitle') : t('taskForm.createTitle')}
               </DialogTitle>
               <DialogDescription className="text-sm text-slate-500 mt-1 leading-relaxed">
-                {isEdit ? 'Update the details, schedule or dependencies.' : 'Add the details, schedule and what it depends on.'}
+                {isEdit ? t('taskForm.editDescription') : t('taskForm.createDescription')}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -162,13 +164,13 @@ const TaskFormDialog = ({
 
             <div className="space-y-1.5">
               <Label htmlFor="task-title" className="text-sm font-medium text-slate-700">
-                Title <span className="text-danger-fg">*</span>
+                {t('taskForm.title')} <span className="text-danger-fg">*</span>
               </Label>
               <Input
                 id="task-title"
                 value={values.title}
                 onChange={e => set('title', e.target.value)}
-                placeholder="e.g. Prepare sprint review"
+                placeholder={t('taskForm.titlePlaceholder')}
                 className={fieldClass}
                 maxLength={140}
                 aria-invalid={Boolean(errors.title)}
@@ -179,24 +181,24 @@ const TaskFormDialog = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="task-description" className="text-sm font-medium text-slate-700">Description</Label>
+              <Label htmlFor="task-description" className="text-sm font-medium text-slate-700">{t('taskForm.description')}</Label>
               <Textarea
                 id="task-description"
                 value={values.description}
                 onChange={e => set('description', e.target.value)}
-                placeholder="Add more context (optional)"
+                placeholder={t('taskForm.descriptionPlaceholder')}
                 className="min-h-24 sm:min-h-20 bg-white border border-slate-300 rounded-lg text-base sm:text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 shadow-none"
                 maxLength={2000}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="task-project" className="text-sm font-medium text-slate-700">Project</Label>
+              <Label htmlFor="task-project" className="text-sm font-medium text-slate-700">{t('taskForm.project')}</Label>
               <Input
                 id="task-project"
                 value={values.project}
                 onChange={e => setProject(e.target.value)}
-                placeholder="Group tasks under a project (optional)"
+                placeholder={t('taskForm.projectPlaceholder')}
                 className={fieldClass}
                 maxLength={60}
                 list="task-project-options"
@@ -230,12 +232,12 @@ const TaskFormDialog = ({
             />
 
             <div className="space-y-1.5">
-              <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">Labels</Label>
+              <Label htmlFor="task-labels" className="text-sm font-medium text-slate-700">{t('taskForm.labels')}</Label>
               <LabelInput id="task-labels" value={values.labels} onChange={labels => set('labels', labels)} suggestions={labelSuggestions} />
             </div>
 
             <div className="space-y-1.5">
-              <p className="text-sm font-medium text-slate-700">Assignees</p>
+              <p className="text-sm font-medium text-slate-700">{t('assignee.label')}</p>
               <AssigneePicker
                 value={values.assignees}
                 onChange={ids => set('assignees', ids)}
@@ -249,7 +251,7 @@ const TaskFormDialog = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="task-status" className="text-sm font-medium text-slate-700">Status</Label>
+                <Label htmlFor="task-status" className="text-sm font-medium text-slate-700">{t('field.status')}</Label>
                 <StatusSelect
                   id="task-status"
                   value={values.status}
@@ -263,11 +265,11 @@ const TaskFormDialog = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="task-priority" className="text-sm font-medium text-slate-700">Priority</Label>
+                <Label htmlFor="task-priority" className="text-sm font-medium text-slate-700">{t('field.priority')}</Label>
                 <PrioritySelect id="task-priority" value={values.priority} onChange={value => set('priority', value)} className="h-11 border-slate-300 sm:h-10" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="task-start" className="text-sm font-medium text-slate-700">Start date</Label>
+                <Label htmlFor="task-start" className="text-sm font-medium text-slate-700">{t('taskForm.startDate')}</Label>
                 <Input
                   id="task-start"
                   type="date"
@@ -282,7 +284,7 @@ const TaskFormDialog = ({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="task-deadline" className="text-sm font-medium text-slate-700">
-                  Due date <span className="text-danger-fg">*</span>
+                  {t('taskForm.dueDate')} <span className="text-danger-fg">*</span>
                 </Label>
                 <Input
                   id="task-deadline"
@@ -299,10 +301,10 @@ const TaskFormDialog = ({
             </div>
 
             <fieldset className="space-y-1.5">
-              <legend className="text-sm font-medium text-slate-700">Depends on</legend>
-              <p className="text-xs text-slate-500">This task starts after the selected tasks are done. Used by the timeline.</p>
+              <legend className="text-sm font-medium text-slate-700">{t('taskForm.dependsOn')}</legend>
+              <p className="text-xs text-slate-500">{t('taskForm.dependsHint')}</p>
               {candidates.length === 0 ? (
-                <p className="text-xs text-slate-500 italic pt-1">No other tasks available yet.</p>
+                <p className="text-xs text-slate-500 italic pt-1">{t('taskForm.noOtherTasks')}</p>
               ) : (
                 <ul className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
                   {candidates.map(candidate => {
@@ -334,14 +336,14 @@ const TaskFormDialog = ({
               onClick={() => onOpenChange(false)}
               className="rounded-lg h-10 border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-medium shadow-none"
             >
-              Cancel
+              {t('actions.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={saving}
               className="rounded-lg bg-primary hover:bg-primary-hover text-white h-10 text-sm font-medium shadow-sm px-5"
             >
-              {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create task'}
+              {saving ? t('taskForm.saving') : isEdit ? t('taskForm.saveChanges') : t('taskForm.createTask')}
             </Button>
           </DialogFooter>
         </form>

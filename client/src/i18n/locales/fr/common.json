@@ -1,0 +1,82 @@
+{
+  "language": "Langue",
+  "languages": {
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية"
+  },
+  "languageSaveFailed": "Impossible d’enregistrer votre langue sur votre compte. Elle s’applique uniquement sur cet appareil. Réessayez plus tard.",
+  "cancel": "Annuler",
+  "close": "Fermer",
+  "dismiss": "Ignorer",
+  "dismissNotification": "Ignorer la notification",
+  "notifications": "Notifications",
+  "loading": "Chargement",
+  "loadingPage": "Chargement de la page",
+  "loadingEllipsis": "Chargement…",
+  "checkingAccess": "Vérification de l’accès",
+  "clearSearch": "Effacer la recherche",
+  "breadcrumb": "Fil d’Ariane",
+  "noResults": "Aucun résultat.",
+  "noOneAssigned": "Personne d’assigné",
+  "assignedTo": "Assigné à {{names}}",
+  "listSeparator": ", ",
+  "status": {
+    "pending": "En attente",
+    "inProgress": "En cours",
+    "completed": "Terminé"
+  },
+  "taskTypes": {
+    "story": "Récit",
+    "task": "Tâche",
+    "bug": "Bug",
+    "spike": "Spike"
+  },
+  "skeleton": {
+    "list": "Chargement de la liste",
+    "board": "Chargement du tableau",
+    "table": "Chargement du tableau de données",
+    "chart": "Chargement du graphique",
+    "details": "Chargement des détails"
+  },
+  "combobox": {
+    "selected": "Sélection : {{label}}",
+    "remove": "Retirer {{name}}",
+    "clear": "Effacer {{label}}",
+    "show": "Afficher les options de {{label}}"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "rowsPerPage": "Lignes par page",
+    "summary": "<b>{{start}}–{{end}}</b> sur <b>{{total}}</b>",
+    "page": "Page {{page}}"
+  },
+  "tagInput": {
+    "remove": "Retirer {{noun}} {{tag}}",
+    "addFirst": "Ajoutez : {{noun}}, puis appuyez sur Entrée",
+    "addAnother": "Ajouter un autre",
+    "max": "Maximum atteint : {{max}} ({{noun}}).",
+    "hint": "Appuyez sur Entrée ou sur la virgule pour ajouter, sur Retour arrière pour retirer.",
+    "suggestionsFor": "Suggestions : {{noun}}",
+    "suggestions": "Suggestions :",
+    "add": "Ajouter {{noun}} {{tag}}"
+  },
+  "retry": "Réessayer",
+  "copy": "Copier",
+  "copied": "Copié",
+  "currentSuffix": "(actuel)",
+  "relative": {
+    "justNow": "à l’instant",
+    "minutes_one": "il y a {{count}} minute",
+    "minutes_many": "il y a {{count}} minutes",
+    "minutes_other": "il y a {{count}} minutes",
+    "hours_one": "il y a {{count}} heure",
+    "hours_many": "il y a {{count}} heures",
+    "hours_other": "il y a {{count}} heures",
+    "days_one": "il y a {{count}} jour",
+    "days_many": "il y a {{count}} de jours",
+    "days_other": "il y a {{count}} jours"
+  }
+}

@@ -1,0 +1,364 @@
+{
+  "goToDashboard": "Aller au tableau de bord",
+  "createAccount": "Créer votre compte",
+  "nav": {
+    "skip": "Aller au contenu",
+    "main": "Principale",
+    "features": "Fonctionnalités",
+    "teams": "Équipes et rôles",
+    "signIn": "Se connecter",
+    "getStarted": "Commencer",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
+  "hero": {
+    "badge": "Gestion de tâches pour les petites équipes",
+    "title": "Gérez vos tâches avec <g>clarté</g> et simplicité.",
+    "subtitle": "Voyez les mêmes tâches en liste, en tableau, en calendrier ou en chronologie. Invitez votre équipe et décidez qui peut voir et modifier quoi.",
+    "seeInside": "Découvrir ce qu’il y a dedans",
+    "note": "Aucun moyen de paiement requis. Fonctionne dans tout navigateur moderne et s’installe comme une application."
+  },
+  "features": {
+    "title": "Tout ce qu’il faut pour rester organisé",
+    "subtitle": "Une boîte à outils ciblée pour planifier, suivre et partager le travail, sans superflu.",
+    "items": {
+      "views": {
+        "title": "Quatre vues des mêmes tâches",
+        "desc": "Passez d’une liste modifiable en ligne à un tableau kanban, un calendrier mensuel ou une chronologie. Modifiez dans l’une, les autres restent synchronisées."
+      },
+      "dependencies": {
+        "title": "Dépendances et conflits",
+        "desc": "Indiquez les tâches qui doivent se terminer d’abord. La chronologie trace les liens et signale une tâche qui commence avant l’échéance de son prérequis."
+      },
+      "roles": {
+        "title": "Rôles et autorisations",
+        "desc": "Invitez des personnes par e-mail avec un rôle. Cinq rôles intégrés, plus des rôles personnalisés avec exactement les autorisations que vous choisissez."
+      },
+      "comments": {
+        "title": "Commentaires et pièces jointes",
+        "desc": "Discutez d’une tâche là où le travail se fait et joignez-lui des fichiers, pour que le contexte ne se perde pas dans une messagerie."
+      },
+      "install": {
+        "title": "Installable sur tout appareil",
+        "desc": "Ajoutez TaskMan à votre écran d’accueil ou à votre bureau. Les mises en page s’adaptent aux téléphones, et l’application vous prévient quand vous êtes hors ligne."
+      },
+      "secure": {
+        "title": "Sécurisé par défaut",
+        "desc": "Adresses e-mail vérifiées, réinitialisation du mot de passe par e-mail, et un changement de mot de passe qui déconnecte vos autres appareils."
+      }
+    }
+  },
+  "teams": {
+    "badge": "Équipes et rôles",
+    "title": "Chacun voit ce dont il a besoin, et rien de plus.",
+    "description": "Chaque espace de travail est fourni avec cinq rôles. Les pages et les actions qu’un rôle n’autorise pas sont masquées, et le serveur applique les mêmes règles.",
+    "builtInRoles": "Rôles intégrés",
+    "ownRoles": "+ vos propres rôles",
+    "steps": {
+      "invite": {
+        "title": "Inviter par e-mail",
+        "desc": "Choisissez un rôle en envoyant l’invitation. Les personnes l’acceptent depuis le lien reçu dans leur boîte mail."
+      },
+      "custom": {
+        "title": "Créer des rôles personnalisés",
+        "desc": "Combinez des autorisations sur les tâches, les projets, les rapports, les membres et les paramètres en un rôle adapté à votre équipe."
+      },
+      "access": {
+        "title": "Changer les accès à tout moment",
+        "desc": "Modifiez un rôle ou retirez un membre depuis la page Équipe. Régénérez le code d’invitation s’il fuite."
+      }
+    }
+  },
+  "cta": {
+    "title": "Prêt à organiser votre travail ?",
+    "titleBack": "Prêt à reprendre le travail ?",
+    "description": "Créez un compte, nommez votre espace de travail et ajoutez votre première tâche en quelques minutes.",
+    "descriptionBack": "Retournez dans votre espace de travail et reprenez là où vous vous étiez arrêté."
+  },
+  "footer": {
+    "label": "Pied de page",
+    "designSystem": "Système de design"
+  },
+  "mockup": {
+    "workspace": "Espace de travail",
+    "mainMenu": "Menu principal",
+    "general": "Général",
+    "items": {
+      "dashboard": "Tableau de bord",
+      "tasks": "Tâches",
+      "projects": "Projets",
+      "team": "Équipe",
+      "calendar": "Calendrier",
+      "reports": "Rapports",
+      "settings": "Paramètres",
+      "help": "Centre d’aide"
+    },
+    "title": "Mes tâches",
+    "subtitle": "Gérez et suivez toutes vos tâches",
+    "search": "Rechercher des tâches…",
+    "addTask": "+ Ajouter une tâche",
+    "stats": {
+      "total": "Total des tâches",
+      "inProgress": "En cours",
+      "completed": "Terminées",
+      "pending": "En attente"
+    },
+    "columns": {
+      "name": "Nom de la tâche",
+      "priority": "Priorité",
+      "status": "Statut",
+      "due": "Échéance"
+    },
+    "tasks": {
+      "1": "Concevoir la nouvelle page d’accueil",
+      "2": "Mettre à jour les couleurs de la marque",
+      "3": "Refonte du parcours de paiement",
+      "4": "Tests d’intégration de l’API",
+      "5": "Audit du système de design",
+      "6": "Contrôle qualité du modèle d’e-mail",
+      "7": "Entretiens de recherche utilisateur"
+    },
+    "priorities": {
+      "high": "Haute",
+      "medium": "Moyenne",
+      "low": "Basse"
+    },
+    "statuses": {
+      "inProgress": "En cours",
+      "pending": "En attente",
+      "completed": "Terminée"
+    },
+    "date": "{{day}} mars",
+    "showing": "7 tâches affichées sur 12",
+    "caption": "Illustration avec des données d’exemple."
+  },
+  "board": {
+    "columns": {
+      "todo": "À faire",
+      "inProgress": "En cours",
+      "done": "Terminé"
+    },
+    "cards": {
+      "onboarding": "Concevoir l’accueil des nouveaux",
+      "notes": "Rédiger les notes de version",
+      "checkout": "Refonte du paiement",
+      "api": "Tests d’intégration de l’API",
+      "review": "Présentation de fin de sprint",
+      "brand": "Mettre à jour les couleurs de la marque"
+    }
+  },
+  "help": {
+    "title": "Centre d’aide",
+    "description": "Réponses aux questions courantes sur TaskMan.",
+    "searchLabel": "Rechercher dans l’aide",
+    "searchPlaceholder": "Essayez « sprint », « inviter » ou « hors ligne »",
+    "count_one": "{{count}} réponse",
+    "count_many": "{{count}} de réponses",
+    "count_other": "{{count}} réponses",
+    "countFor_one": "{{count}} réponse pour « {{query}} »",
+    "countFor_many": "{{count}} de réponses pour « {{query}} »",
+    "countFor_other": "{{count}} réponses pour « {{query}} »",
+    "filterByTopic": "Filtrer par thème",
+    "allTopics": "Tous les thèmes",
+    "noAnswers": "Aucune réponse trouvée",
+    "noMatch": "Rien ne correspond à « {{query}} ». Essayez moins de mots ou d’autres mots, ou choisissez un autre thème. Toujours bloqué ? Contactez le propriétaire de votre espace de travail.",
+    "noAnswersInTopic": "Il n’y a pas encore de réponses dans ce thème. Contactez le propriétaire de votre espace de travail.",
+    "clearAll": "Effacer la recherche et les filtres",
+    "results": "Résultats de recherche",
+    "shortcuts": "Référence des raccourcis",
+    "shortcutsHint": "Les raccourcis à une seule touche fonctionnent quand vous ne saisissez pas de texte dans un champ.",
+    "shortcutList": {
+      "search": "Rechercher depuis n’importe où (Cmd+K sur Mac)",
+      "sidebar": "Afficher ou masquer la barre latérale",
+      "moveBar": "Chronologie : déplacer la barre sélectionnée d’un jour",
+      "resizeBar": "Chronologie : redimensionner la barre sélectionnée",
+      "comment": "Envoyer un commentaire (Cmd+Entrée sur Mac)",
+      "today": "Calendrier : revenir à aujourd’hui",
+      "close": "Fermer les boîtes de dialogue et les menus"
+    },
+    "contactTitle": "Besoin d’aide ?",
+    "contact": "Demandez d’abord à un propriétaire de l’espace de travail : il peut gérer les membres et les codes d’invitation depuis la page Équipe. Pour les questions sur le produit ou les rapports de bug, écrivez à <m>support@taskman.io</m> en indiquant la page où vous étiez et ce que vous attendiez."
+  },
+  "faq": {
+    "categories": {
+      "getting-started": "Premiers pas",
+      "tasks-views": "Tâches et vues",
+      "projects-sprints": "Projets et sprints",
+      "team-roles": "Équipe et rôles",
+      "notifications-account": "Notifications et compte",
+      "mobile-offline": "Mobile et hors ligne",
+      "shortcuts": "Raccourcis clavier",
+      "security": "Sécurité et confidentialité"
+    },
+    "items": {
+      "what-is-workspace": {
+        "q": "Qu’est-ce qu’un espace de travail ?",
+        "a": "Un espace de travail regroupe vos projets, vos tâches et votre équipe. Tout ce que vous voyez est limité à l’espace de travail dans lequel vous êtes. Utilisez le sélecteur d’espace de travail en haut de la barre latérale pour passer de l’un à l’autre."
+      },
+      "create-first-task": {
+        "q": "Comment créer ma première tâche ?",
+        "a": "Ouvrez Tâches dans la barre latérale et choisissez Ajouter une tâche. Donnez-lui un titre, une échéance et une priorité. Une date de début, un assigné, des étiquettes et des prérequis sont facultatifs."
+      },
+      "invite-teammates": {
+        "q": "Comment inviter des collègues ?",
+        "a": "Ouvrez Équipe et invitez des personnes par e-mail en choisissant un rôle pour chaque invitation. Vous pouvez aussi partager le code d’invitation depuis le tableau de bord ou les paramètres. Toute personne qui rejoint avec le code d’invitation commence avec le rôle Lecteur."
+      },
+      "regenerate-invite": {
+        "q": "Que se passe-t-il quand je régénère le code d’invitation ?",
+        "a": "L’ancien code et les anciens liens cessent de fonctionner immédiatement. Les personnes qui ont déjà rejoint l’espace conservent leur accès."
+      },
+      "four-views": {
+        "q": "Quelles sont les quatre vues des tâches ?",
+        "a": "Liste, Tableau, Calendrier et Chronologie. Elles affichent les mêmes tâches et restent synchronisées. Passez de l’une à l’autre avec le sélecteur de vue de la page Tâches."
+      },
+      "share-filters": {
+        "q": "Puis-je partager une vue filtrée avec un collègue ?",
+        "a": "Oui. La recherche, les filtres et le tri choisis sur la page Tâches sont conservés dans l’adresse : copiez le lien et envoyez-le. La personne qui l’ouvre voit la même disposition et les mêmes filtres, parmi les tâches que son rôle lui permet de voir."
+      },
+      "saved-views": {
+        "q": "Comment enregistrer une vue ?",
+        "a": "Réglez la disposition et les filtres souhaités, ouvrez Vues sur la page Tâches et choisissez Enregistrer la vue actuelle. Donnez-lui un nom et cochez Partager avec l’espace de travail si vos collègues doivent la voir aussi. Ouvrez Gérer les vues pour renommer ou supprimer vos vues enregistrées. Les administrateurs de l’espace de travail peuvent aussi renommer ou supprimer les vues partagées."
+      },
+      "my-work": {
+        "q": "Où voir uniquement mes tâches ?",
+        "a": "Le tableau de bord commence par Mon travail : vos tâches ouvertes regroupées en retard, pour aujourd’hui, cette semaine et plus tard. Tout afficher ouvre la page Tâches filtrée sur les tâches qui vous sont assignées."
+      },
+      "move-board": {
+        "q": "Comment changer le statut d’une tâche dans le Tableau ?",
+        "a": "Faites glisser une carte vers une autre colonne (En attente, En cours ou Terminée). Sans souris, ouvrez le menu de la carte et choisissez Déplacer vers."
+      },
+      "inline-edit": {
+        "q": "Puis-je modifier une tâche sans l’ouvrir ?",
+        "a": "Oui. Dans la vue Liste, cliquez sur un titre, un statut, une priorité ou une date pour le modifier directement. Le menu d’actions de la ligne est toujours accessible au clavier."
+      },
+      "dependencies": {
+        "q": "Comment fonctionnent les dépendances entre tâches ?",
+        "a": "Choisissez des prérequis dans le formulaire de la tâche. Leur nombre s’affiche sur les lignes de la liste et sur les cartes du tableau, et la Chronologie trace des flèches entre les barres liées. Les dépendances circulaires sont refusées avec le message « Cette dépendance créerait un cycle ». Supprimer une tâche la retire des prérequis des autres tâches."
+      },
+      "scheduling-conflict": {
+        "q": "Qu’est-ce qu’un conflit de planning ?",
+        "a": "Un conflit apparaît quand une tâche commence avant l’échéance de son prérequis. La Chronologie affiche une flèche rouge en pointillés pour que vous puissiez déplacer l’une des deux dates."
+      },
+      "subtasks": {
+        "q": "Une tâche peut-elle avoir des sous-tâches ?",
+        "a": "Oui. Ouvrez une tâche et ajoutez des sous-tâches pour découper le travail en étapes plus petites. Les sous-tâches appartiennent à leur tâche parente."
+      },
+      "scrum-structure": {
+        "q": "Comment les projets, les sprints et les tâches sont-ils organisés ?",
+        "a": "Les projets contiennent des sprints, et les sprints contiennent des tâches. Les tâches peuvent avoir des sous-tâches. Le backlog regroupe les tâches d’un projet qui ne sont encore dans aucun sprint."
+      },
+      "backlog": {
+        "q": "Qu’est-ce que le backlog ?",
+        "a": "Le backlog regroupe toutes les tâches d’un projet qui n’ont pas de sprint. Planifiez le travail en déplaçant des tâches du backlog vers un sprint."
+      },
+      "story-points": {
+        "q": "Que sont les points d’effort ?",
+        "a": "Les points d’effort (story points) sont une estimation relative de l’effort d’une tâche. Les sprints les additionnent pour que vous puissiez comparer le travail prévu à ce que l’équipe termine."
+      },
+      "start-complete-sprint": {
+        "q": "Comment démarrer et terminer un sprint ?",
+        "a": "Ouvrez le sprint dans votre projet et choisissez Démarrer le sprint quand la planification est terminée. Quand le travail est fini, choisissez Terminer le sprint. Vous avez besoin de l’autorisation de modifier les projets."
+      },
+      "burndown": {
+        "q": "Qu’est-ce que le graphique d’avancement (burndown) ?",
+        "a": "Le graphique burndown montre les points d’effort restants d’un sprint au fil du temps, pour voir si l’équipe est dans les temps."
+      },
+      "system-roles": {
+        "q": "Quels sont les rôles système ?",
+        "a": "Product Owner : contrôle total des projets, des tâches, de l’équipe et des paramètres.\nScrum Master : modifie les projets et les tâches, et voit l’équipe et les rapports.\nDéveloppeur : modifie les tâches, et voit les projets, l’équipe et les rapports.\nMembre de l’équipe : modifie les tâches, et voit les projets et les rapports.\nLecteur : accès en lecture seule aux projets, aux tâches et aux rapports."
+      },
+      "custom-roles": {
+        "q": "Puis-je créer un rôle personnalisé ?",
+        "a": "Oui. Allez dans Paramètres, puis Rôles et autorisations, et choisissez Nouveau rôle. Cochez exactement les autorisations voulues. Les rôles système ne peuvent être ni modifiés ni supprimés."
+      },
+      "change-role": {
+        "q": "Comment changer le rôle d’un membre ou retirer quelqu’un ?",
+        "a": "Les propriétaires et toute personne autorisée à gérer les utilisateurs peuvent utiliser le menu de rôle sur la ligne d’un membre pour changer son rôle, et le bouton corbeille pour le retirer."
+      },
+      "hidden-pages": {
+        "q": "Pourquoi ne vois-je pas une page ou un bouton ?",
+        "a": "Les pages et les boutons que votre rôle ne peut pas utiliser sont masqués. Ouvrir l’une d’elles par un lien affiche un message d’accès. Demandez à un propriétaire de l’espace de travail de changer votre rôle si vous avez besoin d’y accéder."
+      },
+      "notifications-what": {
+        "q": "Quelles notifications est-ce que je reçois ?",
+        "a": "Vous êtes notifié quand quelqu’un vous assigne une tâche, termine une tâche dont vous êtes responsable ou à laquelle vous êtes assigné, vous mentionne dans un commentaire, ou commente une tâche dont vous êtes responsable ou à laquelle vous êtes assigné. Elles apparaissent sous la cloche de la barre supérieure et dans votre boîte de réception, et sont conservées 90 jours. Vous ne recevez jamais de notification pour vos propres actions."
+      },
+      "notifications-mention": {
+        "q": "Comment mentionner quelqu’un dans un commentaire ?",
+        "a": "Tapez @ dans un commentaire et choisissez un collègue dans la liste avec les flèches et Entrée, ou touchez un nom. Vous pouvez aussi saisir @Prénom ou @Prénom Nom. Les personnes mentionnées sont notifiées aussitôt."
+      },
+      "notifications-email": {
+        "q": "Comment choisir les e-mails que je reçois ?",
+        "a": "Les notifications dans l’application sont toujours actives. Sous Paramètres, puis Notifications, activez ou désactivez les e-mails : l’interrupteur général contrôle tous les e-mails, Assignations couvre aussi les mentions et les commentaires sur vos tâches, et Tâches terminées couvre les tâches finies."
+      },
+      "notifications-push": {
+        "q": "Comment recevoir des notifications push sur mon téléphone ou mon ordinateur ?",
+        "a": "Sous Paramètres, puis Notifications, ouvrez la section Notifications push et choisissez Activer sur cet appareil. Votre navigateur ne demande l’autorisation qu’à ce moment-là. Chaque appareil et chaque navigateur se configure séparément, et l’interrupteur « M’envoyer des notifications push » (enregistré avec Enregistrer les préférences) met le push en pause sur tous. Si vous avez bloqué les notifications, autorisez-les pour ce site dans les paramètres de votre navigateur et rechargez la page. Sur iPhone et iPad, ajoutez d’abord TaskMan à l’écran d’accueil et activez le push depuis l’application installée. Le push nécessite que le serveur soit configuré ; si la section indique qu’il ne l’est pas, demandez à votre administrateur."
+      },
+      "edit-profile": {
+        "q": "Où modifier mon profil ?",
+        "a": "Sous Paramètres, puis Profil. Vous pouvez changer votre nom, votre poste et d’autres informations."
+      },
+      "change-password": {
+        "q": "Que se passe-t-il quand je change mon mot de passe ?",
+        "a": "Vous êtes déconnecté de tous vos autres appareils. Cet appareil reste connecté, et les autres devront se reconnecter avec le nouveau mot de passe."
+      },
+      "forgot-password": {
+        "q": "J’ai oublié mon mot de passe. Que faire ?",
+        "a": "Choisissez Mot de passe oublié sur la page de connexion et nous vous enverrons un lien de réinitialisation par e-mail."
+      },
+      "session-expired": {
+        "q": "Pourquoi ai-je été déconnecté ?",
+        "a": "Vous restez connecté pendant 7 jours sur chaque appareil. Passé ce délai, ou si vous déconnectez un appareil depuis Sécurité > Appareils connectés, vous revenez à la page de connexion. Votre travail est enregistré sur le serveur."
+      },
+      "install-pwa": {
+        "q": "Puis-je installer TaskMan sur mon téléphone ou mon ordinateur ?",
+        "a": "Oui. TaskMan est une application web progressive. Utilisez Sur l’écran d’accueil dans le navigateur de votre téléphone, ou l’icône d’installation dans la barre d’adresse sur ordinateur."
+      },
+      "bottom-nav": {
+        "q": "Comment naviguer sur un téléphone ?",
+        "a": "Sur les petits écrans, les pages principales sont dans une barre de navigation en bas, accessibles d’un seul pouce. Le menu complet reste dans la barre latérale."
+      },
+      "offline": {
+        "q": "TaskMan fonctionne-t-il hors ligne ?",
+        "a": "En partie. L’application et les pages déjà ouvertes se chargent sans connexion, mais le mode hors ligne est en lecture seule. Reconnectez-vous pour créer ou modifier quoi que ce soit."
+      },
+      "shortcuts-list": {
+        "q": "Quels raccourcis clavier existe-t-il ?",
+        "a": "Appuyez sur ? n’importe où dans un espace de travail pour tous les voir. Les principaux : C crée une tâche, / recherche des tâches, et G suivi de D, T, P, B, C ou R mène au tableau de bord, aux tâches, aux projets, au tableau, au calendrier ou aux rapports. Les raccourcis sont suspendus pendant la saisie dans un champ ou quand une boîte de dialogue est ouverte, et ignorent les pages que votre rôle ne peut pas ouvrir."
+      },
+      "global-search": {
+        "q": "Comment rechercher rapidement ?",
+        "a": "Appuyez sur Ctrl+K (Cmd+K sur Mac) pour ouvrir la recherche depuis n’importe où. Appuyez sur / sur la page Tâches pour aller au champ de recherche des tâches, ou sur / dans toute autre page pour ouvrir la recherche."
+      },
+      "go-to-page": {
+        "q": "Comment passer à une autre page avec le clavier ?",
+        "a": "Appuyez sur G, puis, dans la seconde qui suit, sur D pour le tableau de bord, T pour les tâches, P pour les projets, B pour le tableau, C pour le calendrier ou R pour les rapports. Si rien ne se passe, votre rôle n’inclut peut-être pas cette page."
+      },
+      "gantt-keys": {
+        "q": "Comment déplacer une barre de la Chronologie au clavier ?",
+        "a": "Placez le focus sur une barre et appuyez sur la flèche gauche ou droite pour la déplacer d’un jour. Maintenez Maj avec les flèches pour la redimensionner à la place."
+      },
+      "send-comment": {
+        "q": "Comment envoyer un commentaire au clavier ?",
+        "a": "Appuyez sur Ctrl+Entrée (Cmd+Entrée sur Mac) dans la zone de commentaire."
+      },
+      "calendar-today": {
+        "q": "Existe-t-il un raccourci pour revenir à aujourd’hui dans le calendrier ?",
+        "a": "Oui. Appuyez sur T dans la vue Calendrier pour revenir à aujourd’hui."
+      },
+      "data-access": {
+        "q": "Qui peut voir les données de mon espace de travail ?",
+        "a": "Uniquement les membres de l’espace de travail, dans les limites de leur rôle. Chaque requête est vérifiée côté serveur par rapport à votre rôle et à l’espace de travail."
+      },
+      "other-devices": {
+        "q": "Comment déconnecter les autres appareils ?",
+        "a": "Changez votre mot de passe. Cela vous déconnecte de tous les autres appareils tout en gardant celui-ci connecté."
+      },
+      "report-problem": {
+        "q": "Comment signaler un bug ou un problème de sécurité ?",
+        "a": "Demandez d’abord à un propriétaire de l’espace de travail. Pour les questions sur le produit, les bugs ou les problèmes de sécurité, écrivez à support@taskman.io en indiquant la page où vous étiez et ce que vous attendiez."
+      }
+    }
+  }
+}

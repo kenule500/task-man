@@ -1,4 +1,5 @@
 import { Rows3, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { QUICK_FILTER_KEYS, QUICK_FILTER_LABELS, toggleQuickFilter, type QuickFilterKey } from '../lib/boardQuickFilters';
 import { SWIMLANE_GROUPS, SWIMLANE_LABELS, type SwimlaneGroup } from '../lib/swimlanes';
@@ -14,14 +15,16 @@ interface BoardQuickFiltersProps {
   className?: string;
 }
 
-const GROUP_OPTIONS = SWIMLANE_GROUPS.map(value => ({ value, label: SWIMLANE_LABELS[value] }));
+const GROUP_OPTIONS = SWIMLANE_GROUPS.map(value => ({ value, get label() { return SWIMLANE_LABELS[value]; } }));
 
 /** Jira-style toggle chips above the board (AND-combined) and, from `md`, the swimlane grouping. */
-const BoardQuickFilters = ({ active, onChange, canFilterMine, groupBy, onGroupByChange, className }: BoardQuickFiltersProps) => (
+const BoardQuickFilters = ({ active, onChange, canFilterMine, groupBy, onGroupByChange, className }: BoardQuickFiltersProps) => {
+  const { t } = useTranslation('tasks');
+  return (
   <div className={cn('flex min-w-0 items-center gap-2', className)}>
     <div
       role="group"
-      aria-label="Quick filters"
+      aria-label={t('board.quickFilters')}
       className="-mx-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-1 py-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
     >
       {QUICK_FILTER_KEYS.filter(key => key !== 'mine' || canFilterMine).map(key => {
@@ -50,16 +53,16 @@ const BoardQuickFilters = ({ active, onChange, canFilterMine, groupBy, onGroupBy
           onClick={() => onChange([])}
           className="inline-flex h-11 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary md:h-8"
         >
-          <X className="size-3.5" aria-hidden /> Clear<span className="sr-only"> quick filters</span>
+          <X className="size-3.5" aria-hidden /> {t('board.clear')}<span className="sr-only">{t('board.clearSr')}</span>
         </button>
       )}
     </div>
 
     {/* Swimlanes only exist from md; phones show one column at a time */}
     <div className="hidden shrink-0 items-center gap-2 md:flex">
-      <span className="text-xs font-medium text-slate-600" aria-hidden>Group by</span>
+      <span className="text-xs font-medium text-slate-600" aria-hidden>{t('board.groupBy')}</span>
       <OptionSelect<SwimlaneGroup>
-        aria-label="Group by"
+        aria-label={t('board.groupBy')}
         icon={<Rows3 className="size-3.5 text-slate-500" aria-hidden />}
         value={groupBy}
         options={GROUP_OPTIONS}
@@ -68,6 +71,7 @@ const BoardQuickFilters = ({ active, onChange, canFilterMine, groupBy, onGroupBy
       />
     </div>
   </div>
-);
+  );
+};
 
 export default BoardQuickFilters;

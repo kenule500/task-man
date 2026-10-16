@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useCustomFields } from '../hooks/useCustomFields';
 import { fieldsForProject, isEmptyValue, valueText } from '../lib/fields';
@@ -15,6 +16,7 @@ interface TaskCustomChipsProps {
 
 /** Small "Field: value" chips of a task for lists and cards. Renders nothing when no field has a value. */
 const TaskCustomChips = ({ task, max = 3, exclude, className }: TaskCustomChipsProps) => {
+  const { t } = useTranslation('tasks');
   const { active } = useCustomFields();
   const excluded = exclude?.join('|') ?? '';
   const custom = task.custom;
@@ -39,7 +41,7 @@ const TaskCustomChips = ({ task, max = 3, exclude, className }: TaskCustomChipsP
   const shown = chips.slice(0, max);
 
   return (
-    <ul aria-label="Custom fields" className={cn('flex min-w-0 flex-wrap items-center gap-1', className)}>
+    <ul aria-label={t('fields.chips')} className={cn('flex min-w-0 flex-wrap items-center gap-1', className)}>
       {shown.map(chip => (
         <li
           key={chip.key}

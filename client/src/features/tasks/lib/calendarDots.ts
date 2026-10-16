@@ -1,6 +1,7 @@
 // Color-coded dots for the calendar: one dot per task due on a day, ordered by
 // urgency (overdue first), capped at three with a "+N" overflow, plus a plain
 // text summary so the color is never the only signal.
+import i18n from '@/i18n';
 import { STATUS_META } from '../constants';
 import { dateKeyOf, todayKey } from './date';
 import type { Task } from '../types';
@@ -23,10 +24,10 @@ interface DotMeta {
 }
 
 export const DOT_META: Record<DotState, DotMeta> = {
-  overdue: { summary: 'overdue', legend: 'Overdue', dot: 'bg-danger-dot' },
-  pending: { summary: 'pending', legend: STATUS_META.pending.label, dot: STATUS_META.pending.dot },
-  'in-progress': { summary: 'in progress', legend: 'In progress', dot: STATUS_META['in-progress'].dot },
-  completed: { summary: 'completed', legend: 'Done', dot: STATUS_META.completed.dot },
+  overdue: { get summary() { return i18n.t('tasks:dots.summary.overdue'); }, get legend() { return i18n.t('tasks:dots.legend.overdue'); }, dot: 'bg-danger-dot' },
+  pending: { get summary() { return i18n.t('tasks:dots.summary.pending'); }, get legend() { return STATUS_META.pending.label; }, dot: STATUS_META.pending.dot },
+  'in-progress': { get summary() { return i18n.t('tasks:dots.summary.in-progress'); }, get legend() { return i18n.t('tasks:dots.legend.in-progress'); }, dot: STATUS_META['in-progress'].dot },
+  completed: { get summary() { return i18n.t('tasks:dots.summary.completed'); }, get legend() { return i18n.t('tasks:dots.legend.completed'); }, dot: STATUS_META.completed.dot },
 };
 
 export interface CalendarDot {
@@ -62,7 +63,7 @@ export const summarizeDay = (tasks: readonly Pick<Task, 'status' | 'deadline'>[]
   // Summary lists states in the same order as the dots; zero counts are skipped.
   const summary = DOT_STATES.filter(state => counts[state] > 0)
     .map(state => `${counts[state]} ${DOT_META[state].summary}`)
-    .join(', ');
+    .join(i18n.t('tasks:dots.separator'));
 
   return { dots, overflow: Math.max(0, ordered.length - MAX_DOTS), total: ordered.length, counts, summary };
 };

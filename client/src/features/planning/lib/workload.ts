@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 // Workload: story points and items per assignee for a sprint or a date range. Pure aggregation, no UI.
 import { dateKeyOf, type Task, type TaskStatus, type TaskUser } from '@/features/tasks';
 import type { Project, Sprint } from '@/features/projects';
@@ -100,7 +101,7 @@ export const aggregateWorkload = (scoped: Task[], capacity: number): Workload =>
 
   return {
     people,
-    unassigned: buildRow(UNASSIGNED_ID, { name: 'Unassigned' }, loose, capacity),
+    unassigned: buildRow(UNASSIGNED_ID, { name: i18n.t('planning:workload.unassigned') }, loose, capacity),
     itemCount: scoped.length,
     pointCount: scoped.reduce((sum, task) => sum + pointsOf(task), 0),
   };
@@ -123,6 +124,6 @@ export const defaultWorkloadSprint = (project: Project | undefined): Sprint | un
 
 /** "13 of 10 points, 4 items, over capacity by 3": the text alternative of a capacity bar. */
 export const describeLoad = (row: WorkloadRow, capacity: number): string => {
-  const base = `${row.points.total} of ${capacity} points, ${row.items.total} ${row.items.total === 1 ? 'item' : 'items'}`;
-  return row.over ? `${base}, over capacity by ${row.overBy}` : base;
+  const base = i18n.t('planning:workload.loadBase', { points: row.points.total, capacity, items: i18n.t('planning:workload.items', { count: row.items.total }) });
+  return row.over ? i18n.t('planning:workload.loadOver', { base, over: row.overBy }) : base;
 };

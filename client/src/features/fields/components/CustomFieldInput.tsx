@@ -1,4 +1,5 @@
 import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { OptionCombobox, UserAvatar, type ComboboxOption } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -88,6 +89,7 @@ const TypedInput = ({
 
 /** The right control for a field type: input, date, switch, or a searchable picker. */
 const CustomFieldInput = (props: CustomFieldInputProps) => {
+  const { t } = useTranslation('tasks');
   const { field, value, onChange, onCommit, members = [], membersLoading = false, id, disabled, invalid, className } = props;
 
   const choose = (next: CustomValue | null) => {
@@ -105,7 +107,7 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
       // A saved person who is not in the list (no permission to list, or left the workspace) stays visible
       const current = typeof value === 'string' ? value : '';
       return current && !list.some(item => item.value === current)
-        ? [...list, { value: current, label: 'Member', leading: undefined }]
+        ? [...list, { value: current, label: t('fields.member'), leading: undefined }]
         : list;
     }
     return field.options.map(option => ({
@@ -113,7 +115,7 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
       label: option.label,
       leading: <span aria-hidden className={cn('size-2 shrink-0 rounded-full', FIELD_COLOR_META[option.color].dot)} />,
     }));
-  }, [field.options, field.type, members, value]);
+  }, [field.options, field.type, members, value, t]);
 
   switch (field.type) {
     case 'checkbox':
@@ -127,7 +129,7 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
             aria-invalid={invalid || undefined}
             onCheckedChange={checked => choose(checked)}
           />
-          <span aria-hidden>{value === true ? 'Yes' : 'No'}</span>
+          <span aria-hidden>{value === true ? t('fields.yes') : t('fields.no')}</span>
         </div>
       );
     case 'select':
@@ -141,7 +143,7 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
           clearable
           disabled={disabled}
           invalid={invalid}
-          placeholder="Choose an option"
+          placeholder={t('fields.input.chooseOption')}
           aria-describedby={props['aria-describedby']}
           className={className}
         />
@@ -157,15 +159,15 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
           onValueChange={next => choose(next.length === 0 ? null : next)}
           disabled={disabled}
           invalid={invalid}
-          placeholder={Array.isArray(value) && value.length > 0 ? 'Add another' : 'Choose options'}
+          placeholder={Array.isArray(value) && value.length > 0 ? t('assignee.addAnother') : t('fields.input.chooseOptions')}
           aria-describedby={props['aria-describedby']}
           className={className}
         />
       );
     case 'user':
-      if (membersLoading) return <p className="text-xs italic text-slate-500">Loading members...</p>;
+      if (membersLoading) return <p className="text-xs italic text-slate-500">{t('fields.input.loadingMembers')}</p>;
       if (members.length === 0 && !value) {
-        return <p className="text-xs italic text-slate-500">You cannot see the member list, so this field cannot be changed.</p>;
+        return <p className="text-xs italic text-slate-500">{t('fields.input.cannotSeeMembers')}</p>;
       }
       return (
         <OptionCombobox
@@ -177,8 +179,8 @@ const CustomFieldInput = (props: CustomFieldInputProps) => {
           clearable
           disabled={disabled || members.length === 0}
           invalid={invalid}
-          placeholder="Search people"
-          emptyText="No one matches that name."
+          placeholder={t('fields.input.searchPeople')}
+          emptyText={t('assignee.noMatch')}
           aria-describedby={props['aria-describedby']}
           className={className}
         />

@@ -1,5 +1,7 @@
 import { useId } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { ChevronDown, CircleAlert, UserRound } from 'lucide-react';
 import { UserAvatar } from '@/components/ds';
 import { cn } from '@/lib/utils';
@@ -20,11 +22,11 @@ interface WorkloadListProps {
 
 const counts = (row: WorkloadRow) => {
   const parts = [
-    row.items.pending > 0 && `${row.items.pending} pending`,
-    row.items['in-progress'] > 0 && `${row.items['in-progress']} in progress`,
-    row.items.completed > 0 && `${row.items.completed} done`,
+    row.items.pending > 0 && i18n.t('planning:workload.countsPending', { n: row.items.pending }),
+    row.items['in-progress'] > 0 && i18n.t('planning:workload.countsInProgress', { n: row.items['in-progress'] }),
+    row.items.completed > 0 && i18n.t('planning:workload.countsDone', { n: row.items.completed }),
   ].filter(Boolean);
-  return parts.length > 0 ? parts.join(' · ') : 'No items';
+  return parts.length > 0 ? parts.join(i18n.t('planning:workload.countsSep')) : i18n.t('planning:workload.noItems');
 };
 
 interface PersonRowProps {
@@ -37,6 +39,7 @@ interface PersonRowProps {
 }
 
 const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProps) => {
+  const { t } = useTranslation('planning');
   const panelId = useId();
   const unassigned = row.id === UNASSIGNED_ID;
   const flagged = !unassigned && row.over;
@@ -48,8 +51,8 @@ const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProp
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={`${row.name}: ${row.points.total} points, ${row.items.total} ${row.items.total === 1 ? 'item' : 'items'}${flagged ? `, over capacity by ${row.overBy}` : ''}. ${open ? 'Hide' : 'Show'} tasks`}
-        className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-left outline-none hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-4 md:grid-cols-[14rem_minmax(0,1fr)_auto]"
+        aria-label={t('workload.rowLabel', { name: row.name, points: row.points.total, items: t('workload.items', { count: row.items.total }), over: flagged ? t('workload.rowOver', { over: row.overBy }) : '', action: open ? t('workload.hide') : t('workload.show') })}
+        className="grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-3 py-3 text-start outline-none hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-4 md:grid-cols-[14rem_minmax(0,1fr)_auto]"
       >
         <span className="flex min-w-0 items-center gap-2.5">
           {unassigned
@@ -66,18 +69,18 @@ const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProp
         </span>
 
         <span className="flex items-center gap-2 justify-self-end">
-          <span className="text-right text-sm tabular-nums text-slate-900">
+          <span className="text-end text-sm tabular-nums text-slate-900">
             <span className="font-semibold">{row.points.total}</span>
-            {!unassigned && <span className="text-slate-600"> / {capacity} pts</span>}
-            {unassigned && <span className="text-slate-600"> pts</span>}
+            {!unassigned && <span className="text-slate-600">{t('workload.capacityPts', { capacity })}</span>}
+            {unassigned && <span className="text-slate-600">{t('workload.pts')}</span>}
             {flagged && (
               <span className="mt-0.5 flex items-center justify-end gap-1 text-xs font-semibold text-danger-fg">
                 <CircleAlert aria-hidden className="size-3.5" />
-                Over by {row.overBy}
+                {t('workload.overBy', { n: row.overBy })}
               </span>
             )}
             {row.unestimated > 0 && (
-              <span className="block text-xs font-normal text-slate-600">{row.unestimated} unestimated</span>
+              <span className="block text-xs font-normal text-slate-600">{t('workload.unestimated', { n: row.unestimated })}</span>
             )}
           </span>
           <ChevronDown aria-hidden className={cn('size-4 shrink-0 text-slate-500 transition-transform motion-reduce:transition-none', open && 'rotate-180')} />
@@ -87,9 +90,9 @@ const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProp
       {open && (
         <div id={panelId} className="border-t border-slate-100 bg-slate-50/50 px-3 py-2 sm:px-4">
           {row.tasks.length === 0 ? (
-            <p className="py-2 text-sm text-slate-600">Nothing assigned in this scope.</p>
+            <p className="py-2 text-sm text-slate-600">{t('workload.nothingAssigned')}</p>
           ) : (
-            <ul aria-label={`Tasks of ${row.name}`} className="divide-y divide-slate-100">
+            <ul aria-label={t('workload.tasksOf', { name: row.name })} className="divide-y divide-slate-100">
               {row.tasks.map(task => (
                 <li key={task._id} className="flex flex-col gap-1.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <span className="flex min-w-0 items-center gap-2">
@@ -118,8 +121,10 @@ const PersonRow = ({ row, capacity, slug, open, onToggle, keyOf }: PersonRowProp
 };
 
 /** One row per assignee (busiest first) plus the unassigned work; a row opens to list its tasks. */
-const WorkloadList = ({ workload, capacity, slug, openId, onToggle, keyOf }: WorkloadListProps) => (
-  <ul aria-label="Workload by person">
+const WorkloadList = ({ workload, capacity, slug, openId, onToggle, keyOf }: WorkloadListProps) => {
+  const { t } = useTranslation('planning');
+  return (
+  <ul aria-label={t('workload.listLabel')}>
     {workload.people.map(row => (
       <PersonRow key={row.id} row={row} capacity={capacity} slug={slug} open={openId === row.id} onToggle={() => onToggle(row.id)} keyOf={keyOf} />
     ))}
@@ -134,6 +139,7 @@ const WorkloadList = ({ workload, capacity, slug, openId, onToggle, keyOf }: Wor
       />
     )}
   </ul>
-);
+  );
+};
 
 export default WorkloadList;

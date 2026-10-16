@@ -43,7 +43,7 @@ const DesignSystemPage = () => {
     <div className="min-h-screen bg-canvas text-text-body">
       <a
         href="#main"
-        className="sr-only z-(--z-tooltip) rounded-lg bg-white px-4 py-2 text-sm font-medium text-text-strong shadow-floating focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus-visible:outline-2 focus-visible:outline-focus"
+        className="sr-only z-(--z-tooltip) rounded-lg bg-white px-4 py-2 text-sm font-medium text-text-strong shadow-floating focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus-visible:outline-2 focus-visible:outline-focus"
       >
         Skip to content
       </a>
@@ -58,7 +58,7 @@ const DesignSystemPage = () => {
             to="/"
             className="order-2 inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-sm font-medium text-text-body outline-none hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-focus lg:order-3 lg:h-9"
           >
-            <ArrowLeft aria-hidden className="size-4" />
+            <ArrowLeft aria-hidden className="size-4 rtl:-scale-x-100" />
             Back to app
           </Link>
           <div className="order-3 w-full lg:order-2 lg:max-w-md lg:flex-1" role="search">
@@ -87,7 +87,7 @@ const DesignSystemPage = () => {
 
       <div className="mx-auto max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:py-10">
         <aside className="hidden lg:block">
-          <nav aria-label="Sections" className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 pb-4">
+          <nav aria-label="Sections" className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pe-2 pb-4">
             {groups.length === 0 ? (
               <p className="px-2 text-sm text-text-subtle">No matching sections.</p>
             ) : (

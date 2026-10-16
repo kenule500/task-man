@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Field, OptionCombobox, SegmentedControl, SwitchField, Surface, Tag, fieldMessageId, type ComboboxOption } from '@/components/ds';
 import { Input } from '@/components/ui/input';
 import { TASK_TYPE_OPTIONS } from '@/features/tasks/constants';
@@ -20,15 +21,18 @@ const Section = ({ title, hint, children }: { title: string; hint?: string; chil
 );
 
 /** One mapping row: what the file calls it (and how many) on the left, the choice on the right. */
-const Row = ({ name, count, children }: { name: string; count: number; children: ReactNode }) => (
+const Row = ({ name, count, children }: { name: string; count: number; children: ReactNode }) => {
+  const { t } = useTranslation('admin');
+  return (
   <li className="grid gap-1.5 sm:grid-cols-2 sm:items-center sm:gap-4">
     <p className="min-w-0 text-sm text-text-strong">
       <span className="break-words font-medium">{name}</span>
-      <span className="ml-2 text-xs text-text-subtle tabular-nums">{count} {count === 1 ? 'item' : 'items'}</span>
+      <span className="ms-2 text-xs text-text-subtle tabular-nums">{t('import.n.item', { count, n: count })}</span>
     </p>
     <div className="min-w-0">{children}</div>
   </li>
-);
+  );
+};
 
 interface MapStepProps {
   preview: ImportPreview;
@@ -41,6 +45,7 @@ interface MapStepProps {
 
 /** Step 3: where the tasks go and how the file's statuses, people and types map onto this workspace. */
 export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, problems }: MapStepProps) => {
+  const { t } = useTranslation('admin');
   const openProjects = useMemo(() => projects.filter(project => !project.archived), [projects]);
   const projectOptions = useMemo<ComboboxOption[]>(
     () => openProjects.map(project => ({ value: project.name, label: project.name, description: project.key })),
@@ -55,32 +60,33 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
       label: GROUP_LABEL[group],
       options: preview.stages.filter(stage => stage.group === group).map(stage => ({ value: stage.key, label: stage.name })),
     }))
-    .filter(group => group.options.length > 0), [preview.stages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- group labels follow the language
+    .filter(group => group.options.length > 0), [preview.stages, t]);
   const typeGroups = useMemo<MapOptionGroup[]>(
-    () => [{ options: TASK_TYPE_OPTIONS.map(option => ({ value: option.value, label: option.label })) }],
-    [],
+    () => [{ options: TASK_TYPE_OPTIONS.map(option => ({ value: option.value, label: t(`tasks:type.${option.value}`) })) }],
+    [t],
   );
 
   const set = (patch: Partial<MappingDraft>) => onChange({ ...draft, ...patch });
 
   return (
     <div className="space-y-4">
-      <Section title="Project" hint="All imported tasks go into one project.">
+      <Section title={t('import.map.project')} hint={t('import.map.projectHint')}>
         <SegmentedControl
-          aria-label="Target project"
+          aria-label={t('import.map.targetProject')}
           value={draft.mode}
           onValueChange={mode => set({ mode })}
           options={[
-            { value: 'existing', label: 'Existing project', disabled: openProjects.length === 0 },
-            { value: 'new', label: 'New project', disabled: !canCreateProject },
+            { value: 'existing', label: t('import.map.existing'), disabled: openProjects.length === 0 },
+            { value: 'new', label: t('import.map.new'), disabled: !canCreateProject },
           ]}
         />
         {draft.mode === 'existing' ? (
-          <Field label="Project" htmlFor="import-project" error={problems.project} required>
+          <Field label={t('import.map.project')} htmlFor="import-project" error={problems.project} required>
             <OptionCombobox
               id="import-project"
-              label="Project"
-              placeholder="Search projects"
+              label={t('import.map.project')}
+              placeholder={t('import.map.searchProjects')}
               options={projectOptions}
               value={draft.existingProject || null}
               onValueChange={value => set({ existingProject: value ?? '' })}
@@ -90,7 +96,7 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
           </Field>
         ) : (
           <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-            <Field label="Project name" htmlFor="import-project-name" error={problems.project} required>
+            <Field label={t('import.map.projectName')} htmlFor="import-project-name" error={problems.project} required>
               <Input
                 id="import-project-name"
                 value={draft.newName}
@@ -106,7 +112,7 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
                 aria-describedby={problems.project ? fieldMessageId('import-project-name') : undefined}
               />
             </Field>
-            <Field label="Key" htmlFor="import-project-key" error={problems.key} hint="Like WEB-12">
+            <Field label={t('import.map.key')} htmlFor="import-project-key" error={problems.key} hint={t('import.map.keyHint')}>
               <Input
                 id="import-project-key"
                 value={draft.newKey}
@@ -120,13 +126,13 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
         )}
       </Section>
 
-      <Section title="Statuses" hint="Choose the column each status lands in.">
+      <Section title={t('import.map.statuses')} hint={t('import.map.statusesHint')}>
         <ul className="space-y-3">
           {preview.statuses.map((status, index) => (
             <Row key={status.name} name={status.name} count={status.count}>
               <MapSelect
                 id={index === 0 ? 'import-first-status' : undefined}
-                aria-label={`Column for ${status.name}`}
+                aria-label={t('import.map.columnFor', { name: status.name })}
                 value={draft.statusMap[status.name] ?? ''}
                 groups={stageGroups}
                 onChange={value => set({ statusMap: { ...draft.statusMap, [status.name]: value } })}
@@ -137,22 +143,22 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
       </Section>
 
       {preview.people.length > 0 && (
-        <Section title="People" hint="Match people in the file to members of this workspace. Leave a person unassigned if there is no match.">
+        <Section title={t('import.map.people')} hint={t('import.map.peopleHint')}>
           <ul className="space-y-3">
             {preview.people.map(person => (
               <Row key={person.identifier} name={person.identifier} count={person.count}>
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="min-w-0 flex-1 basis-40">
                     <OptionCombobox
-                      label={`Member for ${person.identifier}`}
-                      placeholder="Unassigned"
+                      label={t('import.map.memberFor', { name: person.identifier })}
+                      placeholder={t('import.map.unassigned')}
                       options={memberOptions}
                       value={draft.userMap[person.identifier] ?? null}
                       onValueChange={value => set({ userMap: { ...draft.userMap, [person.identifier]: value } })}
                       clearable
                     />
                   </div>
-                  {person.isMember && <Tag tone="success" size="sm">Matched</Tag>}
+                  {person.isMember && <Tag tone="success" size="sm">{t('import.map.matched')}</Tag>}
                 </div>
               </Row>
             ))}
@@ -161,12 +167,12 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
       )}
 
       {preview.types.length > 0 && (
-        <Section title="Types" hint="Choose the task type for each type in the file.">
+        <Section title={t('import.map.types')} hint={t('import.map.typesHint')}>
           <ul className="space-y-3">
             {preview.types.map(type => (
               <Row key={type.name} name={type.name} count={type.count}>
                 <MapSelect
-                  aria-label={`Task type for ${type.name}`}
+                  aria-label={t('import.map.typeFor', { name: type.name })}
                   value={draft.typeMap[type.name] ?? 'task'}
                   groups={typeGroups}
                   onChange={value => set({ typeMap: { ...draft.typeMap, [type.name]: value as TaskType } })}
@@ -178,20 +184,20 @@ export const MapStep = ({ preview, draft, onChange, projects, canCreateProject, 
       )}
 
       {(preview.sprints.length > 0 || preview.comments > 0) && (
-        <Section title="Options">
+        <Section title={t('import.map.options')}>
           <div className="space-y-4">
             {preview.sprints.length > 0 && (
               <SwitchField
-                label="Create the sprints named in the file"
-                description={`${preview.sprints.length} ${preview.sprints.length === 1 ? 'sprint' : 'sprints'}: ${preview.sprints.slice(0, 4).map(sprint => sprint.name).join(', ')}${preview.sprints.length > 4 ? '…' : ''}. Sprints that already exist in the project are reused. Without this, those items go to the backlog.`}
+                label={t('import.map.createSprints')}
+                description={t('import.map.sprintsDescription', { count: preview.sprints.length, names: preview.sprints.slice(0, 4).map(sprint => sprint.name).join(', '), more: preview.sprints.length > 4 ? '…' : '' })}
                 checked={draft.createSprints}
                 onCheckedChange={createSprints => set({ createSprints })}
               />
             )}
             {preview.comments > 0 && (
               <SwitchField
-                label="Import comments"
-                description={`${preview.comments} ${preview.comments === 1 ? 'comment' : 'comments'}. Authors who match a member keep their name; others show as written by you.`}
+                label={t('import.map.importComments')}
+                description={t('import.map.commentsDescription', { count: preview.comments })}
                 checked={draft.includeComments}
                 onCheckedChange={includeComments => set({ includeComments })}
               />

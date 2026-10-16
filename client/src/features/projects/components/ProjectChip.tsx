@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useProjectDirectory } from '../context/ProjectsContext';
 import type { Project } from '../types';
@@ -21,6 +22,7 @@ interface ProjectChipProps {
  * unknown names (deleted project, no permission) show a neutral folder and plain text.
  */
 const ProjectChip = ({ name, project, showKey = false, link = true, className }: ProjectChipProps) => {
+  const { t } = useTranslation('projects');
   const directory = useProjectDirectory();
   const found = project ?? directory.byName(name);
   const content = (
@@ -36,7 +38,7 @@ const ProjectChip = ({ name, project, showKey = false, link = true, className }:
     return (
       <Link
         to={`/${directory.slug}/projects/${found._id}`}
-        title={`Project: ${found.name}`}
+        title={t('chip.project', { name: found.name })}
         // Rows and cards around the chip open the task on click; the chip only navigates
         onClick={event => event.stopPropagation()}
         className={cn(base, 'min-h-6 outline-none hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary', className)}
@@ -46,7 +48,7 @@ const ProjectChip = ({ name, project, showKey = false, link = true, className }:
     );
   }
   return (
-    <span title="Project" className={cn(base, className)}>
+    <span title={t('chip.projectPlain')} className={cn(base, className)}>
       {content}
     </span>
   );

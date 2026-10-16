@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { CheckCircle2, XCircle, Loader2, ArrowRight, RefreshCw } from 'lucide-re
 const validators = { email: (value: string) => validateEmail(value) };
 
 const VerifyEmailPage = () => {
+  const { t } = useTranslation('auth');
   const { token } = useParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -35,11 +37,11 @@ const VerifyEmailPage = () => {
       } catch (error: unknown) {
         const axiosError = error as { response?: { data?: { message?: string } } };
         setStatus('error');
-        setMessage(axiosError.response?.data?.message || 'Verification failed.');
+        setMessage(axiosError.response?.data?.message || t('verify.failed'));
       }
     };
     verify();
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle resend request
   const handleResend = async (e: React.FormEvent) => {
@@ -52,7 +54,7 @@ const VerifyEmailPage = () => {
       setResendStatus('sent');
     } catch {
       setResendStatus('idle');
-      setResendError('We could not resend the email. Check your connection and try again.');
+      setResendError(t('verify.resendError'));
     }
   };
 
@@ -61,15 +63,15 @@ const VerifyEmailPage = () => {
       <div aria-live="polite">
         {/* LOADING */}
         {status === 'loading' && (
-          <AuthStatusHeader icon={<Loader2 />} spin title="Verifying your email" description="Please wait while we verify your account..." />
+          <AuthStatusHeader icon={<Loader2 />} spin title={t('verify.loadingTitle')} description={t('verify.loadingDescription')} />
         )}
 
         {/* SUCCESS */}
         {status === 'success' && (
           <>
-            <AuthStatusHeader icon={<CheckCircle2 />} tone="success" title="Email verified" description={message} />
+            <AuthStatusHeader icon={<CheckCircle2 />} tone="success" title={t('verify.successTitle')} description={message} />
             <Link to="/login" className={buttonVariants({ className: 'h-11 w-full gap-2 rounded-xl bg-primary text-white hover:bg-primary-hover' })}>
-              Continue to sign in <ArrowRight className="size-4" aria-hidden />
+              {t('verify.continue')} <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
             </Link>
           </>
         )}
@@ -77,15 +79,15 @@ const VerifyEmailPage = () => {
         {/* ERROR */}
         {status === 'error' && (
           <>
-            <AuthStatusHeader icon={<XCircle />} tone="danger" title="Link invalid or expired" description={message} />
+            <AuthStatusHeader icon={<XCircle />} tone="danger" title={t('verify.errorTitle')} description={message} />
 
             {resendStatus === 'sent' ? (
-              <Alert tone="success" className="mb-6">Verification email sent. Check your inbox and spam folder.</Alert>
+              <Alert tone="success" className="mb-6">{t('verify.resent')}</Alert>
             ) : (
               <form onSubmit={handleResend} noValidate className="mb-6 space-y-4">
-                <p className="text-sm font-semibold text-slate-800">Request a new link</p>
+                <p className="text-sm font-semibold text-slate-800">{t('reset.requestNew')}</p>
                 {resendError && <Alert tone="error">{resendError}</Alert>}
-                <Field label="Email address" htmlFor="email" required error={errorFor('email')}>
+                <Field label={t('form.email')} htmlFor="email" required error={errorFor('email')}>
                   <Input
                     id="email"
                     name="email"
@@ -95,7 +97,7 @@ const VerifyEmailPage = () => {
                     autoComplete="email"
                     autoCapitalize="none"
                     spellCheck={false}
-                    placeholder="name@company.com"
+                    placeholder={t('form.emailPlaceholder')}
                     value={resend.email}
                     onChange={(e) => setResend({ email: e.target.value })}
                     onBlur={() => touch('email')}
@@ -107,11 +109,11 @@ const VerifyEmailPage = () => {
                 <Button type="submit" variant="outline" disabled={resendStatus === 'sending'} className="h-11 w-full gap-2 rounded-xl">
                   {resendStatus === 'sending' ? (
                     <>
-                      <Spinner decorative /> Sending...
+                      <Spinner decorative /> {t('forgot.sending')}
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="size-4" aria-hidden /> Resend verification email
+                      <RefreshCw className="size-4" aria-hidden /> {t('verify.resend')}
                     </>
                   )}
                 </Button>
@@ -119,7 +121,7 @@ const VerifyEmailPage = () => {
             )}
 
             <Link to="/login" className={buttonVariants({ variant: 'ghost', className: 'h-11 w-full rounded-xl text-slate-700' })}>
-              Back to sign in
+              {t('form.backToSignIn')}
             </Link>
           </>
         )}

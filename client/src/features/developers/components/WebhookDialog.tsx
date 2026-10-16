@@ -1,10 +1,11 @@
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Webhook as WebhookIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Field } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { EVENT_GROUPS } from '../lib/catalog';
+import { EVENT_GROUPS, areaLabel } from '../lib/catalog';
 import { ALL_EVENTS, MAX_WEBHOOK_NAME, type Webhook, type WebhookInput } from '../types';
 import { CheckGroups } from './CheckGroups';
 import { DialogActions, DialogBody, DialogShell } from './DialogShell';
@@ -19,6 +20,7 @@ interface WebhookDialogProps {
 
 /** Name, URL and events of a webhook. Mount only while open. */
 export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) => {
+  const { t } = useTranslation('admin');
   const uid = useId();
   const nameRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(webhook?.name ?? '');
@@ -29,17 +31,18 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
   const [failure, setFailure] = useState('');
   const [saving, setSaving] = useState(false);
   const groups = useMemo(
-    () => EVENT_GROUPS.map(group => ({ id: group.area, label: group.area, items: group.events })),
-    [],
+    () => EVENT_GROUPS.map(group => ({ id: group.area, label: areaLabel(group.area), items: group.events })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- labels follow the language
+    [t],
   );
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (saving) return;
     const next: typeof errors = {};
-    if (!name.trim()) next.name = 'Give the webhook a name.';
-    if (!/^https?:\/\/\S+$/i.test(url.trim())) next.url = 'Enter a full URL, like https://example.com/hooks/taskman.';
-    if (!all && events.length === 0) next.events = 'Choose at least one event, or send all events.';
+    if (!name.trim()) next.name = t('developers.webhookNameRequired');
+    if (!/^https?:\/\/\S+$/i.test(url.trim())) next.url = t('developers.urlInvalid');
+    if (!all && events.length === 0) next.events = t('developers.eventsRequired');
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -52,8 +55,8 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
 
   return (
     <DialogShell
-      title={webhook ? 'Edit webhook' : 'New webhook'}
-      description="TaskMan sends a signed JSON request to this URL when the events you pick happen in this workspace."
+      title={webhook ? t('developers.editWebhook') : t('developers.newWebhook')}
+      description={t('developers.webhookDialogDescription')}
       icon={<WebhookIcon />}
       onClose={onClose}
       initialFocus={nameRef}
@@ -62,24 +65,24 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
         <DialogBody>
           {failure && <p role="alert" className="rounded-lg border border-danger-border bg-danger-bg p-3 text-sm text-danger-fg">{failure}</p>}
           <div className="grid gap-4">
-            <Field label="Name" htmlFor={`${uid}-name`} required error={errors.name}>
+            <Field label={t('developers.name')} htmlFor={`${uid}-name`} required error={errors.name}>
               <Input
                 ref={nameRef}
                 id={`${uid}-name`}
                 value={name}
                 maxLength={MAX_WEBHOOK_NAME}
                 onChange={event => setName(event.target.value)}
-                placeholder="e.g. Deploy bot"
+                placeholder={t('developers.hookNamePlaceholder')}
                 aria-invalid={Boolean(errors.name)}
                 className="h-11 text-base sm:h-9 sm:text-sm"
               />
             </Field>
             <Field
-              label="Payload URL"
+              label={t('developers.payloadUrl')}
               htmlFor={`${uid}-url`}
               required
               error={errors.url}
-              hint="Must be a public HTTPS address. Redirects are not followed."
+              hint={t('developers.payloadUrlHint')}
             >
               <Input
                 id={`${uid}-url`}
@@ -96,20 +99,20 @@ export const WebhookDialog = ({ webhook, onSave, onClose }: WebhookDialogProps) 
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-slate-900">Events</p>
+            <p className="mb-2 text-sm font-medium text-slate-900">{t('developers.eventsHeading')}</p>
             <label className="mb-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-2 sm:min-h-10">
               <Checkbox checked={all} onCheckedChange={value => setAll(value === true)} />
-              <span className="text-sm font-medium text-slate-800">All events</span>
-              <span className="text-xs text-slate-600">including ones added later</span>
+              <span className="text-sm font-medium text-slate-800">{t('developers.allEventsLabel')}</span>
+              <span className="text-xs text-slate-600">{t('developers.includingLater')}</span>
             </label>
             <CheckGroups groups={groups} selected={events} disabled={all} onChange={setEvents} />
             {errors.events && <p role="alert" className="mt-2 text-xs text-danger-fg">{errors.events}</p>}
           </div>
         </DialogBody>
         <DialogActions>
-          <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-9">Cancel</Button>
+          <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-9">{t('actions.cancel')}</Button>
           <Button type="submit" disabled={saving} className="h-11 sm:h-9">
-            {saving ? 'Saving…' : webhook ? 'Save changes' : 'Create webhook'}
+            {saving ? t('actions.saving') : webhook ? t('developers.saveChanges') : t('developers.createWebhook')}
           </Button>
         </DialogActions>
       </form>

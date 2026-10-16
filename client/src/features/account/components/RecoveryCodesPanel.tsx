@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, Copy, Download } from 'lucide-react';
 import { Alert } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ interface RecoveryCodesPanelProps {
 
 /** The recovery codes with copy and download. Shown right after they are created: they cannot be read again. */
 export const RecoveryCodesPanel = ({ codes, account }: RecoveryCodesPanelProps) => {
+  const { t } = useTranslation('settings');
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -36,11 +38,11 @@ export const RecoveryCodesPanel = ({ codes, account }: RecoveryCodesPanelProps) 
 
   return (
     <div className="space-y-4">
-      <Alert tone="warning" title="Save these now">
-        We show them only once. Each code signs you in one time if you lose your phone.
+      <Alert tone="warning" title={t('twoFactor.codes.saveNow')}>
+        {t('twoFactor.codes.onlyOnce')}
       </Alert>
       <ul
-        aria-label="Recovery codes"
+        aria-label={t('twoFactor.codes.list')}
         className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-sm text-slate-900"
       >
         {codes.map((code) => (
@@ -50,13 +52,13 @@ export const RecoveryCodesPanel = ({ codes, account }: RecoveryCodesPanelProps) 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="button" variant="outline" onClick={() => void copy()} className="h-11 flex-1 gap-2 sm:h-10">
           {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-          {copied ? 'Copied' : 'Copy codes'}
+          {copied ? t('common:copied') : t('twoFactor.codes.copy')}
         </Button>
         <Button type="button" variant="outline" onClick={download} className="h-11 flex-1 gap-2 sm:h-10">
-          <Download aria-hidden /> Download .txt
+          <Download aria-hidden /> {t('twoFactor.codes.download')}
         </Button>
       </div>
-      <p role="status" className="sr-only">{copied ? 'Recovery codes copied to clipboard' : ''}</p>
+      <p role="status" className="sr-only">{copied ? t('twoFactor.codes.copiedStatus') : ''}</p>
     </div>
   );
 };

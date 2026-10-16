@@ -1,10 +1,12 @@
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/features/tasks';
 import { useActiveIndex } from '../hooks/useActiveIndex';
 import { useChartWidth } from '../hooks/useChartWidth';
 import { axisScale, describeStats, formatDays, labelIndexes, shortDays } from '../lib/flow';
 import type { TimeStats } from '../types';
 import { ChartLegend, ChartTooltip, ScrollFrame } from './ChartParts';
+import { currentLocale } from '@/i18n/format';
 
 const MIN_W = 520;
 const H = 260;
@@ -12,7 +14,7 @@ const PAD = { left: 36, right: 68, top: 26, bottom: 28 };
 const DAY_MS = 86_400_000;
 
 const shortDate = (key: string) => formatDate(key, { month: 'short', day: 'numeric' });
-const stamp = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const stamp = (iso: string) => new Date(iso).toLocaleDateString(currentLocale(), { month: 'short', day: 'numeric', year: 'numeric' });
 
 interface TimeScatterChartProps {
   /** "Cycle time" or "Lead time": names the chart for assistive tech. */
@@ -27,6 +29,7 @@ interface TimeScatterChartProps {
  * and the 85th percentile (p85): 85 of 100 tasks finish at or under that line.
  */
 const TimeScatterChart = ({ name, stats, range }: TimeScatterChartProps) => {
+  const { t } = useTranslation('reports');
   const id = useId();
   const [box, W] = useChartWidth(MIN_W);
   const { points } = stats;
@@ -47,16 +50,16 @@ const TimeScatterChart = ({ name, stats, range }: TimeScatterChartProps) => {
 
   return (
     <figure className="m-0">
-      <ScrollFrame label={`${name} scatter plot. Use the left and right arrow keys to read each task.`} aria-describedby={`${id}-live`} {...handlers}>
+      <ScrollFrame label={t('flow.scatterLabel', { name })} aria-describedby={`${id}-live`} {...handlers}>
         <div ref={box} className="relative min-w-[520px]">
-          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={describeStats(name, stats)} className="block h-auto w-full text-slate-500">
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={describeStats(name, stats)} className="block h-auto w-full text-slate-500 [direction:ltr]">
             {scale.ticks.map(tick => (
               <g key={tick}>
                 <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-slate-200" strokeWidth={1} />
                 <text x={PAD.left - 6} y={y(tick) + 4} textAnchor="end" fontSize={12} className="fill-slate-600">{tick}</text>
               </g>
             ))}
-            <text x={4} y={12} fontSize={11} className="fill-slate-600">days</text>
+            <text x={4} y={12} fontSize={11} className="fill-slate-600">{t('flow.daysAxis')}</text>
             {labels.map((label, index) => (
               <text
                 key={label}
@@ -93,28 +96,28 @@ const TimeScatterChart = ({ name, stats, range }: TimeScatterChartProps) => {
           {activePoint && (
             <ChartTooltip left={(x(activePoint.completedAt) / W) * 100}>
               <p className="font-semibold">{activePoint.key ? `${activePoint.key} · ` : ''}{activePoint.title}</p>
-              <p>{formatDays(activePoint.days)}, done {stamp(activePoint.completedAt)}</p>
+              <p>{t('flow.doneOn', { days: formatDays(activePoint.days), date: stamp(activePoint.completedAt) })}</p>
             </ChartTooltip>
           )}
         </div>
       </ScrollFrame>
       <p id={`${id}-live`} className="sr-only" aria-live="polite">
-        {activePoint ? `${activePoint.key} ${activePoint.title}: ${formatDays(activePoint.days)}, completed ${stamp(activePoint.completedAt)}` : ''}
+        {activePoint ? t('flow.doneLive', { key: activePoint.key, title: activePoint.title, days: formatDays(activePoint.days), date: stamp(activePoint.completedAt) }) : ''}
       </p>
 
       <ChartLegend
         items={[
-          { label: 'Completed task', swatch: <span aria-hidden className="inline-block size-2.5 rounded-full bg-blue-600" /> },
-          { label: 'Median (p50)', swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-slate-600" strokeWidth={2} strokeDasharray="2 4" /></svg>, value: formatDays(stats.p50) },
-          { label: '85th percentile (p85)', swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-warning-solid" strokeWidth={2} strokeDasharray="6 4" /></svg>, value: formatDays(stats.p85) },
+          { label: t('flow.legendCompleted'), swatch: <span aria-hidden className="inline-block size-2.5 rounded-full bg-blue-600" /> },
+          { label: t('flow.legendMedian'), swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-slate-600" strokeWidth={2} strokeDasharray="2 4" /></svg>, value: formatDays(stats.p50) },
+          { label: t('flow.legendP85'), swatch: <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-warning-solid" strokeWidth={2} strokeDasharray="6 4" /></svg>, value: formatDays(stats.p85) },
         ]}
       />
 
       <div className="sr-only">
         <table>
-          <caption>{name} of tasks completed in this range</caption>
+          <caption>{t('flow.scatterCaption', { name })}</caption>
           <thead>
-            <tr><th scope="col">Task</th><th scope="col">Completed</th><th scope="col">Days</th></tr>
+            <tr><th scope="col">{t('flow.task')}</th><th scope="col">{t('flow.completedColumn')}</th><th scope="col">{t('flow.daysColumn')}</th></tr>
           </thead>
           <tbody>
             {points.map(point => (

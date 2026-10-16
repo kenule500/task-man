@@ -1,4 +1,5 @@
-import { AtSign, CheckCircle2, MessageSquare, UserPlus, type LucideIcon } from 'lucide-react';
+import { AtSign, Bot, CheckCircle2, MessageSquare, MessagesSquare, UserPlus, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
 import { cn } from 'cn';
 import { notificationSentence } from '../lib/format';
@@ -9,6 +10,8 @@ const ICONS: Record<NotificationType, { icon: LucideIcon; tile: string }> = {
   'task.completed': { icon: CheckCircle2, tile: 'bg-success-bg text-success-fg' },
   'comment.mention': { icon: AtSign, tile: 'bg-violet-50 text-violet-700' },
   'comment.reply_on_my_task': { icon: MessageSquare, tile: 'bg-slate-100 text-slate-700' },
+  'chat.mention': { icon: MessagesSquare, tile: 'bg-info-bg text-info-fg' },
+  'ai.review_completed': { icon: Bot, tile: 'bg-info-bg text-info-fg' },
 };
 
 export interface NotificationRowProps {
@@ -18,6 +21,7 @@ export interface NotificationRowProps {
 
 /** One notification: type icon, sentence, relative time and an unread dot. The whole row is the button. */
 const NotificationRow = ({ notification, onSelect }: NotificationRowProps) => {
+  const { t } = useTranslation('nav');
   const { icon: Icon, tile } = ICONS[notification.type] ?? ICONS['comment.reply_on_my_task'];
   const unread = !notification.readAt;
 
@@ -25,7 +29,7 @@ const NotificationRow = ({ notification, onSelect }: NotificationRowProps) => {
     <button
       type="button"
       onClick={() => onSelect(notification)}
-      className="flex min-h-14 w-full items-start gap-3 px-4 py-3 text-left outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+      className="flex min-h-14 w-full items-start gap-3 px-4 py-3 text-start outline-none hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
     >
       <span aria-hidden className={cn('mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full', tile)}>
         <Icon className="size-4" />
@@ -41,7 +45,7 @@ const NotificationRow = ({ notification, onSelect }: NotificationRowProps) => {
       {unread && (
         <>
           <span aria-hidden className="mt-2 size-2.5 shrink-0 rounded-full bg-primary" />
-          <span className="sr-only">Unread</span>
+          <span className="sr-only">{t('notifications.unread')}</span>
         </>
       )}
     </button>

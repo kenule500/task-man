@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 're
 import {
   AtSign, Bold, Code, Heading2, Italic, Link2, List, ListChecks, type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Field, SegmentedControl, Spinner, TooltipHint } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { applyToolbarAction, insertTaskKey, type TextEdit, type ToolbarAction } 
 import { MAX_PAGE_CONTENT, MAX_PAGE_TITLE, type WikiMention } from '../types';
 import MarkdownView from './MarkdownView';
 import TaskMentionPicker from './TaskMentionPicker';
+import { currentLocale } from '@/i18n/format';
 
 interface PageEditorProps {
   workspaceSlug: string;
@@ -27,14 +29,14 @@ interface PageEditorProps {
   error?: string;
 }
 
-const ACTIONS: { action: ToolbarAction; label: string; icon: LucideIcon; shortcut?: string }[] = [
-  { action: 'bold', label: 'Bold', icon: Bold, shortcut: 'Ctrl+B' },
-  { action: 'italic', label: 'Italic', icon: Italic, shortcut: 'Ctrl+I' },
-  { action: 'heading', label: 'Heading', icon: Heading2 },
-  { action: 'list', label: 'Bulleted list', icon: List },
-  { action: 'checklist', label: 'Checklist', icon: ListChecks },
-  { action: 'code', label: 'Code', icon: Code },
-  { action: 'link', label: 'Link', icon: Link2 },
+const ACTIONS: { action: ToolbarAction; icon: LucideIcon; shortcut?: string }[] = [
+  { action: 'bold', icon: Bold, shortcut: 'Ctrl+B' },
+  { action: 'italic', icon: Italic, shortcut: 'Ctrl+I' },
+  { action: 'heading', icon: Heading2 },
+  { action: 'list', icon: List },
+  { action: 'checklist', icon: ListChecks },
+  { action: 'code', icon: Code },
+  { action: 'link', icon: Link2 },
 ];
 
 const TOOL = 'size-10 text-text-body md:size-8';
@@ -43,6 +45,7 @@ const TOOL = 'size-10 text-text-body md:size-8';
 const PageEditor = ({
   workspaceSlug, title, content, mentions, onTitleChange, onContentChange, onSave, onCancel, saving, dirty, error,
 }: PageEditorProps) => {
+  const { t } = useTranslation('projects');
   const id = useId();
   const textarea = useRef<HTMLTextAreaElement>(null);
   const pendingSelection = useRef<{ start: number; end: number } | null>(null);
@@ -89,7 +92,7 @@ const PageEditor = ({
     <div onKeyDown={onKeyDown} className="space-y-4">
       {error && <Alert tone="error">{error}</Alert>}
 
-      <Field label="Title" htmlFor={titleId} required>
+      <Field label={t('wiki.title')} htmlFor={titleId} required>
         <Input
           id={titleId}
           value={title}
@@ -101,8 +104,10 @@ const PageEditor = ({
       </Field>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="toolbar" aria-label="Formatting" className="flex flex-wrap items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5">
-          {ACTIONS.map(({ action, label, icon: Icon, shortcut }) => (
+        <div role="toolbar" aria-label={t('wiki.editor.formatting')} className="flex flex-wrap items-center gap-0.5 rounded-lg border border-slate-200 bg-white p-0.5">
+          {ACTIONS.map(({ action, icon: Icon, shortcut }) => {
+            const label = t(`wiki.editor.${action === 'list' ? 'list' : action}`);
+            return (
             <TooltipHint key={action} label={shortcut ? `${label} (${shortcut})` : label}>
               <Button
                 type="button"
@@ -115,16 +120,17 @@ const PageEditor = ({
                 <Icon aria-hidden />
               </Button>
             </TooltipHint>
-          ))}
+            );
+          })}
           <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
             <PopoverTrigger
               render={
-                <Button type="button" variant="ghost" size="icon" aria-label="Mention a task" title="Mention a task" className={TOOL}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t('wiki.editor.mentionTask')} title={t('wiki.editor.mentionTask')} className={TOOL}>
                   <AtSign aria-hidden />
                 </Button>
               }
             />
-            <PopoverContent aria-label="Mention a task" width="lg" className="max-w-[calc(100vw-1.5rem)]">
+            <PopoverContent aria-label={t('wiki.editor.mentionTask')} width="lg" className="max-w-[calc(100vw-1.5rem)]">
               <TaskMentionPicker
                 workspaceSlug={workspaceSlug}
                 onPick={key => {
@@ -137,48 +143,48 @@ const PageEditor = ({
         </div>
 
         <SegmentedControl
-          aria-label="Editor view"
+          aria-label={t('wiki.editor.view')}
           size="sm"
           value={pane}
           onValueChange={setPane}
-          options={[{ value: 'write', label: 'Write' }, { value: 'preview', label: 'Preview' }]}
+          options={[{ value: 'write', label: t('wiki.editor.write') }, { value: 'preview', label: t('wiki.editor.preview') }]}
           className="lg:hidden"
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className={cn(pane === 'preview' && 'hidden lg:block')}>
-          <label htmlFor={contentId} className="sr-only">Page content (Markdown)</label>
+          <label htmlFor={contentId} className="sr-only">{t('wiki.editor.contentLabel')}</label>
           <textarea
             id={contentId}
             ref={textarea}
             value={content}
             onChange={event => onContentChange(event.target.value)}
             spellCheck
-            placeholder="Write in Markdown. Use the toolbar or type ## for headings, - for lists and WEB-12 to mention a task."
+            placeholder={t('wiki.editor.placeholder')}
             aria-invalid={tooLong}
             className="block min-h-[50dvh] w-full resize-y rounded-lg border border-slate-300 bg-white p-3 font-mono text-base leading-6 text-text-strong outline-none placeholder:text-text-subtle focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
           />
-          <p className={cn('mt-1 text-right text-xs tabular-nums', tooLong ? 'text-danger-fg' : 'text-text-subtle')}>
-            {content.length.toLocaleString('en-US')} / {MAX_PAGE_CONTENT.toLocaleString('en-US')} characters
+          <p className={cn('mt-1 text-end text-xs tabular-nums', tooLong ? 'text-danger-fg' : 'text-text-subtle')}>
+            {t('wiki.editor.characters', { count: content.length.toLocaleString(currentLocale()), max: MAX_PAGE_CONTENT.toLocaleString(currentLocale()) })}
           </p>
         </div>
 
         <section
-          aria-label="Preview"
+          aria-label={t('wiki.editor.preview')}
           className={cn('min-h-[50dvh] rounded-lg border border-slate-200 bg-white p-4', pane === 'write' && 'hidden lg:block')}
         >
           {content.trim()
             ? <MarkdownView source={content} workspaceSlug={workspaceSlug} mentions={mentions} />
-            : <p className="text-sm text-text-subtle">Nothing to preview yet.</p>}
+            : <p className="text-sm text-text-subtle">{t('wiki.editor.nothingToPreview')}</p>}
         </section>
       </div>
 
       <div className="sticky bottom-0 z-(--z-sticky) -mx-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
-        <span className="mr-auto hidden text-xs text-text-subtle sm:inline" aria-live="polite">{dirty ? 'Unsaved changes' : 'No changes yet'}</span>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={saving} className="h-11 flex-1 sm:h-9 sm:flex-none">Cancel</Button>
+        <span className="me-auto hidden text-xs text-text-subtle sm:inline" aria-live="polite">{dirty ? t('wiki.editor.unsaved') : t('wiki.editor.noChanges')}</span>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={saving} className="h-11 flex-1 sm:h-9 sm:flex-none">{t('actions.cancel')}</Button>
         <Button type="button" onClick={onSave} disabled={!canSave} className="h-11 flex-1 bg-primary px-4 text-white hover:bg-primary-hover sm:h-9 sm:flex-none">
-          {saving ? <><Spinner decorative /> Saving</> : 'Save'}
+          {saving ? <><Spinner decorative /> {t('wiki.saving')}</> : t('actions.save')}
         </Button>
       </div>
     </div>

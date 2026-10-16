@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Plus, ShieldAlert, Zap } from 'lucide-react';
 import { EmptyState, ErrorState, PageHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
@@ -20,6 +21,7 @@ interface BuilderState {
 }
 
 const AutomationsPage = () => {
+  const { t } = useTranslation('admin');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const allowed = can('settings:manage');
@@ -45,13 +47,13 @@ const AutomationsPage = () => {
   if (!allowed) {
     return (
       <div>
-        <PageHeader title="Automations" />
+        <PageHeader title={t('automations.page.title')} />
         <Surface className="mt-6">
           <EmptyState
             headingLevel="h2"
             icon={<ShieldAlert />}
-            title="Only people who manage settings can edit automations"
-            description="Ask an owner or admin of this workspace if you need a new rule."
+            title={t('automations.page.restrictedTitle')}
+            description={t('automations.page.restrictedBody')}
           />
         </Surface>
       </div>
@@ -64,14 +66,14 @@ const AutomationsPage = () => {
     try {
       if (builder?.ruleId) {
         await updateRule(builder.ruleId, input);
-        toast.success('Rule saved');
+        toast.success(t('automations.page.ruleSaved'));
       } else {
         await createRule(input);
-        toast.success('Rule created');
+        toast.success(t('automations.page.ruleCreated'));
       }
       return null;
     } catch (err) {
-      return err instanceof Error ? err.message : 'We could not save the rule.';
+      return err instanceof Error ? err.message : t('automations.errors.save');
     }
   };
 
@@ -79,9 +81,9 @@ const AutomationsPage = () => {
     setBusyId(rule._id);
     try {
       await updateRule(rule._id, { enabled });
-      toast.success(enabled ? `"${rule.name}" is on` : `"${rule.name}" is off`);
+      toast.success(enabled ? t('automations.page.isOn', { name: rule.name }) : t('automations.page.isOff', { name: rule.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not change the rule.');
+      toast.error(err instanceof Error ? err.message : t('automations.errors.change'));
     } finally {
       setBusyId(null);
     }
@@ -92,45 +94,45 @@ const AutomationsPage = () => {
     setDeleteBusy(true);
     try {
       await deleteRule(deleting._id);
-      toast.success(`"${deleting.name}" deleted`);
+      toast.success(t('automations.page.deleted', { name: deleting.name }));
       setDeleting(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not delete the rule.');
+      toast.error(err instanceof Error ? err.message : t('automations.errors.delete'));
     } finally {
       setDeleteBusy(false);
     }
   };
 
   const startFromTemplate = (template: AutomationTemplate) =>
-    setBuilder({ title: 'New rule from template', draft: draftFromTemplate(template) });
+    setBuilder({ title: t('automations.page.newFromTemplate'), draft: draftFromTemplate(template) });
 
   return (
     <div className="max-w-4xl space-y-5 pb-6">
       <PageHeader
-        title="Automations"
-        description="Rules that change tasks for you: when something happens, and the conditions match, TaskMan makes the changes and records them in the audit log."
+        title={t('automations.page.title')}
+        description={t('automations.page.description')}
         actions={(
           <Button
             type="button"
             disabled={loading || Boolean(error) || atLimit}
-            onClick={() => setBuilder({ title: 'New rule', draft: emptyDraft() })}
+            onClick={() => setBuilder({ title: t('automations.page.newRule'), draft: emptyDraft() })}
             className="h-11 gap-2 px-4 text-sm sm:h-10"
           >
             <Plus aria-hidden />
-            New rule
+            {t('automations.page.newRule')}
           </Button>
         )}
       />
 
       {loading ? (
-        <SkeletonList label="Loading automations" rows={3} avatar={false} />
+        <SkeletonList label={t('automations.page.loading')} rows={3} avatar={false} />
       ) : error ? (
         <Surface>
           <ErrorState
-            title="Could not load the automation rules"
+            title={t('automations.page.loadFailed')}
             reason={error}
-            nextStep="Check your connection and try again."
-            action={<Button type="button" onClick={reload} className="h-10 px-4 md:h-9">Try again</Button>}
+            nextStep={t('automations.page.checkConnection')}
+            action={<Button type="button" onClick={reload} className="h-10 px-4 md:h-9">{t('actions.retry')}</Button>}
           />
         </Surface>
       ) : (
@@ -140,12 +142,12 @@ const AutomationsPage = () => {
               <EmptyState
                 headingLevel="h2"
                 icon={<Zap />}
-                title="No rules yet"
-                description="Automations save repeat work, like making new bugs high priority or assigning whoever starts a task. Pick a template below or build your own."
+                title={t('automations.page.emptyTitle')}
+                description={t('automations.page.emptyBody')}
                 action={(
-                  <Button type="button" onClick={() => setBuilder({ title: 'New rule', draft: emptyDraft() })} className="h-11 gap-2 px-4 text-sm sm:h-10">
+                  <Button type="button" onClick={() => setBuilder({ title: t('automations.page.newRule'), draft: emptyDraft() })} className="h-11 gap-2 px-4 text-sm sm:h-10">
                     <Plus aria-hidden />
-                    New rule
+                    {t('automations.page.newRule')}
                   </Button>
                 )}
               />
@@ -156,14 +158,14 @@ const AutomationsPage = () => {
               context={context}
               busyId={busyId}
               onToggle={(rule, enabled) => { void toggle(rule, enabled); }}
-              onEdit={rule => setBuilder({ title: 'Edit rule', draft: draftFromRule(rule), ruleId: rule._id })}
+              onEdit={rule => setBuilder({ title: t('automations.page.editRule'), draft: draftFromRule(rule), ruleId: rule._id })}
               onDelete={setDeleting}
             />
           )}
 
           {atLimit && (
             <p role="status" className="text-sm text-slate-600">
-              This workspace has {MAX_RULES} rules, the most it can have. Delete one to add another.
+              {t('automations.page.limit', { max: MAX_RULES })}
             </p>
           )}
 
@@ -185,10 +187,10 @@ const AutomationsPage = () => {
       <ConfirmActionDialog
         open={Boolean(deleting)}
         onOpenChange={open => { if (!open && !deleteBusy) setDeleting(null); }}
-        title="Delete this rule?"
-        description={deleting ? `"${deleting.name}" will stop running. Changes it already made to tasks stay as they are.` : ''}
-        confirmLabel="Delete rule"
-        busyLabel="Deleting…"
+        title={t('automations.page.deleteTitle')}
+        description={deleting ? t('automations.page.deleteBody', { name: deleting.name }) : ''}
+        confirmLabel={t('automations.page.deleteConfirm')}
+        busyLabel={t('automations.page.deleting')}
         busy={deleteBusy}
         onConfirm={() => { void confirmDelete(); }}
       />

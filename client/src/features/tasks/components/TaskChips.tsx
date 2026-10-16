@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ds';
 import { getLabelStyle } from '../lib/labels';
@@ -13,7 +14,9 @@ interface LabelChipProps {
 }
 
 /** Label with a deterministic color; text is dark enough for AA contrast on its background. */
-export const LabelChip = ({ label, onRemove, className }: LabelChipProps) => (
+export const LabelChip = ({ label, onRemove, className }: LabelChipProps) => {
+  const { t } = useTranslation('tasks');
+  return (
   <span
     className={cn(
       'inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-4',
@@ -27,14 +30,15 @@ export const LabelChip = ({ label, onRemove, className }: LabelChipProps) => (
       <button
         type="button"
         onClick={() => onRemove(label)}
-        aria-label={`Remove label ${label}`}
-        className="-mr-0.5 flex size-4 shrink-0 items-center justify-center rounded hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-primary"
+        aria-label={t('labels.remove', { label })}
+        className="-me-0.5 flex size-4 shrink-0 items-center justify-center rounded hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-primary"
       >
         <X className="size-3" aria-hidden />
       </button>
     )}
   </span>
-);
+  );
+};
 
 interface LabelListProps {
   labels?: string[];
@@ -44,12 +48,13 @@ interface LabelListProps {
 }
 
 export const LabelList = ({ labels = [], max = 3, className }: LabelListProps) => {
+  const { t } = useTranslation('tasks');
   if (labels.length === 0) return null;
   const visible = labels.slice(0, max);
   const hidden = labels.length - visible.length;
 
   return (
-    <ul aria-label="Labels" className={cn('flex min-w-0 flex-wrap items-center gap-1', className)}>
+    <ul aria-label={t('labels.list')} className={cn('flex min-w-0 flex-wrap items-center gap-1', className)}>
       {visible.map(label => (
         <li key={label} className="min-w-0 max-w-full">
           <LabelChip label={label} className="max-w-28" />
@@ -57,7 +62,7 @@ export const LabelList = ({ labels = [], max = 3, className }: LabelListProps) =
       ))}
       {hidden > 0 && (
         <li className="text-[11px] font-medium text-slate-500" title={labels.slice(max).join(', ')}>
-          +{hidden}<span className="sr-only"> more labels</span>
+          +{hidden}<span className="sr-only">{t('labels.moreSr')}</span>
         </li>
       )}
     </ul>
@@ -75,14 +80,15 @@ interface AssigneeStackProps {
 
 /** Overlapping avatars of the people a task is assigned to. */
 export const AssigneeStack = ({ users = [], max = 3, preview = false, className }: AssigneeStackProps) => {
+  const { t } = useTranslation('tasks');
   if (users.length === 0) return null;
   const visible = users.slice(0, max);
   const hidden = users.length - visible.length;
   const names = users.map(user => user.name).join(', ');
 
   return (
-    <span className={cn('inline-flex shrink-0 items-center', className)} title={preview ? undefined : `Assigned to ${names}`}>
-      <span className="sr-only">Assigned to {names}</span>
+    <span className={cn('inline-flex shrink-0 items-center', className)} title={preview ? undefined : t('assignees.assignedTo', { names })}>
+      <span className="sr-only">{t('assignees.assignedTo', { names })}</span>
       <span aria-hidden className="flex -space-x-1.5">
         {visible.map(user => {
           const avatar = <UserAvatar key={user._id} name={user.name} src={user.avatarUrl || undefined} className="size-6 text-[10px] ring-2 ring-white" />;

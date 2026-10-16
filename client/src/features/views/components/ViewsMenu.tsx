@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bookmark, BookmarkPlus, Check, ChevronDown, Settings2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Spinner, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ type Dialog =
 
 /** "Views" menu of the task toolbar: open a saved view, save the current one, manage the list. */
 const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }: ViewsMenuProps) => {
+  const { t } = useTranslation('tasks');
   const navigate = useNavigate();
   const { views, loading, failed, create, update, remove } = useSavedViews(slug);
   const [dialog, setDialog] = useState<Dialog>({ kind: 'none' });
@@ -54,13 +56,13 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{view.name}</span>
           <span className="block truncate text-xs text-slate-500">
-            {view.mine ? describeView(view) : `${view.owner.name || 'A teammate'} · ${describeView(view)}`}
+            {view.mine ? describeView(view) : `${view.owner.name || t('views.teammate')} · ${describeView(view)}`}
           </span>
         </span>
         {active && (
           <>
             <Check className="mt-0.5 text-primary" aria-hidden />
-            <span className="sr-only">(current view)</span>
+            <span className="sr-only">{t('views.currentSr')}</span>
           </>
         )}
       </DropdownMenuItem>
@@ -75,7 +77,7 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
     setDeleting(false);
     setDialog(editable.some(item => item._id !== view._id) ? { kind: 'manage' } : { kind: 'none' });
     if (failure) toast.error(failure);
-    else toast.success(`Deleted view “${view.name}”`);
+    else toast.success(t('views.deleted', { name: view.name }));
   };
 
   return (
@@ -86,36 +88,36 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
             <Button
               type="button"
               variant="outline"
-              aria-label="Views"
+              aria-label={t('views.menu')}
               className={cn('h-11 w-11 shrink-0 gap-1.5 border-slate-200 bg-white px-0 text-slate-700 sm:h-9 sm:w-auto sm:px-3', className)}
             />
           }
         >
           <Bookmark className="size-4" aria-hidden />
-          <span className="hidden sm:inline">Views</span>
+          <span className="hidden sm:inline">{t('views.menu')}</span>
           <ChevronDown className="hidden size-3.5 text-slate-500 sm:inline" aria-hidden />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)]">
           <DropdownMenuItem onClick={() => setDialog({ kind: 'save' })} className={ITEM_CLASS}>
-            <BookmarkPlus /> Save current view…
+            <BookmarkPlus /> {t('views.saveCurrent')}
           </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-slate-100" />
 
-          {loading && <p role="status" className="flex items-center gap-2 px-2 py-2 text-xs text-slate-600"><Spinner decorative size="xs" />Loading views…</p>}
-          {failed && <p role="status" className="px-2 py-2 text-xs text-slate-600">We could not load your saved views.</p>}
+          {loading && <p role="status" className="flex items-center gap-2 px-2 py-2 text-xs text-slate-600"><Spinner decorative size="xs" />{t('views.loading')}</p>}
+          {failed && <p role="status" className="px-2 py-2 text-xs text-slate-600">{t('views.loadFailed')}</p>}
           {!loading && !failed && views.length === 0 && (
-            <p className="px-2 py-2 text-xs text-slate-600">No saved views yet. Set the filters you want, then save them here.</p>
+            <p className="px-2 py-2 text-xs text-slate-600">{t('views.none')}</p>
           )}
 
           {mine.length > 0 && (
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Mine</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('views.mine')}</DropdownMenuLabel>
               {mine.map(renderItem)}
             </DropdownMenuGroup>
           )}
           {shared.length > 0 && (
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Shared</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('views.shared')}</DropdownMenuLabel>
               {shared.map(renderItem)}
             </DropdownMenuGroup>
           )}
@@ -124,7 +126,7 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
             <>
               <DropdownMenuSeparator className="bg-slate-100" />
               <DropdownMenuItem onClick={() => setDialog({ kind: 'manage' })} className={ITEM_CLASS}>
-                <Settings2 /> Manage views…
+                <Settings2 /> {t('views.manage')}
               </DropdownMenuItem>
             </>
           )}
@@ -139,7 +141,7 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
           summary={describeView({ view: layout, query: currentQuery })}
           onSubmit={async (name, isShared) => {
             const failure = await create({ name, view: layout, query: currentQuery, shared: isShared });
-            if (!failure) toast.success(`Saved view “${name}”`);
+            if (!failure) toast.success(t('views.saved', { name }));
             return failure;
           }}
         />
@@ -164,7 +166,7 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
           summary={describeView(dialog.view)}
           onSubmit={async (name, isShared) => {
             const failure = await update(dialog.view._id, dialog.view.mine ? { name, shared: isShared } : { name });
-            if (!failure) toast.success('View updated');
+            if (!failure) toast.success(t('views.updated'));
             return failure;
           }}
         />
@@ -173,12 +175,12 @@ const ViewsMenu = ({ slug, layout, params, canManageShared = false, className }:
       <ConfirmActionDialog
         open={dialog.kind === 'delete'}
         onOpenChange={open => { if (!open) setDialog({ kind: 'manage' }); }}
-        title="Delete this view?"
+        title={t('views.deleteTitle')}
         description={dialog.kind === 'delete'
-          ? `“${dialog.view.name}” will be removed${dialog.view.shared ? ' for everyone it is shared with' : ''}. Tasks are not affected.`
+          ? t(dialog.view.shared ? 'views.deleteBodyShared' : 'views.deleteBody', { name: dialog.view.name })
           : ''}
-        confirmLabel="Delete view"
-        busyLabel="Deleting..."
+        confirmLabel={t('views.deleteConfirm')}
+        busyLabel={t('views.deleting')}
         busy={deleting}
         onConfirm={() => dialog.kind === 'delete' && confirmDelete(dialog.view)}
       />

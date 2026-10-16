@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import { clearSession, saveSession } from '../utils/session';
+import { applyAccountLanguage } from '@/lib/languageApi';
 import { resolvePostLoginPath } from '../utils/postLogin';
 import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell';
 import { clearFragment, consumeSsoPending, parseSsoFragment, storedUserFromProfile } from '@/features/sso';
@@ -13,6 +15,7 @@ import { clearFragment, consumeSsoPending, parseSsoFragment, storedUserFromProfi
  * and history first, then the session is stored like a password sign-in and the person continues.
  */
 const SsoCompletePage = () => {
+  const { t } = useTranslation('auth');
   const navigate = useNavigate();
   // The fragment is read (and removed) once, even when React runs the effect twice in development
   const started = useRef(false);
@@ -42,6 +45,7 @@ const SsoCompletePage = () => {
         const { data } = await api.get('/profile');
         const user = storedUserFromProfile(data);
         saveSession(token, user);
+        await applyAccountLanguage(user.language);
         navigate(redirect ?? resolvePostLoginPath(user), { replace: true });
       } catch {
         clearSession();
@@ -53,7 +57,7 @@ const SsoCompletePage = () => {
   return (
     <AuthPageShell>
       <div role="status" aria-live="polite">
-        <AuthStatusHeader icon={<Loader2 />} spin title="Signing you in" description="Please wait a moment..." />
+        <AuthStatusHeader icon={<Loader2 />} spin title={t('sso.signingInTitle')} description={t('sso.signingInDescription')} />
       </div>
     </AuthPageShell>
   );

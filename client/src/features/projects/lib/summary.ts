@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Task, TaskStatus, TaskType } from '@/features/tasks';
 import { dateKeyOf, toDateKey } from '@/features/tasks';
 import type { Project, Sprint } from '../types';
@@ -41,9 +42,9 @@ export const summarizeProject = (project: Project, tasks: Task[], today: Date = 
 export type ProjectSort = 'name' | 'recent' | 'progress';
 
 export const PROJECT_SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
-  { value: 'name', label: 'Name' },
-  { value: 'recent', label: 'Recently updated' },
-  { value: 'progress', label: 'Progress' },
+  { value: 'name', get label() { return i18n.t('projects:sort.name'); } },
+  { value: 'recent', get label() { return i18n.t('projects:sort.recent'); } },
+  { value: 'progress', get label() { return i18n.t('projects:sort.progress'); } },
 ];
 
 const stamp = (project: Project) => project.updatedAt ?? project.createdAt ?? '';

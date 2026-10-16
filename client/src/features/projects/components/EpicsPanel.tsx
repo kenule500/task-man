@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ const EpicsPanel = ({
   epics, tasks, canWrite, onOpen, onAdd, storageKey, onToggleDone = noop,
   onAddToEpic, onAddSubtask, onLinkTasks, onRemoveFromEpic, onMoveToEpic,
 }: EpicsPanelProps) => {
+  const { t } = useTranslation('projects');
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => readExpanded(storageKey));
   const [linking, setLinking] = useState<Task | null>(null);
 
@@ -86,22 +88,22 @@ const EpicsPanel = ({
 
   const unassignedOpen = expanded.has(UNASSIGNED_ID);
   const moveOptions = useMemo(
-    () => [{ value: MOVE_PLACEHOLDER, label: 'Move to epic' }, ...epics.map(epic => ({ value: epic._id, label: epic.title }))],
-    [epics],
+    () => [{ value: MOVE_PLACEHOLDER, label: t('panel.moveToEpic') }, ...epics.map(epic => ({ value: epic._id, label: epic.title }))],
+    [epics, t],
   );
   const canMove = canWrite && Boolean(onMoveToEpic) && epics.length > 0;
 
   return (
     <div>
-      {canWrite && onAdd && <QuickAdd label="Add an epic…" onAdd={onAdd} />}
+      {canWrite && onAdd && <QuickAdd label={t('panel.addEpic')} onAdd={onAdd} />}
       {epics.length === 0 ? (
         <EmptyState
           className="py-10"
           icon={<Zap />}
-          title="No epics yet"
+          title={t('panel.noEpics')}
           description={canWrite
-            ? 'An epic groups stories, tasks and bugs that belong together, across sprints. Add one above, then add or link tasks to it.'
-            : 'Epics group stories, tasks and bugs that belong together, across sprints.'}
+            ? t('panel.noEpicsWrite')
+            : t('panel.noEpicsRead')}
         />
       ) : (
         <>
@@ -112,7 +114,7 @@ const EpicsPanel = ({
               onClick={() => setExpanded(current => new Set([...current, ...expandable]))}
               className="h-11 px-3 text-sm text-slate-700 md:h-8"
             >
-              Expand all
+              {t('panel.expandAll')}
             </Button>
             <Button
               type="button"
@@ -120,7 +122,7 @@ const EpicsPanel = ({
               onClick={() => setExpanded(new Set())}
               className="h-11 px-3 text-sm text-slate-700 md:h-8"
             >
-              Collapse all
+              {t('panel.collapseAll')}
             </Button>
           </div>
 
@@ -146,15 +148,15 @@ const EpicsPanel = ({
                   onClick={() => toggle(UNASSIGNED_ID, !unassignedOpen)}
                   aria-expanded={unassignedOpen}
                   aria-controls={UNASSIGNED_ID}
-                  className="flex min-h-11 w-full items-center gap-2 px-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-4 md:min-h-10"
+                  className="flex min-h-11 w-full items-center gap-2 px-3 text-start hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-4 md:min-h-10"
                 >
-                  <ChevronRight aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', unassignedOpen && 'rotate-90')} />
-                  Not in an epic
+                  <ChevronRight aria-hidden className={cn('size-4 text-slate-500 transition-transform motion-reduce:transition-none', unassignedOpen ? 'rotate-90' : 'rtl:-scale-x-100')} />
+                  {t('panel.notInEpic')}
                   <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-600">{unassigned.length}</span>
                 </button>
               </h3>
               {unassignedOpen && (
-                <ul id={UNASSIGNED_ID} aria-label="Tasks not in an epic">
+                <ul id={UNASSIGNED_ID} aria-label={t('panel.tasksNotInEpic')}>
                   {unassigned.map(task => (
                     <li key={task._id} className="relative flex flex-wrap items-start gap-x-2 gap-y-2 border-t border-slate-100 px-3 py-2.5 hover:bg-slate-50 sm:px-4">
                       <TaskTypeIcon type={task.type} className="mt-0.5" />
@@ -165,7 +167,7 @@ const EpicsPanel = ({
                             type="button"
                             title={task.title}
                             onClick={() => onOpen(task)}
-                            className="block min-w-0 text-left text-sm font-semibold text-slate-900 outline-none [overflow-wrap:anywhere] line-clamp-2 after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-primary"
+                            className="block min-w-0 text-start text-sm font-semibold text-slate-900 outline-none [overflow-wrap:anywhere] line-clamp-2 after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-primary"
                           >
                             {task.title}
                           </button>
@@ -174,8 +176,8 @@ const EpicsPanel = ({
                           <StatusBadge status={task.status} className="px-2 py-0.5" />
                           {typeof task.storyPoints === 'number' && (
                             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700">
-                              {task.storyPoints}<span aria-hidden> pts</span>
-                              <span className="sr-only"> story points</span>
+                              {task.storyPoints}<span aria-hidden>{t('row.pts')}</span>
+                              <span className="sr-only">{t('row.storyPointsSr')}</span>
                             </span>
                           )}
                           <AssigneeStack users={task.assignees} />
@@ -187,7 +189,7 @@ const EpicsPanel = ({
                             value={MOVE_PLACEHOLDER}
                             options={moveOptions}
                             onChange={epicId => onMoveToEpic?.(task, epicId)}
-                            aria-label={`Move "${task.title}" to an epic`}
+                            aria-label={t('panel.moveTaskAria', { title: task.title })}
                             className="h-11 w-40 sm:w-48 md:h-8"
                           />
                         </div>

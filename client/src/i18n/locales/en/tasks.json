@@ -1,0 +1,1157 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "back": "Back",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "copied": "Copied",
+    "done": "Done",
+    "next": "Next",
+    "previous": "Previous",
+    "open": "Open",
+    "reset": "Reset",
+    "clear": "Clear",
+    "search": "Search",
+    "yes": "Yes",
+    "no": "No",
+    "undo": "Undo"
+  },
+  "activity": {
+    "renamed": "renamed the task from \"{{from}}\" to \"{{to}}\"",
+    "renamedShort": "renamed the task",
+    "fieldName": {
+      "status": "status",
+      "priority": "priority",
+      "type": "type"
+    },
+    "changedFromTo": "changed {{field}} from {{from}} to {{to}}",
+    "setTo": "set {{field}} to {{to}}",
+    "changedField": "changed {{field}}",
+    "points": {
+      "changed": "changed story points from {{from}} to {{to}}",
+      "estimated": "estimated this at {{points}}",
+      "cleared": "cleared the story points"
+    },
+    "estimate": {
+      "changed": "changed the estimate from {{from}} to {{to}}",
+      "set": "estimated this at {{value}}",
+      "cleared": "cleared the estimate"
+    },
+    "project": {
+      "moved": "moved this from project {{from}} to {{to}}",
+      "movedTo": "moved this to project {{to}}",
+      "removed": "removed this from project {{from}}",
+      "changed": "changed the project"
+    },
+    "dateName": {
+      "deadline": "the due date",
+      "startDate": "the start date"
+    },
+    "date": {
+      "changed": "changed {{name}} from {{from}} to {{to}}",
+      "set": "set {{name}} to {{to}}",
+      "cleared": "cleared {{name}}"
+    },
+    "labels": {
+      "changed": "changed labels from {{from}} to {{to}}",
+      "set": "set labels to {{to}}",
+      "removed": "removed all labels"
+    },
+    "sprint": {
+      "fromTo": "moved this from {{from}} to {{to}}",
+      "toBacklogFrom": "moved this from {{from}} to the backlog",
+      "toBacklog": "moved this to the backlog",
+      "to": "moved this to {{to}}",
+      "toSprint": "moved this to a sprint",
+      "changed": "changed the sprint"
+    },
+    "release": {
+      "assigned": "assigned this to a release",
+      "removed": "removed this from its release"
+    },
+    "assignees": {
+      "added_one": "added {{count}} assignee",
+      "added_other": "added {{count}} assignees",
+      "removed_one": "removed {{count}} assignee",
+      "removed_other": "removed {{count}} assignees",
+      "changed": "changed the assignees"
+    },
+    "checklist": {
+      "updated": "updated the checklist ({{done}} done)",
+      "cleared": "cleared the checklist"
+    },
+    "recurrence": {
+      "changed": "changed the repeat from {{from}} to {{to}}",
+      "set": "set the task to repeat {{to}}",
+      "stopped": "stopped the task from repeating"
+    },
+    "stage": {
+      "moved": "moved this from {{from}} to {{to}}",
+      "changed": "changed the stage"
+    },
+    "description": "edited the description",
+    "relations": {
+      "linked": "linked this: {{to}}",
+      "removed": "removed the link: {{from}}",
+      "changed": "changed the links"
+    },
+    "parent": {
+      "subtask": "made this a subtask",
+      "standalone": "made this a standalone task"
+    },
+    "created": {
+      "subtask": "created this subtask",
+      "repeat": "created this task as the next repeat",
+      "task": "created this task"
+    },
+    "duplicated": "duplicated \"{{source}}\"",
+    "duplicatedTask": "duplicated a task",
+    "deletedWithSubtasks_one": "deleted this task and {{count}} subtask",
+    "deletedWithSubtasks_other": "deleted this task and {{count}} subtasks",
+    "deleted": "deleted this task",
+    "commented": "added a comment",
+    "attached": "attached {{file}}",
+    "attachedFile": "attached a file",
+    "attachmentRemoved": "removed the attachment {{file}}",
+    "attachmentRemovedGeneric": "removed an attachment",
+    "updated": "updated this task",
+    "madeChanges_one": "made {{count}} change",
+    "madeChanges_other": "made {{count}} changes"
+  },
+  "view": {
+    "list": "List",
+    "board": "Board",
+    "calendar": "Calendar",
+    "timeline": "Timeline",
+    "switcher": "Task views"
+  },
+  "delete": {
+    "titleTask": "Delete this task?",
+    "titleSubtask": "Delete this subtask?",
+    "body": " will be deleted with comments and attachments. You can undo for a few seconds.",
+    "bodyWithSubtasks_one": " and its {{count}} subtask will be deleted with comments and attachments. You can undo for a few seconds.",
+    "bodyWithSubtasks_other": " and its {{count}} subtasks will be deleted with comments and attachments. You can undo for a few seconds."
+  },
+  "field": {
+    "status": "Status",
+    "priority": "Priority",
+    "type": "Type",
+    "storyPoints": "Story points",
+    "sprint": "Sprint",
+    "epic": "Epic"
+  },
+  "detail": {
+    "sprintFallback": "Sprint",
+    "linkCopied": "Link copied",
+    "linkCopyError": "Could not copy the link.",
+    "created": "Created \"{{title}}\"",
+    "createdWithSubtasks_one": "Created \"{{title}}\" with {{count}} subtask",
+    "createdWithSubtasks_other": "Created \"{{title}}\" with {{count}} subtasks",
+    "copyLink": "Copy link",
+    "epicBadge": "Epic: {{title}}",
+    "description": "Details, comments and files for this task.",
+    "sections": "Task sections",
+    "tabDetails": "Details",
+    "tabActivity": "Activity",
+    "notSet": "Not set",
+    "schedule": "Schedule",
+    "overdue": "Overdue",
+    "onTrack": "On track",
+    "parentTask": "Parent task",
+    "subtaskOf": "Subtask of ",
+    "none": "None",
+    "repeat": "Repeat",
+    "nobodyYet": "Nobody yet",
+    "nothing": "Nothing",
+    "noDescription": "No description.",
+    "epicItemsRegion": "Items in this epic",
+    "items": "Items",
+    "noEpicItems": "No items yet. Choose this epic when you create or edit a story, task, bug or spike.",
+    "deleteSubtask": "Delete subtask",
+    "deleteTask": "Delete task"
+  },
+  "board": {
+    "quickFilters": "Quick filters",
+    "clear": "Clear",
+    "clearSr": " quick filters",
+    "groupBy": "Group by",
+    "column": "{{label}} column",
+    "columnInLane": "{{label}} column in {{lane}}",
+    "noTasks": "No tasks",
+    "dropHere": "Drop tasks here",
+    "showing": "Showing {{shown}} of {{total}}",
+    "showMoreAria": "Show {{count}} more {{label}} tasks",
+    "showMore": "Show {{count}} more",
+    "showAllAria": "Show all {{total}} {{label}} tasks",
+    "showAll": "Show all",
+    "statusTabs": "Task status",
+    "movedTo": "Moved to {{name}}",
+    "viewAria": "View {{name}}",
+    "view": "View",
+    "wipLimit": "WIP limit {{limit}}",
+    "overWip": "over WIP limit",
+    "addTaskTo": "Add task to {{label}}",
+    "columnOptions": "Options for {{label}} column",
+    "editStages": "Edit stages and limits…",
+    "setWip": "Set WIP limits…",
+    "quick": {
+      "Start": "Start",
+      "Next": "Next",
+      "Done": "Done",
+      "Reopen": "Reopen"
+    },
+    "quickAria": "{{verb}} {{title}}: move to {{stage}}"
+  },
+  "scope": {
+    "region": "Scope",
+    "path": "Scope path",
+    "openProject": "Open project {{name}}",
+    "status": {
+      "planned": "Planned",
+      "active": "Active",
+      "completed": "Completed"
+    },
+    "goal": "Goal:",
+    "noSprintRunning": "No sprint is running",
+    "sprintNotFound": "Sprint not found",
+    "sprintReport": "Sprint report",
+    "sprintReportFor": " for {{name}}",
+    "clearAria": "Clear project and sprint scope",
+    "clearTitle": "Clear scope",
+    "reviewSprint": "Review sprint",
+    "endsToday": "This sprint ends today.",
+    "endsIn_one": "This sprint ends in {{count}} day.",
+    "endsIn_other": "This sprint ends in {{count}} days.",
+    "endedAgo_one": "This sprint ended {{count}} day ago.",
+    "endedAgo_other": "This sprint ended {{count}} days ago.",
+    "finishOrMove": "Finish or move open work."
+  },
+  "key": {
+    "copied": "Copied {{key}}",
+    "copyError": "Could not copy. Select the key and copy it manually.",
+    "copy": "Copy key"
+  },
+  "labels": {
+    "remove": "Remove label {{label}}",
+    "list": "Labels",
+    "moreSr": " more labels"
+  },
+  "assignees": {
+    "assignedTo": "Assigned to {{names}}"
+  },
+  "breadcrumb": {
+    "path": "Task path",
+    "project": "Project: {{name}}",
+    "openEpic": "Open epic {{title}}",
+    "backToParent": "Back to parent: {{title}}"
+  },
+  "inline": {
+    "openDetails": "Open details",
+    "clickToRename": "Click to rename"
+  },
+  "assignee": {
+    "unassignMe": "Unassign me",
+    "assignMe": "Assign to me",
+    "formerMember": "Former member",
+    "loading": "Loading members...",
+    "none": "No members to assign yet.",
+    "label": "Assignees",
+    "search": "Search people to assign",
+    "addAnother": "Add another",
+    "noMatch": "No one matches that name.",
+    "nobody": "Nobody is assigned yet.",
+    "askAdmin": "Ask an admin to assign other people."
+  },
+  "watch": {
+    "stopError": "Could not stop watching.",
+    "startError": "Could not watch the task.",
+    "stopTitle": "Stop watching this task",
+    "startTitle": "Get notified about comments and completion",
+    "watching": "Watching",
+    "watch": "Watch",
+    "watchers_one": "{{count}} watcher",
+    "watchers_other": "{{count}} watchers"
+  },
+  "dev": {
+    "copyError": "Could not copy. Your browser blocked clipboard access.",
+    "shortcuts": "Developer shortcuts",
+    "developer": "Developer",
+    "branchCopied": "Branch name copied",
+    "copyBranch": "Copy branch name",
+    "commitCopied": "Commit message copied",
+    "copyCommit": "Copy commit message",
+    "linkCopied": "Markdown link copied",
+    "copyLink": "Copy markdown link"
+  },
+  "columns": {
+    "title": "Columns",
+    "choose": "Choose columns",
+    "customFields": "Custom fields",
+    "reset": "Reset to default"
+  },
+  "hover": {
+    "assignee": "Assignee"
+  },
+  "convert": {
+    "title": "Convert to subtask",
+    "description": "Choose the task that “{{title}}” becomes a subtask of. It takes that task’s project, sprint and epic.",
+    "searchLabel": "Search parent tasks",
+    "searchPlaceholder": "Search by key or title",
+    "empty": "No eligible tasks. A parent must be a top-level task that is not an epic.",
+    "listLabel": "Eligible parent tasks",
+    "makeSubtask": "Make subtask of {{task}}"
+  },
+  "wip": {
+    "error": "Enter a whole number from 1 to {{max}}, or leave empty",
+    "title": "Set WIP limits",
+    "description": "A column over its limit turns red. It is a warning only; cards can still be moved in.",
+    "noLimit": "No limit",
+    "save": "Save limits"
+  },
+  "move": {
+    "title": "Move task",
+    "tasksSr": " tasks",
+    "current": "(current)"
+  },
+  "swimlane": {
+    "label": "{{lane}} swimlane"
+  },
+  "relations": {
+    "linkedWork": "Linked work",
+    "linked": "{{type}} {{target}}",
+    "linkError": "Could not link the tasks.",
+    "removedLink": "Removed link to {{target}}",
+    "restoreError": "Could not restore the link.",
+    "removeError": "Could not remove the link.",
+    "linkWork": "Link work",
+    "none": "No linked work yet.",
+    "removeLink": "Remove link: {{type}} {{title}}",
+    "linkType": "Link type",
+    "searchToLink": "Search tasks to link",
+    "noMatch": "No matching tasks."
+  },
+  "activityPanel": {
+    "someone": "Someone",
+    "loading": "Loading activity",
+    "emptyTitle": "No activity yet",
+    "emptyDescription": "Changes, comments and files for this task will show up here.",
+    "refreshError": "Could not refresh: {{error}}",
+    "timeline": "Task activity",
+    "loadOlder": "Load older"
+  },
+  "scrum": {
+    "sprintSubtaskHint": "Subtasks follow the sprint of their parent task.",
+    "sprintNoProjectHint": "Pick one of your projects to plan this task into a sprint.",
+    "epicSubtaskHint": "Subtasks belong to the epic of their parent task.",
+    "epicOtherProject": "This epic belongs to another project.",
+    "epicExplainer": "An epic groups stories, tasks, bugs and spikes of its project across sprints. It is not planned into a sprint itself."
+  },
+  "devpanel": {
+    "state": {
+      "open": "Open",
+      "merged": "Merged",
+      "closed": "Closed"
+    },
+    "opensGithub": "(opens GitHub in a new tab)",
+    "pullRequest": "Pull request #{{number}}",
+    "commit": "Commit",
+    "title": "Development",
+    "empty": "No pull requests, commits or branches yet. Mention {{key}} in a branch name, commit message or pull request to link it here.",
+    "pullRequests": "Pull requests",
+    "commits": "Commits",
+    "branches": "Branches"
+  },
+  "subtaskList": {
+    "progressDone": "{{done}}/{{total}} done",
+    "storyPoints_one": " · {{done}}/{{count}} story point",
+    "storyPoints_other": " · {{done}}/{{count}} story points",
+    "markNotDone": "Mark subtask \"{{title}}\" as not done",
+    "markDone": "Mark subtask \"{{title}}\" as done",
+    "none": "No subtasks yet.",
+    "delete": "Delete subtask {{title}}",
+    "addLabel": "Add subtask",
+    "addPlaceholder": "Add a subtask and press Enter",
+    "addError": "Could not add the subtask."
+  },
+  "checklist": {
+    "addError": "Could not add the item.",
+    "renameError": "Could not rename the item.",
+    "moveError": "Could not move the item.",
+    "saveError": "Could not save your change.",
+    "deleteError": "Could not delete the item.",
+    "none": "No checklist items yet.",
+    "markNotDone": "Mark \"{{text}}\" as not done",
+    "markDone": "Mark \"{{text}}\" as done",
+    "renameLabel": "Rename checklist item \"{{text}}\"",
+    "moveUp": "Move \"{{text}}\" up",
+    "moveDown": "Move \"{{text}}\" down",
+    "delete": "Delete checklist item \"{{text}}\"",
+    "full": "A checklist can have at most {{max}} items.",
+    "addLabel": "Add checklist item",
+    "addPlaceholder": "Add an item and press Enter"
+  },
+  "comments": {
+    "title": "Comments",
+    "added": "Comment added",
+    "addError": "Could not add the comment.",
+    "deleted": "Comment deleted",
+    "deleteError": "Could not delete the comment.",
+    "none": "No comments yet.",
+    "unknown": "Unknown",
+    "delete": "Delete comment",
+    "addLabel": "Add a comment",
+    "mentionList": "Mention a teammate",
+    "placeholder": "Write a comment... Type @ to mention a teammate",
+    "mentionStatus_one": "{{count}} person to mention. Use the arrow keys and Enter.",
+    "mentionStatus_other": "{{count}} people to mention. Use the arrow keys and Enter.",
+    "sendHint": "Ctrl or Cmd + Enter to send",
+    "sending": "Sending...",
+    "send": "Comment"
+  },
+  "bulk": {
+    "region": "Bulk actions",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "status": "Status",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "sprint": "Sprint",
+    "labels": "Labels",
+    "clearSelection": "Clear selection",
+    "setStatus_one": "Set status for {{count}} task",
+    "setStatus_other": "Set status for {{count}} tasks",
+    "setPriority_one": "Set priority for {{count}} task",
+    "setPriority_other": "Set priority for {{count}} tasks",
+    "addAssignee_one": "Add assignee to {{count}} task",
+    "addAssignee_other": "Add assignee to {{count}} tasks",
+    "moveTo_one": "Move {{count}} task to",
+    "moveTo_other": "Move {{count}} tasks to",
+    "backlogNoSprint": "Backlog (no sprint)",
+    "active": "Active",
+    "addLabelsTitle_one": "Add labels to {{count}} task",
+    "addLabelsTitle_other": "Add labels to {{count}} tasks",
+    "addLabelsHint": "Existing labels stay. If any selected task would end up with more than 10 labels, nothing is changed.",
+    "addLabelsButton_one": "Add {{count}} label",
+    "addLabelsButton_other": "Add {{count}} labels",
+    "addLabelsNone": "Add labels"
+  },
+  "attachments": {
+    "title": "Attachments",
+    "preview": "Preview of {{name}}",
+    "uploaded": "Uploaded {{name}}",
+    "uploadError": "Could not upload {{name}}.",
+    "downloadError": "Could not download {{name}}.",
+    "removed": "Removed {{name}}",
+    "removeError": "Could not remove {{name}}.",
+    "none": "No attachments yet.",
+    "download": "Download {{name}}",
+    "delete": "Delete {{name}}",
+    "uploadingList": "Uploading",
+    "uploading": "Uploading {{name}}",
+    "dropzone": "Drag files here or choose them. Up to {{mb}} MB each: images, PDF, Office, text, CSV or ZIP.",
+    "upload": "Upload file",
+    "choose": "Choose files to upload"
+  },
+  "files": {
+    "bytes": "{{size}} B",
+    "kilobytes": "{{size}} KB",
+    "megabytes": "{{size}} MB",
+    "empty": "\"{{name}}\" is empty.",
+    "tooLarge": "\"{{name}}\" is larger than {{mb}} MB."
+  },
+  "menu": {
+    "nowSubtask": "\"{{task}}\" is now a subtask of \"{{parent}}\"",
+    "nowTask": "\"{{task}}\" is now a task",
+    "convertError": "Could not convert the task to a subtask.",
+    "promoteError": "Could not promote the subtask.",
+    "created": "Created \"{{title}}\"",
+    "duplicateError": "Could not duplicate the task.",
+    "actionsFor": "Actions for {{title}}",
+    "moveTo": "Move to",
+    "moveToEllipsis": "Move to…",
+    "viewDetails": "View details",
+    "duplicate": "Duplicate",
+    "convert": "Convert to subtask…",
+    "promote": "Promote to task"
+  },
+  "taskForm": {
+    "editTitle": "Edit task",
+    "createTitle": "Create a new task",
+    "editDescription": "Update the details, schedule or dependencies.",
+    "createDescription": "Add the details, schedule and what it depends on.",
+    "title": "Title",
+    "titlePlaceholder": "e.g. Prepare sprint review",
+    "description": "Description",
+    "descriptionPlaceholder": "Add more context (optional)",
+    "project": "Project",
+    "projectPlaceholder": "Group tasks under a project (optional)",
+    "labels": "Labels",
+    "startDate": "Start date",
+    "dueDate": "Due date",
+    "dependsOn": "Depends on",
+    "dependsHint": "This task starts after the selected tasks are done. Used by the timeline.",
+    "noOtherTasks": "No other tasks available yet.",
+    "saving": "Saving...",
+    "saveChanges": "Save changes",
+    "createTask": "Create task",
+    "required": "{{name}} is required.",
+    "notSaved": "Your changes could not be saved. Please try again.",
+    "saveError": "Could not save the task."
+  },
+  "calendar": {
+    "today": "Today",
+    "goToToday": "Go to today",
+    "goToTodayTitle": "Go to today (T)",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "layout": "Calendar layout",
+    "week": "Week",
+    "month": "Month",
+    "addTaskDue": "Add task due {{date}}",
+    "showLess": "Show less",
+    "more": "+{{count}} more",
+    "legend": "Legend",
+    "prevWeek": "Previous week",
+    "nextWeek": "Next week",
+    "tasksOn": "Tasks on {{date}}",
+    "addTaskOn": "Add task on {{date}}",
+    "nothingToday": "Nothing due today.",
+    "nothingDay": "Nothing due this day.",
+    "addTask": "Add task",
+    "upcoming": "Upcoming this month",
+    "noneInMonth": "No tasks due in {{month}}.",
+    "labelsSr": "Labels: {{labels}}"
+  },
+  "status": {
+    "pending": "Pending",
+    "in-progress": "In Progress",
+    "completed": "Completed"
+  },
+  "priority": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "titled": {
+      "high": "High priority",
+      "medium": "Medium priority",
+      "low": "Low priority"
+    },
+    "suffix": " priority"
+  },
+  "type": {
+    "story": "Story",
+    "task": "Task",
+    "bug": "Bug",
+    "spike": "Spike",
+    "epic": "Epic"
+  },
+  "sort": {
+    "createdAt": "Newest",
+    "deadline": "By Deadline",
+    "priority": "By Priority"
+  },
+  "badges": {
+    "overdue": "(overdue)",
+    "dependencies": "Dependencies",
+    "dependenciesSr": "dependencies",
+    "linkedWork": "Linked work",
+    "linkedTasks_one": "linked task",
+    "linkedTasks_other": "linked tasks",
+    "storyPoints_one": "{{count}} story point",
+    "storyPoints_other": "{{count}} story points",
+    "pointsShort_one": "{{count}} pt",
+    "pointsShort_other": "{{count}} pts",
+    "subtasks": "Subtasks",
+    "subtasksDone": "{{done}} of {{total}} subtasks done",
+    "checklist": "Checklist",
+    "checklistDone": "{{done}} of {{total}} checklist items done",
+    "estimated": "Est. {{value}}",
+    "loggedOfEstimated": "{{logged}} logged of {{estimate}} estimated",
+    "loggedOfEstimatedOver": "{{logged}} logged of {{estimate}} estimated, over the estimate",
+    "logged": "{{logged}} logged",
+    "repeats": "Repeats {{rule}}"
+  },
+  "dots": {
+    "summary": {
+      "overdue": "overdue",
+      "pending": "pending",
+      "in-progress": "in progress",
+      "completed": "completed"
+    },
+    "legend": {
+      "overdue": "Overdue",
+      "in-progress": "In progress",
+      "completed": "Done"
+    },
+    "separator": ", "
+  },
+  "epics": {
+    "itemsDone_one": "{{done}} of {{count}} item done",
+    "itemsDone_other": "{{done}} of {{count}} items done",
+    "withPoints": "{{items}}, {{done}} of {{total}} points"
+  },
+  "errors": {
+    "noWorkspace": "No workspace selected",
+    "noWorkspaceDot": "No workspace selected.",
+    "saveWip": "Could not save the WIP limits",
+    "loadActivity": "Could not load the activity.",
+    "loadOlderActivity": "Could not load older activity.",
+    "deleteTask": "Could not delete the task.",
+    "noAccess": "You don't have access to \"{{slug}}\". Use the workspace switcher to pick another one.",
+    "loadTasks": "Failed to load tasks."
+  },
+  "fields": {
+    "type": {
+      "text": {
+        "label": "Text",
+        "description": "A short note, up to 500 characters"
+      },
+      "number": {
+        "label": "Number",
+        "description": "Any number, such as a budget or a score"
+      },
+      "date": {
+        "label": "Date",
+        "description": "A calendar day"
+      },
+      "select": {
+        "label": "Select",
+        "description": "One choice from a list"
+      },
+      "multiselect": {
+        "label": "Multi-select",
+        "description": "Several choices from a list"
+      },
+      "checkbox": {
+        "label": "Checkbox",
+        "description": "Yes or no"
+      },
+      "url": {
+        "label": "Link",
+        "description": "A web address (http or https)"
+      },
+      "user": {
+        "label": "Person",
+        "description": "A member of the workspace"
+      }
+    },
+    "yes": "Yes",
+    "no": "No",
+    "member": "Member",
+    "notSet": "Not set",
+    "everyProject": "Every project",
+    "errors": {
+      "nameRequired": "Give the field a name.",
+      "nameTooLong": "Use at most {{max}} characters.",
+      "noOptions": "Add at least one option.",
+      "optionName": "Every option needs a name.",
+      "optionTooLong": "Option names can have at most {{max}} characters.",
+      "optionDuplicate": "Option names must be different.",
+      "tooManyOptions": "A field can have at most {{max}} options."
+    },
+    "filter": {
+      "any": "Any {{name}}",
+      "none": "No {{name}}",
+      "yes": "{{name}}: yes",
+      "no": "{{name}}: no",
+      "notSet": "{{name}}: not set",
+      "unknownOption": "Unknown option"
+    },
+    "input": {
+      "chooseOption": "Choose an option",
+      "chooseOptions": "Choose options",
+      "loadingMembers": "Loading members...",
+      "cannotSeeMembers": "You cannot see the member list, so this field cannot be changed.",
+      "searchPeople": "Search people"
+    },
+    "value": {
+      "opensNewTab": "(opens in a new tab)"
+    },
+    "section": "Fields",
+    "saveFailed": "Could not save {{name}}. Try again.",
+    "saveError": "Could not save {{name}}.",
+    "chips": "Custom fields",
+    "noWorkspace": "No workspace selected"
+  },
+  "form": {
+    "errors": {
+      "title": "Give the task a title.",
+      "deadline": "Pick a due date.",
+      "startDate": "Start date must be on or before the due date."
+    },
+    "notEstimated": "Not estimated",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "backlog": "Backlog",
+    "sprintActive": "{{name}} (active)",
+    "sprintCompleted": "{{name}} (completed)",
+    "noEpic": "No epic"
+  },
+  "list": {
+    "columns": {
+      "assignees": "Assignees",
+      "priority": "Priority",
+      "status": "Status",
+      "dueDate": "Due Date",
+      "dueDateMenu": "Due date",
+      "points": "Points",
+      "pointsMenu": "Story points",
+      "release": "Release",
+      "time": "Time",
+      "timeMenu": "Estimate / logged time"
+    },
+    "selectAll": "Select all tasks",
+    "selectedStatus_one": "{{count}} task selected",
+    "selectedStatus_other": "{{count}} tasks selected",
+    "emptyTitle": "No tasks found",
+    "emptyAllCaughtUp": "You're all caught up! Create your first task to get started.",
+    "emptyFilters": "No tasks match your current filters.",
+    "tableLabel": "Tasks",
+    "doneColumn": "Done",
+    "taskName": "Task Name",
+    "actionsColumn": "Actions",
+    "selectAllPhone": "Select all",
+    "select": "Select",
+    "showing": "Showing <b>{{shown}}</b> of <b>{{total}}</b> tasks",
+    "deleteTitle_one": "Delete {{count}} task?",
+    "deleteTitle_other": "Delete {{count}} tasks?",
+    "deleteConfirm_one": "Delete {{count}} task",
+    "deleteConfirm_other": "Delete {{count}} tasks",
+    "orphans_one": "{{count}} subtask goes with them.",
+    "orphans_other": "{{count}} subtasks go with them.",
+    "deleteBody": "The selected tasks are deleted with their comments and attachments. This cannot be undone.",
+    "deleting": "Deleting...",
+    "updateError": "Could not update the selected tasks.",
+    "deleteError": "Could not delete the selected tasks.",
+    "sortSr": ", sort by this column",
+    "openDetails": "Open details for {{title}}",
+    "markNotDone": "Mark \"{{title}}\" as not done",
+    "markDone": "Mark \"{{title}}\" as done",
+    "selectTask": "Select \"{{title}}\"",
+    "rename": "Rename {{title}}",
+    "priorityOf": "Priority of {{title}}",
+    "statusOf": "Status of {{title}}",
+    "dueDateFor": "Due date for {{title}}",
+    "unassigned": "Unassigned",
+    "releaseFallback": "Release",
+    "comments": "Comments",
+    "commentsSr": " comments",
+    "attachments": "Attachments",
+    "attachmentsSr": " attachments",
+    "subtaskOf": "Subtask of {{title}}"
+  },
+  "quickFilters": {
+    "mine": "My tasks",
+    "bugs": "Bugs",
+    "due-week": "Due this week",
+    "blocked": "Blocked",
+    "unassigned": "Unassigned"
+  },
+  "swimlanes": {
+    "none": "None",
+    "assignee": "Assignee",
+    "project": "Project",
+    "type": "Type",
+    "epic": "Epic",
+    "unassigned": "Unassigned",
+    "noProject": "No project",
+    "unknownEpic": "Unknown epic",
+    "allTasks": "All tasks"
+  },
+  "links": {
+    "blocks": "Blocks",
+    "blocked_by": "Is blocked by",
+    "relates": "Relates to",
+    "duplicates": "Duplicates",
+    "duplicated_by": "Is duplicated by",
+    "clones": "Clones",
+    "cloned_by": "Is cloned by"
+  },
+  "subtasks": {
+    "anotherTask": "another task"
+  },
+  "live": {
+    "someone": "Someone",
+    "thisTask": "this task",
+    "commented": "{{who}} commented on {{subject}}",
+    "deleted": "{{who}} deleted {{subject}}",
+    "fileAdded": "{{who}} added a file to {{subject}}",
+    "fileRemoved": "{{who}} removed a file from {{subject}}",
+    "movedTo": "{{who}} moved {{subject}} to {{status}}",
+    "fieldChange": "{{who}} {{change}} on {{subject}}",
+    "updatedFields_one": "{{who}} updated {{subject}} ({{count}} field)",
+    "updatedFields_other": "{{who}} updated {{subject}} ({{count}} fields)",
+    "updated": "{{who}} updated {{subject}}",
+    "changed": "{{who}} changed {{subject}}",
+    "secondsAgo": "{{n}} s ago",
+    "minutesAgo": "{{n}} min ago",
+    "hoursAgo": "{{n}} h ago",
+    "reconnecting": "Reconnecting…",
+    "paused": "Paused · updates again when you are back",
+    "upToDate": "Up to date",
+    "updatedAgo": " · updated {{ago}}",
+    "reconnectingShort": "Reconnecting",
+    "liveShort": "Live",
+    "newChanges_one": "{{count}} new change",
+    "newChanges_other": "{{count}} new changes",
+    "refresh": "Refresh",
+    "refreshSuffix": "· Refresh",
+    "alsoViewingAria": "Also viewing: {{names}}",
+    "alsoViewing": "Also viewing",
+    "changesByOthers_one": "{{count}} change to {{label}} by others",
+    "changesByOthers_other": "{{count}} changes to {{label}} by others"
+  },
+  "page": {
+    "title": "Tasks",
+    "descriptionWrite": "All work in this workspace, as a list, board, calendar or timeline",
+    "descriptionRead": "All work in this workspace (read-only access)",
+    "addTask": "Add Task",
+    "loadingBoard": "Loading board",
+    "loadingTasks": "Loading tasks",
+    "subtaskDeleted": "Subtask deleted",
+    "taskDeleted": "Task deleted",
+    "deletedWithSubtasks_one": "{{title}} and {{count}} subtask",
+    "deletedWithSubtasks_other": "{{title}} and {{count}} subtasks",
+    "exported_one": "Exported {{count}} task",
+    "exported_other": "Exported {{count}} tasks",
+    "stats": {
+      "total": "Total tasks",
+      "pendingSubtitle": "{{count}} pending",
+      "inProgress": "In progress",
+      "inProgressSubtitle": "Currently being worked on",
+      "completed": "Completed",
+      "completedSubtitle": "{{percent}}% of all tasks",
+      "nothingYet": "Nothing yet",
+      "overdue": "Overdue",
+      "overdueSubtitle": "Missed deadlines",
+      "onTrack": "All on track"
+    },
+    "taskSaved": "Task saved",
+    "taskCreated": "Task created"
+  },
+  "recurrence": {
+    "none": "Does not repeat",
+    "repeats": "Repeats",
+    "describe": "{{every}}, {{basis}}",
+    "basis": {
+      "due": "from due date",
+      "completion": "from completion"
+    },
+    "every": {
+      "day_one": "Every day",
+      "day_other": "Every {{count}} days",
+      "week_one": "Every week",
+      "week_other": "Every {{count}} weeks",
+      "month_one": "Every month",
+      "month_other": "Every {{count}} months"
+    },
+    "unit": {
+      "day_one": "day",
+      "day_other": "days",
+      "week_one": "week",
+      "week_other": "weeks",
+      "month_one": "month",
+      "month_other": "months",
+      "label": "Repeat unit"
+    },
+    "saveError": "Could not save the repeat setting.",
+    "repeat": "Repeat",
+    "everyLabel": "Every",
+    "interval": "Repeat interval",
+    "countedFrom": "Repeat counted from"
+  },
+  "time": {
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes",
+    "nothingLogged": "Nothing logged yet",
+    "progress": {
+      "base": "{{logged}} of {{estimate}}",
+      "over": "{{base}} ({{over}} over)",
+      "left": "{{base}} ({{left}} left)"
+    },
+    "progressLabel": "Logged time against the estimate",
+    "valueText": "{{logged}} logged of {{estimate}}",
+    "valueTextOver": "{{logged}} logged of {{estimate}}, {{over}} over",
+    "estimateInvalid": "Enter a duration such as 2h 30m, 45m or 1:30.",
+    "estimateSaveError": "Could not save the estimate.",
+    "estimate": "Estimate",
+    "estimateHint": "For example 2h 30m. Leave empty for none.",
+    "runningNow": "Running now",
+    "runningTimer": "running timer",
+    "deleteEntry": "Delete {{what}} entry by {{name}}",
+    "timerStopped": "Timer stopped and time logged",
+    "timerMoved": "Timer moved here from {{from}}",
+    "timerStarted": "Timer started",
+    "stopError": "Could not stop the timer.",
+    "startError": "Could not start the timer.",
+    "entryDeleted": "Time entry deleted",
+    "entryDeleteError": "Could not delete the entry.",
+    "section": "Time",
+    "loadFailed": "We could not load the time entries",
+    "loadingEntries": "Loading time entries",
+    "stopTimer": "Stop timer",
+    "runningFor": ", running for {{duration}}",
+    "startTimer": "Start timer",
+    "noneLogged": "No time logged yet.",
+    "entriesList": "Time entries",
+    "logInvalid": "Enter a duration such as 1h 30m, 45m or 1:30.",
+    "logTooLong": "A single entry can be at most 24 hours. Split longer work across days.",
+    "logDay": "Pick today or an earlier day.",
+    "logged": "Time logged",
+    "logError": "Could not log the time. Check your connection and try again.",
+    "logTime": "Log time",
+    "timeSpent": "Time spent",
+    "logHint": "For example 1h 30m, 45m or 1:30.",
+    "day": "Day",
+    "note": "Note",
+    "optional": "Optional.",
+    "notePlaceholder": "What did you work on?",
+    "pillStopped": "Timer stopped on {{label}}",
+    "pillAria": "Timer running on {{label}} for {{duration}}. Open the task.",
+    "pillStop": "Stop the timer on {{label}}",
+    "loadEntriesError": "Could not load the time entries.",
+    "loadSheetError": "Could not load the timesheet.",
+    "grid": {
+      "caption": "Time logged per task and day, with totals",
+      "task": "Task",
+      "total": "Total",
+      "todaySr": " (today)",
+      "none": "none",
+      "perTask": "Time logged per task",
+      "weekTotal": "Week total"
+    },
+    "page": {
+      "title": "Timesheet",
+      "descriptionManager": "Time logged per task and day. Choose a person or see everyone.",
+      "descriptionSelf": "Your logged time per task and day.",
+      "weekFilters": "Week and filters",
+      "range": "{{from}} to {{to}}",
+      "thisWeekButton": "This week",
+      "person": "Person",
+      "everyone": "Everyone",
+      "you": "{{name}} (you)",
+      "thisWeekSuffix": " this week",
+      "truncated": "Only the most recent entries are shown. Narrow the week or choose a person to see the rest, or export the CSV.",
+      "loading": "Loading timesheet",
+      "loadFailed": "We could not load the timesheet",
+      "checkConnection": "Check your connection and try again.",
+      "emptyThisWeek": "No time logged this week",
+      "emptyOtherWeek": "No time logged in this week",
+      "emptyDescription": "Start a timer or log time from a task, and it appears here by day.",
+      "openTasks": "Open tasks",
+      "byPersonRegion": "Time by person",
+      "byPerson": "By person",
+      "exported": "Timesheet exported",
+      "exportError": "Could not export the timesheet."
+    },
+    "durationPair": "{{first}} {{second}}"
+  },
+  "timeline": {
+    "emptyTitle": "Nothing scheduled yet",
+    "emptyDescription": "Add tasks with a start and due date to see them on the timeline.",
+    "dependency": "Dependency",
+    "startsBefore": "Starts before prerequisite is due",
+    "conflicts_one": "{{count}} scheduling conflict",
+    "conflicts_other": "{{count}} scheduling conflicts",
+    "zoom": "Zoom",
+    "days": "Days",
+    "weeks": "Weeks",
+    "barLabel": "{{title}}, {{status}}, {{dates}}.{{hint}}",
+    "barHint": " Arrow keys move, Shift+Arrow keys change the due date."
+  },
+  "toolbar": {
+    "all": "All",
+    "allPriorities": "All priorities",
+    "allTypes": "All types",
+    "allEpics": "All epics",
+    "allLabels": "All labels",
+    "allProjects": "All projects",
+    "allSprints": "All sprints",
+    "activeSprint": "Active sprint",
+    "sprintPlanned": "{{name}} (planned)",
+    "unknownSprint": "Unknown sprint",
+    "allReleases": "All releases",
+    "noRelease": "No release",
+    "releaseReleased": "{{name}} (released)",
+    "unknownRelease": "Unknown release",
+    "filterByStatus": "Filter by status",
+    "searchLabel": "Search tasks",
+    "searchPlaceholder": "Search tasks...",
+    "filters": "Filters",
+    "activeSr": " active",
+    "exportCsv": "Export CSV",
+    "exportTitle_one": "Export {{count}} task as CSV",
+    "exportTitle_other": "Export {{count}} tasks as CSV",
+    "filterByProject": "Filter by project",
+    "filterBySprint": "Filter by sprint",
+    "filterByRelease": "Filter by release",
+    "filterByLabel": "Filter by label",
+    "filterByType": "Filter by type",
+    "filterByEpic": "Filter by epic",
+    "filterByPriority": "Filter by priority",
+    "filterByField": "Filter by {{name}}",
+    "assignedToMe": "Assigned to me",
+    "sort": "Sort tasks"
+  },
+  "views": {
+    "teammate": "A teammate",
+    "currentSr": "(current view)",
+    "deleted": "Deleted view “{{name}}”",
+    "menu": "Views",
+    "saveCurrent": "Save current view…",
+    "loading": "Loading views…",
+    "loadFailed": "We could not load your saved views.",
+    "none": "No saved views yet. Set the filters you want, then save them here.",
+    "mine": "Mine",
+    "shared": "Shared",
+    "manage": "Manage views…",
+    "saved": "Saved view “{{name}}”",
+    "updated": "View updated",
+    "deleteTitle": "Delete this view?",
+    "deleteBody": "“{{name}}” will be removed. Tasks are not affected.",
+    "deleteBodyShared": "“{{name}}” will be removed for everyone it is shared with. Tasks are not affected.",
+    "deleteConfirm": "Delete view",
+    "deleting": "Deleting...",
+    "saveTitle": "Save current view",
+    "editTitle": "Edit view",
+    "saveDescription": "Keep the layout and filters you are looking at, and open them again in one click.",
+    "editDescription": "Change the name of this view or who can see it.",
+    "saveButton": "Save view",
+    "nameRequired": "Give the view a name.",
+    "name": "Name",
+    "namePlaceholder": "e.g. My open bugs",
+    "shareLabel": "Share with the workspace",
+    "shareHint": "Everyone who can see tasks can open it. You and workspace admins can change it.",
+    "manageTitle": "Manage views",
+    "manageDescription": "Rename, share or delete the views you saved.",
+    "manageEmpty": "You have no saved views yet.",
+    "editAria": "Edit {{name}}",
+    "deleteAria": "Delete {{name}}",
+    "sharedTag": "Shared",
+    "errors": {
+      "noWorkspace": "No workspace selected",
+      "save": "We could not save this view. Try again.",
+      "change": "We could not change this view. Try again.",
+      "delete": "We could not delete this view. Try again."
+    },
+    "describe": {
+      "status": "status {{value}}",
+      "priority": "priority {{value}}",
+      "type": "type {{value}}",
+      "label": "label {{value}}",
+      "epic": "epic",
+      "project": "project {{value}}",
+      "activeSprint": "active sprint",
+      "backlog": "backlog",
+      "sprint": "sprint",
+      "noRelease": "no release",
+      "release": "release",
+      "fieldFilter": "field filter",
+      "fieldFilters_one": "{{count}} field filter",
+      "fieldFilters_other": "{{count}} field filters",
+      "assignedToMe": "assigned to me",
+      "quickFilters": "quick filters",
+      "sep": " · "
+    },
+    "value": {
+      "status": {
+        "pending": "pending",
+        "in-progress": "in-progress",
+        "completed": "completed"
+      },
+      "priority": {
+        "high": "high",
+        "medium": "medium",
+        "low": "low"
+      },
+      "type": {
+        "story": "story",
+        "task": "task",
+        "bug": "bug",
+        "spike": "spike",
+        "epic": "epic"
+      }
+    }
+  },
+  "workflow": {
+    "defaultStage": {
+      "todo": "To do",
+      "in-progress": "In progress",
+      "done": "Done",
+      "in-review": "In review",
+      "qa": "QA",
+      "backlog": "Backlog",
+      "ready": "Ready",
+      "doing": "Doing",
+      "review": "Review"
+    },
+    "color": {
+      "slate": "Slate",
+      "blue": "Blue",
+      "violet": "Violet",
+      "amber": "Amber",
+      "emerald": "Green",
+      "rose": "Rose",
+      "cyan": "Cyan"
+    },
+    "errors": {
+      "nameRequired": "Give the stage a name.",
+      "nameTooLong": "Use at most {{max}} characters.",
+      "nameTaken": "Another stage already has this name.",
+      "limit": "The limit is a whole number from 0 to {{max}}.",
+      "tooMany": "A workflow can have at most {{max}} stages.",
+      "tooFew": "Add at least one stage.",
+      "groupMissing": "Every group needs a stage: add one to \"{{group}}\"."
+    },
+    "templates": {
+      "scrum": "Scrum (To do, In progress, In review, QA, Done)",
+      "kanban": "Kanban (Backlog, Ready, Doing, Review, Done)",
+      "simple": "Simple (To do, In progress, Done)"
+    },
+    "noWorkspace": "No workspace selected",
+    "untitled": "Untitled",
+    "stageNumber": "Stage {{number}}",
+    "position": "stage {{index}} of {{total}}",
+    "row": {
+      "name": "Name",
+      "namePlaceholder": "For example, In review",
+      "group": "Group",
+      "groupOf": "Group of {{label}}",
+      "wipLimit": "WIP limit",
+      "wipHint": "0 = none",
+      "colorOf": "Color of {{label}}",
+      "moveUp": "Move {{label}} up",
+      "moveDown": "Move {{label}} down",
+      "onlyStage": "{{label}} is the only stage in {{group}}",
+      "delete": "Delete {{label}}",
+      "needOne": "Every group needs at least one stage"
+    },
+    "delete": {
+      "title": "Delete \"{{name}}\"?",
+      "thisStage": "this stage",
+      "description": "Tasks in this stage move to the stage you choose. Nothing is deleted until you save the workflow.",
+      "moveTo": "Move its tasks to",
+      "receiver": "Stage that receives the tasks",
+      "statusChanges": "Their status changes because \"{{name}}\" is in another group.",
+      "confirm": "Delete stage"
+    },
+    "preview": {
+      "region": "Board preview, scrolls sideways",
+      "columns": "Board columns",
+      "tasksLimit": " tasks, limit {{limit}}",
+      "tasks": " tasks"
+    }
+  }
+}

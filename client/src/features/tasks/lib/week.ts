@@ -1,9 +1,19 @@
 // Week helpers for the phone calendar: a 7-day strip (Sunday first, like the
 // month grid), the default selected day and the "start → due" label.
 import { addDays, formatDate, isSameDay, parseDateKey, startOfDay, startOfMonth, toDateKey, dateKeyOf } from './date';
+import { currentLanguage } from '@/i18n';
+import { formatDateTimeIn } from '@/i18n/format';
 import type { Task } from '../types';
 
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Short weekday names, Sunday first, in the interface language (Jan 7, 2024 was a Sunday). */
+export const weekdayLabels = (style: 'short' | 'narrow' = 'short'): string[] =>
+  Array.from({ length: 7 }, (_, index) => formatDateTimeIn(new Date(2024, 0, 7 + index), { weekday: style }));
+
+/** Two-letter column heads of the phone month grid; Arabic uses the one-letter form (its names do not shorten). */
+export const weekdayInitials = (): string[] =>
+  currentLanguage() === 'ar' ? weekdayLabels('narrow') : weekdayLabels('short').map(label => label.slice(0, 2));
 
 export interface WeekDay {
   date: Date;
@@ -35,7 +45,7 @@ export const buildWeek = (
     return {
       date,
       key,
-      weekday: WEEKDAYS[date.getDay()],
+      weekday: weekdayLabels()[date.getDay()],
       dayOfMonth: date.getDate(),
       isToday: isSameDay(date, today),
       count: tasksByDay.get(key)?.length ?? 0,

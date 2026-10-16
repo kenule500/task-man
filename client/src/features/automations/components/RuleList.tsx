@@ -1,4 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
@@ -17,17 +19,19 @@ interface RuleListProps {
 }
 
 const runSummary = (rule: Automation, now?: Date): string => {
-  if (rule.runCount === 0) return 'Has not run yet';
-  const times = `Ran ${rule.runCount} ${rule.runCount === 1 ? 'time' : 'times'}`;
+  if (rule.runCount === 0) return i18n.t('admin:automations.list.neverRun');
+  const times = i18n.t('admin:automations.list.ran', { count: rule.runCount });
   const last = rule.lastRunAt ? formatRelativeTime(rule.lastRunAt, now) : '';
-  return last ? `${times}, last ${last}` : times;
+  return last ? i18n.t('admin:automations.list.ranLast', { times, when: last }) : times;
 };
 
 const ICON_BUTTON = 'h-10 gap-1.5 px-3 text-sm md:h-9';
 
 /** The rules as cards: sentence, on/off switch, run statistics and edit/delete actions. */
-export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }: RuleListProps) => (
-  <ul aria-label="Automation rules" className="space-y-3">
+export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }: RuleListProps) => {
+  const { t } = useTranslation('admin');
+  return (
+  <ul aria-label={t('automations.list.label')} className="space-y-3">
     {rules.map(rule => (
       <li key={rule._id}>
         <Surface as="article" radius="xl" padding="sm" className="space-y-3 sm:p-5" aria-label={rule.name}>
@@ -35,13 +39,13 @@ export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }:
             <div className="min-w-0">
               <h2 className="break-words text-base font-semibold text-slate-900">{rule.name}</h2>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                {!rule.enabled && <Tag tone="neutral">Off</Tag>}
-                {rule.project && <Tag tone="primary">Project: {rule.project}</Tag>}
+                {!rule.enabled && <Tag tone="neutral">{t('automations.list.off')}</Tag>}
+                {rule.project && <Tag tone="primary">{t('automations.list.project', { name: rule.project })}</Tag>}
               </div>
             </div>
             <RuleSwitch
               checked={rule.enabled}
-              label={`${rule.name} is ${rule.enabled ? 'on' : 'off'}`}
+              label={t('automations.list.switchLabel', { name: rule.name, state: rule.enabled ? t('automations.list.on') : t('automations.list.offState') })}
               disabled={busyId === rule._id}
               onChange={value => onToggle(rule, value)}
             />
@@ -56,7 +60,7 @@ export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }:
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onEdit(rule)} className={`${ICON_BUTTON} flex-1 sm:flex-none`}>
                 <Pencil aria-hidden />
-                Edit<span className="sr-only"> {rule.name}</span>
+                {t('actions.edit')}<span className="sr-only">{t('automations.list.editSr', { name: rule.name })}</span>
               </Button>
               <Button
                 type="button"
@@ -65,7 +69,7 @@ export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }:
                 className={`${ICON_BUTTON} flex-1 text-danger-fg hover:bg-danger-bg sm:flex-none`}
               >
                 <Trash2 aria-hidden />
-                Delete<span className="sr-only"> {rule.name}</span>
+                {t('actions.delete')}<span className="sr-only">{t('automations.list.editSr', { name: rule.name })}</span>
               </Button>
             </div>
           </div>
@@ -73,4 +77,5 @@ export const RuleList = ({ rules, context, busyId, onToggle, onEdit, onDelete }:
       </li>
     ))}
   </ul>
-);
+  );
+};

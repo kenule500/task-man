@@ -1,4 +1,5 @@
 // Keyboard shortcuts: the table behind both the key handler and the "Keyboard shortcuts" dialog.
+import { t } from '@/i18n';
 
 /** After `g`, the second key has this long to arrive. */
 export const GO_SEQUENCE_MS = 1000;
@@ -46,26 +47,26 @@ export const modifierKey = (): string => (isMacPlatform() ? '⌘' : 'Ctrl');
 
 export const shortcutGroups = (): ShortcutGroup[] => [
   {
-    title: 'Go to',
-    entries: GO_TARGETS.map(target => ({ label: `Go to ${target.label.toLowerCase()}`, keys: ['G', target.key.toUpperCase()], sequence: true })),
+    title: t('nav:shortcuts.groups.goTo'),
+    entries: GO_TARGETS.map(target => ({ label: t(`nav:shortcuts.go.${target.label.toLowerCase()}`), keys: ['G', target.key.toUpperCase()], sequence: true })),
   },
   {
-    title: 'Actions',
+    title: t('nav:shortcuts.groups.actions'),
     entries: [
-      { label: 'Create a task', keys: ['C'] },
-      { label: 'Search tasks, or open search from other pages', keys: ['/'] },
-      { label: 'Open search from anywhere', keys: [modifierKey(), 'K'] },
-      { label: 'Show keyboard shortcuts', keys: ['?'] },
+      { label: t('nav:shortcuts.createTask'), keys: ['C'] },
+      { label: t('nav:shortcuts.searchTasks'), keys: ['/'] },
+      { label: t('nav:shortcuts.openSearch'), keys: [modifierKey(), 'K'] },
+      { label: t('nav:shortcuts.showShortcuts'), keys: ['?'] },
     ],
   },
   {
-    title: 'In a view',
+    title: t('nav:shortcuts.groups.inView'),
     entries: [
-      { label: 'Jump to today (Calendar)', keys: ['T'] },
-      { label: 'Move a bar one day (Timeline, bar focused)', keys: ['←', '→'] },
-      { label: 'Resize a bar (Timeline, bar focused)', keys: ['Shift', '←', '→'] },
-      { label: 'Send a comment', keys: [modifierKey(), 'Enter'] },
-      { label: 'Close a dialog or menu', keys: ['Esc'] },
+      { label: t('nav:shortcuts.jumpToday'), keys: ['T'] },
+      { label: t('nav:shortcuts.moveBar'), keys: ['←', '→'] },
+      { label: t('nav:shortcuts.resizeBar'), keys: [t('nav:shortcuts.keys.shift'), '←', '→'] },
+      { label: t('nav:shortcuts.sendComment'), keys: [modifierKey(), t('nav:shortcuts.keys.enter')] },
+      { label: t('nav:shortcuts.close'), keys: [t('nav:shortcuts.keys.esc')] },
     ],
   },
 ];

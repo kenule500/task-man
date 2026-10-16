@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Webhook as WebhookIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { EmptyState, ErrorState, SectionHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ type Editor = { hook?: Webhook } | null;
 export const WebhooksSection = ({
   hooks, loading, error, onReload, onCreate, onUpdate, onDelete, onRotate, onTest, loadDeliveries, onRedeliver,
 }: WebhooksSectionProps) => {
+  const { t } = useTranslation('admin');
   const [editor, setEditor] = useState<Editor>(null);
   const [secret, setSecret] = useState<{ title: string; value: string } | null>(null);
   const [viewing, setViewing] = useState<Webhook | null>(null);
@@ -44,15 +46,15 @@ export const WebhooksSection = ({
     try {
       if (editor?.hook) {
         await onUpdate(editor.hook._id, input);
-        toast.success('Webhook saved');
+        toast.success(t('developers.webhookSaved'));
       } else {
         const created = await onCreate(input);
-        setSecret({ title: 'Your webhook secret', value: created.secret });
+        setSecret({ title: t('developers.webhookSecretTitle'), value: created.secret });
       }
       setEditor(null);
       return null;
     } catch (err) {
-      return err instanceof Error ? err.message : 'We could not save the webhook.';
+      return err instanceof Error ? err.message : t('developers.webhookSaveError');
     }
   };
 
@@ -60,9 +62,9 @@ export const WebhooksSection = ({
     setBusyId(hook._id);
     try {
       await onUpdate(hook._id, { active });
-      toast.success(active ? `"${hook.name}" is on` : `"${hook.name}" is off`);
+      toast.success(active ? t('developers.hookOn', { name: hook.name }) : t('developers.hookOff', { name: hook.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not change the webhook.');
+      toast.error(err instanceof Error ? err.message : t('developers.hookChangeError'));
     } finally {
       setBusyId(null);
     }
@@ -72,10 +74,10 @@ export const WebhooksSection = ({
     setBusyId(hook._id);
     try {
       const delivery = await onTest(hook._id);
-      if (delivery.status === 'success') toast.success(`Test event delivered (${delivery.responseStatus})`);
-      else toast.error(`The receiver did not accept the test event (${delivery.responseStatus ?? delivery.error}).`);
+      if (delivery.status === 'success') toast.success(t('developers.testDelivered', { status: delivery.responseStatus }));
+      else toast.error(t('developers.testRejected', { status: delivery.responseStatus ?? delivery.error }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not send the test event.');
+      toast.error(err instanceof Error ? err.message : t('developers.testError'));
     } finally {
       setBusyId(null);
     }
@@ -87,9 +89,9 @@ export const WebhooksSection = ({
     try {
       const result = await onRotate(rotating._id);
       setRotating(null);
-      setSecret({ title: 'Your new webhook secret', value: result.secret });
+      setSecret({ title: t('developers.newSecretTitle'), value: result.secret });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not rotate the secret.');
+      toast.error(err instanceof Error ? err.message : t('developers.rotateError'));
     } finally {
       setConfirmBusy(false);
     }
@@ -100,10 +102,10 @@ export const WebhooksSection = ({
     setConfirmBusy(true);
     try {
       await onDelete(deleting._id);
-      toast.success(`"${deleting.name}" deleted`);
+      toast.success(t('developers.hookDeleted', { name: deleting.name }));
       setDeleting(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'We could not delete the webhook.');
+      toast.error(err instanceof Error ? err.message : t('developers.hookDeleteError'));
     } finally {
       setConfirmBusy(false);
     }
@@ -112,7 +114,7 @@ export const WebhooksSection = ({
   return (
     <Surface radius="xl" className="space-y-4 sm:p-6">
       <SectionHeader
-        title="Webhooks"
+        title={t('developers.webhooksTitle')}
         icon={<WebhookIcon aria-hidden className="size-4 text-slate-500" />}
         count={loading || error ? undefined : hooks.length}
         className="mb-0"
@@ -124,29 +126,29 @@ export const WebhooksSection = ({
             className="h-11 gap-2 px-4 text-sm sm:h-10"
           >
             <Plus aria-hidden />
-            New webhook
+            {t('developers.newWebhook')}
           </Button>
         )}
       />
       <p className="text-sm text-slate-600">
-        Webhooks tell other systems when something happens here. Each request is signed with the webhook secret so the receiver can check it came from TaskMan.
+        {t('developers.webhooksIntro')}
       </p>
 
       {loading ? (
-        <SkeletonList label="Loading webhooks" rows={2} avatar={false} />
+        <SkeletonList label={t('developers.webhooksLoading')} rows={2} avatar={false} />
       ) : error ? (
         <ErrorState
-          title="Could not load the webhooks"
+          title={t('developers.webhooksLoadFailed')}
           reason={error}
-          nextStep="Check your connection and try again."
-          action={<Button type="button" onClick={onReload} className="h-10 px-4 md:h-9">Try again</Button>}
+          nextStep={t('developers.checkConnection')}
+          action={<Button type="button" onClick={onReload} className="h-10 px-4 md:h-9">{t('actions.retry')}</Button>}
         />
       ) : hooks.length === 0 ? (
         <EmptyState
           headingLevel="h3"
           icon={<WebhookIcon />}
-          title="No webhooks yet"
-          description="Add a webhook to post task and sprint events to your own service, a chat bot or an automation tool."
+          title={t('developers.noWebhooks')}
+          description={t('developers.noWebhooksBody')}
         />
       ) : (
         <WebhookList
@@ -162,37 +164,37 @@ export const WebhooksSection = ({
       )}
       {atLimit && (
         <p role="status" className="text-sm text-slate-600">
-          This workspace has {MAX_WEBHOOKS} webhooks, the most it can have. Delete one to add another.
+          {t('developers.webhookLimit', { max: MAX_WEBHOOKS })}
         </p>
       )}
 
-      <CodeBlock label="Verify the signature (Node)" code={verifySnippet()} />
+      <CodeBlock label={t('developers.verifySignature')} code={verifySnippet()} />
       <p className="text-xs text-slate-600">
-        Requests carry <code className="font-mono">X-TaskMan-Event</code>, <code className="font-mono">X-TaskMan-Delivery</code> and{' '}
-        <code className="font-mono">X-TaskMan-Signature</code>. Answer with any 2xx status within 5 seconds. After 20 failures in a row the webhook turns itself off.
+        {t('developers.headersBefore')} <code className="font-mono">X-TaskMan-Event</code>, <code className="font-mono">X-TaskMan-Delivery</code> {t('developers.headersAnd')}{' '}
+        <code className="font-mono">X-TaskMan-Signature</code>. {t('developers.headersAfter')}
       </p>
 
       {editor && <WebhookDialog webhook={editor.hook} onSave={save} onClose={() => setEditor(null)} />}
-      {secret && <SecretReveal title={secret.title} noun="signing secret" secret={secret.value} onClose={() => setSecret(null)} />}
+      {secret && <SecretReveal title={secret.title} noun={t('developers.nounSecret')} secret={secret.value} onClose={() => setSecret(null)} />}
       {viewing && <DeliveriesDialog webhook={viewing} load={loadDeliveries} redeliver={onRedeliver} onClose={() => setViewing(null)} />}
 
       <ConfirmActionDialog
         open={Boolean(rotating)}
         onOpenChange={open => { if (!open && !confirmBusy) setRotating(null); }}
-        title="Rotate the signing secret?"
-        description={rotating ? `The current secret of "${rotating.name}" stops working at once. Update your receiver with the new one.` : ''}
-        confirmLabel="Rotate secret"
-        busyLabel="Rotating…"
+        title={t('developers.rotateTitle')}
+        description={rotating ? t('developers.rotateBody', { name: rotating.name }) : ''}
+        confirmLabel={t('developers.rotateConfirm')}
+        busyLabel={t('developers.rotating')}
         busy={confirmBusy}
         onConfirm={() => { void confirmRotate(); }}
       />
       <ConfirmActionDialog
         open={Boolean(deleting)}
         onOpenChange={open => { if (!open && !confirmBusy) setDeleting(null); }}
-        title="Delete this webhook?"
-        description={deleting ? `"${deleting.name}" stops receiving events and its delivery log is removed.` : ''}
-        confirmLabel="Delete webhook"
-        busyLabel="Deleting…"
+        title={t('developers.hookDeleteTitle')}
+        description={deleting ? t('developers.hookDeleteBody', { name: deleting.name }) : ''}
+        confirmLabel={t('developers.hookDeleteConfirm')}
+        busyLabel={t('developers.deleting')}
         busy={confirmBusy}
         onConfirm={() => { void confirmDelete(); }}
       />

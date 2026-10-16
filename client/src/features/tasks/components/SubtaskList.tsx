@@ -1,11 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { ListChecks, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ProgressBar, SectionHeader, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { STATUS_META } from '../constants';
 import { getApiErrorMessage } from '../api';
 import { countSubtasks, sumSubtaskPoints } from '../lib/subtasks';
 import type { Task } from '../types';
@@ -27,6 +27,7 @@ export interface SubtaskListProps {
 
 /** Checklist of a task's subtasks with a progress count and an inline "add subtask" input. */
 const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, onDelete }: SubtaskListProps) => {
+  const { t } = useTranslation('tasks');
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
   const { done, total } = countSubtasks(subtasks);
@@ -44,7 +45,7 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
       setTitle('');
       inputRef.current?.focus();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not add the subtask.'));
+      toast.error(getApiErrorMessage(err, t('subtaskList.addError')));
     } finally {
       setAdding(false);
       inputRef.current?.focus();
@@ -52,9 +53,9 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
   };
 
   return (
-    <section aria-label="Subtasks">
+    <section aria-label={t('badges.subtasks')}>
       <SectionHeader
-        title="Subtasks"
+        title={t('badges.subtasks')}
         icon={<ListChecks className="size-4 text-slate-500" aria-hidden />}
         action={<SubtaskProgress done={done} total={total} />}
         className="mb-2"
@@ -62,16 +63,16 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
 
       {total > 0 && (
         <div className="mb-3">
-          <ProgressBar value={(done / total) * 100} label={`${done} of ${total} subtasks done`} showValue />
+          <ProgressBar value={(done / total) * 100} label={t('badges.subtasksDone', { done, total })} showValue />
           <p className="mt-1 text-xs text-slate-500 tabular-nums">
-            {done}/{total} done
-            {points.total > 0 && <> · {points.done}/{points.total} story {points.total === 1 ? 'point' : 'points'}</>}
+            {t('subtaskList.progressDone', { done, total })}
+            {points.total > 0 && t('subtaskList.storyPoints', { done: points.done, count: points.total })}
           </p>
         </div>
       )}
 
       {total === 0 ? (
-        <p className="text-sm text-slate-500">No subtasks yet.</p>
+        <p className="text-sm text-slate-500">{t('subtaskList.none')}</p>
       ) : (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
           {subtasks.map(subtask => {
@@ -82,13 +83,13 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
                   checked={completed}
                   disabled={!canWrite || !onToggle}
                   onCheckedChange={checked => onToggle?.(subtask, checked)}
-                  aria-label={completed ? `Mark subtask "${subtask.title}" as not done` : `Mark subtask "${subtask.title}" as done`}
+                  aria-label={t(completed ? 'subtaskList.markNotDone' : 'subtaskList.markDone', { title: subtask.title })}
                 />
                 <button
                   type="button"
                   onClick={() => onOpen?.(subtask)}
                   disabled={!onOpen}
-                  className="min-w-0 flex-1 rounded py-1 text-left focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default"
+                  className="min-w-0 flex-1 rounded py-1 text-start focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-default"
                 >
                   <span className={cn('block truncate text-sm font-medium text-slate-900', completed && 'text-slate-500 line-through')}>
                     {subtask.title}
@@ -99,15 +100,15 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
                 </button>
                 <span className="inline-flex shrink-0 items-center gap-1.5 text-xs text-slate-600">
                   <StatusDot status={subtask.status} />
-                  <span className="hidden sm:inline">{STATUS_META[subtask.status].label}</span>
-                  <span className="sr-only sm:hidden">{STATUS_META[subtask.status].label}</span>
+                  <span className="hidden sm:inline">{t(`status.${subtask.status}`)}</span>
+                  <span className="sr-only sm:hidden">{t(`status.${subtask.status}`)}</span>
                 </span>
                 {canDelete && onDelete && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Delete subtask ${subtask.title}`}
+                    aria-label={t('subtaskList.delete', { title: subtask.title })}
                     onClick={() => onDelete(subtask)}
                     className="size-10 shrink-0 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
                   >
@@ -124,10 +125,10 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
         <form onSubmit={add} className="mt-3 flex items-center gap-2">
           <Input
             ref={inputRef}
-            aria-label="Add subtask"
+            aria-label={t('subtaskList.addLabel')}
             value={title}
             onChange={event => setTitle(event.target.value)}
-            placeholder="Add a subtask and press Enter"
+            placeholder={t('subtaskList.addPlaceholder')}
             maxLength={140}
             readOnly={adding}
             className="h-11 rounded-lg border border-slate-300 bg-white text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-0 sm:h-9 sm:text-sm"
@@ -138,7 +139,7 @@ const SubtaskList = ({ subtasks, canWrite, canDelete, onAdd, onToggle, onOpen, o
             disabled={!trimmed || adding}
             className="h-11 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
           >
-            <Plus className="size-4" aria-hidden /> Add
+            <Plus className="size-4" aria-hidden /> {t('actions.add')}
           </Button>
         </form>
       )}

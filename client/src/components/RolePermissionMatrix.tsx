@@ -1,9 +1,12 @@
 import { Fragment, useState, type UIEvent } from 'react';
 import { Check, Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { sortRoles, sortedGroups, type PermissionCatalog, type RbacRole } from './settings/rbac';
+import {
+  permissionGroupLabel, permissionLabel, roleDisplayName, sortRoles, sortedGroups, type PermissionCatalog, type RbacRole,
+} from './settings/rbac';
 
 interface RolePermissionMatrixProps {
   roles: RbacRole[];
@@ -31,6 +34,7 @@ const RolePermissionMatrix = ({
   onEditRole,
   className,
 }: RolePermissionMatrixProps) => {
+  const { t } = useTranslation('settings');
   const [scrolled, setScrolled] = useState({ x: false, y: false });
 
   const columns = sortRoles(roles);
@@ -45,7 +49,7 @@ const RolePermissionMatrix = ({
   return (
     <div
       role="region"
-      aria-label="Permission matrix"
+      aria-label={t('matrix.label')}
       tabIndex={0}
       onScroll={handleScroll}
       data-scrolled-x={scrolled.x}
@@ -58,20 +62,20 @@ const RolePermissionMatrix = ({
         className,
       )}
     >
-      <table className="w-max min-w-full border-separate border-spacing-0 text-left text-sm">
+      <table className="w-max min-w-full border-separate border-spacing-0 text-start text-sm">
         <caption className="sr-only">
-          Permissions granted to each role. Columns are roles, rows are permissions grouped by area.
+          {t('matrix.caption')}
         </caption>
         <thead>
           <tr>
             <th
               scope="col"
               className={cn(
-                'sticky top-0 left-0 z-30 min-w-40 border-b border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate-700 transition-shadow motion-reduce:transition-none sm:min-w-56 sm:px-4',
+                'sticky top-0 start-0 z-30 min-w-40 border-b border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold uppercase tracking-wider text-slate-700 transition-shadow motion-reduce:transition-none sm:min-w-56 sm:px-4',
                 scrolled.x ? EDGE_SHADOW : scrolled.y && HEADER_SHADOW,
               )}
             >
-              Permission
+              {t('matrix.permission')}
             </th>
             {columns.map((role) => {
               const count = memberCounts?.[role._id];
@@ -85,12 +89,12 @@ const RolePermissionMatrix = ({
                   )}
                 >
                   <div className="flex flex-col items-center gap-1">
-                    <span className="text-sm font-semibold text-slate-900">{role.name}</span>
+                    <span className="text-sm font-semibold text-slate-900">{roleDisplayName(role)}</span>
                     <span className="flex flex-wrap items-center justify-center gap-1">
-                      {role.isSystem && <Tag size="sm" className="uppercase tracking-wider">System</Tag>}
+                      {role.isSystem && <Tag size="sm" className="uppercase tracking-wider">{t('workspace.system')}</Tag>}
                       {count !== undefined && (
                         <span className="text-xs font-normal tabular-nums text-slate-600">
-                          {count} member{count !== 1 ? 's' : ''}
+                          {t('matrix.members', { count })}
                         </span>
                       )}
                     </span>
@@ -98,7 +102,7 @@ const RolePermissionMatrix = ({
                       <Button
                         variant="ghost"
                         onClick={() => onEditRole?.(role)}
-                        aria-label={`Edit role ${role.name}`}
+                        aria-label={t('workspace.editRole', { name: roleDisplayName(role) })}
                         className="size-10 rounded-lg text-slate-600 hover:bg-primary/10 hover:text-primary md:size-8"
                       >
                         <Pencil aria-hidden />
@@ -117,11 +121,11 @@ const RolePermissionMatrix = ({
                 <th
                   scope="rowgroup"
                   className={cn(
-                    'sticky left-0 z-10 border-b border-slate-200 bg-slate-100 px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 transition-shadow motion-reduce:transition-none sm:px-4',
+                    'sticky start-0 z-10 border-b border-slate-200 bg-slate-100 px-3 py-1.5 text-start text-xs font-semibold uppercase tracking-wider text-slate-700 transition-shadow motion-reduce:transition-none sm:px-4',
                     scrolled.x && EDGE_SHADOW,
                   )}
                 >
-                  {group}
+                  {permissionGroupLabel(group)}
                 </th>
                 <td colSpan={columns.length} className="border-b border-slate-200 bg-slate-100" />
               </tr>
@@ -130,11 +134,11 @@ const RolePermissionMatrix = ({
                   <th
                     scope="row"
                     className={cn(
-                      'sticky left-0 z-10 border-b border-slate-100 bg-white px-3 py-2.5 text-left font-normal transition-shadow group-hover/row:bg-slate-50 motion-reduce:transition-none sm:px-4',
+                      'sticky start-0 z-10 border-b border-slate-100 bg-white px-3 py-2.5 text-start font-normal transition-shadow group-hover/row:bg-slate-50 motion-reduce:transition-none sm:px-4',
                       scrolled.x && EDGE_SHADOW,
                     )}
                   >
-                    <span className="block text-sm text-slate-800">{option.label}</span>
+                    <span className="block text-sm text-slate-800">{permissionLabel(option)}</span>
                     <code className="hidden font-mono text-[11px] text-slate-600 sm:block">{option.key}</code>
                   </th>
                   {columns.map((role) => {
@@ -147,12 +151,12 @@ const RolePermissionMatrix = ({
                         {allowed ? (
                           <>
                             <Check className="mx-auto size-4 text-success-fg" aria-hidden />
-                            <span className="sr-only">Allowed</span>
+                            <span className="sr-only">{t('matrix.allowed')}</span>
                           </>
                         ) : (
                           <>
                             <span aria-hidden className="text-slate-500">&mdash;</span>
-                            <span className="sr-only">Not allowed</span>
+                            <span className="sr-only">{t('matrix.notAllowed')}</span>
                           </>
                         )}
                       </td>

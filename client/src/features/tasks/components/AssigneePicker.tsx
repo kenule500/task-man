@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { UserPlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { OptionCombobox, Spinner, UserAvatar, type ComboboxOption } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import type { WorkspaceMember } from '@/features/workspace';
@@ -21,6 +22,7 @@ interface AssigneePickerProps {
 
 /** Multi-select of workspace members; falls back to the current assignees and "Assign to me". */
 const AssigneePicker = ({ value, onChange, members, canListMembers, loading = false, current, currentUser }: AssigneePickerProps) => {
+  const { t } = useTranslation('tasks');
   // Everyone we can name: members first, then assignees the member list does not know
   const directory = useMemo(() => {
     const map = new Map<string, TaskUser>();
@@ -42,7 +44,7 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
       onClick={() => toggle(currentUser._id, !isMeAssigned)}
       className="h-9 gap-1.5 border-slate-300 text-slate-700"
     >
-      <UserPlus className="size-3.5" aria-hidden /> {isMeAssigned ? 'Unassign me' : 'Assign to me'}
+      <UserPlus className="size-3.5" aria-hidden /> {isMeAssigned ? t('assignee.unassignMe') : t('assignee.assignMe')}
     </Button>
   );
 
@@ -51,7 +53,7 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
     const ids = [...members.map(member => member._id), ...value.filter(id => !members.some(member => member._id === id))];
     const options: ComboboxOption[] = ids.map(id => {
       const user = directory.get(id);
-      const name = user?.name ?? 'Former member';
+      const name = user?.name ?? t('assignee.formerMember');
       return {
         value: id,
         label: name,
@@ -62,18 +64,18 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
     return (
       <div className="space-y-2">
         {loading ? (
-          <p className="flex items-center gap-2 text-xs italic text-slate-500"><Spinner size="xs" decorative /> Loading members...</p>
+          <p className="flex items-center gap-2 text-xs italic text-slate-500"><Spinner size="xs" decorative /> {t('assignee.loading')}</p>
         ) : options.length === 0 ? (
-          <p className="text-xs italic text-slate-500">No members to assign yet.</p>
+          <p className="text-xs italic text-slate-500">{t('assignee.none')}</p>
         ) : (
           <OptionCombobox
             multiple
-            label="Assignees"
+            label={t('assignee.label')}
             options={options}
             value={value}
             onValueChange={onChange}
-            placeholder={value.length === 0 ? 'Search people to assign' : 'Add another'}
-            emptyText="No one matches that name."
+            placeholder={value.length === 0 ? t('assignee.search') : t('assignee.addAnother')}
+            emptyText={t('assignee.noMatch')}
           />
         )}
         {!isMeAssigned && assignMe}
@@ -85,18 +87,18 @@ const AssigneePicker = ({ value, onChange, members, canListMembers, loading = fa
   return (
     <div className="space-y-2">
       {selected.length === 0 ? (
-        <p className="text-xs italic text-slate-500">Nobody is assigned yet.</p>
+        <p className="text-xs italic text-slate-500">{t('assignee.nobody')}</p>
       ) : (
-        <ul aria-label="Assignees" className="flex flex-wrap gap-2">
+        <ul aria-label={t('assignee.label')} className="flex flex-wrap gap-2">
           {selected.map(user => (
-            <li key={user._id} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pr-2.5 pl-0.5 text-sm text-slate-700">
+            <li key={user._id} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pe-2.5 ps-0.5 text-sm text-slate-700">
               <UserAvatar name={user.name} src={user.avatarUrl || undefined} size="sm" className="size-6 text-[10px]" />
               {user.name}
             </li>
           ))}
         </ul>
       )}
-      <p className="text-xs text-slate-500">Ask an admin to assign other people.</p>
+      <p className="text-xs text-slate-500">{t('assignee.askAdmin')}</p>
       {assignMe}
     </div>
   );

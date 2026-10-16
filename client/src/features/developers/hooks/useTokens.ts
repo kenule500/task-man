@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/utils/api';
 import { tokensApi } from '../api';
@@ -23,7 +24,7 @@ export const useTokens = (slug: string | undefined) => {
         setError('');
       })
       .catch(err => {
-        if (!cancelled) setError(getApiErrorMessage(err, 'We could not load your API tokens.'));
+        if (!cancelled) setError(getApiErrorMessage(err, i18n.t('admin:developers.errors.loadTokens')));
       })
       .finally(() => {
         if (!cancelled) setLoadedKey(currentKey);
@@ -37,7 +38,7 @@ export const useTokens = (slug: string | undefined) => {
   }, []);
 
   const createToken = useCallback(async (input: ApiTokenInput): Promise<CreatedApiToken> => {
-    if (!slug) throw new Error('No workspace selected');
+    if (!slug) throw new Error(i18n.t('admin:developers.errors.noWorkspace'));
     try {
       const created = await tokensApi.create(slug, input);
       // The plain token is only in the returned value; the list keeps the public fields
@@ -46,17 +47,17 @@ export const useTokens = (slug: string | undefined) => {
       setTokens(current => [publicFields, ...current]);
       return created;
     } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'We could not create the token.'), { cause: err });
+      throw new Error(getApiErrorMessage(err, i18n.t('admin:developers.tokenCreateError')), { cause: err });
     }
   }, [slug]);
 
   const revokeToken = useCallback(async (id: string): Promise<void> => {
-    if (!slug) throw new Error('No workspace selected');
+    if (!slug) throw new Error(i18n.t('admin:developers.errors.noWorkspace'));
     try {
       await tokensApi.revoke(slug, id);
       setTokens(current => current.filter(token => token._id !== id));
     } catch (err) {
-      throw new Error(getApiErrorMessage(err, 'We could not revoke the token.'), { cause: err });
+      throw new Error(getApiErrorMessage(err, i18n.t('admin:developers.tokenRevokeError')), { cause: err });
     }
   }, [slug]);
 

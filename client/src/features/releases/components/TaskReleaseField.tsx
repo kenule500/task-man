@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
 import type { Project } from '@/features/projects';
 import { OptionSelect } from '@/features/tasks/components/TaskSelects';
@@ -22,6 +23,7 @@ interface TaskReleaseFieldProps {
  * project has no release to offer (and the task is in none), so projects that do not use releases see no change.
  */
 const TaskReleaseField = ({ project, projects, value, onChange, isSubtask = false, className }: TaskReleaseFieldProps) => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { releases } = useReleases(workspaceSlug);
   const projectId = projects.find(item => item.name === project.trim())?._id;
@@ -29,15 +31,15 @@ const TaskReleaseField = ({ project, projects, value, onChange, isSubtask = fals
   if (options.length <= 1) return null;
   const current = releases.find(item => item._id === value);
   const hint = isSubtask
-    ? 'Subtasks follow the release of their parent task.'
-    : current && current.project !== projectId ? 'This release belongs to another project.' : '';
+    ? t('releases.field.subtaskHint')
+    : current && current.project !== projectId ? t('releases.field.otherProject') : '';
 
   return (
     <div className={className ?? 'space-y-1.5 sm:col-span-2'}>
-      <Label htmlFor="task-release" className="text-sm font-medium text-slate-700">Release</Label>
+      <Label htmlFor="task-release" className="text-sm font-medium text-slate-700">{t('releases.field.label')}</Label>
       <OptionSelect
         id="task-release"
-        aria-label="Release"
+        aria-label={t('releases.field.label')}
         value={value || NO_RELEASE_VALUE}
         options={options}
         onChange={next => onChange(next === NO_RELEASE_VALUE ? '' : next)}

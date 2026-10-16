@@ -32,8 +32,13 @@ export interface IWorkspace extends Document {
       // Move tasks along when their pull requests open or merge
       autoTransition?: boolean;
       connectedAt?: Date;
+      // GitHub token for private repositories, read by the AI code review (AES-256-GCM via secretBox, bound to the workspace id).
+      // Never selected by default: add '+integrations.github.accessTokenEncrypted' to read it
+      accessTokenEncrypted?: string;
     };
   };
+  // AI code review (Alibaba Cloud Model Studio). Code only leaves for the provider once the workspace opts in.
+  ai?: { enabled?: boolean; autoReview?: boolean };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,7 +97,12 @@ const workspaceSchema: Schema = new Schema(
         secret: { type: String, select: false },
         autoTransition: { type: Boolean, default: true },
         connectedAt: { type: Date },
+        accessTokenEncrypted: { type: String, select: false },
       },
+    },
+    ai: {
+      enabled: { type: Boolean, default: false },
+      autoReview: { type: Boolean, default: false },
     },
   },
   { timestamps: true }

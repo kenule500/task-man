@@ -17,7 +17,7 @@ export interface IUser extends Document {
   jobTitle?: string;
   phone?: string;
   timezone?: string;
-  language?: string;
+  language?: 'en' | 'fr' | 'ar';
   theme?: 'light' | 'dark' | 'system';
 
   // Notification preferences
@@ -76,7 +76,7 @@ const userSchema: Schema = new Schema({
   jobTitle: { type: String, default: '', maxlength: 80 },
   phone: { type: String, default: '', maxlength: 30 },
   timezone: { type: String, default: 'UTC' },
-  language: { type: String, default: 'en' },
+  language: { type: String, enum: ['en', 'fr', 'ar'], default: 'en' },
   theme: { type: String, enum: ['light', 'dark', 'system'], default: 'system' },
 
   // Notifications

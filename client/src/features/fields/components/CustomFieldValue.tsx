@@ -1,4 +1,5 @@
 import { Check, ExternalLink, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { UserAvatar } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/features/tasks/lib/date';
@@ -29,7 +30,9 @@ export const OptionChip = ({ field, id }: { field: Pick<CustomField, 'options'>;
 };
 
 /** Read-only display of a field value: option chips, a link, a date, a person... */
-const CustomFieldValue = ({ field, value, userName, empty = 'Not set', className }: CustomFieldValueProps) => {
+const CustomFieldValue = ({ field, value, userName, empty, className }: CustomFieldValueProps) => {
+  const { t } = useTranslation('tasks');
+  if (empty === undefined) empty = t('fields.notSet');
   if (isEmptyValue(value) || value === undefined || value === null) {
     return empty === null ? null : <span className={cn('text-sm text-slate-500', className)}>{empty}</span>;
   }
@@ -49,7 +52,7 @@ const CustomFieldValue = ({ field, value, userName, empty = 'Not set', className
           {value === true
             ? <Check aria-hidden className="size-4 text-success-fg" />
             : <X aria-hidden className="size-4 text-slate-500" />}
-          {value === true ? 'Yes' : 'No'}
+          {value === true ? t('fields.yes') : t('fields.no')}
         </span>
       );
     case 'url': {
@@ -63,7 +66,7 @@ const CustomFieldValue = ({ field, value, userName, empty = 'Not set', className
         >
           <span className="truncate">{String(value)}</span>
           <ExternalLink aria-hidden className="size-3 shrink-0" />
-          <span className="sr-only">(opens in a new tab)</span>
+          <span className="sr-only">{t('fields.value.opensNewTab')}</span>
         </a>
       ) : <span className={cn('truncate text-sm text-slate-700', className)}>{String(value)}</span>;
     }
@@ -72,7 +75,7 @@ const CustomFieldValue = ({ field, value, userName, empty = 'Not set', className
     case 'number':
       return <span className={cn('text-sm tabular-nums text-slate-700', className)}>{String(value)}</span>;
     case 'user': {
-      const name = userName?.(String(value)) ?? 'Member';
+      const name = userName?.(String(value)) ?? t('fields.member');
       return (
         <span className={cn('inline-flex min-w-0 items-center gap-2 text-sm text-slate-700', className)}>
           <UserAvatar name={name} size="sm" className="size-6 text-[10px]" />

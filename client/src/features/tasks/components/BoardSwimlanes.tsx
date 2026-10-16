@@ -1,5 +1,6 @@
 import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { Swimlane } from '../lib/swimlanes';
 import type { Task } from '../types';
@@ -32,6 +33,7 @@ const gridStyle = (count: number): CSSProperties => ({
 
 /** Collapsible rows, each repeating the board columns (desktop board grouped by assignee, project or type). */
 const BoardSwimlanes = ({ lanes, header, columns, columnOf, renderCell, className }: BoardSwimlanesProps) => {
+  const { t } = useTranslation('tasks');
   const idPrefix = useId();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
 
@@ -57,7 +59,7 @@ const BoardSwimlanes = ({ lanes, header, columns, columnOf, renderCell, classNam
           }
 
           return (
-            <section key={lane.id} aria-label={`${lane.label} swimlane`} className="rounded-2xl border border-slate-200 bg-white">
+            <section key={lane.id} aria-label={t('swimlane.label', { lane: lane.label })} className="rounded-2xl border border-slate-200 bg-white">
               <h3 className="m-0">
                 <button
                   type="button"
@@ -65,17 +67,17 @@ const BoardSwimlanes = ({ lanes, header, columns, columnOf, renderCell, classNam
                   aria-controls={bodyId}
                   onClick={() => toggle(lane.id)}
                   className={cn(
-                    'flex min-h-11 w-full items-center gap-2 rounded-2xl px-3 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50',
+                    'flex min-h-11 w-full items-center gap-2 rounded-2xl px-3 text-start text-sm font-semibold text-slate-800 hover:bg-slate-50',
                     'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
                   )}
                 >
-                  {open ? <ChevronDown className="size-4 text-slate-500" aria-hidden /> : <ChevronRight className="size-4 text-slate-500" aria-hidden />}
+                  {open ? <ChevronDown className="size-4 text-slate-500" aria-hidden /> : <ChevronRight className="size-4 text-slate-500 rtl:-scale-x-100" aria-hidden />}
                   <span className="truncate">{lane.label}</span>
                   <span className="rounded-md border border-slate-200 bg-white px-1.5 text-xs font-medium tabular-nums text-slate-600">
-                    {lane.tasks.length}<span className="sr-only"> tasks</span>
+                    {lane.tasks.length}<span className="sr-only">{t('move.tasksSr')}</span>
                   </span>
                   {!open && (
-                    <span className="ml-auto flex items-center gap-3 text-xs font-normal text-slate-600">
+                    <span className="ms-auto flex items-center gap-3 text-xs font-normal text-slate-600">
                       {columns.map(column => (
                         <span key={column.key} className="inline-flex items-center gap-1 tabular-nums">
                           <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-full', column.dot)} />

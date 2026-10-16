@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowUpFromLine, Copy, CornerDownRight, Eye, MoreHorizontal, MoveRight, Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { getCached, tasksKey } from '@/lib/queryCache';
 import { toast } from '@/components/ds';
@@ -10,7 +11,7 @@ import {
   DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getApiErrorMessage } from '../api';
-import { STATUS_META, TASK_STATUSES } from '../constants';
+import { TASK_STATUSES } from '../constants';
 import { useTaskExtras } from '../hooks/useTaskExtras';
 import type { Task, TaskStatus } from '../types';
 import { canBecomeSubtask } from '../lib/relations';
@@ -56,6 +57,7 @@ const ITEM_CLASS = 'min-h-11 text-slate-700 md:min-h-0';
 const TaskActionsMenu = ({
   task, onEdit, onDelete, onOpen, onMove, stages, onMoveToStage, onOpenMoveSheet, onDuplicated, subtaskCount = 0, workspaceSlug, tasks, onMoved, canEdit = true, canDelete = true, className,
 }: TaskActionsMenuProps) => {
+  const { t } = useTranslation('tasks');
   const extras = useTaskExtras(workspaceSlug);
   const canDuplicate = canEdit && extras.enabled;
   const directory = useProjectDirectory();
@@ -67,11 +69,11 @@ const TaskActionsMenu = ({
   const moveTo = async (parent: Task | null): Promise<boolean> => {
     try {
       const moved = await extras.moveTask(task, parent ? parent._id : null);
-      toast.success(parent ? `"${task.title}" is now a subtask of "${parent.title}"` : `"${task.title}" is now a task`);
+      toast.success(parent ? t('menu.nowSubtask', { task: task.title, parent: parent.title }) : t('menu.nowTask', { task: task.title }));
       onMoved?.(moved);
       return true;
     } catch (err) {
-      toast.error(getApiErrorMessage(err, parent ? 'Could not convert the task to a subtask.' : 'Could not promote the subtask.'));
+      toast.error(getApiErrorMessage(err, parent ? t('menu.convertError') : t('menu.promoteError')));
       return false;
     }
   };
@@ -79,10 +81,10 @@ const TaskActionsMenu = ({
   const duplicate = async () => {
     try {
       const copy = await extras.duplicateTask(task, subtaskCount > 0);
-      toast.success(`Created "${copy.title}"`);
+      toast.success(t('menu.created', { title: copy.title }));
       onDuplicated?.(copy);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not duplicate the task.'));
+      toast.error(getApiErrorMessage(err, t('menu.duplicateError')));
     }
   };
 
@@ -96,7 +98,7 @@ const TaskActionsMenu = ({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={`Actions for ${task.title}`}
+            aria-label={t('menu.actionsFor', { title: task.title })}
             className={cn('size-10 text-slate-500 hover:bg-slate-200 hover:text-slate-600 md:size-7', className)}
           />
         }
@@ -108,7 +110,7 @@ const TaskActionsMenu = ({
         {canEdit && (onMove || (stages && onMoveToStage)) && (
           <>
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Move to</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('menu.moveTo')}</DropdownMenuLabel>
               {stages && onMoveToStage ? (
                 <DropdownMenuRadioGroup
                   value={resolveStage(task, stages).key}
@@ -127,14 +129,14 @@ const TaskActionsMenu = ({
                 <DropdownMenuRadioGroup value={task.status} onValueChange={value => onMove?.(task, value as TaskStatus)}>
                   {TASK_STATUSES.map(status => (
                     <DropdownMenuRadioItem key={status} value={status} className="min-h-11 text-slate-700 md:min-h-0">
-                      <StatusDot status={status} />{STATUS_META[status].label}
+                      <StatusDot status={status} />{t(`status.${status}`)}
                     </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
               )}
               {onOpenMoveSheet && (
                 <DropdownMenuItem onClick={() => onOpenMoveSheet(task)} className={cn(ITEM_CLASS, 'md:hidden')}>
-                  <MoveRight /> Move to…
+                  <MoveRight className="rtl:-scale-x-100" /> {t('menu.moveToEllipsis')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
@@ -143,34 +145,34 @@ const TaskActionsMenu = ({
         )}
         {onOpen && (
           <DropdownMenuItem onClick={() => onOpen(task)} className={ITEM_CLASS}>
-            <Eye /> View details
+            <Eye /> {t('menu.viewDetails')}
           </DropdownMenuItem>
         )}
         {canEdit && (
           <DropdownMenuItem onClick={() => onEdit(task)} className={ITEM_CLASS}>
-            <Pencil /> Edit
+            <Pencil /> {t('actions.edit')}
           </DropdownMenuItem>
         )}
         {canDuplicate && (
           <DropdownMenuItem onClick={() => { void duplicate(); }} className={ITEM_CLASS}>
-            <Copy /> Duplicate
+            <Copy /> {t('menu.duplicate')}
           </DropdownMenuItem>
         )}
         {canConvert && (
           <DropdownMenuItem onClick={() => setPicking(true)} className={ITEM_CLASS}>
-            <CornerDownRight /> Convert to subtask…
+            <CornerDownRight className="rtl:-scale-x-100" /> {t('menu.convert')}
           </DropdownMenuItem>
         )}
         {canPromote && (
           <DropdownMenuItem onClick={() => { void moveTo(null); }} className={ITEM_CLASS}>
-            <ArrowUpFromLine /> Promote to task
+            <ArrowUpFromLine /> {t('menu.promote')}
           </DropdownMenuItem>
         )}
         {canDelete && (
           <>
             {(onOpen || canEdit) &&<DropdownMenuSeparator className="bg-slate-100" />}
             <DropdownMenuItem variant="destructive" onClick={() => onDelete(task)} className="min-h-11 md:min-h-0">
-              <Trash2 /> Delete
+              <Trash2 /> {t('actions.delete')}
             </DropdownMenuItem>
           </>
         )}

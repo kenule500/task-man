@@ -48,7 +48,7 @@ describe('RolePermissionMatrix', () => {
     const table = within(region).getByRole('table');
     expect(table.querySelector('caption')).toHaveClass('sr-only');
     screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveClass('sticky', 'top-0'));
-    screen.getAllByRole('rowheader').forEach((header) => expect(header).toHaveClass('sticky', 'left-0'));
+    screen.getAllByRole('rowheader').forEach((header) => expect(header).toHaveClass('sticky', 'start-0'));
   });
 
   it('orders columns as system roles by rank, then custom roles, and rows by permission group', () => {

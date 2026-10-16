@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Link, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert } from 'lucide-react';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import TwoFactorRequiredGate from './TwoFactorRequiredGate';
@@ -9,6 +10,7 @@ import { EmptyState, SkeletonCards } from '@/components/ds';
 import { buttonVariants } from '@/components/ui/button';
 import { ProjectsProvider } from '@/features/projects';
 import { LiveSync } from '@/features/live';
+import { useChatSocket } from '@/features/chat/hooks/useChatSocket';
 import { usePermissions } from '../hooks/usePermissions';
 import api from '../utils/api';
 import { clearSession, getToken } from '../utils/session';
@@ -24,6 +26,7 @@ import { clearSession, getToken } from '../utils/session';
  */
 const WorkspaceLayout = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation('nav');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { user, error, can } = usePermissions();
 
@@ -32,6 +35,9 @@ const WorkspaceLayout = () => {
     clearSession();
     navigate('/');
   }, [navigate]);
+
+  // One chat connection (Socket.IO) per signed-in session: unread badge, presence and live messages
+  useChatSocket(workspaceSlug, user?._id, Boolean(user) && can('tasks:read'));
 
   // Signed-out visitors go to the sign-in page instead of waiting forever
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -44,11 +50,11 @@ const WorkspaceLayout = () => {
           <main className="w-full max-w-md rounded-2xl border border-slate-100 bg-white shadow-sm">
             <EmptyState
               icon={<ShieldAlert />}
-              title="We couldn't open this workspace"
-              description={`${error}. It may not exist, or you may not be a member.`}
+              title={t('workspaceError.title')}
+              description={t('workspaceError.description', { error })}
               action={
                 <Link to="/" className={buttonVariants({ className: 'h-10 bg-primary px-4 text-white hover:bg-primary-hover' })}>
-                  Back to home
+                  {t('workspaceError.back')}
                 </Link>
               }
             />

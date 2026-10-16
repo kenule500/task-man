@@ -2,7 +2,9 @@ export type NotificationType =
   | 'task.assigned'
   | 'task.completed'
   | 'comment.mention'
-  | 'comment.reply_on_my_task';
+  | 'comment.reply_on_my_task'
+  | 'chat.mention'
+  | 'ai.review_completed';
 
 export interface AppNotification {
   _id: string;
@@ -12,7 +14,9 @@ export interface AppNotification {
   readAt: string | null;
   createdAt: string;
   actor: { _id: string; name: string; avatarUrl?: string } | null;
-  /** Null once the task has been deleted. */
+  /** Chat mentions point at a channel instead of a task. */
+  channel?: { _id: string; name: string; type: 'team' | 'project' | 'dm' } | null;
+  /** Null once the task has been deleted (and always null for chat mentions). */
   task: { _id: string; title: string; number: number | null; key: string } | null;
   workspace: { _id: string; slug: string; name: string } | null;
 }

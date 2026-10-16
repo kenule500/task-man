@@ -1,0 +1,134 @@
+{
+  "title": "Messagerie",
+  "conversation": "Conversation",
+  "list": {
+    "label": "Conversations",
+    "team": "Canaux",
+    "projects": "Projets",
+    "direct": "Messages privés",
+    "noDirect": "Aucun message privé pour l'instant",
+    "newChannel": "Nouveau canal",
+    "newMessage": "Nouveau message",
+    "unread": "{{unread}} non lus",
+    "loading": "Chargement des conversations",
+    "errorTitle": "Impossible de charger vos conversations",
+    "errorNext": "Vérifiez votre connexion, puis réessayez.",
+    "retry": "Réessayer"
+  },
+  "channel": {
+    "general": "général",
+    "directMessage": "Message privé",
+    "private": "Privé",
+    "actions": "Actions du canal",
+    "rename": "Renommer le canal",
+    "renameTitle": "Renommer le canal",
+    "renameDescription": "Toutes les personnes qui voient le canal verront le nouveau nom.",
+    "renameFailed": "Impossible de renommer le canal.",
+    "archive": "Archiver le canal",
+    "archiving": "Archivage...",
+    "archiveTitle": "Archiver {{name}} ?",
+    "archiveDescription": "Le canal disparaît de la liste de tout le monde. Ses messages sont conservés.",
+    "archiveFailed": "Impossible d'archiver le canal."
+  },
+  "header": {
+    "back": "Retour aux conversations",
+    "members": "{{members}} membres",
+    "onlineCount": "{{online}} en ligne"
+  },
+  "presence": {
+    "online": "En ligne",
+    "offline": "Hors ligne"
+  },
+  "status": {
+    "connected": "En direct",
+    "connectedHint": "Les messages arrivent instantanément.",
+    "connecting": "Connexion",
+    "connectingHint": "Ouverture de la connexion en direct.",
+    "offline": "Actualisation",
+    "offlineHint": "La connexion en direct est interrompue. Les messages sont actualisés toutes les quelques secondes.",
+    "idle": "Non connecté",
+    "idleHint": "La messagerie n'est pas connectée.",
+    "offlineBanner": "Connexion en direct perdue. Les messages sont actualisés toutes les quelques secondes jusqu'à son retour."
+  },
+  "messages": {
+    "listLabel": "Messages",
+    "loading": "Chargement des messages",
+    "loadOlder": "Charger les messages précédents",
+    "loadingOlder": "Chargement...",
+    "newDivider": "Nouveaux messages",
+    "jumpToLatest": "Nouveaux messages ({{pending}})",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "edited": "modifié",
+    "edit": "Modifier",
+    "editAction": "Modifier le message de {{name}}",
+    "editLabel": "Modifier votre message",
+    "editHint": "Entrée pour enregistrer, Échap pour annuler",
+    "editFailed": "Impossible de modifier le message.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "deleteAction": "Supprimer le message de {{name}}",
+    "deleteTitle": "Supprimer ce message ?",
+    "deleteDescription": "Il est supprimé pour tout le monde. Cette action est irréversible.",
+    "deleteFailed": "Impossible de supprimer le message.",
+    "emptyTitle": "Aucun message pour l'instant",
+    "emptyDescription": "Dites bonjour dans {{channel}} pour lancer la conversation.",
+    "errorTitle": "Impossible de charger cette conversation",
+    "errorNext": "Vérifiez votre connexion, puis réessayez."
+  },
+  "composer": {
+    "label": "Écrire un message dans {{channel}}",
+    "placeholder": "Écrire à {{channel}}",
+    "send": "Envoyer",
+    "hint": "Entrée pour envoyer, Maj+Entrée pour un retour à la ligne, @ pour mentionner",
+    "counter": "{{length}} / {{max}}",
+    "tooLong": "{{over}} caractères en trop",
+    "mentionList": "Mentionner un membre",
+    "sendFailed": "Impossible d'envoyer le message. Votre texte est toujours dans le champ."
+  },
+  "typing": {
+    "one": "{{name}} est en train d'écrire...",
+    "two": "{{first}} et {{second}} sont en train d'écrire...",
+    "many": "Plusieurs personnes sont en train d'écrire..."
+  },
+  "newChannel": {
+    "title": "Nouveau canal",
+    "description": "Un canal regroupe un sujet au même endroit. Toute l'équipe peut rejoindre un canal public.",
+    "nameLabel": "Nom du canal",
+    "nameHint": "Par exemple design, lancement ou détente.",
+    "namePlaceholder": "design",
+    "nameRequired": "Donnez un nom au canal.",
+    "privateLabel": "Canal privé",
+    "privateHelp": "Seules les personnes que vous choisissez peuvent le voir et le lire.",
+    "membersLabel": "Membres",
+    "noMembers": "Il n'y a personne d'autre dans cet espace de travail pour l'instant.",
+    "create": "Créer le canal",
+    "creating": "Création...",
+    "failed": "Impossible de créer le canal."
+  },
+  "newDm": {
+    "title": "Nouveau message",
+    "description": "Choisissez un collègue. Les messages privés ne sont visibles que de vous deux.",
+    "search": "Rechercher une personne",
+    "listLabel": "Personnes",
+    "empty": "Personne ne correspond à cette recherche.",
+    "failed": "Impossible d'ouvrir la conversation."
+  },
+  "project": {
+    "open": "Discussion du projet",
+    "opening": "Ouverture...",
+    "failed": "Impossible d'ouvrir la discussion du projet."
+  },
+  "notFound": {
+    "title": "Conversation introuvable",
+    "description": "Elle a peut-être été archivée, ou vous n'y avez pas accès.",
+    "back": "Retour à la messagerie"
+  },
+  "pick": {
+    "title": "Choisissez une conversation",
+    "description": "Sélectionnez un canal ou une personne à gauche pour commencer à discuter."
+  }
+}

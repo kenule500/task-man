@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 // Sprint report: the shape the report endpoint returns and helpers to read it. Pure, no UI.
 import type { Sprint } from '@/features/projects';
 import type { Task, TaskStatus, TaskType, TaskUser } from '@/features/tasks';
@@ -63,4 +64,4 @@ export const deliveredPercent = (summary: SprintReport['summary']): number => {
   return count === 0 ? 0 : Math.round((done.count / count) * 100);
 };
 
-export const pointsLabel = (points: number): string => `${points} ${points === 1 ? 'pt' : 'pts'}`;
+export const pointsLabel = (points: number): string => i18n.t('planning:report.pts', { count: points });

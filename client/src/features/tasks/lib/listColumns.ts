@@ -1,5 +1,6 @@
 // Columns of the List view's table: the built-in optional ones plus one per active custom field.
 // Which are visible is a per-workspace preference (`utils/preferences.ts`); this file holds the pure rules.
+import i18n from '@/i18n';
 import type { CustomField } from '@/features/fields/types';
 import { isEmptyValue } from '@/features/fields/lib/fields';
 import type { Task } from '../types';
@@ -19,13 +20,13 @@ export interface ListColumn {
 
 /** Built-in optional columns in table order; `byDefault` ones show until the person chooses otherwise. */
 const BUILT_IN: readonly { column: ListColumn; byDefault: boolean }[] = [
-  { column: { id: 'assignees', header: 'Assignees', menuLabel: 'Assignees', width: 6 }, byDefault: true },
-  { column: { id: 'priority', header: 'Priority', menuLabel: 'Priority', width: 7.5 }, byDefault: true },
-  { column: { id: 'status', header: 'Status', menuLabel: 'Status', width: 9.5 }, byDefault: true },
-  { column: { id: 'dueDate', header: 'Due Date', menuLabel: 'Due date', width: 9.5 }, byDefault: true },
-  { column: { id: 'storyPoints', header: 'Points', menuLabel: 'Story points', width: 5.5 }, byDefault: false },
-  { column: { id: 'release', header: 'Release', menuLabel: 'Release', width: 9 }, byDefault: false },
-  { column: { id: 'time', header: 'Time', menuLabel: 'Estimate / logged time', width: 8 }, byDefault: false },
+  { column: { id: 'assignees', get header() { return i18n.t('tasks:list.columns.assignees'); }, get menuLabel() { return i18n.t('tasks:list.columns.assignees'); }, width: 6 }, byDefault: true },
+  { column: { id: 'priority', get header() { return i18n.t('tasks:list.columns.priority'); }, get menuLabel() { return i18n.t('tasks:list.columns.priority'); }, width: 7.5 }, byDefault: true },
+  { column: { id: 'status', get header() { return i18n.t('tasks:list.columns.status'); }, get menuLabel() { return i18n.t('tasks:list.columns.status'); }, width: 9.5 }, byDefault: true },
+  { column: { id: 'dueDate', get header() { return i18n.t('tasks:list.columns.dueDate'); }, get menuLabel() { return i18n.t('tasks:list.columns.dueDateMenu'); }, width: 9.5 }, byDefault: true },
+  { column: { id: 'storyPoints', get header() { return i18n.t('tasks:list.columns.points'); }, get menuLabel() { return i18n.t('tasks:list.columns.pointsMenu'); }, width: 5.5 }, byDefault: false },
+  { column: { id: 'release', get header() { return i18n.t('tasks:list.columns.release'); }, get menuLabel() { return i18n.t('tasks:list.columns.release'); }, width: 9 }, byDefault: false },
+  { column: { id: 'time', get header() { return i18n.t('tasks:list.columns.time'); }, get menuLabel() { return i18n.t('tasks:list.columns.timeMenu'); }, width: 8 }, byDefault: false },
 ];
 
 const CUSTOM_PREFIX = 'cf:';

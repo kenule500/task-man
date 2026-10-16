@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { wikiApi } from '../api';
 import type { WikiPageSummary } from '../types';
@@ -21,7 +22,7 @@ export const useWikiTree = (slug: string | undefined, project: string) => {
     wikiApi.list(slug, project)
       .then(pages => { if (!cancelled) setLoaded({ key, pages, error: '' }); })
       .catch(err => {
-        if (!cancelled) setLoaded({ key, pages: [], error: getApiErrorMessage(err, 'We could not load the pages. Check your connection and try again.') });
+        if (!cancelled) setLoaded({ key, pages: [], error: getApiErrorMessage(err, i18n.t('projects:wiki.errors.loadPages')) });
       });
     return () => { cancelled = true; };
   }, [key, slug, project, version]);

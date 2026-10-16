@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import type { Project, Sprint } from '@/features/projects';
 import { dateKeyOf, toDateKey, type Task } from '@/features/tasks';
 
@@ -49,7 +50,7 @@ export const summarizeActiveSprints = (projects: Project[], tasks: Task[], today
 };
 
 export const daysLeftLabel = (daysLeft: number) => {
-  if (daysLeft < 0) return `Ended ${-daysLeft} ${daysLeft === -1 ? 'day' : 'days'} ago`;
-  if (daysLeft === 0) return 'Ends today';
-  return `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} left`;
+  if (daysLeft < 0) return t('dashboard:sprint.endedDaysAgo', { count: -daysLeft });
+  if (daysLeft === 0) return t('dashboard:sprint.endsToday');
+  return t('dashboard:sprint.daysLeft', { count: daysLeft });
 };

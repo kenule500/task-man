@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,17 +16,19 @@ interface ManageViewsDialogProps {
 }
 
 /** Rename, share or delete saved views. */
-const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: ManageViewsDialogProps) => (
+const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: ManageViewsDialogProps) => {
+  const { t } = useTranslation('tasks');
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="flex max-h-[85dvh] w-full max-w-full flex-col gap-0 overflow-hidden border border-slate-200 bg-white p-0 sm:max-w-lg">
-      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-12 sm:px-6">
-        <DialogTitle className="text-lg font-bold text-slate-900">Manage views</DialogTitle>
+      <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pe-12 sm:px-6">
+        <DialogTitle className="text-lg font-bold text-slate-900">{t('views.manageTitle')}</DialogTitle>
         <DialogDescription className="text-sm text-slate-600">
-          Rename, share or delete the views you saved.
+          {t('views.manageDescription')}
         </DialogDescription>
       </DialogHeader>
       {views.length === 0 ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-600 sm:px-6">You have no saved views yet.</p>
+        <p className="px-4 py-8 text-center text-sm text-slate-600 sm:px-6">{t('views.manageEmpty')}</p>
       ) : (
         <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto px-2 py-1 sm:px-4">
           {views.map(view => (
@@ -33,7 +36,7 @@ const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: Mana
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 text-sm font-medium text-slate-900">
                   <span className="truncate">{view.name}</span>
-                  {view.shared && <Tag tone="primary" size="sm">Shared</Tag>}
+                  {view.shared && <Tag tone="primary" size="sm">{t('views.sharedTag')}</Tag>}
                 </p>
                 <p className="truncate text-xs text-slate-600">{describeView(view)}</p>
               </div>
@@ -41,7 +44,7 @@ const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: Mana
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label={`Edit ${view.name}`}
+                aria-label={t('views.editAria', { name: view.name })}
                 onClick={() => onEdit(view)}
                 className="size-10 shrink-0 text-slate-600 hover:bg-slate-100 sm:size-8"
               >
@@ -51,7 +54,7 @@ const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: Mana
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label={`Delete ${view.name}`}
+                aria-label={t('views.deleteAria', { name: view.name })}
                 onClick={() => onDelete(view)}
                 className="size-10 shrink-0 text-danger-fg hover:bg-danger-bg sm:size-8"
               >
@@ -63,6 +66,7 @@ const ManageViewsDialog = ({ open, onOpenChange, views, onEdit, onDelete }: Mana
       )}
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default ManageViewsDialog;

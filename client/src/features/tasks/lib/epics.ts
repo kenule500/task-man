@@ -1,4 +1,5 @@
 // Epics: containers that group the work items of a project across sprints. Pure helpers, no UI.
+import i18n from '@/i18n';
 import type { Task } from '../types';
 import { dateKeyOf } from './date';
 
@@ -46,6 +47,6 @@ export const epicProgress = (epic: Task, tasks: Task[]): EpicProgress => {
 
 /** "3 of 5 items done" plus "8 of 21 points" when the items are estimated. */
 export const describeEpicProgress = (progress: EpicProgress): string => {
-  const items = `${progress.doneItems} of ${progress.items} ${progress.items === 1 ? 'item' : 'items'} done`;
-  return progress.points > 0 ? `${items}, ${progress.donePoints} of ${progress.points} points` : items;
+  const items = i18n.t('tasks:epics.itemsDone', { done: progress.doneItems, count: progress.items });
+  return progress.points > 0 ? i18n.t('tasks:epics.withPoints', { items, done: progress.donePoints, total: progress.points }) : items;
 };

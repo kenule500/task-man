@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
+import { t as translate } from '@/i18n';
 import { Shield, Plus, Pencil, Trash2, Lock, KeyRound, Copy, Check, LayoutGrid, Table2, ScrollText, ChevronRight, Zap, Code2, Columns3, TextCursorInput, Upload } from 'lucide-react';
 import {
   Alert,
@@ -24,6 +26,8 @@ import RolePermissionMatrix from '../components/RolePermissionMatrix';
 import {
   countMembersByRole,
   filterRoles,
+  roleDisplayDescription,
+  roleDisplayName,
   sortRoles,
   type PermissionCatalog,
   type RbacRole,
@@ -34,6 +38,7 @@ import { getApiErrorMessage } from '@/utils/api';
 import { useWorkspaceData, workspaceApi } from '@/features/workspace';
 import { WorkspaceSecurityCard } from '@/features/workspace/components/WorkspaceSecurityCard';
 import { GitHubIntegrationCard } from '@/features/integrations';
+import { AiReviewSettingsCard } from '@/features/ai-review';
 import api from '../utils/api';
 
 const INPUT =
@@ -59,7 +64,7 @@ type RolesView = 'cards' | 'matrix';
 const ROLE_SEARCH_THRESHOLD = 6;
 
 const SCROLL_REGION =
-  'max-h-[60dvh] overflow-y-auto overscroll-contain rounded-lg pr-1 [scrollbar-width:thin] [scrollbar-gutter:stable] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
+  'max-h-[60dvh] overflow-y-auto overscroll-contain rounded-lg pe-1 [scrollbar-width:thin] [scrollbar-gutter:stable] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2';
 
 const NO_MATCH =
   'rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600';
@@ -67,8 +72,7 @@ const NO_MATCH =
 const Feedback = ({ message }: { message: FeedbackMessage | null }) =>
   message ? <Alert tone={message.type}>{message.text}</Alert> : null;
 
-const permissionCount = (role: Role) =>
-  `${role.permissions.length} permission${role.permissions.length !== 1 ? 's' : ''}`;
+const permissionCount = (role: Role) => translate('settings:workspace.permissionCount', { count: role.permissions.length });
 
 interface RoleCardProps {
   role: Role;
@@ -77,7 +81,9 @@ interface RoleCardProps {
   onDelete?: (role: Role) => void;
 }
 
-const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) => (
+const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) => {
+  const { t } = useTranslation('settings');
+  return (
   <li
     className={cn(
       surfaceVariants({ radius: 'lg', padding: 'sm' }),
@@ -90,14 +96,14 @@ const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) 
         <Shield />
       </IconTile>
       {role.isSystem ? (
-        <Tag size="sm" className="uppercase tracking-wider">System</Tag>
+        <Tag size="sm" className="uppercase tracking-wider">{t('workspace.system')}</Tag>
       ) : (
         canManage && (
-          <div className="-mr-2 -mt-2 flex items-center">
+          <div className="-me-2 -mt-2 flex items-center">
             <Button
               variant="ghost"
               onClick={() => onEdit?.(role)}
-              aria-label={`Edit role ${role.name}`}
+              aria-label={t('workspace.editRole', { name: roleDisplayName(role) })}
               className="size-10 rounded-lg text-slate-500 hover:bg-primary/10 hover:text-primary md:size-8"
             >
               <Pencil aria-hidden />
@@ -105,7 +111,7 @@ const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) 
             <Button
               variant="ghost"
               onClick={() => onDelete?.(role)}
-              aria-label={`Delete role ${role.name}`}
+              aria-label={t('workspace.deleteRole', { name: roleDisplayName(role) })}
               className="size-10 rounded-lg text-slate-500 hover:bg-danger-bg hover:text-danger-fg md:size-8"
             >
               <Trash2 aria-hidden />
@@ -114,13 +120,15 @@ const RoleCard = ({ role, canManage = false, onEdit, onDelete }: RoleCardProps) 
         )
       )}
     </div>
-    <h4 className="mb-0.5 truncate text-sm font-semibold text-slate-900">{role.name}</h4>
-    <p className="mb-2 line-clamp-2 min-h-8 text-xs text-slate-600">{role.description || 'No description'}</p>
+    <h4 className="mb-0.5 truncate text-sm font-semibold text-slate-900">{roleDisplayName(role)}</h4>
+    <p className="mb-2 line-clamp-2 min-h-8 text-xs text-slate-600">{roleDisplayDescription(role) || t('workspace.noDescription')}</p>
     <p className="mt-auto text-xs tabular-nums text-slate-600">{permissionCount(role)}</p>
   </li>
-);
+  );
+};
 
 const WorkspaceSettingsPage = () => {
+  const { t } = useTranslation('settings');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
 
@@ -167,11 +175,11 @@ const WorkspaceSettingsPage = () => {
       const response = await api.get(`/workspaces/${workspaceSlug}/roles`);
       setRoles(response.data || []);
     } catch (err) {
-      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, 'We could not load the roles.') });
+      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, t('workspace.rolesLoadFailed')) });
     } finally {
       setRolesLoading(false);
     }
-  }, [workspaceSlug]);
+  }, [workspaceSlug, t]);
 
   // Permission catalog and member counts feed the matrix; both degrade quietly when unavailable
   const fetchMatrixData = useCallback(async () => {
@@ -205,11 +213,11 @@ const WorkspaceSettingsPage = () => {
         current ? { ...current, name: updated.name } : updated
       );
       setDraftName(null);
-      setSaveMessage({ type: 'success', text: 'Workspace name updated.' });
+      setSaveMessage({ type: 'success', text: t('workspace.nameUpdated') });
     } catch (err) {
       setSaveMessage({
         type: 'error',
-        text: getApiErrorMessage(err, 'Failed to update the workspace.'),
+        text: getApiErrorMessage(err, t('workspace.updateFailed')),
       });
     } finally {
       setSaving(false);
@@ -228,12 +236,12 @@ const WorkspaceSettingsPage = () => {
       );
       setInviteMessage({
         type: 'success',
-        text: 'Invite code regenerated. The previous code no longer works.',
+        text: t('workspace.codeRegenerated'),
       });
     } catch (err) {
       setInviteMessage({
         type: 'error',
-        text: getApiErrorMessage(err, 'Failed to regenerate the invite code.'),
+        text: getApiErrorMessage(err, t('workspace.regenerateFailed')),
       });
     } finally {
       setRegenerating(false);
@@ -247,7 +255,7 @@ const WorkspaceSettingsPage = () => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setInviteMessage({ type: 'error', text: 'Could not copy automatically. Select the code and copy it manually.' });
+      setInviteMessage({ type: 'error', text: t('workspace.copyFailed') });
     }
   };
 
@@ -269,9 +277,9 @@ const WorkspaceSettingsPage = () => {
     try {
       await api.delete(`/workspaces/${workspaceSlug}/roles/${role._id}`);
       setRoles((current) => current.filter((r) => r._id !== role._id));
-      setRolesMessage({ type: 'success', text: `Role "${role.name}" deleted.` });
+      setRolesMessage({ type: 'success', text: t('workspace.roleDeleted', { name: role.name }) });
     } catch (err) {
-      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, 'We could not delete the role.') });
+      setRolesMessage({ type: 'error', text: getApiErrorMessage(err, t('workspace.roleDeleteFailed')) });
     }
   };
 
@@ -286,8 +294,8 @@ const WorkspaceSettingsPage = () => {
   return (
     <div className="max-w-4xl space-y-6">
       <PageHeader
-        title="Workspace settings"
-        description="Manage the name, invite code and roles for this workspace."
+        title={t('workspace.title')}
+        description={t('workspace.description')}
       />
 
       {canManage && (
@@ -300,10 +308,10 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><ScrollText /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Audit log</span>
-            <span className="block text-xs text-slate-600">See who changed what, when and from where. Export it as CSV.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.audit.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.audit.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
@@ -317,10 +325,10 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><Columns3 /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Workflow</span>
-            <span className="block text-xs text-slate-600">Board stages like In review or QA, and their WIP limits.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.workflow.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.workflow.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
@@ -334,10 +342,10 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><Zap /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Automations</span>
-            <span className="block text-xs text-slate-600">Rules that change tasks for you when something happens.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.automations.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.automations.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
@@ -351,10 +359,10 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><TextCursorInput /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Custom fields</span>
-            <span className="block text-xs text-slate-600">Extra task information such as a customer, a budget or a link.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.fields.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.fields.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
@@ -368,10 +376,10 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><Upload /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Import</span>
-            <span className="block text-xs text-slate-600">Bring tasks over from Trello, Jira or a CSV file.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.import.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.import.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
@@ -385,15 +393,15 @@ const WorkspaceSettingsPage = () => {
         >
           <IconTile size="sm" tone="neutral"><Code2 /></IconTile>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-900">Developers</span>
-            <span className="block text-xs text-slate-600">API tokens for scripts and signed webhooks for your services.</span>
+            <span className="block text-sm font-semibold text-slate-900">{t('workspace.links.developers.title')}</span>
+            <span className="block text-xs text-slate-600">{t('workspace.links.developers.description')}</span>
           </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500" />
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-slate-500 rtl:-scale-x-100" />
         </Link>
       )}
 
       {loading ? (
-        <div className="space-y-6" aria-busy="true" aria-label="Loading settings">
+        <div className="space-y-6" aria-busy="true" aria-label={t('workspace.loading')}>
           {[1, 2].map((i) => (
             <Surface key={i} className="space-y-4 sm:p-6">
               <Skeleton className="h-4 w-40 bg-slate-200" />
@@ -402,28 +410,23 @@ const WorkspaceSettingsPage = () => {
           ))}
         </div>
       ) : error || !workspace ? (
-        <Alert tone="error">{error || 'Workspace not found.'}</Alert>
+        <Alert tone="error">{error || t('workspace.notFound')}</Alert>
       ) : (
         <>
           {!canManage && (
             <Alert tone="info">
-              You do not have permission to change these settings. This view is read-only.
+              {t('workspace.readOnly')}
             </Alert>
           )}
 
           {/* ==================== 1. General ==================== */}
           <Surface as="section" aria-labelledby="general-heading" className="sm:p-6">
-            <SectionHeader title={<span id="general-heading">General</span>} />
+            <SectionHeader title={<span id="general-heading">{t('workspace.general')}</span>} />
             <form onSubmit={handleSave} className="space-y-4">
               <Field
-                label="Workspace name"
+                label={t('workspace.name')}
                 htmlFor="workspace-name"
-                hint={
-                  <>
-                    The URL slug <code className="font-mono">{workspace.slug}</code>{' '}
-                    does not change when you rename.
-                  </>
-                }
+                hint={<Trans t={t} i18nKey="workspace.nameHint" values={{ slug: workspace.slug }} components={{ c: <code className="font-mono" /> }} />}
               >
                 <Input
                   id="workspace-name"
@@ -444,7 +447,7 @@ const WorkspaceSettingsPage = () => {
                   disabled={saving || !name.trim() || unchanged}
                   className="h-11 w-full rounded-lg bg-primary px-5 text-sm font-medium text-white shadow-sm hover:bg-primary-hover sm:h-10 sm:w-auto"
                 >
-                  {saving ? 'Saving...' : 'Save changes'}
+                  {saving ? t('profile.saving') : t('profile.save')}
                 </Button>
               )}
             </form>
@@ -454,13 +457,13 @@ const WorkspaceSettingsPage = () => {
           <Surface as="section" aria-labelledby="invite-heading" className="sm:p-6">
             <SectionHeader
               className="mb-1"
-              title={<span id="invite-heading">Invite code</span>}
+              title={<span id="invite-heading">{t('workspace.inviteCode')}</span>}
             />
             <p className="mb-4 text-xs text-slate-600">
-              Teammates join with this code. Regenerating it invalidates the old code and links.
+              {t('workspace.inviteHint')}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="break-all rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-center font-mono text-sm font-semibold tracking-wider text-slate-700 sm:text-left">
+              <code className="break-all rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-center font-mono text-sm font-semibold tracking-wider text-slate-700 sm:text-start">
                 {workspace.inviteCode}
               </code>
               <Button
@@ -470,7 +473,7 @@ const WorkspaceSettingsPage = () => {
                 className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
               >
                 {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-                {copied ? 'Copied' : 'Copy code'}
+                {copied ? t('common:copied') : t('workspace.copyCode')}
               </Button>
               {canManage && (
                 <Button
@@ -480,11 +483,11 @@ const WorkspaceSettingsPage = () => {
                   onClick={() => setConfirmingRegenerate(true)}
                   className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-700 shadow-none hover:bg-slate-100 sm:h-10"
                 >
-                  <KeyRound aria-hidden /> {regenerating ? 'Regenerating...' : 'Regenerate code'}
+                  <KeyRound aria-hidden /> {regenerating ? t('workspace.regenerating') : t('workspace.regenerate')}
                 </Button>
               )}
             </div>
-            <p role="status" className="sr-only">{copied ? 'Invite code copied to clipboard' : ''}</p>
+            <p role="status" className="sr-only">{copied ? t('workspace.codeCopiedStatus') : ''}</p>
             {inviteMessage && (
               <div className="mt-4">
                 <Feedback message={inviteMessage} />
@@ -504,6 +507,7 @@ const WorkspaceSettingsPage = () => {
 
           {/* ==================== 3. Integrations ==================== */}
           {canManage && workspaceSlug && <GitHubIntegrationCard workspaceSlug={workspaceSlug} />}
+          {canManage && workspaceSlug && <AiReviewSettingsCard workspaceSlug={workspaceSlug} />}
 
           {/* ==================== 4. Roles & Permissions ==================== */}
           <Surface as="section" aria-labelledby="roles-heading" className="sm:p-6">
@@ -511,10 +515,10 @@ const WorkspaceSettingsPage = () => {
               <div>
                 <SectionHeader
                   className="mb-0"
-                  title={<span id="roles-heading">Roles and permissions</span>}
+                  title={<span id="roles-heading">{t('workspace.roles.title')}</span>}
                 />
                 <p className="mt-1 text-xs text-slate-600">
-                  Define custom roles and their permissions for this workspace.
+                  {t('workspace.roles.description')}
                 </p>
               </div>
               {canManage && (
@@ -522,7 +526,7 @@ const WorkspaceSettingsPage = () => {
                   onClick={handleCreateRole}
                   className="h-11 shrink-0 gap-2 rounded-lg bg-primary px-5 text-white hover:bg-primary-hover sm:h-10"
                 >
-                  <Plus aria-hidden /> New role
+                  <Plus aria-hidden /> {t('workspace.roles.new')}
                 </Button>
               )}
             </div>
@@ -537,7 +541,7 @@ const WorkspaceSettingsPage = () => {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {showRoleSearch ? (
                   <SearchInput
-                    label="Search roles"
+                    label={t('workspace.roles.search')}
                     value={roleQuery}
                     onValueChange={setRoleQuery}
                     className="w-full sm:max-w-xs"
@@ -546,12 +550,12 @@ const WorkspaceSettingsPage = () => {
                   <span />
                 )}
                 <SegmentedControl
-                  aria-label="Roles view"
+                  aria-label={t('workspace.roles.view')}
                   value={rolesView}
                   onValueChange={setChosenView}
                   options={[
-                    { value: 'cards', label: 'Cards', icon: <LayoutGrid /> },
-                    { value: 'matrix', label: 'Matrix', icon: <Table2 /> },
+                    { value: 'cards', label: t('workspace.roles.cards'), icon: <LayoutGrid /> },
+                    { value: 'matrix', label: t('workspace.roles.matrix'), icon: <Table2 /> },
                   ]}
                   className="self-start"
                 />
@@ -563,11 +567,11 @@ const WorkspaceSettingsPage = () => {
             ) : rolesView === 'matrix' ? (
               visibleRoles.length === 0 ? (
                 <p role="status" className={NO_MATCH}>
-                  {searching ? <>No roles match &quot;{roleQuery.trim()}&quot;.</> : 'There are no roles yet.'}
+                  {searching ? t('workspace.roles.noMatch', { query: roleQuery.trim() }) : t('workspace.roles.none')}
                 </p>
               ) : Object.keys(catalog).length === 0 ? (
                 <Alert tone="info">
-                  The permission list is not available right now, so the matrix cannot be shown. Switch to Cards or reload the page.
+                  {t('workspace.roles.noCatalog')}
                 </Alert>
               ) : (
                 <RolePermissionMatrix
@@ -579,13 +583,13 @@ const WorkspaceSettingsPage = () => {
                 />
               )
             ) : (
-              <div role="region" aria-label="Role cards" tabIndex={0} className={SCROLL_REGION}>
+              <div role="region" aria-label={t('workspace.roles.cardsRegion')} tabIndex={0} className={SCROLL_REGION}>
                 {/* System roles */}
                 {(systemRoles.length > 0 || !searching) && (
                   <div className="mb-6">
                     <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
                       <Lock className="size-3.5 text-slate-500" aria-hidden />
-                      System roles
+                      {t('workspace.roles.systemRoles')}
                       <span className="font-normal normal-case tracking-normal text-slate-600">({systemRoles.length})</span>
                     </h3>
                     <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -600,29 +604,29 @@ const WorkspaceSettingsPage = () => {
                 <div>
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-700">
                     <Shield className="size-3.5 text-primary" aria-hidden />
-                    Custom roles
+                    {t('workspace.roles.customRoles')}
                     <span className="font-normal normal-case tracking-normal text-slate-600">({customRoles.length})</span>
                   </h3>
 
                   {customRoles.length === 0 && searching ? (
                     <p role="status" className={NO_MATCH}>
-                      No custom roles match &quot;{roleQuery.trim()}&quot;.
+                      {t('workspace.roles.noCustomMatch', { query: roleQuery.trim() })}
                     </p>
                   ) : customRoles.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-8 text-center">
                       <IconTile className="mx-auto mb-3">
                         <Shield />
                       </IconTile>
-                      <p className="mb-1 text-sm font-semibold text-slate-800">No custom roles yet</p>
+                      <p className="mb-1 text-sm font-semibold text-slate-800">{t('workspace.roles.noCustom')}</p>
                       <p className="mx-auto mb-4 max-w-sm text-xs text-slate-600">
-                        Create roles tailored to your team, like &quot;Marketing Lead&quot;, &quot;Contractor&quot; or &quot;Auditor&quot;.
+                        {t('workspace.roles.noCustomHint')}
                       </p>
                       {canManage && (
                         <Button
                           onClick={handleCreateRole}
                           className="h-10 gap-2 rounded-lg bg-primary text-sm text-white hover:bg-primary-hover"
                         >
-                          <Plus aria-hidden /> Create your first role
+                          <Plus aria-hidden /> {t('workspace.roles.createFirst')}
                         </Button>
                       )}
                     </div>
@@ -651,18 +655,18 @@ const WorkspaceSettingsPage = () => {
       <ConfirmActionDialog
         open={confirmingRegenerate}
         onOpenChange={setConfirmingRegenerate}
-        title="Regenerate the invite code?"
-        description="The current code and any shared invite links stop working immediately. Existing members keep their access."
-        confirmLabel="Regenerate code"
+        title={t('workspace.confirmRegenerate.title')}
+        description={t('workspace.confirmRegenerate.description')}
+        confirmLabel={t('workspace.regenerate')}
         onConfirm={handleRegenerate}
       />
 
       <ConfirmActionDialog
         open={roleToDelete !== null}
         onOpenChange={(open) => !open && setRoleToDelete(null)}
-        title={`Delete the role "${roleToDelete?.name ?? ''}"?`}
-        description="Members who have this role may lose access. This cannot be undone."
-        confirmLabel="Delete role"
+        title={t('workspace.confirmDeleteRole.title', { name: roleToDelete?.name ?? '' })}
+        description={t('workspace.confirmDeleteRole.description')}
+        confirmLabel={t('workspace.confirmDeleteRole.confirm')}
         onConfirm={handleDeleteRole}
       />
 

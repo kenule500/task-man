@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Archive, ArchiveRestore, ArrowDown, ArrowUp, ChevronsLeft, ChevronsRight, FilePlus, History, MoreHorizontal, Pencil, Trash2,
 } from 'lucide-react';
@@ -39,18 +40,19 @@ const WikiDocument = ({
   workspaceSlug, page, pages, scopeLabel, canWrite, canDelete, pathFor, rootPath, ancestors,
   onEdit, onHistory, onNewSubpage, onMove, onToggleArchive, onDelete,
 }: WikiDocumentProps) => {
+  const { t } = useTranslation('projects');
   const moves: { kind: WikiMoveKind; label: string; icon: typeof ArrowUp }[] = [
-    { kind: 'up', label: 'Move up', icon: ArrowUp },
-    { kind: 'down', label: 'Move down', icon: ArrowDown },
-    { kind: 'indent', label: 'Indent (make a subpage)', icon: ChevronsRight },
-    { kind: 'outdent', label: 'Outdent (move up a level)', icon: ChevronsLeft },
+    { kind: 'up', label: t('wiki.doc.moveUp'), icon: ArrowUp },
+    { kind: 'down', label: t('wiki.doc.moveDown'), icon: ArrowDown },
+    { kind: 'indent', label: t('wiki.doc.indent'), icon: ChevronsRight },
+    { kind: 'outdent', label: t('wiki.doc.outdent'), icon: ChevronsLeft },
   ];
 
   return (
     <Surface padding="none" radius="xl" className="overflow-hidden">
       <div className="space-y-3 border-b border-slate-200 px-4 py-4 sm:px-6">
         <Breadcrumbs
-          label="Page path"
+          label={t('wiki.doc.pagePath')}
           items={[
             { label: scopeLabel, href: rootPath },
             ...ancestors.map(ancestor => ({ label: ancestor.title, href: pathFor(ancestor._id) })),
@@ -64,23 +66,23 @@ const WikiDocument = ({
             <h2 className="text-2xl font-bold tracking-tight break-words text-text-strong">{page.title}</h2>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-subtle">
               <span>{describeLastEdit(page)}</span>
-              {page.archived && <Tag tone="warning" size="sm">Archived</Tag>}
+              {page.archived && <Tag tone="warning" size="sm">{t('wiki.archivedTag')}</Tag>}
             </p>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
             {canWrite && (
               <Button type="button" onClick={onEdit} className="h-11 bg-primary px-4 text-white hover:bg-primary-hover md:h-9">
-                <Pencil aria-hidden /> Edit
+                <Pencil aria-hidden /> {t('wiki.doc.edit')}
               </Button>
             )}
             <Button type="button" variant="outline" onClick={onHistory} className="h-11 gap-1.5 md:h-9">
-              <History aria-hidden /> History
+              <History aria-hidden /> {t('wiki.doc.history')}
             </Button>
             {(canWrite || canDelete) && (
               <DropdownMenu>
                 <DropdownMenuTrigger
-                  render={<Button type="button" variant="outline" size="icon" aria-label="More page actions" className="size-11 md:size-9" />}
+                  render={<Button type="button" variant="outline" size="icon" aria-label={t('wiki.doc.moreActions')} className="size-11 md:size-9" />}
                 >
                   <MoreHorizontal aria-hidden />
                 </DropdownMenuTrigger>
@@ -89,7 +91,7 @@ const WikiDocument = ({
                     <>
                       <DropdownMenuGroup>
                         <DropdownMenuItem onClick={onNewSubpage} disabled={!canAddChild(pages, page._id)} className={ITEM}>
-                          <FilePlus /> New subpage
+                          <FilePlus /> {t('wiki.newSubpage')}
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
@@ -102,7 +104,7 @@ const WikiDocument = ({
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={onToggleArchive} className={ITEM}>
-                        {page.archived ? <ArchiveRestore /> : <Archive />} {page.archived ? 'Restore from archive' : 'Archive'}
+                        {page.archived ? <ArchiveRestore /> : <Archive />} {page.archived ? t('wiki.doc.restoreFromArchive') : t('wiki.doc.archive')}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -110,7 +112,7 @@ const WikiDocument = ({
                     <>
                       {canWrite && <DropdownMenuSeparator />}
                       <DropdownMenuItem variant="destructive" onClick={onDelete} className={ITEM}>
-                        <Trash2 /> Delete page
+                        <Trash2 /> {t('wiki.doc.deletePage')}
                       </DropdownMenuItem>
                     </>
                   )}
@@ -126,7 +128,7 @@ const WikiDocument = ({
           <MarkdownView source={page.content} workspaceSlug={workspaceSlug} mentions={page.mentions} />
         ) : (
           <p className="text-sm text-text-subtle">
-            This page is empty.{canWrite ? ' Choose Edit to write something.' : ''}
+            {t('wiki.doc.empty')}{canWrite ? t('wiki.doc.chooseEdit') : ''}
           </p>
         )}
       </div>

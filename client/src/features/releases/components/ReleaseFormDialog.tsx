@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Rocket } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ const fieldClass = 'h-11 sm:h-10 bg-white border border-slate-300 rounded-lg tex
 
 /** Plan or edit a release (version): name, description and dates. Mount with a `key` per release. */
 const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: ReleaseFormDialogProps) => {
+  const { t } = useTranslation('projects');
   const [name, setName] = useState(release?.name ?? defaults?.name ?? '');
   const [description, setDescription] = useState(release?.description ?? defaults?.description ?? '');
   const [startDate, setStartDate] = useState(release?.startDate ? dateKeyOf(release.startDate) : defaults?.startDate ?? '');
@@ -44,10 +46,10 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
 
   const validate = (): Errors => {
     const next: Errors = {};
-    if (!name.trim()) next.name = 'Enter a version name, for example v1.2.0.';
-    else if (name.trim().length > MAX_RELEASE_NAME) next.name = `Keep the name under ${MAX_RELEASE_NAME} characters.`;
-    if (description.length > MAX_RELEASE_DESCRIPTION) next.description = `Keep the description under ${MAX_RELEASE_DESCRIPTION} characters.`;
-    if (startDate && releaseDate && releaseDate < startDate) next.releaseDate = 'The release date must be on or after the start date.';
+    if (!name.trim()) next.name = t('releases.form.nameRequired');
+    else if (name.trim().length > MAX_RELEASE_NAME) next.name = t('releases.form.nameTooLong', { max: MAX_RELEASE_NAME });
+    if (description.length > MAX_RELEASE_DESCRIPTION) next.description = t('releases.form.descriptionTooLong', { max: MAX_RELEASE_DESCRIPTION });
+    if (startDate && releaseDate && releaseDate < startDate) next.releaseDate = t('releases.form.dateOrder');
     return next;
   };
 
@@ -63,7 +65,7 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
       await onSubmit({ name: name.trim(), description: description.trim(), startDate: startDate || null, releaseDate: releaseDate || null });
       onOpenChange(false);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Could not save the release.');
+      setSubmitError(err instanceof Error ? err.message : t('releases.form.saveError'));
     } finally {
       setSubmitting(false);
     }
@@ -76,15 +78,15 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
       open={open}
       onOpenChange={onOpenChange}
       icon={<Rocket />}
-      title={editing ? 'Edit release' : 'New release'}
-      description={editing ? 'Change the name, notes or dates of this release.' : 'Plan a version. Assign tasks to it to track what ships.'}
+      title={editing ? t('releases.form.editTitle') : t('releases.form.newTitle')}
+      description={editing ? t('releases.form.editDescription') : t('releases.form.newDescription')}
       onSubmit={handleSubmit}
-      submitLabel={editing ? 'Save changes' : 'Create release'}
-      submittingLabel="Saving..."
+      submitLabel={editing ? t('releases.form.saveChanges') : t('releases.form.create')}
+      submittingLabel={t('releases.form.saving')}
       submitting={submitting}
       error={submitError}
     >
-      <Field label="Name" htmlFor="release-name" required error={errors.name}>
+      <Field label={t('releases.form.name')} htmlFor="release-name" required error={errors.name}>
         <Input
           id="release-name"
           value={name}
@@ -97,7 +99,7 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
         />
       </Field>
 
-      <Field label="Description" htmlFor="release-description" error={errors.description} hint={`What does this release deliver? ${description.length}/${MAX_RELEASE_DESCRIPTION}`}>
+      <Field label={t('releases.form.description')} htmlFor="release-description" error={errors.description} hint={t('releases.form.descriptionHint', { length: description.length, max: MAX_RELEASE_DESCRIPTION })}>
         <Textarea
           id="release-description"
           value={description}
@@ -110,7 +112,7 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Start date" htmlFor="release-start">
+        <Field label={t('releases.form.startDate')} htmlFor="release-start">
           <Input
             id="release-start"
             type="date"
@@ -119,7 +121,7 @@ const ReleaseFormDialog = ({ open, onOpenChange, release, defaults, onSubmit }: 
             className={fieldClass}
           />
         </Field>
-        <Field label="Release date" htmlFor="release-date" error={errors.releaseDate}>
+        <Field label={t('releases.form.releaseDate')} htmlFor="release-date" error={errors.releaseDate}>
           <Input
             id="release-date"
             type="date"

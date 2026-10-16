@@ -1,0 +1,91 @@
+{
+  "language": "اللغة",
+  "languages": {
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية"
+  },
+  "languageSaveFailed": "تعذّر حفظ لغتك في حسابك. تُطبَّق على هذا الجهاز فقط. حاول مرة أخرى لاحقًا.",
+  "cancel": "إلغاء",
+  "close": "إغلاق",
+  "dismiss": "تجاهل",
+  "dismissNotification": "تجاهل الإشعار",
+  "notifications": "الإشعارات",
+  "loading": "جارٍ التحميل",
+  "loadingPage": "جارٍ تحميل الصفحة",
+  "loadingEllipsis": "جارٍ التحميل…",
+  "checkingAccess": "جارٍ التحقق من الصلاحية",
+  "clearSearch": "مسح البحث",
+  "breadcrumb": "مسار التنقل",
+  "noResults": "لا توجد نتائج.",
+  "noOneAssigned": "لا أحد مُسنَد إليه",
+  "assignedTo": "مُسنَد إلى {{names}}",
+  "listSeparator": "، ",
+  "status": {
+    "pending": "قيد الانتظار",
+    "inProgress": "قيد التنفيذ",
+    "completed": "مكتملة"
+  },
+  "taskTypes": {
+    "story": "قصة",
+    "task": "مهمة",
+    "bug": "خلل",
+    "spike": "استقصاء"
+  },
+  "skeleton": {
+    "list": "جارٍ تحميل القائمة",
+    "board": "جارٍ تحميل اللوحة",
+    "table": "جارٍ تحميل الجدول",
+    "chart": "جارٍ تحميل الرسم البياني",
+    "details": "جارٍ تحميل التفاصيل"
+  },
+  "combobox": {
+    "selected": "المحدَّد: {{label}}",
+    "remove": "إزالة {{name}}",
+    "clear": "مسح {{label}}",
+    "show": "عرض خيارات {{label}}"
+  },
+  "pagination": {
+    "label": "ترقيم الصفحات",
+    "previous": "السابق",
+    "next": "التالي",
+    "rowsPerPage": "عدد الصفوف في الصفحة",
+    "summary": "<b>{{start}}–{{end}}</b> من <b>{{total}}</b>",
+    "page": "الصفحة {{page}}"
+  },
+  "tagInput": {
+    "remove": "إزالة {{noun}} {{tag}}",
+    "addFirst": "أضِف {{noun}} ثم اضغط Enter",
+    "addAnother": "أضِف آخر",
+    "max": "تم بلوغ الحد الأقصى: {{max}} ({{noun}}).",
+    "hint": "اضغط Enter أو الفاصلة للإضافة، وBackspace للإزالة.",
+    "suggestionsFor": "اقتراحات: {{noun}}",
+    "suggestions": "اقتراحات:",
+    "add": "إضافة {{noun}} {{tag}}"
+  },
+  "retry": "حاول مرة أخرى",
+  "copy": "نسخ",
+  "copied": "تم النسخ",
+  "currentSuffix": "(الحالي)",
+  "relative": {
+    "justNow": "الآن",
+    "minutes_zero": "منذ {{count}} دقيقة",
+    "minutes_one": "منذ دقيقة",
+    "minutes_two": "منذ دقيقتين",
+    "minutes_few": "منذ {{count}} دقائق",
+    "minutes_many": "منذ {{count}} دقيقة",
+    "minutes_other": "منذ {{count}} دقيقة",
+    "hours_zero": "منذ {{count}} ساعة",
+    "hours_one": "منذ ساعة",
+    "hours_two": "منذ ساعتين",
+    "hours_few": "منذ {{count}} ساعات",
+    "hours_many": "منذ {{count}} ساعة",
+    "hours_other": "منذ {{count}} ساعة",
+    "days_zero": "منذ {{count}} يوم",
+    "days_one": "منذ يوم",
+    "days_two": "منذ يومين",
+    "days_few": "منذ {{count}} أيام",
+    "days_many": "منذ {{count}} يومًا",
+    "days_other": "منذ {{count}} يوم"
+  }
+}

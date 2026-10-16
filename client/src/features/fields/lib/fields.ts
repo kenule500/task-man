@@ -1,5 +1,6 @@
 // Pure helpers for custom fields: which fields apply, how values are shown, compared and validated.
 // The server enforces the same rules (server/src/utils/customFields.ts).
+import i18n from '@/i18n';
 import { STAGE_COLOR_META } from '@/features/workflow/lib/stages';
 import type { CustomField, CustomValue, CustomValues, CustomValuesInput, FieldColor, FieldOption, FieldType } from '../types';
 
@@ -11,14 +12,14 @@ export const MAX_TEXT_VALUE = 500;
 export const MAX_MULTISELECT_VALUES = 20;
 
 export const FIELD_TYPE_META: Record<FieldType, { label: string; description: string }> = {
-  text: { label: 'Text', description: 'A short note, up to 500 characters' },
-  number: { label: 'Number', description: 'Any number, such as a budget or a score' },
-  date: { label: 'Date', description: 'A calendar day' },
-  select: { label: 'Select', description: 'One choice from a list' },
-  multiselect: { label: 'Multi-select', description: 'Several choices from a list' },
-  checkbox: { label: 'Checkbox', description: 'Yes or no' },
-  url: { label: 'Link', description: 'A web address (http or https)' },
-  user: { label: 'Person', description: 'A member of the workspace' },
+  text: { get label() { return i18n.t('tasks:fields.type.text.label'); }, get description() { return i18n.t('tasks:fields.type.text.description'); } },
+  number: { get label() { return i18n.t('tasks:fields.type.number.label'); }, get description() { return i18n.t('tasks:fields.type.number.description'); } },
+  date: { get label() { return i18n.t('tasks:fields.type.date.label'); }, get description() { return i18n.t('tasks:fields.type.date.description'); } },
+  select: { get label() { return i18n.t('tasks:fields.type.select.label'); }, get description() { return i18n.t('tasks:fields.type.select.description'); } },
+  multiselect: { get label() { return i18n.t('tasks:fields.type.multiselect.label'); }, get description() { return i18n.t('tasks:fields.type.multiselect.description'); } },
+  checkbox: { get label() { return i18n.t('tasks:fields.type.checkbox.label'); }, get description() { return i18n.t('tasks:fields.type.checkbox.description'); } },
+  url: { get label() { return i18n.t('tasks:fields.type.url.label'); }, get description() { return i18n.t('tasks:fields.type.url.description'); } },
+  user: { get label() { return i18n.t('tasks:fields.type.user.label'); }, get description() { return i18n.t('tasks:fields.type.user.description'); } },
 };
 
 export const FIELD_COLOR_META: Record<FieldColor, { label: string; dot: string }> = STAGE_COLOR_META;
@@ -50,8 +51,8 @@ export const valueText = (field: CustomField, value: CustomValue | null | undefi
   switch (field.type) {
     case 'select': return optionLabel(field, String(value));
     case 'multiselect': return (Array.isArray(value) ? value : []).map(id => optionLabel(field, id)).join('; ');
-    case 'checkbox': return value === true ? 'Yes' : 'No';
-    case 'user': return lookups.userName?.(String(value)) ?? 'Member';
+    case 'checkbox': return value === true ? i18n.t('tasks:fields.yes') : i18n.t('tasks:fields.no');
+    case 'user': return lookups.userName?.(String(value)) ?? i18n.t('tasks:fields.member');
     default: return String(value);
   }
 };
@@ -119,15 +120,15 @@ export interface FieldDraftErrors {
 export const validateFieldDraft = (draft: FieldDraft): FieldDraftErrors => {
   const errors: FieldDraftErrors = {};
   const name = draft.name.trim();
-  if (!name) errors.name = 'Give the field a name.';
-  else if (name.length > MAX_FIELD_NAME) errors.name = `Use at most ${MAX_FIELD_NAME} characters.`;
+  if (!name) errors.name = i18n.t('tasks:fields.errors.nameRequired');
+  else if (name.length > MAX_FIELD_NAME) errors.name = i18n.t('tasks:fields.errors.nameTooLong', { max: MAX_FIELD_NAME });
   if (hasOptions(draft.type)) {
     const labels = draft.options.map(option => option.label.trim());
-    if (labels.length === 0) errors.options = 'Add at least one option.';
-    else if (labels.some(label => !label)) errors.options = 'Every option needs a name.';
-    else if (labels.some(label => label.length > MAX_OPTION_LABEL)) errors.options = `Option names can have at most ${MAX_OPTION_LABEL} characters.`;
-    else if (new Set(labels.map(label => label.toLowerCase())).size !== labels.length) errors.options = 'Option names must be different.';
-    else if (labels.length > MAX_OPTIONS) errors.options = `A field can have at most ${MAX_OPTIONS} options.`;
+    if (labels.length === 0) errors.options = i18n.t('tasks:fields.errors.noOptions');
+    else if (labels.some(label => !label)) errors.options = i18n.t('tasks:fields.errors.optionName');
+    else if (labels.some(label => label.length > MAX_OPTION_LABEL)) errors.options = i18n.t('tasks:fields.errors.optionTooLong', { max: MAX_OPTION_LABEL });
+    else if (new Set(labels.map(label => label.toLowerCase())).size !== labels.length) errors.options = i18n.t('tasks:fields.errors.optionDuplicate');
+    else if (labels.length > MAX_OPTIONS) errors.options = i18n.t('tasks:fields.errors.tooManyOptions', { max: MAX_OPTIONS });
   }
   return errors;
 };
@@ -147,7 +148,7 @@ export const draftOf = (field?: CustomField | null): FieldDraft => ({
 
 /** "Every project" or "Web, Mobile". */
 export const describeProjects = (projects: readonly string[]): string =>
-  projects.length === 0 ? 'Every project' : projects.join(', ');
+  projects.length === 0 ? i18n.t('tasks:fields.everyProject') : projects.join(', ');
 
 /** The address when a link value is http or https, otherwise null (never render other schemes as links). */
 export const safeHref = (value: string): string | null => {

@@ -1,4 +1,5 @@
 import { Columns3 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
@@ -19,7 +20,9 @@ interface ListColumnsMenuProps {
 }
 
 /** "Columns" menu of the list table header: switch optional and custom field columns on or off. */
-const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListColumnsMenuProps) => (
+const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListColumnsMenuProps) => {
+  const { t } = useTranslation('tasks');
+  return (
   <DropdownMenu>
     <DropdownMenuTrigger
       render={
@@ -27,8 +30,8 @@ const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListCo
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label="Columns"
-          title="Choose columns"
+          aria-label={t('columns.title')}
+          title={t('columns.choose')}
           className="size-7 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
         />
       }
@@ -37,7 +40,7 @@ const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListCo
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="max-h-[min(24rem,var(--available-height))] w-56 overflow-y-auto">
       <DropdownMenuGroup>
-        <DropdownMenuLabel>Columns</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('columns.title')}</DropdownMenuLabel>
         {builtIn.map(column => (
           <DropdownMenuCheckboxItem key={column.id} checked={visible.has(column.id)} onCheckedChange={() => onToggle(column.id)}>
             {column.menuLabel}
@@ -48,7 +51,7 @@ const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListCo
         <>
           <DropdownMenuSeparator className="bg-slate-100" />
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Custom fields</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('columns.customFields')}</DropdownMenuLabel>
             {custom.map(column => (
               <DropdownMenuCheckboxItem key={column.id} checked={visible.has(column.id)} onCheckedChange={() => onToggle(column.id)}>
                 <span className="truncate">{column.menuLabel}</span>
@@ -58,9 +61,10 @@ const ListColumnsMenu = ({ builtIn, custom, visible, onToggle, onReset }: ListCo
         </>
       )}
       <DropdownMenuSeparator className="bg-slate-100" />
-      <DropdownMenuItem onClick={onReset}>Reset to default</DropdownMenuItem>
+      <DropdownMenuItem onClick={onReset}>{t('columns.reset')}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
-);
+  );
+};
 
 export default ListColumnsMenu;

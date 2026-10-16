@@ -4,6 +4,8 @@ import { cn } from "cn"
 
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
+import { t } from "@/i18n"
+import { physicalSide, useIsRtl } from "@/i18n/useIsRtl"
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -37,13 +39,15 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
 function SheetContent({
   className,
   children,
-  side = "right",
+  side: requestedSide = "right",
   showCloseButton = true,
   ...props
 }: SheetPrimitive.Popup.Props & {
+  /** Physical side in left-to-right; the panel opens from the opposite edge when the interface reads right to left */
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
 }) {
+  const side = physicalSide(requestedSide, useIsRtl())
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -63,14 +67,14 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-3 right-3"
+                className="absolute top-3 end-3"
                 size="icon-sm"
               />
             }
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('close')}</span>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

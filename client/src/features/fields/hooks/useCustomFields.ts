@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import i18n from '@/i18n';
 import { useParams } from 'react-router-dom';
 import { fieldsApi } from '../api';
 import type { CustomField, CustomFieldInput, CustomFieldPatch } from '../types';
@@ -73,7 +74,7 @@ export const useCustomFields = (slugArg?: string): UseCustomFields => {
   const active = useMemo(() => fields.filter(field => !field.archived), [fields]);
 
   const need = useCallback((): string => {
-    if (!slug) throw new Error('No workspace selected');
+    if (!slug) throw new Error(i18n.t('tasks:fields.noWorkspace'));
     return slug;
   }, [slug]);
 

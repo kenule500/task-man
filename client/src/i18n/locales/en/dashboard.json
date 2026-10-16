@@ -1,0 +1,105 @@
+{
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}"
+  },
+  "subtitle": "Here is your workspace at a glance.",
+  "subtitleWorkspace": "Here is what is happening in {{name}}.",
+  "yourRole": "Your role:",
+  "goToTasks": "Go to tasks",
+  "showing": "Showing {{shown}} of {{total}}.",
+  "viewAll": "View all",
+  "stats": {
+    "total": "Total tasks",
+    "totalHint": "All tasks in this workspace",
+    "inProgress": "In progress",
+    "inProgressHint": "Currently being worked on",
+    "completed": "Completed",
+    "completedHint": "Finished tasks",
+    "overdue": "Overdue",
+    "overdueHint": "Past their due date"
+  },
+  "dueThisWeek": "Due this week",
+  "dueThisWeekEmpty": "Nothing due in the next 7 days.",
+  "overdueTitle": "Overdue",
+  "overdueEmpty": "You are all caught up. No overdue tasks.",
+  "openView": "Open a view",
+  "views": {
+    "list": {
+      "label": "List",
+      "hint": "Dense table with inline edits"
+    },
+    "board": {
+      "label": "Board",
+      "hint": "Kanban by status"
+    },
+    "calendar": {
+      "label": "Calendar",
+      "hint": "Deadlines by month"
+    },
+    "timeline": {
+      "label": "Timeline",
+      "hint": "Schedule and dependencies"
+    }
+  },
+  "members": {
+    "one": "Member (just you so far)",
+    "other": "Members"
+  },
+  "invite": {
+    "title": "Invite teammates to this workspace",
+    "description": "Share this code. They can join instantly.",
+    "copied": "Copied",
+    "copy": "Copy",
+    "codeSuffix": "invite code",
+    "copyFailed": "Could not copy automatically. Select the code and copy it manually."
+  },
+  "myWork": {
+    "title": "My work",
+    "buckets": {
+      "overdue": "Overdue",
+      "today": "Due today",
+      "week": "This week",
+      "later": "Later"
+    },
+    "empty": "Nothing is assigned to you right now. Tasks assigned to you show up here.",
+    "groupLabel": "{{label}}, {{count}}",
+    "recent_one": "{{count}} task completed by you in the last {{days}} days",
+    "recent_other": "{{count}} tasks completed by you in the last {{days}} days"
+  },
+  "getStarted": {
+    "title": "Get started with TaskMan",
+    "done": "{{done}} of {{total}} done",
+    "progress": "Setup progress: {{done}} of {{total}} steps done",
+    "steps": "Setup steps",
+    "task": {
+      "title": "Create your first task",
+      "description": "Add a title and a due date. Everything else is optional.",
+      "action": "Create task"
+    },
+    "invite": {
+      "title": "Invite a teammate",
+      "description": "Send an invitation by email and choose what they can do.",
+      "action": "Invite teammate"
+    },
+    "board": {
+      "title": "Try the board view",
+      "description": "See your tasks as columns and drag them between statuses.",
+      "action": "Open board"
+    }
+  },
+  "activeSprints": {
+    "title": "Active sprints",
+    "progress": "{{name}} progress",
+    "itemsDone": "{{completed}}/{{total}} items done",
+    "pointsDone": "{{completed}}/{{total}} points"
+  },
+  "sprint": {
+    "endedDaysAgo_one": "Ended {{count}} day ago",
+    "endedDaysAgo_other": "Ended {{count}} days ago",
+    "endsToday": "Ends today",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left"
+  }
+}

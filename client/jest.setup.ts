@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import './src/i18n';
 
 // jsdom does not implement PointerEvent, which Base UI primitives dispatch.
 if (typeof window.PointerEvent === 'undefined') {

@@ -1,0 +1,79 @@
+{
+  "language": "Language",
+  "languages": {
+    "en": "English",
+    "fr": "Français",
+    "ar": "العربية"
+  },
+  "languageSaveFailed": "We could not save your language on your account. It applies on this device only. Try again later.",
+  "cancel": "Cancel",
+  "close": "Close",
+  "dismiss": "Dismiss",
+  "dismissNotification": "Dismiss notification",
+  "notifications": "Notifications",
+  "loading": "Loading",
+  "loadingPage": "Loading page",
+  "loadingEllipsis": "Loading…",
+  "checkingAccess": "Checking access",
+  "clearSearch": "Clear search",
+  "breadcrumb": "Breadcrumb",
+  "noResults": "No results.",
+  "noOneAssigned": "No one assigned",
+  "assignedTo": "Assigned to {{names}}",
+  "listSeparator": ", ",
+  "status": {
+    "pending": "Pending",
+    "inProgress": "In progress",
+    "completed": "Completed"
+  },
+  "taskTypes": {
+    "story": "Story",
+    "task": "Task",
+    "bug": "Bug",
+    "spike": "Spike"
+  },
+  "skeleton": {
+    "list": "Loading list",
+    "board": "Loading board",
+    "table": "Loading table",
+    "chart": "Loading chart",
+    "details": "Loading details"
+  },
+  "combobox": {
+    "selected": "Selected: {{label}}",
+    "remove": "Remove {{name}}",
+    "clear": "Clear {{label}}",
+    "show": "Show {{label}} options"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "rowsPerPage": "Rows per page",
+    "summary": "<b>{{start}}–{{end}}</b> of <b>{{total}}</b>",
+    "page": "Page {{page}}"
+  },
+  "tagInput": {
+    "remove": "Remove {{noun}} {{tag}}",
+    "addFirst": "Add a {{noun}} and press Enter",
+    "addAnother": "Add another",
+    "max": "Maximum of {{max}} {{noun}}s reached.",
+    "hint": "Press Enter or comma to add, Backspace to remove.",
+    "suggestionsFor": "{{noun}} suggestions",
+    "suggestions": "Suggestions:",
+    "add": "Add {{noun}} {{tag}}"
+  },
+  "retry": "Try again",
+  "copy": "Copy",
+  "copied": "Copied",
+  "currentSuffix": "(current)",
+  "relative": {
+    "justNow": "just now",
+    "minutes_one": "{{count}} minute ago",
+    "minutes_other": "{{count}} minutes ago",
+    "hours_one": "{{count}} hour ago",
+    "hours_other": "{{count}} hours ago",
+    "days_one": "{{count}} day ago",
+    "days_other": "{{count}} days ago"
+  }
+}

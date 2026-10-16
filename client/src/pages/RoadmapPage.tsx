@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { GanttChart } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, PageHeader, SegmentedControl, SkeletonTable, Surface } from '@/components/ds';
@@ -14,23 +16,27 @@ import { useReleases } from '@/features/releases';
 import { dateKeyOf, useTasks } from '@/features/tasks';
 
 const ZOOM_OPTIONS = [
-  { value: 'months', label: 'Months' },
-  { value: 'weeks', label: 'Weeks' },
+  { value: 'months', get label() { return i18n.t('planning:roadmap.zoom.months'); } },
+  { value: 'weeks', get label() { return i18n.t('planning:roadmap.zoom.weeks'); } },
 ] as const;
 
-const Legend = () => (
-  <ul className="hidden flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600 md:flex" aria-label="Legend">
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-slate-400 bg-primary" /> In progress</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-dashed border-slate-400 bg-slate-100" /> Upcoming</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-success-solid bg-success-dot" /> Done</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-danger-solid bg-danger-dot" /> Overdue</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-0.5 bg-primary" /> Today</li>
-    <li className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rotate-45 bg-primary" /> Release</li>
+const Legend = () => {
+  const { t } = useTranslation('planning');
+  return (
+  <ul className="hidden flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-600 md:flex" aria-label={t('roadmap.legend')}>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-slate-400 bg-primary" /> {t('roadmap.legendInProgress')}</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-dashed border-slate-400 bg-slate-100" /> {t('roadmap.legendUpcoming')}</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-success-solid bg-success-dot" /> {t('roadmap.legendDone')}</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-5 rounded-sm border-2 border-danger-solid bg-danger-dot" /> {t('roadmap.legendOverdue')}</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-0.5 bg-primary" /> {t('roadmap.legendToday')}</li>
+    <li className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rotate-45 bg-primary" /> {t('roadmap.legendRelease')}</li>
   </ul>
-);
+  );
+};
 
 /** Epics (grouped by project) on a month or week axis, with sprint bands and progress. */
 const RoadmapPage = () => {
+  const { t } = useTranslation('planning');
   const { workspaceSlug = '' } = useParams<{ workspaceSlug: string }>();
   const navigate = useNavigate();
   const { can } = usePermissions();
@@ -84,21 +90,21 @@ const RoadmapPage = () => {
   return (
     <AppShell>
       <PageHeader
-        title="Roadmap"
-        description="Epics over time, from the dates of their items. Select a bar to open the epic."
+        title={t('roadmap.pageTitle')}
+        description={t('roadmap.pageDescription')}
         actions={openProjects.length > 0 && (
           <>
             <SelectField
-              label="Project"
+              label={t('roadmap.project')}
               value={projectId}
               onValueChange={setProjectId}
-              options={[{ value: 'all', label: 'All projects' }, ...openProjects.map(project => ({ value: project._id, label: project.name }))]}
+              options={[{ value: 'all', label: t('roadmap.allProjects') }, ...openProjects.map(project => ({ value: project._id, label: project.name }))]}
               className="sm:w-52"
             />
             <div className="hidden flex-col gap-1 md:flex">
-              <span className="text-xs font-medium text-slate-600">Zoom</span>
+              <span className="text-xs font-medium text-slate-600">{t('roadmap.zoomLabel')}</span>
               <SegmentedControl
-                aria-label="Zoom"
+                aria-label={t('roadmap.zoomLabel')}
                 options={ZOOM_OPTIONS.map(option => ({ ...option }))}
                 value={zoom}
                 onValueChange={setZoom}
@@ -109,7 +115,7 @@ const RoadmapPage = () => {
       />
 
       {loading ? (
-        <SkeletonTable label="Loading roadmap" rows={5} columns={5} />
+        <SkeletonTable label={t('roadmap.loading')} rows={5} columns={5} />
       ) : (
         <>
           {error && <Alert tone="error" onDismiss={tasksError ? clearError : undefined}>{error}</Alert>}
@@ -118,14 +124,14 @@ const RoadmapPage = () => {
             <Surface padding="none">
               <EmptyState
                 icon={<GanttChart />}
-                title="No epics to plan yet"
-                description="An epic is a large piece of work that groups related stories across sprints. Create a work item of type Epic and add stories to it: it then appears here with its dates and progress."
+                title={t('roadmap.emptyTitle')}
+                description={t('roadmap.emptyBody')}
                 action={can('tasks:read') && (
                   <Link
                     to={`/${workspaceSlug}/tasks`}
                     className={buttonVariants({ className: 'h-11 rounded-lg bg-primary px-4 text-sm text-white hover:bg-primary-hover md:h-9' })}
                   >
-                    Go to tasks
+                    {t('roadmap.goToTasks')}
                   </Link>
                 )}
               />
@@ -134,7 +140,7 @@ const RoadmapPage = () => {
             <>
               <Legend />
               {projectId === 'all' && !bandProject && openProjects.length > 1 && (
-                <p className="hidden text-xs text-slate-600 md:block">Choose a project to see its sprints above the timeline.</p>
+                <p className="hidden text-xs text-slate-600 md:block">{t('roadmap.chooseProject')}</p>
               )}
               <div ref={timelineBox}>
                 <RoadmapTimeline groups={groups} axis={model.axis} bands={model.bands} markers={model.markers} onOpen={openEpic} onOpenMarker={openMarker} />

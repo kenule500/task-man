@@ -88,6 +88,12 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
   (see [SECURITY.md](SECURITY.md))
 - **GitHub integration**: branches, pushes and pull requests that mention a task key (`WEB-12`) show up on the task;
   opening a PR starts the task, merging it completes it. Signed webhook, per workspace
+- **AI code review**: an agent checks whether a ticket's linked GitHub pull request implements its acceptance criteria
+  (Match, Partial or Mismatch, with evidence per criterion and code issues). Opt-in per workspace; see
+  [AI code review](#ai-code-review-alibaba-cloud-model-studio--dashscope)
+- **Team chat**: real-time channels (#general, team and project channels, private channels), direct messages, @mentions
+  that notify, unread badges, online status and typing indicators; works in English, French and Arabic (right to left).
+  See [Team chat and realtime](#team-chat-and-realtime)
 - **Keyboard shortcuts** (`?` lists them): `c` new task, `/` search, `g` then a letter to jump between pages, and more
 - **Saved views**: filters, sort and view live in the URL; save them per workspace, shareable by link
 - **My work**: everything assigned to you, grouped by overdue, today, this week and later
@@ -249,6 +255,91 @@ accounts, when `MICROSOFT_TENANT` names a single organization, or when the `xms_
 the sign-in is refused, because Entra lets a tenant set any address on its own users. After the first sign-in the stable provider id
 identifies the person, and a method can be removed under Settings > Security.
 
+## AI code review (Alibaba Cloud Model Studio / DashScope)
+
+The AI code review agent checks whether a ticket's GitHub pull request really implements the ticket. The flow is: a ticket with
+**acceptance criteria**, a linked GitHub pull request, a review, and a result of **Match**, **Partial** or **Mismatch** with evidence
+(file paths) for every criterion, the list of criteria that are missing, and code issues grouped by severity (security, bug, quality,
+tests, performance). It uses the OpenAI-compatible endpoint of Alibaba Cloud Model Studio (DashScope) through the official `openai`
+package, behind `server/src/utils/ai/provider.ts` so the provider can be swapped.
+
+**Setup**
+
+1. Create an API key in the Alibaba Cloud Model Studio console and add it to `server/.env` or the host settings. The feature stays off
+   (`503 AI_DISABLED`) until `DASHSCOPE_API_KEY` is set.
+2. Pick the endpoint that matches your account region. International accounts use the default; mainland China accounts use
+   `https://dashscope.aliyuncs.com/compatible-mode/v1`.
+3. Turn the feature on for a workspace: **Settings > Workspace > AI code review** (needs `settings:manage`). Nothing is sent to Alibaba
+   Cloud until a workspace owner or admin does this, because the diff of the pull request and the ticket text leave TaskMan for a
+   third-party processor.
+4. Optional: save a read-only GitHub token (*Pull requests: read*) in the same card to review private repositories. It is stored
+   encrypted, never returned by the API, and only used for repositories that the workspace's tasks already link to.
+5. Optional: switch on **Review new commits automatically**. With the GitHub integration enabled, opening, updating or marking a linked
+   pull request ready for review queues a review (drafts are skipped, and each commit is reviewed once).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DASHSCOPE_API_KEY` | none | Required to enable the feature. Keep it secret, never commit it |
+| `DASHSCOPE_BASE_URL` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | Mainland China accounts: `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `DASHSCOPE_MODEL` | `qwen-plus` | Any chat model that supports JSON mode; `qwen-max` or `qwen3-coder-plus` are options for code-heavy reviews |
+| `AI_REVIEW_DAILY_LIMIT` | `50` | Reviews a workspace may start per UTC day (`429 AI_DAILY_LIMIT` afterwards) |
+| `AI_REVIEW_MAX_DIFF_CHARS` | `120000` | Characters of diff sent to the model per review. Lower it for models with a small context window (for example `qwen-max`: about `60000`) |
+
+**Using it.** In a task, add acceptance criteria (Details tab), then use **Run AI review** in the AI code review panel under
+Development. The API answers `202` at once and the review continues on the server (`waitUntil` from `@vercel/functions` on Vercel,
+`maxDuration` 300 s); the panel polls until it is done. One review runs per task at a time. The result keeps the model name, token
+usage and a history of the last 10 runs. Without explicit criteria the checklist and description are used, and the summary says so.
+
+**Large pull requests.** About 120,000 characters of diff are sent. Source files come first, then tests, docs and configuration,
+then lockfiles, generated and vendored files; binary files are skipped. Anything left out is listed in the result and the review is
+labelled **Partial review** (it can never be a Match). Up to 300 changed files are read from GitHub.
+
+**API**
+
+| Route | Permission | Purpose |
+|---|---|---|
+| `POST /api/workspaces/:slug/tasks/:id/ai-review` `{ prUrl? }` | `tasks:write` | Queue a review (`202`); `prUrl` must be `https://github.com/<owner>/<repo>/pull/<n>` |
+| `GET /api/workspaces/:slug/tasks/:id/ai-reviews` | `tasks:read` | Latest 10 reviews without the long parts |
+| `GET /api/workspaces/:slug/tasks/:id/ai-reviews/:reviewId` | `tasks:read` | One review with criteria and issues |
+| `GET /api/workspaces/:slug/ai` | `tasks:read` | `{ available, enabled, autoReview, model, dailyLimit, usedToday, githubTokenSet }` |
+| `PATCH /api/workspaces/:slug/ai` `{ enabled?, autoReview?, githubToken? }` | `settings:manage`, never an API token | Change settings; `githubToken: null` removes the token |
+
+**Costs.** Alibaba Cloud bills the key owner per input and output token of the chosen model; see the Model Studio price list for the
+current rates. A review sends the ticket, the pull request text and up to `AI_REVIEW_MAX_DIFF_CHARS` of diff (roughly 10,000 to
+40,000 input tokens for a large one) and receives about 1,000 to 3,000 tokens back. Every review records its token usage. Use
+`AI_REVIEW_DAILY_LIMIT`, `AI_REVIEW_MAX_DIFF_CHARS` and a smaller model to cap spend. Security notes are in [SECURITY.md](SECURITY.md#ai-code-review).
+
+## Team chat and realtime
+
+Open **Chat** in the sidebar (`/<workspace>/chat`). A `#general` channel exists for every workspace; anyone who can edit
+tasks can create team channels (optionally private) and "Project chat" on a project page opens that project's channel.
+Everyone can read and write messages and start direct messages (viewers included); only the author edits or deletes a message.
+Typing `@` suggests members; a tagged member gets a bell notification (and a device push when enabled).
+
+**How realtime works.** The web app opens one Socket.IO connection per signed-in session (`path: /api/socket/socket.io`,
+`transports: ['websocket']`) and sends the session token in `auth.token`. Messages are written through the REST API
+(`/api/workspaces/:slug/chat`) and then pushed to the other people in the channel. Events: `chat:message`,
+`chat:message_updated`, `chat:message_deleted`, `chat:activity` (unread badges), `chat:channel`, `chat:typing` and
+`presence:update`.
+
+- **Locally** the Socket.IO server is attached to the API's HTTP server (`server/src/server.ts`), nothing else to run.
+- **On Vercel** a second function, `api/socket.ts`, exports an `http.Server` running Socket.IO (Vercel Functions accept
+  WebSocket upgrades, but not long polling, hence websocket-only). `vercel.json` routes `/api/socket/*` to it before the
+  `/api/*` catch-all, gives it `maxDuration: 300` and lets the Content Security Policy open `wss:` connections.
+- **Several instances.** A connection is pinned to one function instance and ends when the function's maximum duration is
+  reached, and the REST function that saves a message is usually not the instance holding the recipient's socket. Events are
+  therefore shared through MongoDB: socket instances use `@socket.io/mongo-adapter` on the capped collection
+  `socket_io_events`, and the REST API publishes with `@socket.io/mongo-emitter` into the same collection. The adapter relies
+  on change streams, so this needs a replica set (MongoDB Atlas always is one); on a standalone database such as a local
+  `mongod` the server runs as a single instance, which is all local development needs.
+- **Polling fallback.** The socket is only a speed-up. The client reconnects on its own (new token on every attempt) and,
+  whenever it is not connected, the open channel polls `GET .../channels/:id/messages?after=<cursor>&changedSince=<time>`
+  every 4 seconds (new messages plus edits and deletions) and the channel list refreshes every 20 seconds. After a reconnect
+  it catches up once. Messages are de-duplicated by id, so a message that arrives by socket, poll and as the sender's own
+  response is shown once. The channel header shows "Live" or "Refreshing" so people know which mode they are in.
+- **Online status** is stored in the `chatpresences` collection (one row per person, workspace and server instance) with a
+  TTL index, so rows of a stopped instance vanish by themselves.
+
 ## Branching and releases
 
 - `main` is always deployable; production (Vercel) deploys from it.
@@ -266,7 +357,8 @@ https://taskman-mauve.vercel.app after each release (desktop and a 375 px phone 
 - Email delivery needs `RESEND_API_KEY` (or SMTP) in the host settings; until then sign-ups are auto-verified.
 - The session token is kept in `localStorage` (an HttpOnly cookie is planned now that the app is same-origin);
   sign-ins last 7 days and can be revoked per device.
-- No real-time updates between teammates yet: reload to see others' changes.
+- Task changes by teammates arrive by short polling (a few seconds); only chat uses WebSockets. On a database that is not a
+  replica set, chat runs as a single server instance.
 - Offline mode is read-only (the app shell and last data are cached; edits need a connection).
 - Deleting a task asks for confirmation and can still be undone for 6 seconds.
 

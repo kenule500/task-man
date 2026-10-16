@@ -1,16 +1,18 @@
+import i18n from '@/i18n';
 import type { RecurrenceBasis, RecurrenceUnit, TaskRecurrence } from '../types';
 
 export const MAX_RECURRENCE_EVERY = 365;
 
+/** Labels are resolved when read, so they follow the active language. */
 export const RECURRENCE_UNIT_OPTIONS: { value: RecurrenceUnit; singular: string; plural: string }[] = [
-  { value: 'day', singular: 'day', plural: 'days' },
-  { value: 'week', singular: 'week', plural: 'weeks' },
-  { value: 'month', singular: 'month', plural: 'months' },
+  { value: 'day', get singular() { return i18n.t('tasks:recurrence.unit.day_one'); }, get plural() { return i18n.t('tasks:recurrence.unit.day_other'); } },
+  { value: 'week', get singular() { return i18n.t('tasks:recurrence.unit.week_one'); }, get plural() { return i18n.t('tasks:recurrence.unit.week_other'); } },
+  { value: 'month', get singular() { return i18n.t('tasks:recurrence.unit.month_one'); }, get plural() { return i18n.t('tasks:recurrence.unit.month_other'); } },
 ];
 
 export const RECURRENCE_BASIS_OPTIONS: { value: RecurrenceBasis; label: string }[] = [
-  { value: 'due', label: 'from due date' },
-  { value: 'completion', label: 'from completion' },
+  { value: 'due', get label() { return i18n.t('tasks:recurrence.basis.due'); } },
+  { value: 'completion', get label() { return i18n.t('tasks:recurrence.basis.completion'); } },
 ];
 
 export const DEFAULT_RECURRENCE: TaskRecurrence = { every: 1, unit: 'week', basis: 'due' };
@@ -24,18 +26,16 @@ export const clampEvery = (value: number | string): number => {
 
 /** "Every 2 weeks, from due date"; "Does not repeat" without a rule. */
 export const describeRecurrence = (recurrence: TaskRecurrence | null | undefined): string => {
-  if (!recurrence) return 'Does not repeat';
-  const unit = RECURRENCE_UNIT_OPTIONS.find(option => option.value === recurrence.unit);
-  const every = recurrence.every === 1
-    ? `Every ${unit?.singular ?? recurrence.unit}`
-    : `Every ${recurrence.every} ${unit?.plural ?? recurrence.unit}`;
+  if (!recurrence) return i18n.t('tasks:recurrence.none');
   const basis = RECURRENCE_BASIS_OPTIONS.find(option => option.value === recurrence.basis)?.label ?? recurrence.basis;
-  return `${every}, ${basis}`;
+  return i18n.t('tasks:recurrence.describe', { every: everyPhrase(recurrence), basis });
 };
 
+const everyPhrase = (recurrence: TaskRecurrence): string =>
+  i18n.t(`tasks:recurrence.every.${recurrence.unit}`, { count: recurrence.every, defaultValue: String(recurrence.unit) });
+
 /** Badge text: "every 2 weeks". */
-export const shortRecurrence = (recurrence: TaskRecurrence): string =>
-  describeRecurrence(recurrence).split(',')[0].toLowerCase();
+export const shortRecurrence = (recurrence: TaskRecurrence): string => everyPhrase(recurrence).toLowerCase();
 
 /** Only top-level work items can repeat (subtasks follow their parent, epics are containers). */
 export const canRepeat = (task: { parent?: string | null; type?: string }): boolean => !task.parent && task.type !== 'epic';

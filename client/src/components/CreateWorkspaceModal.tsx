@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ interface CreateWorkspaceModalProps {
 }
 
 const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspaceModalProps) => {
+  const { t } = useTranslation('settings');
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Give the workspace a name.');
+      setError(t('createWorkspace.nameRequired'));
       document.getElementById('workspace-name')?.focus();
       return;
     }
@@ -39,7 +41,7 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
       navigate(`/${newWorkspace.slug}/dashboard`, { replace: true });
     } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string } } };
-      setError(axiosError.response?.data?.message || 'We could not create the workspace. Try again.');
+      setError(axiosError.response?.data?.message || t('createWorkspace.failed'));
     } finally {
       setLoading(false);
     }
@@ -58,26 +60,26 @@ const CreateWorkspaceModal = ({ open, onOpenChange, onCreated }: CreateWorkspace
       open={open}
       onOpenChange={handleClose}
       icon={<Building2 aria-hidden />}
-      title="Create a new workspace"
-      description="Workspaces are shared spaces where your team can collaborate."
+      title={t('createWorkspace.title')}
+      description={t('createWorkspace.description')}
       onSubmit={handleSubmit}
-      submitLabel="Create workspace"
-      submittingLabel="Creating..."
+      submitLabel={t('createWorkspace.submit')}
+      submittingLabel={t('createWorkspace.creating')}
       submitting={loading}
       error={error}
     >
       <Field
-        label="Workspace name"
+        label={t('workspace.name')}
         htmlFor="workspace-name"
         required
-        hint="A URL-safe slug is generated automatically."
+        hint={t('createWorkspace.hint')}
       >
         <Input
           id="workspace-name"
           aria-describedby={fieldMessageId('workspace-name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Acme Corp, Marketing Team, Personal"
+          placeholder={t('createWorkspace.placeholder')}
           className="h-11 rounded-lg border-slate-300 bg-white text-base shadow-none placeholder:text-slate-500 md:text-sm"
           maxLength={60}
           autoComplete="off"

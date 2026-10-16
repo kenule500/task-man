@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckSquare, FolderKanban, LayoutDashboard, Menu, Plus, type LucideIcon } from 'lucide-react';
 import { cn } from 'cn';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -39,6 +40,7 @@ const MobileTabBar = ({ slug }: MobileTabBarProps) => {
   const { pathname } = useLocation();
   const { can, loading } = usePermissions();
   const { setOpenMobile } = useSidebar();
+  const { t } = useTranslation('nav');
 
   if (!slug) return null;
 
@@ -49,23 +51,23 @@ const MobileTabBar = ({ slug }: MobileTabBarProps) => {
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t('tabs.primary')}
       className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur md:hidden"
     >
       <ul className="mx-auto flex max-w-md items-center px-2">
         <li className="flex flex-1">
-          <TabLink to={`${base}/dashboard`} label="Home" icon={LayoutDashboard} active={isActive('dashboard')} />
+          <TabLink to={`${base}/dashboard`} label={t('tabs.home')} icon={LayoutDashboard} active={isActive('dashboard')} />
         </li>
         <li className="flex flex-1">
           {allowed('tasks:read') && (
-            <TabLink to={`${base}/tasks`} label="Tasks" icon={CheckSquare} active={isActive('tasks')} />
+            <TabLink to={`${base}/tasks`} label={t('items.tasks')} icon={CheckSquare} active={isActive('tasks')} />
           )}
         </li>
         <li className="flex flex-1 justify-center">
           {allowed('tasks:write') && (
             <Link
               to={`${base}/tasks?new=1`}
-              aria-label="New task"
+              aria-label={t('tabs.newTask')}
               className="-mt-6 flex size-14 items-center justify-center rounded-full bg-primary text-white shadow-lg ring-4 ring-white outline-none transition-transform hover:bg-primary-hover active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Plus className="size-6" strokeWidth={2.5} aria-hidden />
@@ -74,13 +76,13 @@ const MobileTabBar = ({ slug }: MobileTabBarProps) => {
         </li>
         <li className="flex flex-1">
           {allowed('projects:read') && (
-            <TabLink to={`${base}/projects`} label="Projects" icon={FolderKanban} active={isActive('projects')} />
+            <TabLink to={`${base}/projects`} label={t('items.projects')} icon={FolderKanban} active={isActive('projects')} />
           )}
         </li>
         <li className="flex flex-1">
           <button type="button" aria-haspopup="dialog" onClick={() => setOpenMobile(true)} className={cn(TAB, 'text-slate-500 hover:text-slate-900')}>
             <Menu className="size-5" aria-hidden />
-            <span>More</span>
+            <span>{t('tabs.more')}</span>
           </button>
         </li>
       </ul>

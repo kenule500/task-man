@@ -46,6 +46,9 @@ nothing is merged unless all of them pass.
 | Live updates and presence | poller timing, merge | cursor paging, reset, permissions, presence | a second browser sees an edit without reload; "Also viewing" |
 | Single sign-on (Google, Microsoft) | ID token checks with a test key | fake provider: new/linked user, state, nonce, audience, open redirect, 2FA | buttons hidden when not configured |
 | List columns, custom-field and release filters | columns, filters, preferences | saved-view whitelist, project rename keeps field scopes | columns menu adds a field column; filters in the URL and saved views |
+| Team chat (Socket.IO) | mentions, cursors, rate limits | REST channels/messages/DMs/unread, Socket.IO auth and broadcast | a message sent in one browser appears live in another; @mention notifies; online count |
+| Languages (English, French, Arabic) | switcher, parity of keys in every namespace, French/Arabic rendering | account language saved on the profile | switch to French and Arabic; Arabic is right-to-left with no sideways scroll on desktop and phone; the account language follows to another device |
+| AI code review (Alibaba Cloud DashScope) | diff selection, prompt, JSON validation, verdict rules | queue, result, disabled/limit/conflict, simultaneous requests, token never returned, webhook auto-review (model mocked) | acceptance criteria in the task dialog; clear message when no API key is configured |
 
 ## End-to-end pass
 
@@ -95,6 +98,9 @@ Result on the final build: 40/40, 16/16 and 9/9, no page errors in the console.
 | Test stub | A one-argument IntersectionObserver stub made CodeQL flag the real two-argument call | The stub has the browser signature |
 | Wiki checklists | Text and links inside a checklist item were spread apart by a flex gap ("( WEB-8 )") | Checklist items flow inline |
 | Single sign-on | Request parameters decided whether the code exchange ran (CodeQL) | The code is always exchanged; the provider rejects a missing one |
+| Language menu | After choosing a language the menu stayed open, so the next click closed it instead of opening it | The menu closes on selection |
+| AI code review | Two simultaneous requests could both start a review of the same task | A unique index allows one active review per task (409 for the second) |
+| AI code review | The default model (qwen-max) has a smaller context than the diff limit | Default is qwen-plus; the model is configurable |
 
 ## Re-running the checks
 

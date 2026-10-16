@@ -189,11 +189,11 @@ export const NavigationPatternSection = () => (
       </Specimen>
       <Specimen label="Command palette (Ctrl/Cmd + K)" bare>
         <div aria-hidden inert className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-border bg-white shadow-overlay">
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 text-sm text-text-subtle"><Search className="size-4" />Search pages and actions…<Kbd size="sm" className="ml-auto">Esc</Kbd></div>
+          <div className="flex items-center gap-2 border-b border-border px-3 py-2.5 text-sm text-text-subtle"><Search className="size-4" />Search pages and actions…<Kbd size="sm" className="ms-auto">Esc</Kbd></div>
           <ul className="p-1.5">
             {RESULTS.map((result, index) => (
               <li key={result.label} className={cn('flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-text-body', index === 0 && 'bg-primary/10 text-text-strong')}>
-                <result.icon className="size-4" />{result.label}<span className="ml-auto text-xs text-text-subtle">{result.hint}</span>
+                <result.icon className="size-4" />{result.label}<span className="ms-auto text-xs text-text-subtle">{result.hint}</span>
               </li>
             ))}
           </ul>

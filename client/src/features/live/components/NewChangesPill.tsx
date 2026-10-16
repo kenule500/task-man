@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { flushLive, useLiveSnapshot } from '../lib/liveStore';
 
 /**
@@ -6,6 +7,7 @@ import { flushLive, useLiveSnapshot } from '../lib/liveStore';
  * Pressing it applies them at once.
  */
 const NewChangesPill = () => {
+  const { t } = useTranslation('tasks');
   const { pending } = useLiveSnapshot();
   if (pending === 0) return null;
 
@@ -17,8 +19,8 @@ const NewChangesPill = () => {
         className="pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-full border border-info-border bg-info-bg px-4 text-sm font-medium text-info-fg shadow-floating outline-none hover:brightness-95 focus-visible:outline-2 focus-visible:outline-primary"
       >
         <RefreshCw className="size-4" aria-hidden />
-        <span className="tabular-nums">{pending === 1 ? '1 new change' : `${pending} new changes`}</span>
-        <span className="text-info-fg/80">· Refresh</span>
+        <span className="tabular-nums">{t('live.newChanges', { count: pending })}</span>
+        <span className="text-info-fg/80">{t('live.refreshSuffix')}</span>
       </button>
     </div>
   );

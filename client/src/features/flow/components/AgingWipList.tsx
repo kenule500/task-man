@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { AvatarStack, Tag } from '@/components/ds';
 import { AGING_META, agingLevel, formatDays } from '../lib/flow';
 import type { AgingItem } from '../types';
@@ -10,14 +11,15 @@ interface AgingWipListProps {
 
 /** Work in progress, oldest first. The tag spells out what the color means. */
 const AgingWipList = ({ items, p85 }: AgingWipListProps) => {
-  if (items.length === 0) return <p className="text-sm text-slate-600">Nothing is in progress right now.</p>;
+  const { t } = useTranslation('reports');
+  if (items.length === 0) return <p className="text-sm text-slate-600">{t('flow.agingNone')}</p>;
 
   return (
     <div>
       <p className="mb-2 text-xs text-slate-600">
         {p85 === null
-          ? 'Complete a few tasks to get a baseline: tasks are judged against the 85th percentile of cycle time.'
-          : `Judged against the 85th percentile of cycle time (${formatDays(p85)}): watch from ${formatDays(p85 / 2)}, over it beyond ${formatDays(p85)}.`}
+          ? t('flow.agingNoBaseline')
+          : t('flow.agingBaseline', { p85: formatDays(p85), half: formatDays(p85 / 2) })}
       </p>
       <ul className="divide-y divide-slate-100">
         {items.map(item => {
@@ -33,7 +35,7 @@ const AgingWipList = ({ items, p85 }: AgingWipListProps) => {
                 <AvatarStack people={item.assignees.map(person => ({ name: person.name, src: person.avatarUrl }))} max={3} />
                 <span className="inline-flex items-center gap-2">
                   <span className="text-sm font-semibold tabular-nums text-slate-900">{formatDays(item.days)}</span>
-                  <Tag tone={meta.tone} size="sm">{meta.label}</Tag>
+                  <Tag tone={meta.tone} size="sm">{t(`flow.aging.${level}`)}</Tag>
                 </span>
               </div>
             </li>

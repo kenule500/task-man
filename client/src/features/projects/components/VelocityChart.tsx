@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatSprintRange } from '../lib/sprintStats';
 import type { SprintVelocity } from '../lib/velocity';
 
@@ -13,18 +14,19 @@ interface VelocityChartProps {
 
 /** Bars of the story points each completed sprint delivered. Accessible as an image plus a hidden table. */
 const VelocityChart = ({ velocities, average }: VelocityChartProps) => {
+  const { t } = useTranslation('reports');
   const max = Math.max(1, ...velocities.map(item => item.points), average ?? 0);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
   const slot = innerW / Math.max(velocities.length, 1);
   const barW = Math.min(48, slot * 0.6);
   const y = (value: number) => PAD.top + innerH - (value / max) * innerH;
-  const summary = `Velocity chart: ${velocities.map(item => `${item.sprint.name} ${item.points} points`).join(', ')}.`
-    + (average === null ? '' : ` Average ${average} points.`);
+  const summary = t('charts.velocitySummary', { items: velocities.map(item => t('charts.velocityItem', { name: item.sprint.name, points: item.points })).join(', ') })
+    + (average === null ? '' : t('charts.velocityAverage', { average }));
 
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className="h-auto w-full max-w-lg">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className="h-auto w-full max-w-lg [direction:ltr]">
         {[0, max / 2, max].map(tick => (
           <g key={tick}>
             <line x1={PAD.left} x2={W - PAD.right} y1={y(tick)} y2={y(tick)} className="stroke-slate-200" strokeWidth={1} />
@@ -61,14 +63,14 @@ const VelocityChart = ({ velocities, average }: VelocityChartProps) => {
       {average !== null && (
         <figcaption className="mt-1 flex items-center gap-1.5 text-xs text-slate-600">
           <svg aria-hidden width="20" height="6"><line x1="0" x2="20" y1="3" y2="3" className="stroke-warning-solid" strokeWidth={2} strokeDasharray="5 4" /></svg>
-          Average of the last 3 sprints: {average} points
+          {t('charts.velocityAverageLabel', { average })}
         </figcaption>
       )}
       <div className="sr-only">
         <table>
-          <caption>Story points completed per sprint</caption>
+          <caption>{t('charts.velocityCaption')}</caption>
           <thead>
-            <tr><th scope="col">Sprint</th><th scope="col">Dates</th><th scope="col">Points</th></tr>
+            <tr><th scope="col">{t('charts.sprint')}</th><th scope="col">{t('charts.dates')}</th><th scope="col">{t('charts.points')}</th></tr>
           </thead>
           <tbody>
             {velocities.map(item => (

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/utils/api';
 import { releasesApi } from '../api';
@@ -22,7 +23,7 @@ export const useRelease = (slug: string | undefined, releaseId: string | undefin
     Promise.all([releasesApi.get(slug, releaseId), releasesApi.notes(slug, releaseId)])
       .then(([release, notes]) => { if (!cancelled) setLoaded({ key, release, notes, error: '' }); })
       .catch(err => {
-        if (!cancelled) setLoaded({ key, release: null, notes: null, error: getApiErrorMessage(err, 'Could not load the release') });
+        if (!cancelled) setLoaded({ key, release: null, notes: null, error: getApiErrorMessage(err, i18n.t('projects:releases.errors.loadOne')) });
       });
     return () => { cancelled = true; };
   }, [key, slug, releaseId, version]);

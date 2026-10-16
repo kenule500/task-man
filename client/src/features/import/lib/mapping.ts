@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { TaskStatus, TaskType } from '@/features/tasks/types';
 import { isValidProjectKey, suggestProjectKey, type Project } from '@/features/projects';
 import type { CommitMapping, ImportPreview, MappingDraft } from '../types';
@@ -46,18 +47,18 @@ export const mappingProblems = (
   const problems: MappingProblems = {};
   if (draft.mode === 'existing') {
     if (!options.projects.some(project => !project.archived && project.name === draft.existingProject)) {
-      problems.project = 'Choose the project that receives the tasks.';
+      problems.project = i18n.t('admin:import.problems.chooseProject');
     }
     return problems;
   }
   const name = draft.newName.trim();
-  if (!options.canCreateProject) problems.project = 'You can import into an existing project only.';
-  else if (!name) problems.project = 'Give the new project a name.';
-  else if (name.length > 60) problems.project = 'Project names can be at most 60 characters.';
+  if (!options.canCreateProject) problems.project = i18n.t('admin:import.problems.existingOnly');
+  else if (!name) problems.project = i18n.t('admin:import.problems.nameRequired');
+  else if (name.length > 60) problems.project = i18n.t('admin:import.problems.nameTooLong');
   else if (options.projects.some(project => project.name.toLowerCase() === name.toLowerCase())) {
-    problems.project = 'A project with this name already exists. Choose it from the list instead.';
+    problems.project = i18n.t('admin:import.problems.nameTaken');
   }
-  if (draft.newKey && !isValidProjectKey(draft.newKey)) problems.key = 'Use 2 to 6 letters or numbers.';
+  if (draft.newKey && !isValidProjectKey(draft.newKey)) problems.key = i18n.t('admin:import.problems.keyInvalid');
   return problems;
 };
 

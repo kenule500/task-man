@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Field } from '@/components/ds';
 import { fieldMessageId } from '@/components/ds/variants';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import {
 } from '../lib/stages';
 import { STAGE_COLORS, type StageColor, type WorkflowStage } from '../types';
 
-const GROUP_OPTIONS: SelectOption<TaskStatus>[] = TASK_STATUSES.map(group => ({ value: group, label: GROUP_LABEL[group] }));
+const GROUP_OPTIONS: SelectOption<TaskStatus>[] = TASK_STATUSES.map(group => ({ value: group, get label() { return GROUP_LABEL[group]; } }));
 
 const CONTROL = 'h-11 text-base sm:h-9 sm:text-sm';
 
@@ -33,16 +34,17 @@ interface StageRowProps {
 
 /** One editable stage: name, group, color, WIP limit, order and delete. */
 export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, onMove, onDelete }: StageRowProps) => {
+  const { t } = useTranslation('tasks');
   const id = useId();
   const nameId = `${id}-name`;
   const limitId = `${id}-limit`;
-  const position = `stage ${index + 1} of ${total}`;
-  const label = stage.name.trim() || `Stage ${index + 1}`;
+  const position = t('workflow.position', { index: index + 1, total });
+  const label = stage.name.trim() || t('workflow.stageNumber', { number: index + 1 });
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4" aria-label={`${label}, ${position}`}>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_6rem]">
-        <Field label="Name" htmlFor={nameId} error={problem}>
+        <Field label={t('workflow.row.name')} htmlFor={nameId} error={problem}>
           <Input
             id={nameId}
             value={stage.name}
@@ -50,21 +52,21 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
             onChange={event => onChange({ name: event.target.value })}
             aria-invalid={problem ? true : undefined}
             aria-describedby={problem ? fieldMessageId(nameId) : undefined}
-            placeholder="For example, In review"
+            placeholder={t('workflow.row.namePlaceholder')}
             className={CONTROL}
           />
         </Field>
         <div className="space-y-1.5">
-          <p id={`${id}-group-label`} className="text-sm font-medium text-slate-700">Group</p>
+          <p id={`${id}-group-label`} className="text-sm font-medium text-slate-700">{t('workflow.row.group')}</p>
           <OptionSelect
-            aria-label={`Group of ${label}`}
+            aria-label={t('workflow.row.groupOf', { label })}
             value={stage.group}
             options={GROUP_OPTIONS}
             onChange={group => onChange({ group })}
             className={cn(CONTROL, 'border-slate-300')}
           />
         </div>
-        <Field label="WIP limit" htmlFor={limitId} hint="0 = none">
+        <Field label={t('workflow.row.wipLimit')} htmlFor={limitId} hint={t('workflow.row.wipHint')}>
           <Input
             id={limitId}
             inputMode="numeric"
@@ -76,7 +78,7 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div role="group" aria-label={`Color of ${label}`} className="flex flex-wrap items-center gap-1">
+        <div role="group" aria-label={t('workflow.row.colorOf', { label })} className="flex flex-wrap items-center gap-1">
           {STAGE_COLORS.map((color: StageColor) => {
             const selected = stage.color === color;
             return (
@@ -107,7 +109,7 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`Move ${label} up`}
+            aria-label={t('workflow.row.moveUp', { label })}
             disabled={index === 0}
             onClick={() => onMove(-1)}
             className="size-11 text-slate-600 sm:size-8"
@@ -118,7 +120,7 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={`Move ${label} down`}
+            aria-label={t('workflow.row.moveDown', { label })}
             disabled={index === total - 1}
             onClick={() => onMove(1)}
             className="size-11 text-slate-600 sm:size-8"
@@ -129,8 +131,8 @@ export const StageRow = ({ stage, index, total, problem, lastOfGroup, onChange, 
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label={lastOfGroup ? `${label} is the only stage in ${GROUP_LABEL[stage.group]}` : `Delete ${label}`}
-            title={lastOfGroup ? `Every group needs at least one stage` : undefined}
+            aria-label={lastOfGroup ? t('workflow.row.onlyStage', { label, group: GROUP_LABEL[stage.group] }) : t('workflow.row.delete', { label })}
+            title={lastOfGroup ? t('workflow.row.needOne') : undefined}
             disabled={lastOfGroup}
             onClick={onDelete}
             className="size-11 text-danger-fg hover:bg-danger-bg sm:size-8"

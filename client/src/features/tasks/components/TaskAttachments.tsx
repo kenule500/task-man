@@ -3,6 +3,7 @@ import {
   Clapperboard, Download, File as FileIcon, FileArchive, FileSpreadsheet, FileText, Image as ImageIcon,
   Paperclip, Trash2, Upload,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { ProgressBar, SectionHeader, toast, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ interface ThumbnailProps {
 
 /** Image preview fetched as a blob (the endpoint needs the auth header); the blob URL is revoked on unmount. */
 const Thumbnail = ({ attachment, load }: ThumbnailProps) => {
+  const { t } = useTranslation('tasks');
   const [src, setSrc] = useState<string | null>(null);
   const loadRef = useRef(load);
   useEffect(() => {
@@ -59,7 +61,7 @@ const Thumbnail = ({ attachment, load }: ThumbnailProps) => {
   }, [attachment._id]);
 
   if (!src) return <ImageIcon className="size-5 text-slate-500" aria-hidden />;
-  return <img src={src} alt={`Preview of ${attachment.originalName}`} className="size-full object-cover" />;
+  return <img src={src} alt={t('attachments.preview', { name: attachment.originalName })} className="size-full object-cover" />;
 };
 
 interface UploadEntry {
@@ -80,6 +82,7 @@ export interface TaskAttachmentsProps {
 }
 
 const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove, onDownload }: TaskAttachmentsProps) => {
+  const { t } = useTranslation('tasks');
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploads, setUploads] = useState<UploadEntry[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -99,9 +102,9 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
       setUploads(current => [...current, { key, name: file.name, percent: 0 }]);
       try {
         await onUpload(file, { onProgress: percent => patchUpload(key, percent) });
-        toast.success(`Uploaded ${file.name}`);
+        toast.success(t('attachments.uploaded', { name: file.name }));
       } catch (err) {
-        toast.error(getApiErrorMessage(err, `Could not upload ${file.name}.`));
+        toast.error(getApiErrorMessage(err, t('attachments.uploadError', { name: file.name })));
       } finally {
         setUploads(current => current.filter(entry => entry.key !== key));
       }
@@ -125,7 +128,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
     try {
       saveBlob(await onDownload(attachment._id), attachment.originalName);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, `Could not download ${attachment.originalName}.`));
+      toast.error(getApiErrorMessage(err, t('attachments.downloadError', { name: attachment.originalName })));
     } finally {
       setBusyId(null);
     }
@@ -135,20 +138,20 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
     setBusyId(attachment._id);
     try {
       await onRemove(attachment._id);
-      toast.success(`Removed ${attachment.originalName}`);
+      toast.success(t('attachments.removed', { name: attachment.originalName }));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, `Could not remove ${attachment.originalName}.`));
+      toast.error(getApiErrorMessage(err, t('attachments.removeError', { name: attachment.originalName })));
     } finally {
       setBusyId(null);
     }
   };
 
   return (
-    <section aria-label="Attachments">
-      <SectionHeader title="Attachments" count={attachments.length} icon={<Paperclip className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
+    <section aria-label={t('attachments.title')}>
+      <SectionHeader title={t('attachments.title')} count={attachments.length} icon={<Paperclip className="size-4 text-slate-500" aria-hidden />} className="mb-2" />
 
       {attachments.length === 0 && uploads.length === 0 && (
-        <p className="mb-2 text-sm text-slate-500">No attachments yet.</p>
+        <p className="mb-2 text-sm text-slate-500">{t('attachments.none')}</p>
       )}
 
       {attachments.length > 0 && (
@@ -179,7 +182,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Download ${attachment.originalName}`}
+                  aria-label={t('attachments.download', { name: attachment.originalName })}
                   disabled={busy}
                   onClick={() => void download(attachment)}
                   className="size-10 text-slate-500 hover:bg-slate-100 sm:size-8"
@@ -190,7 +193,7 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Delete ${attachment.originalName}`}
+                    aria-label={t('attachments.delete', { name: attachment.originalName })}
                     disabled={busy}
                     onClick={() => void remove(attachment)}
                     className="size-10 text-slate-500 hover:bg-danger-bg hover:text-danger-fg sm:size-8"
@@ -205,11 +208,11 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
       )}
 
       {uploads.length > 0 && (
-        <ul className="mt-2 space-y-2" aria-label="Uploading">
+        <ul className="mt-2 space-y-2" aria-label={t('attachments.uploadingList')}>
           {uploads.map(entry => (
             <li key={entry.key} className="rounded-lg border border-dashed border-slate-300 px-3 py-2">
-              <p className="truncate text-xs text-slate-600">Uploading {entry.name}</p>
-              <ProgressBar value={entry.percent} label={`Uploading ${entry.name}`} showValue className="mt-1" />
+              <p className="truncate text-xs text-slate-600">{t('attachments.uploading', { name: entry.name })}</p>
+              <ProgressBar value={entry.percent} label={t('attachments.uploading', { name: entry.name })} showValue className="mt-1" />
             </li>
           ))}
         </ul>
@@ -227,22 +230,22 @@ const TaskAttachments = ({ attachments, userNames, canWrite, onUpload, onRemove,
           }}
           onDrop={handleDrop}
           className={cn(
-            'mt-3 flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-4 text-center transition-colors sm:flex-row sm:justify-between sm:text-left',
+            'mt-3 flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-4 text-center transition-colors sm:flex-row sm:justify-between sm:text-start',
             dragging ? 'border-primary bg-blue-50/60' : 'border-slate-300 bg-slate-50/50',
           )}
         >
           <p className="text-xs text-slate-500">
-            Drag files here or choose them. Up to {MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB each: images, PDF, Office, text, CSV or ZIP.
+            {t('attachments.dropzone', { mb: MAX_ATTACHMENT_BYTES / (1024 * 1024) })}
           </p>
           <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="h-10 shrink-0 gap-1.5 border-slate-300 text-slate-700 sm:h-9">
-            <Upload className="size-4" aria-hidden /> Upload file
+            <Upload className="size-4" aria-hidden /> {t('attachments.upload')}
           </Button>
           <input
             ref={inputRef}
             type="file"
             multiple
             accept={ACCEPT}
-            aria-label="Choose files to upload"
+            aria-label={t('attachments.choose')}
             onChange={handleInput}
             className="sr-only"
             tabIndex={-1}

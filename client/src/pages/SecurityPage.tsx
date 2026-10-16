@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api, { getApiErrorMessage } from '../utils/api';
 import { Button } from '@/components/ui/button';
 import { Alert, Surface, Spinner } from '@/components/ds';
@@ -21,6 +22,7 @@ const validators = {
 const EMPTY = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 const SecurityPage = () => {
+  const { t } = useTranslation('settings');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordData, setPasswordData] = useState(EMPTY);
@@ -49,9 +51,9 @@ const SecurityPage = () => {
       });
       setPasswordData(EMPTY);
       reset();
-      setMessage({ type: 'success', text: 'Password changed. Your other devices have been signed out.' });
+      setMessage({ type: 'success', text: t('security.passwordChanged') });
     } catch (err: unknown) {
-      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Failed to change password. Check your current password and try again.') });
+      setMessage({ type: 'error', text: getApiErrorMessage(err, t('security.passwordFailed')) });
     } finally {
       setSaving(false);
     }
@@ -64,14 +66,14 @@ const SecurityPage = () => {
 
       <Surface padding="lg">
         <div className="mb-6">
-          <h2 className="font-semibold text-slate-900">Change password</h2>
-          <p className="mt-1 text-sm text-slate-600">Update your password to keep your account secure.</p>
+          <h2 className="font-semibold text-slate-900">{t('security.changePassword')}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t('security.changePasswordHint')}</p>
         </div>
 
         <div className="max-w-md space-y-5">
           <PasswordField
             id="currentPassword"
-            label="Current password"
+            label={t('security.currentPassword')}
             value={passwordData.currentPassword}
             onChange={setField('currentPassword')}
             onBlur={() => touch('currentPassword')}
@@ -80,7 +82,7 @@ const SecurityPage = () => {
           />
           <PasswordField
             id="newPassword"
-            label="New password"
+            label={t('security.newPassword')}
             value={passwordData.newPassword}
             onChange={setField('newPassword')}
             onBlur={() => touch('newPassword')}
@@ -90,7 +92,7 @@ const SecurityPage = () => {
           />
           <PasswordField
             id="confirmPassword"
-            label="Confirm new password"
+            label={t('security.confirmPassword')}
             value={passwordData.confirmPassword}
             onChange={setField('confirmPassword')}
             onBlur={() => touch('confirmPassword')}
@@ -107,7 +109,7 @@ const SecurityPage = () => {
           className="h-11 w-full gap-2 rounded-lg bg-primary px-6 text-white hover:bg-primary-hover sm:w-auto"
         >
           {saving ? <Spinner decorative /> : <Lock className="size-4" aria-hidden />}
-          {saving ? 'Updating...' : 'Update password'}
+          {saving ? t('security.updating') : t('security.update')}
         </Button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 import { useId, useRef, type ComponentProps, type KeyboardEvent, type ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import {
   kbdVariants, segmentedItemVariants,
@@ -44,7 +45,7 @@ export const SearchInput = ({ label, value, onValueChange, placeholder, id, clas
   };
   return (
     <div className={cn('relative', className)}>
-      <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-subtle" />
+      <Search aria-hidden className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-text-subtle" />
       <Input
         ref={inputRef}
         id={id}
@@ -60,14 +61,14 @@ export const SearchInput = ({ label, value, onValueChange, placeholder, id, clas
             clear();
           }
         }}
-        className="h-10 bg-white pr-10 pl-9 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
+        className="h-10 bg-white pe-10 ps-9 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
       />
       {value && (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('clearSearch')}
           onClick={clear}
-          className="absolute top-1/2 right-1 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-text-subtle outline-none hover:text-text-strong focus-visible:outline-2 focus-visible:outline-focus"
+          className="absolute top-1/2 end-1 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-text-subtle outline-none hover:text-text-strong focus-visible:outline-2 focus-visible:outline-focus"
         >
           <X aria-hidden className="size-4" />
         </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Alert, SectionHeader, Surface, SwitchField } from '@/components/ds';
 import { useTwoFactorStatus } from '@/features/account/hooks/useTwoFactorStatus';
@@ -16,6 +17,7 @@ interface WorkspaceSecurityCardProps {
 
 /** "Security" section of the workspace settings: require two-factor authentication for every member. */
 export const WorkspaceSecurityCard = ({ workspaceSlug, require2fa, canManage, onChange }: WorkspaceSecurityCardProps) => {
+  const { t } = useTranslation('settings');
   const { status } = useTwoFactorStatus();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +32,7 @@ export const WorkspaceSecurityCard = ({ workspaceSlug, require2fa, canManage, on
       const updated = await workspaceApi.update(workspaceSlug, { require2fa: next });
       onChange(Boolean(updated.security?.require2fa));
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'We could not change this setting. Try again.'));
+      setError(getApiErrorMessage(err, t('workspace.security.changeFailed')));
     } finally {
       setSaving(false);
     }
@@ -38,13 +40,13 @@ export const WorkspaceSecurityCard = ({ workspaceSlug, require2fa, canManage, on
 
   return (
     <Surface as="section" aria-labelledby="workspace-security-heading" className="space-y-4 sm:p-6">
-      <SectionHeader className="mb-0" title={<span id="workspace-security-heading">Security</span>} />
+      <SectionHeader className="mb-0" title={<span id="workspace-security-heading">{t('workspace.security.title')}</span>} />
 
       {lacksTwoFactor && canManage && (
-        <Alert tone="warning" title="Turn on two-factor authentication for your own account first">
-          You would be locked out of this workspace otherwise.{' '}
+        <Alert tone="warning" title={t('workspace.security.ownFirstTitle')}>
+          {t('workspace.security.ownFirst')}{' '}
           <Link to="/settings/security" className="font-semibold underline underline-offset-2">
-            Set it up in Security settings
+            {t('workspace.security.setItUp')}
           </Link>
           .
         </Alert>
@@ -52,14 +54,14 @@ export const WorkspaceSecurityCard = ({ workspaceSlug, require2fa, canManage, on
       {error && <Alert tone="error">{error}</Alert>}
 
       <SwitchField
-        label="Require two-factor authentication"
-        description="Members without two-factor authentication cannot open this workspace until they turn it on. They can do that in their own Security settings, and they cannot turn it off while this is on."
+        label={t('workspace.security.requireLabel')}
+        description={t('workspace.security.requireDescription')}
         checked={require2fa}
         disabled={!canManage || saving || (!require2fa && lacksTwoFactor)}
         onCheckedChange={(checked) => void toggle(checked)}
       />
       {!canManage && (
-        <p className="text-xs text-slate-600">Only owners and admins can change this setting.</p>
+        <p className="text-xs text-slate-600">{t('workspace.security.ownersOnly')}</p>
       )}
     </Surface>
   );

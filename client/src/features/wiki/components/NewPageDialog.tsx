@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { FilePlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import FormDialog from '@/components/FormDialog';
 import { Field, fieldMessageId } from '@/components/ds';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ interface NewPageDialogProps {
 
 /** Asks for a title, then creates the page (the caller opens it in the editor). */
 const NewPageDialog = ({ open, onOpenChange, parentTitle, onCreate }: NewPageDialogProps) => {
+  const { t } = useTranslation('projects');
   const id = useId();
   const [title, setTitle] = useState('');
   const [saving, setSaving] = useState(false);
@@ -33,7 +35,7 @@ const NewPageDialog = ({ open, onOpenChange, parentTitle, onCreate }: NewPageDia
     event.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) {
-      setError('Give the page a title.');
+      setError(t('wiki.titleRequired'));
       return;
     }
     setSaving(true);
@@ -42,7 +44,7 @@ const NewPageDialog = ({ open, onOpenChange, parentTitle, onCreate }: NewPageDia
       await onCreate(trimmed);
       changeOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'We could not create the page. Try again.');
+      setError(err instanceof Error ? err.message : t('wiki.createError'));
     } finally {
       setSaving(false);
     }
@@ -53,14 +55,14 @@ const NewPageDialog = ({ open, onOpenChange, parentTitle, onCreate }: NewPageDia
       open={open}
       onOpenChange={changeOpen}
       icon={<FilePlus />}
-      title={parentTitle ? 'New subpage' : 'New page'}
-      description={parentTitle ? `It will sit under "${parentTitle}".` : 'Give it a title; you can write the content next.'}
+      title={parentTitle ? t('wiki.newSubpage') : t('wiki.newPage')}
+      description={parentTitle ? t('wiki.sitUnder', { title: parentTitle }) : t('wiki.giveTitleNext')}
       onSubmit={event => { void submit(event); }}
-      submitLabel="Create page"
-      submittingLabel="Creating"
+      submitLabel={t('wiki.createPage')}
+      submittingLabel={t('wiki.creating')}
       submitting={saving}
     >
-      <Field label="Title" htmlFor={`${id}-title`} required error={error || undefined}>
+      <Field label={t('wiki.title')} htmlFor={`${id}-title`} required error={error || undefined}>
         <Input
           id={`${id}-title`}
           autoFocus

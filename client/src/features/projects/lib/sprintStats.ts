@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type { Task } from '@/features/tasks';
 import { addDays, dateKeyOf, diffInDays, formatDate, parseDateKey, toDateKey } from '@/features/tasks';
 import type { Sprint } from '../types';
@@ -36,8 +37,8 @@ export const workProgress = (tasks: Task[]): WorkProgress => {
 /** "8 of 21 points" or "3 of 5 tasks". */
 export const describeProgress = (progress: WorkProgress): string =>
   progress.unit === 'points'
-    ? `${progress.donePoints} of ${progress.totalPoints} points`
-    : `${progress.doneTasks} of ${progress.totalTasks} ${progress.totalTasks === 1 ? 'task' : 'tasks'}`;
+    ? i18n.t('projects:sprint.progressPoints', { done: progress.donePoints, total: progress.totalPoints })
+    : i18n.t('projects:sprint.progressTasks', { done: progress.doneTasks, count: progress.totalTasks });
 
 /** Calendar days from today to the sprint's end date (negative once it is over). */
 export const daysUntilEnd = (sprint: Pick<Sprint, 'endDate'>, today: Date = new Date()): number =>
@@ -46,10 +47,9 @@ export const daysUntilEnd = (sprint: Pick<Sprint, 'endDate'>, today: Date = new 
 /** "5 days left", "Ends today", "Ended 2 days ago". */
 export const describeDaysLeft = (sprint: Pick<Sprint, 'endDate'>, today: Date = new Date()): string => {
   const days = daysUntilEnd(sprint, today);
-  if (days === 0) return 'Ends today';
-  if (days === 1) return '1 day left';
-  if (days > 1) return `${days} days left`;
-  return days === -1 ? 'Ended 1 day ago' : `Ended ${-days} days ago`;
+  if (days === 0) return i18n.t('projects:sprint.endsToday');
+  if (days > 0) return i18n.t('projects:sprint.left', { count: days });
+  return i18n.t('projects:sprint.endedAgo', { count: -days });
 };
 
 export const isSprintLate = (sprint: Pick<Sprint, 'endDate' | 'status'>, today: Date = new Date()): boolean =>
@@ -70,4 +70,4 @@ export const suggestSprintDates = (sprints: Sprint[], today: Date = new Date()):
 };
 
 /** Next "Sprint N" name based on the existing sprint count. */
-export const suggestSprintName = (sprints: Sprint[]): string => `Sprint ${sprints.length + 1}`;
+export const suggestSprintName = (sprints: Sprint[]): string => i18n.t('projects:sprint.name', { n: sprints.length + 1 });

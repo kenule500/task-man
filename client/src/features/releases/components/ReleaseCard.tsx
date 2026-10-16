@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Archive, ArchiveRestore, CalendarDays, ListTodo, Pencil, RotateCcw, Rocket, Trash2 } from 'lucide-react';
 import { ProgressBar, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const iconButton = 'size-11 text-slate-600 hover:bg-slate-100 md:size-8';
 const ReleaseCard = ({
   release, workspaceSlug, projectId, canManage, busy = false, onEdit, onRelease, onArchive, onReopen, onDelete,
 }: ReleaseCardProps) => {
+  const { t } = useTranslation('projects');
   const headingId = useId();
   const percent = releasePercent(release.progress);
   const due = describeReleaseDue(release);
@@ -63,7 +65,7 @@ const ReleaseCard = ({
                   {due}
                 </Meta>
               )}
-              <Meta icon={<ListTodo />}>{total} {total === 1 ? 'task' : 'tasks'}</Meta>
+              <Meta icon={<ListTodo />}>{t('releases.card.tasks', { count: total })}</Meta>
             </div>
           </div>
 
@@ -71,23 +73,23 @@ const ReleaseCard = ({
             <div className="flex shrink-0 flex-wrap items-center gap-1">
               {release.status === 'unreleased' && (
                 <Button onClick={() => onRelease(release)} disabled={busy} className="h-11 gap-2 rounded-lg bg-primary px-3 text-sm text-white hover:bg-primary-hover md:h-8">
-                  <Rocket className="size-4" aria-hidden /> Release
+                  <Rocket className="size-4" aria-hidden /> {t('releases.card.release')}
                 </Button>
               )}
               {release.status !== 'unreleased' && (
-                <Button variant="ghost" size="icon-sm" onClick={() => onReopen(release)} disabled={busy} aria-label={`Reopen ${release.name}`} title="Reopen" className={iconButton}>
+                <Button variant="ghost" size="icon-sm" onClick={() => onReopen(release)} disabled={busy} aria-label={t('releases.card.reopenAria', { name: release.name })} title={t('releases.card.reopen')} className={iconButton}>
                   {release.status === 'archived' ? <ArchiveRestore /> : <RotateCcw />}
                 </Button>
               )}
-              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(release)} aria-label={`Edit ${release.name}`} className={iconButton}>
+              <Button variant="ghost" size="icon-sm" onClick={() => onEdit(release)} aria-label={t('releases.card.editAria', { name: release.name })} className={iconButton}>
                 <Pencil />
               </Button>
               {release.status !== 'archived' && (
-                <Button variant="ghost" size="icon-sm" onClick={() => onArchive(release)} disabled={busy} aria-label={`Archive ${release.name}`} title="Archive" className={iconButton}>
+                <Button variant="ghost" size="icon-sm" onClick={() => onArchive(release)} disabled={busy} aria-label={t('releases.card.archiveAria', { name: release.name })} title={t('releases.card.archive')} className={iconButton}>
                   <Archive />
                 </Button>
               )}
-              <Button variant="ghost" size="icon-sm" onClick={() => onDelete(release)} aria-label={`Delete ${release.name}`} className={cn(iconButton, 'hover:bg-danger-bg hover:text-danger-fg')}>
+              <Button variant="ghost" size="icon-sm" onClick={() => onDelete(release)} aria-label={t('releases.card.deleteAria', { name: release.name })} className={cn(iconButton, 'hover:bg-danger-bg hover:text-danger-fg')}>
                 <Trash2 />
               </Button>
             </div>
@@ -98,10 +100,10 @@ const ReleaseCard = ({
 
         <div>
           <div className="mb-1 flex justify-between gap-3 text-xs text-slate-600">
-            <span>Progress</span>
+            <span>{t('releases.card.progress')}</span>
             <span className="tabular-nums">{describeReleaseProgress(release.progress)}</span>
           </div>
-          <ProgressBar value={percent} label={`${release.name} progress`} showValue />
+          <ProgressBar value={percent} label={t('releases.card.progressOf', { name: release.name })} showValue />
         </div>
       </div>
     </Surface>

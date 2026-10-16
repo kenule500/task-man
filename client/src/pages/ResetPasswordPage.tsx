@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Alert, Spinner } from '@/components/ds';
@@ -16,6 +17,7 @@ const validators = {
 };
 
 const ResetPasswordPage = () => {
+  const { t } = useTranslation('auth');
   const { token } = useParams();
   const navigate = useNavigate();
   const [values, setValues] = useState({ password: '', confirmPassword: '' });
@@ -45,7 +47,7 @@ const ResetPasswordPage = () => {
       setError(
         axiosError.response?.data?.message ||
           axiosError.response?.data?.errors?.[0]?.msg ||
-          'We could not reset your password. The link may have expired.',
+          t('reset.error'),
       );
     } finally {
       setLoading(false);
@@ -58,11 +60,11 @@ const ResetPasswordPage = () => {
         <AuthStatusHeader
           icon={<CheckCircle2 />}
           tone="success"
-          title="Password updated"
-          description="You can now sign in with your new password. Taking you to sign in..."
+          title={t('reset.successTitle')}
+          description={t('reset.successDescription')}
         />
         <Link to="/login" className={buttonVariants({ className: 'h-11 w-full gap-2 rounded-xl bg-primary text-white hover:bg-primary-hover' })}>
-          Go to sign in <ArrowRight className="size-4" aria-hidden />
+          {t('reset.goToSignIn')} <ArrowRight className="size-4 rtl:-scale-x-100" aria-hidden />
         </Link>
       </AuthPageShell>
     );
@@ -70,19 +72,19 @@ const ResetPasswordPage = () => {
 
   return (
     <AuthPageShell>
-      <AuthStatusHeader icon={<Lock />} title="Set a new password" description="Choose a password you have not used before." />
+      <AuthStatusHeader icon={<Lock />} title={t('reset.title')} description={t('reset.description')} />
 
       {error && (
         <Alert tone="error" className="mb-6">
           {error}{' '}
-          <Link to="/forgot-password" className="font-semibold underline">Request a new link</Link>
+          <Link to="/forgot-password" className="font-semibold underline">{t('reset.requestNew')}</Link>
         </Alert>
       )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         <PasswordField
           id="password"
-          label="New password"
+          label={t('reset.newPassword')}
           value={values.password}
           onChange={(password) => setValues((current) => ({ ...current, password }))}
           onBlur={() => touch('password')}
@@ -92,22 +94,22 @@ const ResetPasswordPage = () => {
         />
         <PasswordField
           id="confirmPassword"
-          label="Confirm new password"
+          label={t('reset.confirmPassword')}
           value={values.confirmPassword}
           onChange={(confirmPassword) => setValues((current) => ({ ...current, confirmPassword }))}
           onBlur={() => touch('confirmPassword')}
           error={errorFor('confirmPassword')}
           autoComplete="new-password"
-          hint="Type it again to make sure it matches."
+          hint={t('reset.confirmHint')}
         />
 
         <Button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-primary text-base text-white hover:bg-primary-hover">
           {loading ? (
             <>
-              <Spinner decorative /> Updating...
+              <Spinner decorative /> {t('reset.updating')}
             </>
           ) : (
-            'Update password'
+            t('reset.submit')
           )}
         </Button>
       </form>

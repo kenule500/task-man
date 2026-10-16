@@ -93,6 +93,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
       res.status(400).json({ message: 'Theme must be light, dark or system' });
       return;
     }
+    if (updates.language !== undefined && !['en', 'fr', 'ar'].includes(updates.language as string)) {
+      res.status(400).json({ message: 'Language must be en, fr or ar' });
+      return;
+    }
     // Rendered as an <img src>: only http(s) URLs (no javascript:/data: payloads)
     if (typeof updates.avatarUrl === 'string' && updates.avatarUrl && !/^https?:\/\/\S+$/i.test(updates.avatarUrl)) {
       res.status(400).json({ message: 'Avatar URL must start with http:// or https://' });

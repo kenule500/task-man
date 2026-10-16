@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Copy, CornerDownRight, Link2, Pencil, Trash2, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { DescriptionItem, DescriptionList, UserAvatar, toast } from '@/components/ds';
 import type { Project } from '@/features/projects';
 // Deep import: the projects index imports the tasks module back
@@ -38,6 +39,10 @@ import TaskWatchToggle from './TaskWatchToggle';
 import TaskTimeSection from '@/features/time/components/TaskTimeSection';
 import TaskCustomFields from '@/features/fields/components/TaskCustomFields';
 import TaskReleaseDetail from '@/features/releases/components/TaskReleaseDetail';
+// Deep imports: the ai-review module reads task types back from this one
+import AcceptanceCriteria from '@/features/ai-review/components/AcceptanceCriteria';
+import AiReviewPanel from '@/features/ai-review/components/AiReviewPanel';
+import { toCriteriaInput } from '@/features/ai-review/lib/criteria';
 
 /** Everything the dialog can do to a task besides editing its fields. */
 export interface TaskDetailActions {
@@ -81,6 +86,7 @@ interface TaskDetailDialogProps {
 const TaskDetailDialog = ({
   task, onOpenChange, tasks, currentUser, canWrite, canDelete, onEdit, onDelete, actions, projects = [], workspaceSlug,
 }: TaskDetailDialogProps) => {
+  const { t } = useTranslation('tasks');
   const [tab, setTab] = useState<'details' | 'activity'>('details');
   const directory = useProjectDirectory();
   const slug = workspaceSlug ?? directory.slug;
@@ -112,11 +118,11 @@ const TaskDetailDialog = ({
   const epicItems = isEpic ? itemsOfEpic(tasks, taskId) : [];
   const epicStats = isEpic ? epicProgress(task, tasks) : null;
   const sprintNameOf = (id: string) => projects.flatMap(project => project.sprints).find(sprint => sprint._id === id)?.name;
-  const sprintName = task.sprint ? sprintNameOf(task.sprint) ?? 'Sprint' : null;
+  const sprintName = task.sprint ? sprintNameOf(task.sprint) ?? t('detail.sprintFallback') : null;
 
   const copyLink = async () => {
-    if (await copyToClipboard(taskLink(window.location.origin, slug, taskId))) toast.success('Link copied');
-    else toast.error('Could not copy the link.');
+    if (await copyToClipboard(taskLink(window.location.origin, slug, taskId))) toast.success(t('detail.linkCopied'));
+    else toast.error(t('detail.linkCopyError'));
   };
 
   const canEditFields = canWrite && Boolean(actions.updateTask);
@@ -127,10 +133,10 @@ const TaskDetailDialog = ({
     setDuplicating(true);
     try {
       const copy = await extras.duplicateTask(task, subtasks.length > 0);
-      toast.success(subtasks.length > 0 ? `Created "${copy.title}" with ${subtasks.length} ${subtasks.length === 1 ? 'subtask' : 'subtasks'}` : `Created "${copy.title}"`);
+      toast.success(subtasks.length > 0 ? t('detail.createdWithSubtasks', { title: copy.title, count: subtasks.length }) : t('detail.created', { title: copy.title }));
       actions.openTask?.(copy);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not duplicate the task.'));
+      toast.error(getApiErrorMessage(err, t('menu.duplicateError')));
     } finally {
       setDuplicating(false);
     }
@@ -139,7 +145,7 @@ const TaskDetailDialog = ({
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-2xl sm:h-auto sm:max-h-[90dvh] sm:max-w-[680px] sm:rounded-xl">
-        <DialogHeader className="shrink-0 space-y-2 border-b border-slate-200 px-4 pt-5 pb-4 pr-12 sm:px-6 sm:pt-6">
+        <DialogHeader className="shrink-0 space-y-2 border-b border-slate-200 px-4 pt-5 pb-4 pe-12 sm:px-6 sm:pt-6">
           <TaskBreadcrumb task={task} tasks={tasks} workspaceSlug={slug || undefined} onOpenTask={actions.openTask} />
           <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
             {slug && (
@@ -148,11 +154,11 @@ const TaskDetailDialog = ({
                 onClick={() => { void copyLink(); }}
                 className="inline-flex min-h-8 items-center gap-1 rounded px-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary sm:min-h-6"
               >
-                <Link2 className="size-3.5" aria-hidden /> Copy link
+                <Link2 className="size-3.5" aria-hidden /> {t('detail.copyLink')}
               </button>
             )}
             <DevCopyMenu task={task} workspaceSlug={slug || undefined} />
-            <TaskWatchToggle task={task} currentUserId={currentUser?._id} workspaceSlug={slug || undefined} className="ml-auto" />
+            <TaskWatchToggle task={task} currentUserId={currentUser?._id} workspaceSlug={slug || undefined} className="ms-auto" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <TaskTypeBadge type={task.type} />
@@ -168,12 +174,12 @@ const TaskDetailDialog = ({
                   className={`inline-flex min-h-8 max-w-64 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:brightness-95 focus-visible:outline-2 focus-visible:outline-primary ${TASK_TYPE_META.epic.badge}`}
                 >
                   <Zap className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate" title={epic.title}>Epic: {epic.title}</span>
+                  <span className="truncate" title={epic.title}>{t('detail.epicBadge', { title: epic.title })}</span>
                 </button>
               ) : (
                 <span className={`inline-flex max-w-64 items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${TASK_TYPE_META.epic.badge}`}>
                   <Zap className="size-3.5 shrink-0" aria-hidden />
-                  <span className="truncate" title={epic.title}>Epic: {epic.title}</span>
+                  <span className="truncate" title={epic.title}>{t('detail.epicBadge', { title: epic.title })}</span>
                 </span>
               )
             )}
@@ -181,14 +187,14 @@ const TaskDetailDialog = ({
           <PresenceBar slug={slug || undefined} taskId={taskId} />
           <DialogTitle className="text-lg leading-snug font-bold text-slate-900 [overflow-wrap:anywhere]">{task.title}</DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Details, comments and files for this task.
+            {t('detail.description')}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={value => setTab(value as 'details' | 'activity')} className="min-h-0 flex-1 gap-0">
           <TabsList
             variant="line"
-            aria-label="Task sections"
+            aria-label={t('detail.sections')}
             className="w-full shrink-0 justify-start gap-1 border-b border-slate-200 px-3 group-data-horizontal/tabs:h-11 sm:px-5 sm:group-data-horizontal/tabs:h-10"
           >
             {(['details', 'activity'] as const).map(value => (
@@ -197,43 +203,43 @@ const TaskDetailDialog = ({
                 value={value}
                 className="h-full flex-none px-3 text-slate-600 data-active:text-slate-900 group-data-horizontal/tabs:after:bottom-0"
               >
-                {value === 'details' ? 'Details' : 'Activity'}
+                {value === 'details' ? t('detail.tabDetails') : t('detail.tabActivity')}
               </TabsTrigger>
             ))}
           </TabsList>
 
           <TabsContent value="details" keepMounted className="min-h-0 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
           <DescriptionList columns={3} className="gap-4">
-            <DescriptionItem label="Due date"><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></DescriptionItem>
-            <DescriptionItem label="Start date">
-              {task.startDate ? formatDate(dateKeyOf(task.startDate)) : <span className="text-slate-500">Not set</span>}
+            <DescriptionItem label={t('taskForm.dueDate')}><DueDate deadline={task.deadline} completed={completed} className="text-sm" /></DescriptionItem>
+            <DescriptionItem label={t('taskForm.startDate')}>
+              {task.startDate ? formatDate(dateKeyOf(task.startDate)) : <span className="text-slate-500">{t('detail.notSet')}</span>}
             </DescriptionItem>
-            <DescriptionItem label="Schedule">
+            <DescriptionItem label={t('detail.schedule')}>
               <span className={overdue ? 'font-medium text-danger-fg' : undefined}>
-                {completed ? 'Completed' : overdue ? 'Overdue' : 'On track'}
+                {completed ? t('status.completed') : overdue ? t('detail.overdue') : t('detail.onTrack')}
               </span>
             </DescriptionItem>
             {task.parent && (
-              <DescriptionItem label="Parent task">
+              <DescriptionItem label={t('detail.parentTask')}>
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <CornerDownRight className="size-3 shrink-0 text-slate-500" aria-hidden />
+                  <CornerDownRight className="size-3 shrink-0 text-slate-500 rtl:-scale-x-100" aria-hidden />
                   {parent && actions.openTask ? (
                     <button
                       type="button"
                       onClick={() => actions.openTask?.(parent)}
-                      className="min-w-0 rounded text-left text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                      className="min-w-0 rounded text-start text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                     >
-                      Subtask of <span className="font-medium">{parent.title}</span>
+                      {t('detail.subtaskOf')}<span className="font-medium">{parent.title}</span>
                     </button>
                   ) : (
-                    <span className="truncate">Subtask of {parent?.title ?? 'another task'}</span>
+                    <span className="truncate">{t('detail.subtaskOf')}{parent?.title ?? t('subtasks.anotherTask')}</span>
                   )}
                 </span>
               </DescriptionItem>
             )}
             {!isEpic && (
-              <DescriptionItem label="Sprint">
-                {sprintName ?? <span className="text-slate-500">{task.project ? 'Backlog' : 'None'}</span>}
+              <DescriptionItem label={t('field.sprint')}>
+                {sprintName ?? <span className="text-slate-500">{task.project ? t('form.backlog') : t('detail.none')}</span>}
               </DescriptionItem>
             )}
             {!isEpic && (
@@ -245,7 +251,7 @@ const TaskDetailDialog = ({
               />
             )}
             {canRepeat(task) && (
-              <DescriptionItem label="Repeat" wide>
+              <DescriptionItem label={t('detail.repeat')} wide>
                 <TaskRecurrenceField
                   value={task.recurrence}
                   canWrite={canEditFields}
@@ -253,10 +259,10 @@ const TaskDetailDialog = ({
                 />
               </DescriptionItem>
             )}
-            <DescriptionItem label="Labels">
-              {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">None</span>}
+            <DescriptionItem label={t('taskForm.labels')}>
+              {task.labels?.length ? <LabelList labels={task.labels} max={10} /> : <span className="text-slate-500">{t('detail.none')}</span>}
             </DescriptionItem>
-            <DescriptionItem label="Assignees">
+            <DescriptionItem label={t('assignee.label')}>
               {task.assignees?.length ? (
                 <ul className="space-y-1">
                   {task.assignees.map((user: TaskUser) => (
@@ -266,9 +272,9 @@ const TaskDetailDialog = ({
                     </li>
                   ))}
                 </ul>
-              ) : <span className="text-slate-500">Nobody yet</span>}
+              ) : <span className="text-slate-500">{t('detail.nobodyYet')}</span>}
             </DescriptionItem>
-            <DescriptionItem label="Depends on">
+            <DescriptionItem label={t('taskForm.dependsOn')}>
               {dependencies.length ? (
                 <ul className="space-y-1">
                   {dependencies.map(dep => (
@@ -279,18 +285,24 @@ const TaskDetailDialog = ({
                     </li>
                   ))}
                 </ul>
-              ) : <span className="text-slate-500">Nothing</span>}
+              ) : <span className="text-slate-500">{t('detail.nothing')}</span>}
             </DescriptionItem>
           </DescriptionList>
 
-          <section aria-label="Description">
-            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Description</h3>
+          <section aria-label={t('taskForm.description')}>
+            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{t('taskForm.description')}</h3>
             {task.description ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{task.description}</p>
             ) : (
-              <p className="text-sm text-slate-500">No description.</p>
+              <p className="text-sm text-slate-500">{t('detail.noDescription')}</p>
             )}
           </section>
+
+          <AcceptanceCriteria
+            items={task.acceptanceCriteria ?? []}
+            canWrite={canEditFields}
+            onChange={items => actions.updateTask!(taskId, { acceptanceCriteria: toCriteriaInput(items) })}
+          />
 
           <TaskChecklist
             items={task.checklist ?? []}
@@ -309,12 +321,12 @@ const TaskDetailDialog = ({
           />
 
           {epicStats && (
-            <section aria-label="Items in this epic">
+            <section aria-label={t('detail.epicItemsRegion')}>
               <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Items <span className="tabular-nums">({epicItems.length})</span>
+                {t('detail.items')} <span className="tabular-nums">({epicItems.length})</span>
               </h3>
               {epicItems.length === 0 ? (
-                <p className="text-sm text-slate-500">No items yet. Choose this epic when you create or edit a story, task, bug or spike.</p>
+                <p className="text-sm text-slate-500">{t('detail.noEpicItems')}</p>
               ) : (
                 <>
                   <p className="mb-2 text-sm text-slate-600">{describeEpicProgress(epicStats)}</p>
@@ -326,7 +338,7 @@ const TaskDetailDialog = ({
                           <button
                             type="button"
                             onClick={() => actions.openTask?.(item)}
-                            className="min-h-8 min-w-0 flex-1 truncate rounded text-left text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
+                            className="min-h-8 min-w-0 flex-1 truncate rounded text-start text-sm font-medium text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary"
                           >
                             {item.title}
                           </button>
@@ -365,6 +377,14 @@ const TaskDetailDialog = ({
 
           <TaskDevelopment task={task} />
 
+          <AiReviewPanel
+            key={taskId}
+            task={task}
+            taskKey={resolveTaskKey(task, directory.byName) || undefined}
+            workspaceSlug={slug || undefined}
+            canWrite={canWrite}
+          />
+
           <TaskAttachments
             attachments={task.attachments ?? []}
             userNames={userNames}
@@ -398,7 +418,7 @@ const TaskDetailDialog = ({
                 disabled={duplicating}
                 className="h-10 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
               >
-                <Copy className="size-4" aria-hidden /> Duplicate
+                <Copy className="size-4" aria-hidden /> {t('menu.duplicate')}
               </Button>
             )}
             {canDelete && (
@@ -408,7 +428,7 @@ const TaskDetailDialog = ({
                 onClick={() => onDelete(task)}
                 className="h-10 gap-1.5 text-danger-fg hover:bg-danger-bg hover:text-danger-fg sm:h-9"
               >
-                <Trash2 className="size-4" aria-hidden /> {task.parent ? 'Delete subtask' : 'Delete task'}
+                <Trash2 className="size-4" aria-hidden /> {task.parent ? t('detail.deleteSubtask') : t('detail.deleteTask')}
               </Button>
             )}
           </div>
@@ -420,11 +440,11 @@ const TaskDetailDialog = ({
                 onClick={() => onEdit(task)}
                 className="h-10 gap-1.5 border-slate-300 text-slate-700 sm:h-9"
               >
-                <Pencil className="size-4" aria-hidden /> Edit
+                <Pencil className="size-4" aria-hidden /> {t('actions.edit')}
               </Button>
             )}
             <Button type="button" onClick={() => onOpenChange(false)} className="h-10 bg-primary text-white hover:bg-primary-hover sm:h-9">
-              Done
+              {t('actions.done')}
             </Button>
           </div>
         </div>

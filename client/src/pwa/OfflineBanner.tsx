@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Banner } from '@/components/ds';
 
 /** Warning banner (design-system Banner) shown while the browser reports no network connection. */
 export default function OfflineBanner() {
+  const { t } = useTranslation('nav');
   const [online, setOnline] = useState(() => navigator.onLine);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function OfflineBanner() {
       rounded={false}
       className="pointer-events-auto pt-[max(0.625rem,env(safe-area-inset-top))] font-medium"
     >
-      You're offline. Changes can't be saved until you reconnect.
+      {t('pwa.offline')}
     </Banner>
   );
 }

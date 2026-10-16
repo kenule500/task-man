@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight, FolderKanban, KanbanSquare, Pencil, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, SkeletonDetail, Surface, Tag, toast } from '@/components/ds';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/usePermissions';
+import OpenProjectChatButton from '@/features/chat/components/OpenProjectChatButton';
 import { cn } from '@/lib/utils';
 import {
   ProjectFormDialog, ProjectIcon, ProjectWorkspace, SprintFormDialog, colorStyleOf, suggestSprintDates, suggestSprintName,
@@ -15,6 +17,7 @@ import {
 type SprintFormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; sprint: Sprint };
 
 const ProjectDetailPage = () => {
+  const { t } = useTranslation('projects');
   const { workspaceSlug = '', projectId } = useParams<{ workspaceSlug: string; projectId: string }>();
   const { can } = usePermissions();
   const canWrite = can('projects:write');
@@ -47,19 +50,19 @@ const ProjectDetailPage = () => {
   return (
     <AppShell>
       {loading ? (
-        <Surface><SkeletonDetail label="Loading project" fields={4} lines={2} /></Surface>
+        <Surface><SkeletonDetail label={t('detail.loading')} fields={4} lines={2} /></Surface>
       ) : !project ? (
         <>
-          <h1 className="sr-only">Project</h1>
+          <h1 className="sr-only">{t('detail.project')}</h1>
           {error && <Alert tone="error" onDismiss={clearError}>{error}</Alert>}
           <Surface padding="none">
             <EmptyState
               icon={<FolderKanban />}
-              title="Project not found"
-              description="It may have been deleted, or the link is wrong. Pick a project from the list."
+              title={t('detail.notFound')}
+              description={t('detail.notFoundBody')}
               action={(
                 <Link to={`/${workspaceSlug}/projects`} className={buttonVariants({ className: 'h-10 rounded-lg bg-primary px-4 text-sm text-white hover:bg-primary-hover' })}>
-                  Back to projects
+                  {t('detail.back')}
                 </Link>
               )}
             />
@@ -67,14 +70,14 @@ const ProjectDetailPage = () => {
         </>
       ) : (
         <>
-          <nav aria-label="Breadcrumb">
+          <nav aria-label={t('detail.breadcrumb')}>
             <ol className="flex items-center gap-1.5 text-sm text-slate-600">
               <li>
                 <Link to={`/${workspaceSlug}/projects`} className="rounded px-1 py-2 hover:text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-primary">
-                  Projects
+                  {t('detail.projects')}
                 </Link>
               </li>
-              <li aria-hidden><ChevronRight className="size-3.5" /></li>
+              <li aria-hidden><ChevronRight className="size-3.5 rtl:-scale-x-100" /></li>
               <li className="min-w-0 truncate font-medium text-slate-900" aria-current="page">{project.name}</li>
             </ol>
           </nav>
@@ -88,7 +91,7 @@ const ProjectDetailPage = () => {
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                   <h1 className="break-words text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{project.name}</h1>
                   <Tag tone="neutral" className="font-mono">{project.key}</Tag>
-                  {project.archived && <Tag tone="warning">Archived</Tag>}
+                  {project.archived && <Tag tone="warning">{t('detail.archived')}</Tag>}
                 </div>
                 {project.description && <p className="mt-1 max-w-2xl text-sm text-slate-600">{project.description}</p>}
               </div>
@@ -97,18 +100,19 @@ const ProjectDetailPage = () => {
             <div className="flex shrink-0 flex-wrap items-center gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
               {canWrite && (
                 <Button variant="outline" onClick={() => setEditingProject(true)} className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9">
-                  <Pencil className="size-4" aria-hidden /> Edit
+                  <Pencil className="size-4" aria-hidden /> {t('actions.edit')}
                 </Button>
               )}
+              <OpenProjectChatButton slug={workspaceSlug} projectName={project.name} />
               <Link to={boardHref} className={buttonVariants({ variant: 'outline', className: 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9' })}>
-                <KanbanSquare className="size-4" aria-hidden /> Open board
+                <KanbanSquare className="size-4" aria-hidden /> {t('detail.openBoard')}
               </Link>
               {canWrite && (
                 <Button
                   onClick={() => setSprintForm({ mode: 'create' })}
                   className="h-11 gap-2 rounded-lg bg-primary text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9"
                 >
-                  <Plus className="size-4" aria-hidden /> New sprint
+                  <Plus className="size-4" aria-hidden /> {t('workspace.newSprint')}
                 </Button>
               )}
             </div>
@@ -137,7 +141,7 @@ const ProjectDetailPage = () => {
               onSubmit={async input => {
                 await updateProject(project._id, input);
                 void directory.reload();
-                toast.success('Project saved');
+                toast.success(t('page.projectSaved'));
               }}
             />
           )}
@@ -154,7 +158,7 @@ const ProjectDetailPage = () => {
               onSubmit={async input => {
                 if (sprintForm.mode === 'edit') await updateSprint(project._id, sprintForm.sprint._id, input);
                 else await createSprint(project._id, input);
-                toast.success(sprintForm.mode === 'edit' ? 'Sprint saved' : 'Sprint created');
+                toast.success(sprintForm.mode === 'edit' ? t('detail.sprintSaved') : t('detail.sprintCreated'));
               }}
             />
           )}

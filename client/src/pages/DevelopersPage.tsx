@@ -1,10 +1,12 @@
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/ds';
 import { API_URL } from '@/config';
 import { TokensSection, WebhooksSection, useTokens, useWebhooks } from '@/features/developers';
 import { usePermissions } from '../hooks/usePermissions';
 
 const DevelopersPage = () => {
+  const { t } = useTranslation('admin');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can, permissions } = usePermissions();
   const canManage = can('settings:manage');
@@ -17,8 +19,8 @@ const DevelopersPage = () => {
   return (
     <div className="max-w-4xl space-y-5 pb-6">
       <PageHeader
-        title="Developers"
-        description="Connect other tools to this workspace: personal API tokens for scripts, and signed webhooks that tell your services what happened."
+        title={t('developers.pageTitle')}
+        description={t('developers.pageDescription')}
       />
 
       <TokensSection

@@ -1,8 +1,9 @@
 import {
   BarChart3, BookOpen, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
-  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, ScrollText, Settings, Timer, Upload, Users, Zap, type LucideIcon,
+  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, MessagesSquare, ScrollText, Settings, Timer, Upload, Users, Zap, type LucideIcon,
 } from 'lucide-react';
-import { FAQ_CATEGORIES } from '@/content/faq';
+import { faqCategories } from '@/content/faq';
+import { t } from '@/i18n';
 import type { Project } from '@/features/projects';
 import type { Task } from '@/features/tasks';
 import { taskKey } from '@/features/tasks/lib/taskKey';
@@ -56,6 +57,7 @@ const PAGES: PageDef[] = [
   { key: 'workload', label: 'Workload', icon: Gauge, permission: 'projects:read', path: 'workload', keywords: 'capacity people assignee points' },
   { key: 'timesheet', label: 'Timesheet', icon: Timer, permission: 'tasks:read', path: 'timesheet', keywords: 'time tracking hours logged timer week' },
   { key: 'wiki', label: 'Wiki', icon: BookOpen, permission: 'tasks:read', path: 'wiki', keywords: 'pages docs documentation notes guides knowledge' },
+  { key: 'chat', label: 'Chat', icon: MessagesSquare, permission: 'tasks:read', path: 'chat', keywords: 'messages channels direct message dm team talk conversation' },
   { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'reports:read', path: 'reports', keywords: 'analytics stats' },
   { key: 'team', label: 'Team', icon: Users, permission: 'users:read', path: 'team', keywords: 'members people' },
   { key: 'settings', label: 'Settings', icon: Settings, permission: 'settings:manage', path: 'settings', keywords: 'workspace roles' },
@@ -80,7 +82,7 @@ export const buildCommandItems = (
   const pages: CommandItem[] = PAGES
     .filter(page => !page.permission || can(page.permission))
     .map(page => ({
-      id: `page-${page.key}`, group: 'Pages', label: page.label, href: `${base}/${page.path}`, icon: page.icon, keywords: page.keywords,
+      id: `page-${page.key}`, group: 'Pages', label: t(`nav:pages.${page.key}`, { defaultValue: page.label }), href: `${base}/${page.path}`, icon: page.icon, keywords: page.keywords,
     }));
 
   const projectKeys = new Map((projects ?? []).map(project => [project.name.trim().toLowerCase(), project.key]));
@@ -108,7 +110,7 @@ export const buildCommandItems = (
     })
     : [];
 
-  const helpItems: CommandItem[] = FAQ_CATEGORIES.flatMap(category => category.items.map(item => ({
+  const helpItems: CommandItem[] = faqCategories().flatMap(category => category.items.map(item => ({
     id: `help-${item.id}`,
     group: 'Help' as const,
     label: item.question,
@@ -124,7 +126,7 @@ export const buildCommandItems = (
       id: `project-${project._id}`,
       group: 'Projects',
       label: project.name,
-      hint: `${project.key} · ${taskCount(project.name)} tasks${project.archived ? ' · archived' : ''}`,
+      hint: `${project.key} · ${t('nav:palette.taskCount', { count: taskCount(project.name) })}${project.archived ? ` · ${t('nav:palette.archived')}` : ''}`,
       href: `${base}/projects/${encodeURIComponent(project._id)}`,
       keywords: project.description,
       icon: FolderKanban,
@@ -136,7 +138,7 @@ export const buildCommandItems = (
         id: `sprint-${sprint._id}`,
         group: 'Sprints' as const,
         label: sprint.name,
-        hint: `${project.name} · ${sprint.status}`,
+        hint: `${project.name} · ${t(`nav:palette.sprintStatus.${sprint.status}`, { defaultValue: sprint.status })}`,
         href: `${base}/projects/${encodeURIComponent(project._id)}`,
         keywords: `${sprint.goal ?? ''} sprint`,
         icon: Timer,
@@ -148,8 +150,8 @@ export const buildCommandItems = (
         ...(canReadTasks ? [{
           id: `goto-board-${project._id}`,
           group: 'Go to' as const,
-          label: `${project.name} board`,
-          hint: running ? `Active sprint · ${running.name}` : 'All sprints',
+          label: t('nav:palette.projectBoard', { name: project.name }),
+          hint: running ? t('nav:palette.activeSprint', { name: running.name }) : t('nav:palette.allSprints'),
           href: scopeHref(slug, { view: 'board', project: project.name, ...(running ? { sprint: 'active' } : {}) }),
           keywords: `${project.key} kanban scrum sprint`,
           icon: Columns3,
@@ -158,8 +160,8 @@ export const buildCommandItems = (
         {
           id: `goto-backlog-${project._id}`,
           group: 'Go to' as const,
-          label: `${project.name} backlog`,
-          hint: 'Plan and groom',
+          label: t('nav:palette.projectBacklog', { name: project.name }),
+          hint: t('nav:palette.planAndGroom'),
           href: `${base}/projects/${encodeURIComponent(project._id)}?tab=backlog`,
           keywords: `${project.key} groom plan`,
           icon: Inbox,
@@ -181,7 +183,7 @@ export const buildCommandItems = (
     id: `project-${name}`,
     group: 'Projects',
     label: name,
-    hint: `${count} ${count === 1 ? 'task' : 'tasks'}`,
+    hint: t('nav:palette.taskCount', { count }),
     href: `${base}/projects`,
     icon: FolderKanban,
   }));

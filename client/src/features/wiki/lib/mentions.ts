@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
 import type { WikiMention, WikiPageSummary } from '../types';
 
@@ -69,5 +70,5 @@ export const describeLastEdit = (page: Pick<WikiPageSummary, 'updatedBy' | 'crea
   const edited = page.version > 1;
   const who = (edited ? page.updatedBy : page.createdBy)?.name;
   const when = formatRelativeTime(edited ? page.updatedAt : page.createdAt, now);
-  return `${edited ? 'Edited' : 'Created'}${who ? ` by ${who}` : ''}${when ? ` ${when}` : ''}`;
+  return `${i18n.t(edited ? 'projects:wiki.edited' : 'projects:wiki.created')}${who ? i18n.t('projects:wiki.by', { who }) : ''}${when ? ` ${when}` : ''}`;
 };

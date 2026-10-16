@@ -1,0 +1,190 @@
+{
+  "notification": "La revue de code par l'IA de {{target}} est terminée",
+  "verdict": {
+    "match": "Conforme",
+    "partial": "Partiel",
+    "mismatch": "Non conforme"
+  },
+  "verdictHeadline": {
+    "match": "La pull request implémente ce ticket",
+    "partial": "La pull request n'implémente qu'une partie de ce ticket",
+    "mismatch": "La pull request n'implémente pas ce ticket"
+  },
+  "status": {
+    "queued": "En attente",
+    "running": "En cours",
+    "completed": "Terminée",
+    "failed": "Échec"
+  },
+  "activity": {
+    "criteria": {
+      "updated_one": "a mis à jour les critères d'acceptation ({{count}} élément)",
+      "updated_many": "a mis à jour les critères d'acceptation ({{count}} éléments)",
+      "updated_other": "a mis à jour les critères d'acceptation ({{count}} éléments)",
+      "cleared": "a supprimé tous les critères d'acceptation"
+    },
+    "reviewCompleted": "a terminé une revue de code par l'IA : {{verdict}}",
+    "reviewCompletedPlain": "a terminé une revue de code par l'IA"
+  },
+  "criteria": {
+    "title": "Critères d'acceptation",
+    "none": "Aucun critère d'acceptation pour l'instant. Ils indiquent à la revue de code par l'IA ce que la pull request doit faire.",
+    "addLabel": "Ajouter un critère d'acceptation",
+    "addPlaceholder": "p. ex. Un mot de passe erroné affiche un message d'erreur",
+    "add": "Ajouter",
+    "clickToEdit": "Cliquez pour modifier",
+    "editLabel": "Modifier le critère : {{text}}",
+    "moveUp": "Monter le critère : {{text}}",
+    "moveDown": "Descendre le critère : {{text}}",
+    "delete": "Supprimer le critère : {{text}}",
+    "full": "Une tâche peut avoir au plus {{max}} critères d'acceptation.",
+    "saveError": "Impossible d'enregistrer les critères d'acceptation."
+  },
+  "panel": {
+    "title": "Revue de code par l'IA",
+    "subtitle": "Vérifie si la pull request liée implémente réellement ce ticket.",
+    "run": "Lancer la revue IA",
+    "rerun": "Relancer",
+    "starting": "Démarrage...",
+    "runningShort": "Revue en cours",
+    "unavailable": "La revue de code par l'IA n'est pas configurée sur ce serveur. Un administrateur doit ajouter la clé Alibaba Cloud Model Studio.",
+    "disabled": "La revue de code par l'IA est désactivée pour cet espace de travail.",
+    "disabledManage": "Activez-la dans les paramètres de l'espace de travail.",
+    "openSettings": "Ouvrir les paramètres",
+    "noPr": "Aucune pull request n'est encore liée. Mentionnez {{key}} dans une pull request ou une branche, ou collez ci-dessous l'adresse d'une pull request.",
+    "readOnly": "Vous devez avoir la permission de modifier les tâches pour lancer une revue.",
+    "noCriteria": "Cette tâche n'a pas de critères d'acceptation : la revue s'appuiera sur la description et la liste de contrôle.",
+    "loadError": "Impossible de charger les revues IA.",
+    "retry": "Réessayer",
+    "runError": "Impossible de lancer la revue.",
+    "loading": "Chargement des revues...",
+    "empty": "Aucune revue n'a encore été lancée pour cette tâche.",
+    "pr": {
+      "label": "Pull request",
+      "other": "Une autre pull request...",
+      "urlLabel": "Adresse de la pull request",
+      "urlPlaceholder": "https://github.com/owner/repo/pull/123",
+      "urlInvalid": "Utilisez une adresse de la forme https://github.com/owner/repo/pull/123",
+      "paste": "Coller une adresse",
+      "useLinked": "Utiliser une pull request liée",
+      "option": "#{{number}} {{title}}",
+      "optionNoTitle": "Pull request #{{number}}"
+    },
+    "progress": {
+      "queued": "En attente de démarrage...",
+      "running": "Lecture de la pull request et vérification de chaque critère. Cela peut prendre une à deux minutes."
+    },
+    "failed": {
+      "title": "La revue n'a pas pu aboutir",
+      "fallback": "Un problème est survenu. Réessayez."
+    },
+    "history": {
+      "title": "Exécutions précédentes",
+      "itemFailed": "Échec le {{date}}",
+      "itemRunning": "En cours depuis le {{date}}",
+      "show": "Afficher cette revue",
+      "showing": "Affichée"
+    }
+  },
+  "result": {
+    "title": "Résultat de la revue",
+    "summary": "Résumé",
+    "detailed": "Analyse détaillée",
+    "stat": {
+      "completed": "Réalisés",
+      "missing": "Manquants",
+      "issues": "Problèmes",
+      "ofTotal": "sur {{total}}",
+      "partly_one": "{{count}} partiellement respecté",
+      "partly_many": "{{count}} partiellement respectés",
+      "partly_other": "{{count}} partiellement respectés"
+    },
+    "criterion": {
+      "met": "Réalisé",
+      "partial": "Partiel",
+      "missing": "Manquant",
+      "expand": "Afficher les détails",
+      "collapse": "Masquer les détails",
+      "evidence": "Preuves",
+      "noEvidence": "Rien dans la pull request ne le démontre.",
+      "explanation": "Explication"
+    },
+    "issues": {
+      "title": "Problèmes dans le code",
+      "none": "Aucun problème n'a été trouvé dans le code.",
+      "line": "ligne {{line}}",
+      "severity": {
+        "high": "Élevée",
+        "medium": "Moyenne",
+        "low": "Faible"
+      },
+      "category": {
+        "security": "Sécurité",
+        "bug": "Bogue",
+        "quality": "Qualité",
+        "tests": "Tests",
+        "performance": "Performance"
+      },
+      "group_one": "Gravité {{severity}} ({{count}})",
+      "group_many": "Gravité {{severity}} ({{count}})",
+      "group_other": "Gravité {{severity}} ({{count}})"
+    },
+    "partial": {
+      "title": "Revue partielle",
+      "body": "Toute la pull request n'a pas pu être envoyée au modèle : le résultat peut donc passer à côté de problèmes. Ces fichiers ont été écartés ou tronqués :",
+      "more_one": "et {{count}} autre",
+      "more_many": "et {{count}} autres",
+      "more_other": "et {{count}} autres"
+    },
+    "meta": {
+      "model": "Modèle {{model}}",
+      "reviewedAt": "Revue du {{date}}",
+      "requestedBy": "Demandée par {{name}}",
+      "automatic": "Revue automatique d'un nouveau commit",
+      "tokens": "{{input}} jetons en entrée, {{output}} en sortie",
+      "pullRequest": "Pull request {{repo}}#{{number}}"
+    }
+  },
+  "settings": {
+    "title": "Revue de code par l'IA",
+    "description": "Un agent IA lit la pull request d'un ticket et indique si elle respecte les critères d'acceptation, avec des preuves et les problèmes de code détectés.",
+    "loading": "Chargement des paramètres IA...",
+    "loadError": "Impossible de charger les paramètres de la revue de code par l'IA.",
+    "retry": "Réessayer",
+    "saveError": "Impossible d'enregistrer ce paramètre.",
+    "unavailable": "Ce serveur n'a pas de clé Alibaba Cloud Model Studio (DASHSCOPE_API_KEY) : la fonctionnalité ne peut pas encore être activée.",
+    "notice": {
+      "title": "Votre code est envoyé à un tiers",
+      "body": "Lorsque cette option est activée, les modifications des pull requests que vous faites relire (le diff) et le texte du ticket sont envoyés à Alibaba Cloud Model Studio (DashScope), un sous-traitant externe, pour produire la revue. Rien n'est envoyé tant qu'elle est désactivée. Ne l'activez pas pour du code que vos accords interdisent de transmettre."
+    },
+    "enable": {
+      "label": "Activer la revue de code par l'IA",
+      "description": "Permet aux membres autorisés à modifier les tâches de lancer une revue depuis une tâche."
+    },
+    "auto": {
+      "label": "Relire automatiquement les nouveaux commits",
+      "description": "Quand une pull request liée est ouverte, mise à jour ou prête pour relecture, une revue démarre sans que personne ne la demande. Chaque commit n'est relu qu'une fois."
+    },
+    "token": {
+      "label": "Jeton d'accès GitHub (dépôts privés)",
+      "help": "Facultatif. Un jeton en lecture seule (Pull requests : lecture) permet à la revue de lire les dépôts privés. Il est stocké chiffré, utilisé uniquement pour les dépôts déjà liés à vos tâches, et n'est plus jamais affiché.",
+      "placeholder": "Collez un jeton",
+      "isSet": "Un jeton est enregistré.",
+      "notSet": "Aucun jeton enregistré. Les dépôts publics fonctionnent sans jeton.",
+      "save": "Enregistrer le jeton",
+      "saving": "Enregistrement...",
+      "remove": "Supprimer le jeton",
+      "saved": "Jeton GitHub enregistré.",
+      "removed": "Jeton GitHub supprimé.",
+      "show": "Afficher le jeton",
+      "hide": "Masquer le jeton",
+      "invalid": "Cela ne ressemble pas à un jeton GitHub."
+    },
+    "usage": {
+      "label": "Utilisé aujourd'hui",
+      "value": "{{used}} revues sur {{limit}}",
+      "reset": "Le compteur repart à zéro à minuit UTC."
+    },
+    "model": "Modèle : {{model}}"
+  }
+}

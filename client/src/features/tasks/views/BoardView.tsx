@@ -2,6 +2,7 @@ import {
   useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type PointerEvent, type TouchEvent,
 } from 'react';
 import { ArrowRight, Check, Ellipsis, MessageSquare, Paperclip, Plus, RotateCcw, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link, useInRouterContext, useParams } from 'react-router-dom';
 import { m } from 'motion/react';
 import { CheckBurst } from '@/components/ds';
@@ -10,6 +11,7 @@ import { StageDot } from '@/features/workflow/components/StageBadges';
 import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import { STAGE_COLOR_META, groupByStage, quickMoveFor, resolveStage, stagePatch, type QuickMove } from '@/features/workflow/lib/stages';
 import type { WorkflowStage } from '@/features/workflow/types';
+import { useDir } from '@/i18n/useIsRtl';
 import { cn } from '@/lib/utils';
 import { SPRING } from '@/lib/motion';
 import { Button } from '@/components/ui/button';
@@ -85,6 +87,7 @@ const BoardViewContent = ({
   tasks: shownTasks, onUpdate, onEdit, onDelete, onCreate, onOpen, canWrite = true, canDelete = true,
   controls, allTasks: everyTask, currentUserId, workspaceSlug, canManageBoard = false,
 }: BoardViewProps) => {
+  const { t } = useTranslation('tasks');
   const isDesktop = useIsDesktop();
   // Columns are the workspace's workflow stages (the three plain statuses until the workflow is loaded)
   const { stages, loaded: workflowLoaded } = useWorkflow(workspaceSlug);
@@ -138,8 +141,8 @@ const BoardViewContent = ({
     return { subtaskCounts: counts, subtasksDone: done };
   }, [everyTask, shownTasks]);
   const lanes = useMemo<Swimlane[]>(
-    () => (laneMode ? groupIntoSwimlanes(tasks, groupBy, everyTask ?? shownTasks) : [{ id: ALL_LANE_ID, label: 'All tasks', tasks }]),
-    [laneMode, groupBy, tasks, everyTask, shownTasks],
+    () => (laneMode ? groupIntoSwimlanes(tasks, groupBy, everyTask ?? shownTasks) : [{ id: ALL_LANE_ID, label: t('swimlanes.allTasks'), tasks }]),
+    [laneMode, groupBy, tasks, everyTask, shownTasks, t],
   );
   const laneColumns = useMemo(
     () => new Map(lanes.map(lane => [lane.id, laneMode ? groupByStage(lane.tasks, stages) : columns])),
@@ -272,6 +275,8 @@ const BoardViewContent = ({
 
   // Swipe left/right (touch only) moves between the columns; mostly vertical movements are scrolls
   const swipeOrigin = useRef<{ x: number; y: number } | null>(null);
+  // Columns read left to right in every language (Pending, In progress, Completed); card text follows the language
+  const dir = useDir();
   const handleTouchStart = (event: TouchEvent) => {
     const touch = event.touches[0];
     swipeOrigin.current = isDesktop || event.touches.length !== 1 || !touch ? null : { x: touch.clientX, y: touch.clientY };
@@ -313,9 +318,10 @@ const BoardViewContent = ({
     return (
       <section
         key={`${lane.id}-${status}`}
+        dir={dir}
         id={laneMode ? undefined : columnId(status)}
         ref={laneMode ? undefined : (node => { sectionRefs.current[status] = node; })}
-        aria-label={laneMode ? `${label} column in ${lane.label}` : `${label} column`}
+        aria-label={laneMode ? t('board.columnInLane', { label, lane: lane.label }) : t('board.column', { label })}
         onDragOver={event => {
           if (!accepts) return;
           event.preventDefault();
@@ -383,37 +389,37 @@ const BoardViewContent = ({
             <li className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 py-8 text-xs text-slate-600">
               {canWrite ? (
                 <>
-                  <span className="md:hidden">No tasks</span>
-                  <span className="max-md:hidden">Drop tasks here</span>
+                  <span className="md:hidden">{t('board.noTasks')}</span>
+                  <span className="max-md:hidden">{t('board.dropHere')}</span>
                 </>
-              ) : 'No tasks'}
+              ) : t('board.noTasks')}
             </li>
           )}
         </ol>
 
         {total > BOARD_PAGE_SIZE && (
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-3 md:px-4">
-            <p className="text-xs tabular-nums text-slate-600">Showing {shown} of {total}</p>
+            <p className="text-xs tabular-nums text-slate-600">{t('board.showing', { shown, total })}</p>
             {hasMore && (
               <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => showMore(lane.id, status, column)}
-                  aria-label={`Show ${Math.min(BOARD_PAGE_SIZE, remaining)} more ${label} tasks`}
+                  aria-label={t('board.showMoreAria', { count: Math.min(BOARD_PAGE_SIZE, remaining), label })}
                   className="min-h-11 px-3 text-xs font-semibold text-primary md:min-h-8"
                 >
-                  Show {Math.min(BOARD_PAGE_SIZE, remaining)} more
+                  {t('board.showMore', { count: Math.min(BOARD_PAGE_SIZE, remaining) })}
                 </Button>
                 {remaining > BOARD_PAGE_SIZE && (
                   <Button
                     variant="link"
                     size="sm"
                     onClick={() => showMore(lane.id, status, column, true)}
-                    aria-label={`Show all ${total} ${label} tasks`}
+                    aria-label={t('board.showAllAria', { total, label })}
                     className="min-h-11 px-2 text-xs md:min-h-8"
                   >
-                    Show all
+                    {t('board.showAll')}
                   </Button>
                 )}
               </div>
@@ -439,7 +445,7 @@ const BoardViewContent = ({
       {!laneMode && (
         <div
           role="tablist"
-          aria-label="Task status"
+          aria-label={t('board.statusTabs')}
           data-testid="board-tabs"
           className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 mb-3 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur md:hidden"
         >
@@ -473,7 +479,7 @@ const BoardViewContent = ({
                   )}
                 >
                   {(columns[stage.key] ?? []).length}
-                  <span className="sr-only"> tasks</span>
+                  <span className="sr-only">{t('move.tasksSr')}</span>
                 </span>
               </button>
             );
@@ -484,16 +490,16 @@ const BoardViewContent = ({
       {/* Announces every move; on phones it doubles as an inline "Moved to ... · View" chip */}
       <div role="status" aria-live="polite" className={cn(movedTo ? 'mb-3 flex md:mb-0 md:sr-only' : 'sr-only')}>
         {movedTo && (
-          <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-slate-800 pr-1 pl-4 text-xs font-medium text-white md:min-h-0">
-            <span>Moved to {movedTo.name}</span>
+          <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-slate-800 pe-1 ps-4 text-xs font-medium text-white md:min-h-0">
+            <span>{t('board.movedTo', { name: movedTo.name })}</span>
             {movedTo.key !== activeColumn && (
               <button
                 type="button"
-                aria-label={`View ${movedTo.name}`}
+                aria-label={t('board.viewAria', { name: movedTo.name })}
                 onClick={() => setActiveColumn(movedTo.key)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-white md:hidden"
               >
-                <span aria-hidden>·</span> View
+                <span aria-hidden>·</span> {t('board.view')}
               </button>
             )}
           </span>
@@ -511,6 +517,7 @@ const BoardViewContent = ({
       ) : (
         <div
           data-testid="board-columns"
+          dir="ltr"
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={() => { swipeOrigin.current = null; }}
@@ -560,6 +567,7 @@ interface ColumnHeaderProps {
 
 /** Column title with its count; turns red with "5 / 4" when the (soft) WIP limit is exceeded. */
 const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, onAdd, canManage, onManage, className }: ColumnHeaderProps) => {
+  const { t } = useTranslation('tasks');
   const over = isOverWip(wipCount, limit);
   const label = stage.name;
   const inRouter = useInRouterContext();
@@ -576,7 +584,7 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
         <StageDot stage={stage} />
         <h2 className="truncate text-sm font-semibold text-slate-700">{label}</h2>
         <span
-          title={limit === null ? undefined : `WIP limit ${limit}`}
+          title={limit === null ? undefined : t('board.wipLimit', { limit })}
           className={cn(
             'rounded-md border bg-white px-1.5 text-xs font-medium tabular-nums',
             over ? 'border-danger-border text-danger-fg motion-safe:animate-tm-pulse-once [--tm-pulse:color-mix(in_oklab,var(--color-danger-dot)_40%,transparent)]' : 'border-slate-200 text-slate-600',
@@ -587,7 +595,7 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
         {over && (
           <>
             <TriangleAlert aria-hidden className="size-4 shrink-0 text-danger-fg" />
-            <span className="sr-only">over WIP limit</span>
+            <span className="sr-only">{t('board.overWip')}</span>
           </>
         )}
       </div>
@@ -596,7 +604,7 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={`Add task to ${label}`}
+            aria-label={t('board.addTaskTo', { label })}
             onClick={onAdd}
             className="size-11 text-slate-600 hover:bg-slate-200 hover:text-slate-800 md:size-7"
           >
@@ -610,7 +618,7 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Options for ${label} column`}
+                  aria-label={t('board.columnOptions', { label })}
                   className="size-11 text-slate-600 hover:bg-slate-200 hover:text-slate-800 md:size-7"
                 />
               }
@@ -623,11 +631,11 @@ const ColumnHeader = ({ stage, workflowLoaded, count, wipCount, limit, canAdd, o
                   render={<Link to={`/${workspaceSlug}/settings/workflow`} />}
                   className="min-h-11 text-slate-700 md:min-h-0"
                 >
-                  Edit stages and limits…
+                  {t('board.editStages')}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={onManage} className="min-h-11 text-slate-700 md:min-h-0">
-                  Set WIP limits…
+                  {t('board.setWip')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -664,6 +672,7 @@ interface BoardCardProps {
 }
 
 const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, onBurstDone, canDrag, onDragStart, onDragEnd, onEdit, onDelete, onOpen, stages, onMoveToStage, onOpenMoveSheet, canWrite, canDelete }: BoardCardProps) => {
+  const { t } = useTranslation('tasks');
   const completed = task.status === 'completed';
   const quick = quickMoveFor(stages, resolveStage(task, stages));
   const QuickIcon = QUICK_ICONS[quick.verb];
@@ -724,7 +733,7 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, 
       )}
     >
       {burst && (
-        <span className="pointer-events-none absolute right-3 top-3 size-8">
+        <span className="pointer-events-none absolute end-3 top-3 size-8">
           <CheckBurst onDone={onBurstDone} />
         </span>
       )}
@@ -735,18 +744,18 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, 
           <TaskKey task={task} />
           <PriorityIndicator priority={task.priority} iconOnly className={completed ? 'text-slate-500' : undefined} />
         </div>
-        <div data-no-longpress className="-mt-3 -mr-3.5 flex items-center gap-0.5 md:-mt-1 md:-mr-1.5">
+        <div data-no-longpress className="-mt-3 -me-3.5 flex items-center gap-0.5 md:-mt-1 md:-me-1.5">
           {canWrite && (
             <button
               type="button"
               onClick={() => onMoveToStage(task, quick.to)}
-              aria-label={`${quick.verb} ${task.title}: move to ${quick.to.name}`}
+              aria-label={t('board.quickAria', { verb: t(`board.quick.${quick.verb}`), title: task.title, stage: quick.to.name })}
               className={cn(
                 'inline-flex h-11 items-center gap-1 rounded-lg bg-slate-100 px-3 text-xs font-semibold text-slate-700 md:hidden',
                 'hover:bg-slate-200 active:bg-slate-200 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary',
               )}
             >
-              {quick.verb}
+              {t(`board.quick.${quick.verb}`)}
               <QuickIcon aria-hidden className="size-3.5" />
             </button>
           )}
@@ -771,7 +780,7 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, 
         data-card-title
         onClick={() => (onOpen ?? onEdit)(task)}
         className={cn(
-          'mt-1 block w-full text-left text-sm font-medium text-slate-900 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary rounded',
+          'mt-1 block w-full text-start text-sm font-medium text-slate-900 hover:text-primary focus-visible:outline-2 focus-visible:outline-primary rounded',
           completed && 'text-slate-500 line-through',
         )}
       >
@@ -792,13 +801,13 @@ const BoardCard = ({ task, subtaskCount, subtasksDone, dragging, burst = false, 
           <RepeatBadge recurrence={task.recurrence} />
           <TimeBadge logged={task.loggedMinutes} estimate={task.estimateMinutes} />
           {(task.comments?.length ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Comments">
-              <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only"> comments</span>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title={t('list.comments')}>
+              <MessageSquare className="size-3" aria-hidden />{task.comments?.length}<span className="sr-only">{t('list.commentsSr')}</span>
             </span>
           )}
           {(task.attachments?.length ?? 0) > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title="Attachments">
-              <Paperclip className="size-3" aria-hidden />{task.attachments?.length}<span className="sr-only"> attachments</span>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500" title={t('list.attachments')}>
+              <Paperclip className="size-3" aria-hidden />{task.attachments?.length}<span className="sr-only">{t('list.attachmentsSr')}</span>
             </span>
           )}
         </div>

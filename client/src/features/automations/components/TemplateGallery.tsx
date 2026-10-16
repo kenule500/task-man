@@ -1,4 +1,5 @@
 import { Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Disclosure, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { describeRule } from '../lib/describe';
@@ -14,11 +15,12 @@ interface TemplateGalleryProps {
 
 /** Ready-made recipes; choosing one opens the rule builder filled in. */
 export const TemplateGallery = ({ templates, defaultOpen = false, disabled, onUse }: TemplateGalleryProps) => {
+  const { t } = useTranslation('admin');
   if (templates.length === 0) return null;
   return (
-    <Surface as="section" aria-label="Templates" padding="sm" className="py-0 sm:py-0 sm:px-5">
+    <Surface as="section" aria-label={t('automations.gallery.label')} padding="sm" className="py-0 sm:py-0 sm:px-5">
       <Disclosure
-        title={<span className="inline-flex items-center gap-2"><Sparkles aria-hidden className="size-4 text-primary" />Start from a template</span>}
+        title={<span className="inline-flex items-center gap-2"><Sparkles aria-hidden className="size-4 text-primary" />{t('automations.gallery.title')}</span>}
         defaultOpen={defaultOpen}
         headingLevel={2}
         className="border-b-0"
@@ -37,7 +39,7 @@ export const TemplateGallery = ({ templates, defaultOpen = false, disabled, onUs
                 onClick={() => onUse(template)}
                 className="h-10 self-start px-3 text-sm md:h-9"
               >
-                Use template<span className="sr-only">: {template.name}</span>
+                {t('automations.gallery.use')}<span className="sr-only">{t('automations.gallery.useSr', { name: template.name })}</span>
               </Button>
             </li>
           ))}

@@ -3,6 +3,8 @@ import {
   MessageSquareX, Package, Paperclip, Pencil, Play, Plus, Rocket, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
   UserPlus, Webhook, Zap, type LucideIcon,
 } from 'lucide-react';
+import { t } from '@/i18n';
+import { localeFormatter } from '@/i18n/format';
 import { toDateKey } from '@/features/tasks/lib/date';
 import type { AuditArea, AuditChange, AuditEntry } from '../types';
 
@@ -14,139 +16,138 @@ export interface ActionMeta {
   tone: AuditTone;
 }
 
-export const AREA_LABELS: Record<AuditArea, string> = {
-  task: 'Tasks',
-  project: 'Projects',
-  sprint: 'Sprints',
-  member: 'Members',
-  invitation: 'Invitations',
-  workspace: 'Workspace',
-  audit: 'Exports',
-  automation: 'Automations',
-  workflow: 'Workflow',
-  webhook: 'Webhooks',
-  token: 'API tokens',
-  time: 'Time',
-  release: 'Releases',
-  field: 'Custom fields',
-  import: 'Imports',
-  page: 'Wiki pages',
-};
+/** Name of an area (the part of an action before the dot) in the interface language. */
+export const areaName = (area: AuditArea): string => t(`settings:audit.areas.${area}`);
 
-export const ACTION_META: Record<string, ActionMeta> = {
-  'task.created': { label: 'Task created', icon: Plus, tone: 'success' },
-  'task.updated': { label: 'Task updated', icon: Pencil, tone: 'primary' },
-  'task.deleted': { label: 'Task deleted', icon: Trash2, tone: 'danger' },
-  'task.commented': { label: 'Comment added', icon: MessageSquare, tone: 'neutral' },
-  'task.attachment_added': { label: 'File added', icon: Paperclip, tone: 'neutral' },
-  'task.attachment_removed': { label: 'File removed', icon: Paperclip, tone: 'warning' },
-  'project.created': { label: 'Project created', icon: FolderPlus, tone: 'success' },
-  'project.updated': { label: 'Project updated', icon: Pencil, tone: 'primary' },
-  'project.deleted': { label: 'Project deleted', icon: FolderX, tone: 'danger' },
-  'sprint.created': { label: 'Sprint created', icon: Timer, tone: 'success' },
-  'sprint.updated': { label: 'Sprint updated', icon: Pencil, tone: 'primary' },
-  'sprint.started': { label: 'Sprint started', icon: Play, tone: 'primary' },
-  'sprint.completed': { label: 'Sprint completed', icon: CheckCircle2, tone: 'success' },
-  'sprint.deleted': { label: 'Sprint deleted', icon: Trash2, tone: 'danger' },
-  'member.role_changed': { label: 'Role changed', icon: UserCog, tone: 'warning' },
-  'member.removed': { label: 'Member removed', icon: UserMinus, tone: 'danger' },
-  'member.joined': { label: 'Member joined', icon: UserPlus, tone: 'success' },
-  'invitation.sent': { label: 'Invitation sent', icon: Mail, tone: 'primary' },
-  'invitation.cancelled': { label: 'Invitation cancelled', icon: MailX, tone: 'warning' },
-  'workspace.updated': { label: 'Workspace updated', icon: Settings, tone: 'primary' },
-  'workspace.invite_code_regenerated': { label: 'Invite code reset', icon: KeyRound, tone: 'warning' },
-  'audit.exported': { label: 'Log exported', icon: Download, tone: 'neutral' },
-  'member.left': { label: 'Member left', icon: LogOut, tone: 'warning' },
-  'role.created': { label: 'Role created', icon: ShieldCheck, tone: 'success' },
-  'role.updated': { label: 'Role updated', icon: ShieldCheck, tone: 'primary' },
-  'role.deleted': { label: 'Role deleted', icon: ShieldX, tone: 'danger' },
-  'task.comment_deleted': { label: 'Comment deleted', icon: MessageSquareX, tone: 'warning' },
-  'integration.updated': { label: 'Integration updated', icon: GitPullRequest, tone: 'primary' },
-  'task.duplicated': { label: 'Task duplicated', icon: Copy, tone: 'success' },
-  'automation.created': { label: 'Automation created', icon: Zap, tone: 'success' },
-  'automation.updated': { label: 'Automation updated', icon: Zap, tone: 'primary' },
-  'automation.deleted': { label: 'Automation deleted', icon: Zap, tone: 'danger' },
-  'automation.ran': { label: 'Automation ran', icon: Zap, tone: 'neutral' },
-  'workflow.updated': { label: 'Workflow updated', icon: Settings, tone: 'primary' },
-  'webhook.created': { label: 'Webhook added', icon: Webhook, tone: 'success' },
-  'webhook.updated': { label: 'Webhook updated', icon: Webhook, tone: 'primary' },
-  'webhook.deleted': { label: 'Webhook removed', icon: Webhook, tone: 'danger' },
-  'token.created': { label: 'API token created', icon: KeyRound, tone: 'warning' },
-  'token.revoked': { label: 'API token revoked', icon: KeyRound, tone: 'danger' },
-  'time.logged': { label: 'Time logged', icon: Timer, tone: 'primary' },
-  'time.deleted': { label: 'Time entry removed', icon: Timer, tone: 'warning' },
-  'release.created': { label: 'Release created', icon: Package, tone: 'success' },
-  'release.updated': { label: 'Release updated', icon: Package, tone: 'primary' },
-  'release.deleted': { label: 'Release deleted', icon: Package, tone: 'danger' },
-  'release.released': { label: 'Version released', icon: Rocket, tone: 'success' },
-  'field.created': { label: 'Custom field added', icon: Settings, tone: 'success' },
-  'field.updated': { label: 'Custom field updated', icon: Settings, tone: 'primary' },
-  'field.deleted': { label: 'Custom field removed', icon: Settings, tone: 'danger' },
-  'import.completed': { label: 'Import completed', icon: Download, tone: 'success' },
-  'page.created': { label: 'Page created', icon: BookOpen, tone: 'success' },
-  'page.updated': { label: 'Page updated', icon: BookOpen, tone: 'primary' },
-  'page.deleted': { label: 'Page deleted', icon: BookOpen, tone: 'danger' },
+/** Icon and tone of every action the server records; the label comes from `settings:audit.actions`. */
+export const ACTION_STYLE: Record<string, Pick<ActionMeta, 'icon' | 'tone'>> = {
+  'task.created': { icon: Plus, tone: 'success' },
+  'task.updated': { icon: Pencil, tone: 'primary' },
+  'task.deleted': { icon: Trash2, tone: 'danger' },
+  'task.commented': { icon: MessageSquare, tone: 'neutral' },
+  'task.attachment_added': { icon: Paperclip, tone: 'neutral' },
+  'task.attachment_removed': { icon: Paperclip, tone: 'warning' },
+  'project.created': { icon: FolderPlus, tone: 'success' },
+  'project.updated': { icon: Pencil, tone: 'primary' },
+  'project.deleted': { icon: FolderX, tone: 'danger' },
+  'sprint.created': { icon: Timer, tone: 'success' },
+  'sprint.updated': { icon: Pencil, tone: 'primary' },
+  'sprint.started': { icon: Play, tone: 'primary' },
+  'sprint.completed': { icon: CheckCircle2, tone: 'success' },
+  'sprint.deleted': { icon: Trash2, tone: 'danger' },
+  'member.role_changed': { icon: UserCog, tone: 'warning' },
+  'member.removed': { icon: UserMinus, tone: 'danger' },
+  'member.joined': { icon: UserPlus, tone: 'success' },
+  'invitation.sent': { icon: Mail, tone: 'primary' },
+  'invitation.cancelled': { icon: MailX, tone: 'warning' },
+  'workspace.updated': { icon: Settings, tone: 'primary' },
+  'workspace.invite_code_regenerated': { icon: KeyRound, tone: 'warning' },
+  'audit.exported': { icon: Download, tone: 'neutral' },
+  'member.left': { icon: LogOut, tone: 'warning' },
+  'role.created': { icon: ShieldCheck, tone: 'success' },
+  'role.updated': { icon: ShieldCheck, tone: 'primary' },
+  'role.deleted': { icon: ShieldX, tone: 'danger' },
+  'task.comment_deleted': { icon: MessageSquareX, tone: 'warning' },
+  'integration.updated': { icon: GitPullRequest, tone: 'primary' },
+  'task.duplicated': { icon: Copy, tone: 'success' },
+  'automation.created': { icon: Zap, tone: 'success' },
+  'automation.updated': { icon: Zap, tone: 'primary' },
+  'automation.deleted': { icon: Zap, tone: 'danger' },
+  'automation.ran': { icon: Zap, tone: 'neutral' },
+  'workflow.updated': { icon: Settings, tone: 'primary' },
+  'webhook.created': { icon: Webhook, tone: 'success' },
+  'webhook.updated': { icon: Webhook, tone: 'primary' },
+  'webhook.deleted': { icon: Webhook, tone: 'danger' },
+  'token.created': { icon: KeyRound, tone: 'warning' },
+  'token.revoked': { icon: KeyRound, tone: 'danger' },
+  'time.logged': { icon: Timer, tone: 'primary' },
+  'time.deleted': { icon: Timer, tone: 'warning' },
+  'release.created': { icon: Package, tone: 'success' },
+  'release.updated': { icon: Package, tone: 'primary' },
+  'release.deleted': { icon: Package, tone: 'danger' },
+  'release.released': { icon: Rocket, tone: 'success' },
+  'field.created': { icon: Settings, tone: 'success' },
+  'field.updated': { icon: Settings, tone: 'primary' },
+  'field.deleted': { icon: Settings, tone: 'danger' },
+  'import.completed': { icon: Download, tone: 'success' },
+  'page.created': { icon: BookOpen, tone: 'success' },
+  'page.updated': { icon: BookOpen, tone: 'primary' },
+  'page.deleted': { icon: BookOpen, tone: 'danger' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const humanize = (text: string) => text.replace(/[_.]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
 
+/** Translation key part of an action: dots would read as key separators. */
+const actionKey = (action: string) => action.replace(/\./g, '_');
+
 /** Label, icon and tone of an action; unknown actions (newer server) fall back to a readable label. */
-export const actionMeta = (action: string): ActionMeta =>
-  ACTION_META[action] ?? { label: sentenceCase(humanize(action)), icon: Pencil, tone: 'neutral' };
+export const actionMeta = (action: string): ActionMeta => {
+  const style = ACTION_STYLE[action] ?? { icon: Pencil, tone: 'neutral' as const };
+  return { ...style, label: t(`settings:audit.actions.${actionKey(action)}`, { defaultValue: sentenceCase(humanize(action)) }) };
+};
 
 export const areaOf = (action: string): string => action.split('.')[0];
 
-export const areaLabel = (action: string): string => AREA_LABELS[areaOf(action) as AuditArea] ?? sentenceCase(areaOf(action));
+export const areaLabel = (action: string): string =>
+  t(`settings:audit.areas.${areaOf(action)}`, { defaultValue: sentenceCase(areaOf(action)) });
 
-const FIELD_LABELS: Record<string, string> = {
-  startDate: 'start date',
-  deadline: 'due date',
-  storyPoints: 'story points',
-  completedPoints: 'completed points',
-  movedTasks: 'moved tasks',
-};
-
-export const fieldLabel = (field: string): string => FIELD_LABELS[field] ?? humanize(field);
+export const fieldLabel = (field: string): string => t(`settings:audit.fields.${field}`, { defaultValue: humanize(field) });
 
 /** Who did it: the member, "GitHub" for webhook-driven changes, otherwise a removed account. */
 export const actorName = (entry: Pick<AuditEntry, 'actor'> & { summary?: string }): string =>
-  entry.actor?.name || (entry.summary?.includes('via GitHub') ? 'GitHub' : 'A removed user');
+  entry.actor?.name || (entry.summary?.includes('via GitHub') ? 'GitHub' : t('settings:audit.removedUser'));
+
+const arrow = () => t('settings:audit.arrow');
 
 /** "status: Pending → In progress". A value missing on one side shows as "none". */
 export const formatChange = (change: AuditChange): string => {
   const label = fieldLabel(change.field);
-  if (change.field === 'description') return `${label}: edited`;
-  if (change.field === 'sprint') return `${label}: ${change.from ? 'sprint' : 'backlog'} → ${change.to ? 'sprint' : 'backlog'}`;
-  if (change.from === undefined && change.to === undefined) return `${label}: changed`;
+  if (change.field === 'description') return t('settings:audit.change.edited', { label });
+  if (change.field === 'sprint') {
+    const side = (value?: string) => (value ? t('settings:audit.change.sprint') : t('settings:audit.change.backlog'));
+    return `${label}: ${side(change.from)} ${arrow()} ${side(change.to)}`;
+  }
+  if (change.from === undefined && change.to === undefined) return t('settings:audit.change.changed', { label });
   if (change.from === undefined) return `${label}: ${change.to}`;
-  if (change.to === undefined) return `${label}: ${change.from} → none`;
-  return `${label}: ${change.from} → ${change.to}`;
+  if (change.to === undefined) return `${label}: ${change.from} ${arrow()} ${t('settings:audit.change.none')}`;
+  return `${label}: ${change.from} ${arrow()} ${change.to}`;
 };
 
 /** Compact one-line summary for a table cell: the first `max` changes plus "+N more". */
 export const summarizeChanges = (changes: AuditChange[], max = 2): string => {
   if (changes.length === 0) return '';
-  const shown = changes.slice(0, max).map(formatChange).join('; ');
-  return changes.length > max ? `${shown}; +${changes.length - max} more` : shown;
+  const separator = t('settings:audit.change.separator');
+  const shown = changes.slice(0, max).map(formatChange).join(separator);
+  return changes.length > max ? `${shown}${separator}${t('settings:audit.change.more', { count: changes.length - max })}` : shown;
 };
 
 const changeOf = (entry: AuditEntry, field: string) => entry.changes.find(change => change.field === field);
 
-const quote = (text: string) => `"${text}"`;
-const points = (value: string) => `${value} ${Number(value) === 1 ? 'point' : 'points'}`;
+const quote = (text: string) => t('settings:audit.quote', { text });
+const points = (value: string) => t('settings:audit.sentence.points', { count: Number(value) });
 
 const taskChangeSentence = (name: string, title: string, changes: AuditChange[]): string => {
-  const subject = title ? quote(title) : 'a task';
-  if (changes.length === 0) return `${name} updated ${subject}`;
-  if (changes.length > 1) return `${name} updated ${changes.map(change => fieldLabel(change.field)).join(', ')} of ${subject}`;
+  const subject = title ? quote(title) : t('settings:audit.sentence.aTask');
+  if (changes.length === 0) return t('settings:audit.sentence.taskUpdated', { name, subject });
+  if (changes.length > 1) {
+    return t('settings:audit.sentence.taskFieldsUpdated', {
+      name, subject, fields: changes.map(change => fieldLabel(change.field)).join(t('settings:audit.change.listSeparator')),
+    });
+  }
   const [change] = changes;
-  const label = fieldLabel(change.field);
-  if (change.field === 'description') return `${name} edited the description of ${subject}`;
-  if (change.field === 'sprint') return `${name} moved ${subject} ${change.to ? 'to another sprint' : 'to the backlog'}`;
-  if (change.from !== undefined && change.to !== undefined) return `${name} changed the ${label} of ${subject} from ${change.from} to ${change.to}`;
-  if (change.to !== undefined) return `${name} set the ${label} of ${subject} to ${change.to}`;
-  return `${name} cleared the ${label} of ${subject}`;
+  const field = fieldLabel(change.field);
+  if (change.field === 'description') return t('settings:audit.sentence.descriptionEdited', { name, subject });
+  if (change.field === 'sprint') {
+    return change.to
+      ? t('settings:audit.sentence.movedToSprint', { name, subject })
+      : t('settings:audit.sentence.movedToBacklog', { name, subject });
+  }
+  if (change.from !== undefined && change.to !== undefined) {
+    return t('settings:audit.sentence.fieldChanged', { name, subject, field, from: change.from, to: change.to });
+  }
+  if (change.to !== undefined) return t('settings:audit.sentence.fieldSet', { name, subject, field, to: change.to });
+  return t('settings:audit.sentence.fieldCleared', { name, subject, field });
 };
 
 /** One human sentence for an entry: "Ada changed the role of Sam from Developer to Scrum Master". */
@@ -154,65 +155,72 @@ export const describeEntry = (entry: AuditEntry): string => {
   const name = actorName(entry);
   const summary = entry.summary?.trim() ?? '';
   const subject = summary ? quote(summary) : '';
+  const s = (key: string, values: Record<string, unknown> = {}) => t(`settings:audit.sentence.${key}`, { name, subject, ...values }).trim();
+  const aTask = () => subject || t('settings:audit.sentence.aTask');
+  const aSprint = () => summary || t('settings:audit.sentence.aSprint');
+  const aMember = () => summary || t('settings:audit.sentence.aMember');
 
   switch (entry.action) {
     case 'task.created':
-      return `${name} created ${changeOf(entry, 'parent') ? 'subtask' : 'task'} ${subject}`.trim();
+      return s(changeOf(entry, 'parent') ? 'subtaskCreated' : 'taskCreated');
     case 'task.updated':
       return taskChangeSentence(name, summary, entry.changes);
     case 'task.deleted':
-      return `${name} deleted task ${subject}`.trim();
+      return s('taskDeleted');
     case 'task.commented':
-      return `${name} commented on ${subject || 'a task'}`;
+      return s('taskCommented', { task: aTask() });
     case 'task.attachment_added':
-      return `${name} attached ${changeOf(entry, 'file')?.to ?? 'a file'} to ${subject || 'a task'}`;
+      return s('attachmentAdded', { file: changeOf(entry, 'file')?.to ?? t('settings:audit.sentence.aFile'), task: aTask() });
     case 'task.attachment_removed':
-      return `${name} removed ${changeOf(entry, 'file')?.from ?? 'a file'} from ${subject || 'a task'}`;
+      return s('attachmentRemoved', { file: changeOf(entry, 'file')?.from ?? t('settings:audit.sentence.aFile'), task: aTask() });
     case 'project.created':
-      return `${name} created project ${subject}`.trim();
+      return s('projectCreated');
     case 'project.updated':
-      return `${name} updated project ${subject}`.trim();
+      return s('projectUpdated');
     case 'project.deleted':
-      return `${name} deleted project ${subject}`.trim();
+      return s('projectDeleted');
     case 'sprint.created': {
       const [sprint, project] = summary.split(' · ');
-      return project ? `${name} created ${sprint} in ${project}` : `${name} created ${sprint || 'a sprint'}`;
+      return project ? s('sprintCreatedIn', { sprint, project }) : s('sprintCreated', { sprint: sprint || t('settings:audit.sentence.aSprint') });
     }
     case 'sprint.started':
-      return `${name} started ${summary || 'a sprint'}`;
+      return s('sprintStarted', { sprint: aSprint() });
     case 'sprint.completed': {
       const done = changeOf(entry, 'completedPoints')?.to;
-      return `${name} completed ${summary || 'a sprint'}${done ? ` (${points(done)})` : ''}`;
+      return done
+        ? s('sprintCompletedPoints', { sprint: aSprint(), points: points(done) })
+        : s('sprintCompleted', { sprint: aSprint() });
     }
     case 'sprint.updated':
-      return `${name} updated ${summary || 'a sprint'}`;
+      return s('sprintUpdated', { sprint: aSprint() });
     case 'sprint.deleted':
-      return `${name} deleted ${summary || 'a sprint'}`;
+      return s('sprintDeleted', { sprint: aSprint() });
     case 'member.role_changed': {
       const role = changeOf(entry, 'role');
-      const who = summary || 'a member';
-      if (role?.from && role.to) return `${name} changed the role of ${who} from ${role.from} to ${role.to}`;
-      return role?.to ? `${name} changed the role of ${who} to ${role.to}` : `${name} changed the role of ${who}`;
+      const who = aMember();
+      if (role?.from && role.to) return s('roleChangedFromTo', { who, from: role.from, to: role.to });
+      return role?.to ? s('roleChangedTo', { who, to: role.to }) : s('roleChanged', { who });
     }
     case 'member.removed':
-      return `${name} removed ${summary || 'a member'} from the workspace`;
+      return s('memberRemoved', { who: aMember() });
     case 'member.joined':
-      return `${summary || name} joined the workspace`;
+      return s('memberJoined', { who: summary || name });
     case 'invitation.sent': {
       const role = changeOf(entry, 'role')?.to;
-      return `${name} invited ${summary || 'someone'}${role ? ` as ${role}` : ''}`;
+      const who = summary || t('settings:audit.sentence.someone');
+      return role ? s('invitedAs', { who, role }) : s('invited', { who });
     }
     case 'invitation.cancelled':
-      return `${name} cancelled the invitation for ${summary || 'someone'}`;
+      return s('invitationCancelled', { who: summary || t('settings:audit.sentence.someone') });
     case 'workspace.updated': {
       const rename = changeOf(entry, 'name');
-      if (rename?.from && rename.to) return `${name} renamed the workspace from ${rename.from} to ${rename.to}`;
-      return `${name} updated the workspace settings`;
+      if (rename?.from && rename.to) return s('workspaceRenamed', { from: rename.from, to: rename.to });
+      return s('workspaceUpdated');
     }
     case 'workspace.invite_code_regenerated':
-      return `${name} regenerated the invite code`;
+      return s('inviteCodeRegenerated');
     case 'audit.exported':
-      return `${name} exported the audit log${summary ? ` (${summary})` : ''}`;
+      return summary ? s('auditExportedWith', { summary }) : s('auditExported');
     default:
       return `${name} ${humanize(entry.action)}${summary ? ` ${quote(summary)}` : ''}`;
   }
@@ -222,20 +230,21 @@ export const describeEntry = (entry: AuditEntry): string => {
 // Dates
 // ---------------------------------------------------------------------------
 
-const dateTimeFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-const fullFormat = new Intl.DateTimeFormat('en-GB', {
+// English keeps the day-month order of the log (en-GB); other languages use their own locale. Rebuilt when the language changes.
+const dateTimeFormat = localeFormatter({ day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }, 'en-GB');
+const fullFormat = localeFormatter({
   weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
-});
-const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
-const weekdayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long' });
-const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}, 'en-GB');
+const timeFormat = localeFormatter({ hour: '2-digit', minute: '2-digit' }, 'en-GB');
+const weekdayFormat = localeFormatter({ weekday: 'long' }, 'en-GB');
+const dateFormat = localeFormatter({ day: 'numeric', month: 'long', year: 'numeric' }, 'en-GB');
 
 /** "9 Oct 2026, 14:03" */
-export const formatDateTime = (iso: string): string => dateTimeFormat.format(new Date(iso));
+export const formatDateTime = (iso: string): string => dateTimeFormat(new Date(iso));
 /** "Fri, 9 October 2026, 14:03:09" */
-export const formatFullDateTime = (iso: string): string => fullFormat.format(new Date(iso));
+export const formatFullDateTime = (iso: string): string => fullFormat(new Date(iso));
 /** "14:03" */
-export const formatTime = (iso: string): string => timeFormat.format(new Date(iso));
+export const formatTime = (iso: string): string => timeFormat(new Date(iso));
 
 export interface AuditDayGroup {
   /** Local `YYYY-MM-DD` */
@@ -247,11 +256,11 @@ export interface AuditDayGroup {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const dayLabel = (key: string, now: Date): string => {
-  if (key === toDateKey(now)) return 'Today';
-  if (key === toDateKey(new Date(now.getTime() - DAY_MS))) return 'Yesterday';
+  if (key === toDateKey(now)) return t('settings:audit.today');
+  if (key === toDateKey(new Date(now.getTime() - DAY_MS))) return t('settings:audit.yesterday');
   const [year, month, day] = key.split('-').map(Number);
   const date = new Date(year, month - 1, day);
-  return `${weekdayFormat.format(date)}, ${dateFormat.format(date)}`;
+  return `${weekdayFormat(date)}, ${dateFormat(date)}`;
 };
 
 /** Groups entries (already newest first) by local calendar day, keeping their order. */
@@ -269,7 +278,7 @@ export const groupByDay = (entries: AuditEntry[], now: Date = new Date()): Audit
 /** "from 2 Oct 2026, 09:10 to 9 Oct 2026, 14:03" for a page of entries (newest first); empty for no entries. */
 export const describeRange = (entries: AuditEntry[]): string => {
   if (entries.length === 0) return '';
-  return `from ${formatDateTime(entries[entries.length - 1].createdAt)} to ${formatDateTime(entries[0].createdAt)}`;
+  return t('settings:audit.range', { from: formatDateTime(entries[entries.length - 1].createdAt), to: formatDateTime(entries[0].createdAt) });
 };
 
 // ---------------------------------------------------------------------------
@@ -293,7 +302,7 @@ export const describeUserAgent = (userAgent?: string): string => {
           : /Mac OS X|Macintosh/.test(userAgent) ? 'macOS'
             : /Linux/.test(userAgent) ? 'Linux'
               : '';
-  if (browser && system) return `${browser} on ${system}`;
+  if (browser && system) return t('settings:devices.browserOnOs', { browser, os: system });
   return browser || system || userAgent;
 };
 
@@ -306,7 +315,12 @@ export interface AuditLink {
 export const entryLink = (slug: string, entry: AuditEntry): AuditLink | null => {
   if (entry.action.endsWith('.deleted')) return null;
   const base = `/${slug}`;
-  if (entry.task) return { href: `${base}/tasks?task=${encodeURIComponent(entry.task)}`, label: 'Open task' };
-  if (entry.project) return { href: `${base}/projects/${encodeURIComponent(entry.project)}`, label: entry.sprint ? 'Open sprint project' : 'Open project' };
+  if (entry.task) return { href: `${base}/tasks?task=${encodeURIComponent(entry.task)}`, label: t('settings:audit.openTask') };
+  if (entry.project) {
+    return {
+      href: `${base}/projects/${encodeURIComponent(entry.project)}`,
+      label: entry.sprint ? t('settings:audit.openSprintProject') : t('settings:audit.openProject'),
+    };
+  }
   return null;
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { viewsApi } from '../api';
 import type { SavedView, SavedViewInput, SavedViewPatch } from '../types';
@@ -27,35 +28,35 @@ export const useSavedViews = (slug: string | undefined) => {
   }, [slug]);
 
   const create = useCallback(async (input: SavedViewInput): Promise<string | null> => {
-    if (!slug) return 'No workspace selected';
+    if (!slug) return i18n.t('tasks:views.errors.noWorkspace');
     try {
       const created = await viewsApi.create(slug, input);
       setViews(list => [...list, created]);
       return null;
     } catch (error) {
-      return getApiErrorMessage(error, 'We could not save this view. Try again.');
+      return getApiErrorMessage(error, i18n.t('tasks:views.errors.save'));
     }
   }, [slug, setViews]);
 
   const update = useCallback(async (id: string, patch: SavedViewPatch): Promise<string | null> => {
-    if (!slug) return 'No workspace selected';
+    if (!slug) return i18n.t('tasks:views.errors.noWorkspace');
     try {
       const saved = await viewsApi.update(slug, id, patch);
       setViews(list => list.map(view => (view._id === id ? saved : view)));
       return null;
     } catch (error) {
-      return getApiErrorMessage(error, 'We could not change this view. Try again.');
+      return getApiErrorMessage(error, i18n.t('tasks:views.errors.change'));
     }
   }, [slug, setViews]);
 
   const remove = useCallback(async (id: string): Promise<string | null> => {
-    if (!slug) return 'No workspace selected';
+    if (!slug) return i18n.t('tasks:views.errors.noWorkspace');
     try {
       await viewsApi.remove(slug, id);
       setViews(list => list.filter(view => view._id !== id));
       return null;
     } catch (error) {
-      return getApiErrorMessage(error, 'We could not delete this view. Try again.');
+      return getApiErrorMessage(error, i18n.t('tasks:views.errors.delete'));
     }
   }, [slug, setViews]);
 

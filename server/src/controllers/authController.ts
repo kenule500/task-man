@@ -103,6 +103,7 @@ export const issueSession = async (user: IUser, req: Request) => {
     activeWorkspace: user.activeWorkspace,
     activeWorkspaceSlug: activeWs?.slug || null,
     workspaces: user.workspaces,
+    language: user.language,
   };
 };
 

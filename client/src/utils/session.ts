@@ -21,10 +21,13 @@ export interface StoredUser {
   activeWorkspaceSlug?: string;
   workspaces?: string[];
   createdAt?: string;
+  /** Interface language chosen on the account (en, fr or ar) */
+  language?: string;
 }
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
+const LANGUAGE_KEY = 'taskman.language';
 
 export const getToken = (): string | null => localStorage.getItem(TOKEN_KEY);
 
@@ -51,6 +54,23 @@ export const updateStoredUser = (patch: Partial<StoredUser>): StoredUser | null 
   const next = { ...current, ...patch };
   localStorage.setItem(USER_KEY, JSON.stringify(next));
   return next;
+};
+
+/** The interface language chosen in this browser (kept after sign-out so the sign-in page keeps the language). */
+export const getStoredLanguage = (): string | null => {
+  try {
+    return localStorage.getItem(LANGUAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setStoredLanguage = (language: string): void => {
+  try {
+    localStorage.setItem(LANGUAGE_KEY, language);
+  } catch {
+    // Private mode or storage disabled: the language still applies for this page view
+  }
 };
 
 export const clearSession = (): void => {

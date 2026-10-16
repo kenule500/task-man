@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 
 // Loaders: small, CSS-only (no motion runtime), `currentColor`, and still when the user prefers reduced motion
 // (the global rule in index.css stops every animation; the text label keeps carrying the state).
@@ -20,7 +21,7 @@ type SpinnerProps = Omit<ComponentProps<'span'>, 'children'> & VariantProps<type
 };
 
 /** Ring spinner in `currentColor`. A polite status with a label, unless `decorative`. */
-export const Spinner = ({ size, label = 'Loading', decorative = false, className, ...props }: SpinnerProps) => (
+export const Spinner = ({ size, label = t('loading'), decorative = false, className, ...props }: SpinnerProps) => (
   <span
     role={decorative ? undefined : 'status'}
     aria-label={decorative ? undefined : label}
@@ -37,7 +38,7 @@ export const Spinner = ({ size, label = 'Loading', decorative = false, className
 );
 
 /** Three bouncing dots for inline waits ("Saving…", chat-like pending states). */
-export const DotsLoader = ({ label = 'Loading', className, ...props }: Omit<ComponentProps<'span'>, 'children'> & { label?: string }) => (
+export const DotsLoader = ({ label = t('loading'), className, ...props }: Omit<ComponentProps<'span'>, 'children'> & { label?: string }) => (
   <span role="status" aria-label={label} className={cn('inline-flex items-center gap-1', className)} {...props}>
     {[0, 1, 2].map(index => (
       <span
@@ -54,7 +55,7 @@ export const DotsLoader = ({ label = 'Loading', className, ...props }: Omit<Comp
  * Indeterminate bar fixed to the top of the viewport. Mount it while something loads (it is the Suspense
  * fallback of lazy routes); it fades in after 160ms so quick loads never flash it.
  */
-export const TopProgressBar = ({ label = 'Loading page', className }: { label?: string; className?: string }) => (
+export const TopProgressBar = ({ label = t('loadingPage'), className }: { label?: string; className?: string }) => (
   <div
     role="progressbar"
     aria-label={label}
@@ -87,7 +88,7 @@ interface PageLoaderProps {
  * Branded full-page wait: the logo tile flips in a CSS 3D perspective over a soft shadow, with a "Loading…" label.
  * Appears after a short delay (no flash on fast loads) and sits still under reduced motion.
  */
-export const PageLoader = ({ label = 'Loading…', fullscreen = true, className }: PageLoaderProps) => (
+export const PageLoader = ({ label = t('loadingEllipsis'), fullscreen = true, className }: PageLoaderProps) => (
   <div
     role="status"
     aria-live="polite"

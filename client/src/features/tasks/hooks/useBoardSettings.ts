@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import i18n from '@/i18n';
 import api, { getApiErrorMessage } from '@/utils/api';
 import { useWorkflow } from '@/features/workflow/hooks/useWorkflow';
 import { parseQuickFilters, serializeQuickFilters, type QuickFilterKey } from '../lib/boardQuickFilters';
@@ -28,13 +29,13 @@ export const useBoardSettings = (slug: string | undefined) => {
 
   /** Saves every limit (needs `settings:manage`). Resolves to an error message, or `null` on success. */
   const saveLimits = useCallback(async (next: WipLimits): Promise<string | null> => {
-    if (!slug) return 'No workspace selected';
+    if (!slug) return i18n.t('tasks:errors.noWorkspace');
     try {
       const { data } = await api.put(boardSettingsUrl(slug), { wipLimits: next });
       setLoaded({ slug, limits: data && typeof data === 'object' ? normalizeWipLimits(data) : next });
       return null;
     } catch (error) {
-      return getApiErrorMessage(error, 'Could not save the WIP limits');
+      return getApiErrorMessage(error, i18n.t('tasks:errors.saveWip'));
     }
   }, [slug]);
 

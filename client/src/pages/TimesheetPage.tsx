@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 import { ChevronLeft, ChevronRight, Download, Timer } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, ErrorState, PageHeader, SkeletonTable, Surface, toast } from '@/components/ds';
@@ -18,10 +20,14 @@ import { formatDate, toDateKey } from '@/features/tasks/lib/date';
 import { useWorkspaceMembers } from '@/features/tasks/hooks/useWorkspaceMembers';
 
 const rangeLabel = (days: string[]) =>
-  `${formatDate(days[0], { month: 'short', day: 'numeric' })} to ${formatDate(days[6], { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  i18n.t('tasks:time.page.range', {
+    from: formatDate(days[0], { month: 'short', day: 'numeric' }),
+    to: formatDate(days[6], { month: 'short', day: 'numeric', year: 'numeric' }),
+  });
 
 /** Logged time per task and day for one week, with week navigation, a person filter for managers and CSV export. */
 const TimesheetPage = () => {
+  const { t } = useTranslation('tasks');
   const { workspaceSlug = '' } = useParams<{ workspaceSlug: string }>();
   const { can, user } = usePermissions();
   const isManager = can('settings:manage');
@@ -40,18 +46,18 @@ const TimesheetPage = () => {
   const isCurrentWeek = weekStart === thisWeek;
 
   const personOptions = useMemo(() => {
-    const options = [{ value: '', label: 'Everyone' }];
+    const options = [{ value: '', label: t('time.page.everyone') }];
     const seen = new Set<string>();
     for (const member of members) {
       seen.add(member._id);
-      options.push({ value: member._id, label: member._id === user?._id ? `${member.name} (you)` : member.name });
+      options.push({ value: member._id, label: member._id === user?._id ? t('time.page.you', { name: member.name }) : member.name });
     }
     // Without the member list, still offer the people who logged time
     for (const entry of data?.totals.byUser ?? []) {
       if (!seen.has(entry.user)) options.push({ value: entry.user, label: entry.name });
     }
     return options;
-  }, [members, data, user?._id]);
+  }, [members, data, user?._id, t]);
 
   const exportCsv = async () => {
     if (exporting) return;
@@ -59,9 +65,9 @@ const TimesheetPage = () => {
     try {
       const blob = await timeApi.exportCsv(workspaceSlug, query);
       downloadBlob(blob, `timesheet-${workspaceSlug}-${weekStart}.csv`);
-      toast.success('Timesheet exported');
+      toast.success(t('time.page.exported'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not export the timesheet.'));
+      toast.error(getApiErrorMessage(err, t('time.page.exportError')));
     } finally {
       setExporting(false);
     }
@@ -73,8 +79,8 @@ const TimesheetPage = () => {
   return (
     <AppShell>
       <PageHeader
-        title="Timesheet"
-        description={isManager ? 'Time logged per task and day. Choose a person or see everyone.' : 'Your logged time per task and day.'}
+        title={t('time.page.title')}
+        description={isManager ? t('time.page.descriptionManager') : t('time.page.descriptionSelf')}
         actions={(
           <Button
             type="button"
@@ -84,23 +90,23 @@ const TimesheetPage = () => {
             onClick={() => { void exportCsv(); }}
             className="h-11 w-full gap-1.5 border-slate-300 text-slate-700 sm:h-9 sm:w-auto"
           >
-            <Download className="size-4" aria-hidden /> Export CSV
+            <Download className="size-4" aria-hidden /> {t('toolbar.exportCsv')}
           </Button>
         )}
       />
 
-      <Surface as="section" aria-label="Week and filters" padding="sm" className="sm:p-4">
+      <Surface as="section" aria-label={t('time.page.weekFilters')} padding="sm" className="sm:p-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto" role="group" aria-label="Week">
+          <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto" role="group" aria-label={t('calendar.week')}>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Previous week"
+              aria-label={t('calendar.prevWeek')}
               onClick={() => setWeekStart(current => shiftWeekStart(current, -1))}
               className="size-11 border-slate-300 md:size-9"
             >
-              <ChevronLeft className="size-4" aria-hidden />
+              <ChevronLeft className="size-4 rtl:-scale-x-100" aria-hidden />
             </Button>
             <p className="min-w-0 flex-1 px-1 text-center text-sm font-medium tabular-nums text-slate-900 sm:min-w-44 sm:flex-none" aria-live="polite">
               {rangeLabel(days)}
@@ -109,11 +115,11 @@ const TimesheetPage = () => {
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Next week"
+              aria-label={t('calendar.nextWeek')}
               onClick={() => setWeekStart(current => shiftWeekStart(current, 1))}
               className="size-11 border-slate-300 md:size-9"
             >
-              <ChevronRight className="size-4" aria-hidden />
+              <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden />
             </Button>
             <Button
               type="button"
@@ -122,16 +128,16 @@ const TimesheetPage = () => {
               onClick={() => setWeekStart(thisWeek)}
               className="h-11 text-slate-700 md:h-9"
             >
-              This week
+              {t('time.page.thisWeekButton')}
             </Button>
           </div>
           {isManager && personOptions.length > 1 && (
-            <SelectField label="Person" value={person} onValueChange={setPerson} options={personOptions} className="w-full sm:w-56" />
+            <SelectField label={t('time.page.person')} value={person} onValueChange={setPerson} options={personOptions} className="w-full sm:w-56" />
           )}
           {data && (
-            <p className="ml-auto text-sm text-slate-600">
+            <p className="ms-auto text-sm text-slate-600">
               <span className="font-semibold tabular-nums text-slate-900" aria-hidden>{formatDuration(grid.total)}</span>
-              <span className="sr-only">{describeDuration(grid.total)}</span> this week
+              <span className="sr-only">{describeDuration(grid.total)}</span>{t('time.page.thisWeekSuffix')}
             </p>
           )}
         </div>
@@ -139,30 +145,30 @@ const TimesheetPage = () => {
 
       {data?.truncated && (
         <Alert tone="warning">
-          Only the most recent entries are shown. Narrow the week or choose a person to see the rest, or export the CSV.
+          {t('time.page.truncated')}
         </Alert>
       )}
 
       {loading ? (
-        <SkeletonTable label="Loading timesheet" rows={5} columns={5} />
+        <SkeletonTable label={t('time.page.loading')} rows={5} columns={5} />
       ) : error && !data ? (
         <Surface padding="none" radius="xl">
           <ErrorState
-            title="We could not load the timesheet"
+            title={t('time.page.loadFailed')}
             reason={error}
-            nextStep="Check your connection and try again."
-            action={<Button type="button" onClick={retry} className="bg-primary text-white hover:bg-primary-hover">Try again</Button>}
+            nextStep={t('time.page.checkConnection')}
+            action={<Button type="button" onClick={retry} className="bg-primary text-white hover:bg-primary-hover">{t('actions.retry')}</Button>}
           />
         </Surface>
       ) : grid.rows.length === 0 ? (
         <Surface padding="none" radius="xl">
           <EmptyState
             icon={<Timer className="size-6" aria-hidden />}
-            title={isCurrentWeek ? 'No time logged this week' : 'No time logged in this week'}
-            description="Start a timer or log time from a task, and it appears here by day."
+            title={isCurrentWeek ? t('time.page.emptyThisWeek') : t('time.page.emptyOtherWeek')}
+            description={t('time.page.emptyDescription')}
             action={(
               <Button render={<Link to={`/${workspaceSlug}/tasks`} />} className="bg-primary text-white hover:bg-primary-hover">
-                Open tasks
+                {t('time.page.openTasks')}
               </Button>
             )}
           />
@@ -172,8 +178,8 @@ const TimesheetPage = () => {
           {error && <Alert tone="error">{error}</Alert>}
           <WeekGridTable grid={grid} slug={workspaceSlug} />
           {showingEveryone && byUser.length > 1 && (
-            <Surface as="section" aria-label="Time by person" padding="sm" radius="xl" className="sm:p-5">
-              <h2 className="mb-2 text-sm font-semibold text-slate-900">By person</h2>
+            <Surface as="section" aria-label={t('time.page.byPersonRegion')} padding="sm" radius="xl" className="sm:p-5">
+              <h2 className="mb-2 text-sm font-semibold text-slate-900">{t('time.page.byPerson')}</h2>
               <ul className="divide-y divide-slate-100 text-sm">
                 {byUser.map(entry => (
                   <li key={entry.user} className="flex items-center justify-between py-2">

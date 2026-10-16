@@ -67,7 +67,7 @@ export const PrinciplesSection = () => (
             <div className="flex items-center gap-3">
               <IconTile size="sm">{principle.icon}</IconTile>
               <h3 className="text-sm font-semibold text-text-strong">
-                <span className="mr-1.5 tabular-nums text-text-subtle">{index + 1}.</span>
+                <span className="me-1.5 tabular-nums text-text-subtle">{index + 1}.</span>
                 {principle.title}
               </h3>
             </div>
@@ -113,7 +113,7 @@ export const ChangelogSection = () => (
               <h3 className="text-sm font-semibold text-text-strong">{release.version}</h3>
               <Tag tone={release.version === 'v2.0' ? 'primary' : 'neutral'} size="sm">{release.date}</Tag>
             </div>
-            <ul className="list-disc space-y-1 pl-5 text-sm text-text-body">
+            <ul className="list-disc space-y-1 ps-5 text-sm text-text-body">
               {release.changes.map(change => <li key={change}>{change}</li>)}
             </ul>
           </Surface>

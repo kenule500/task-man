@@ -1,5 +1,6 @@
 // Workflow stages: board columns mapped to the three status groups. Pure helpers that mirror the server rules
 // (server/src/utils/workflow.ts), so the client resolves a task's stage exactly like the API does.
+import i18n from '@/i18n';
 import { STATUS_META, TASK_STATUSES } from '@/features/tasks/constants';
 import type { Task, TaskStatus } from '@/features/tasks/types';
 import { STAGE_COLORS, type StageColor, type WorkflowStage } from '../types';
@@ -14,10 +15,20 @@ const GROUP_COLOR: Record<TaskStatus, StageColor> = { pending: 'slate', 'in-prog
 
 /** Group headings: the same names as the status filters. */
 export const GROUP_LABEL: Record<TaskStatus, string> = {
-  pending: STATUS_META.pending.label,
-  'in-progress': STATUS_META['in-progress'].label,
-  completed: STATUS_META.completed.label,
+  get pending() { return STATUS_META.pending.label; },
+  get 'in-progress'() { return STATUS_META['in-progress'].label; },
+  get completed() { return STATUS_META.completed.label; },
 };
+
+/** English names the server and the templates give their stages, by stage key. Only those are shown translated. */
+const BUILT_IN_STAGE_NAMES: Record<string, string> = {
+  todo: 'To do', 'in-progress': 'In progress', done: 'Done', 'in-review': 'In review', qa: 'QA',
+  backlog: 'Backlog', ready: 'Ready', doing: 'Doing', review: 'Review',
+};
+
+/** The stage with its name translated when it still carries the built-in English name (custom names are the workspace's own). */
+export const localizeStage = (stage: WorkflowStage): WorkflowStage =>
+  BUILT_IN_STAGE_NAMES[stage.key] === stage.name ? { ...stage, name: i18n.t(`tasks:workflow.defaultStage.${stage.key}`) } : stage;
 
 /** What the server uses until a workspace saves its own workflow. */
 export const DEFAULT_STAGES: WorkflowStage[] = [
@@ -32,7 +43,7 @@ export const DEFAULT_STAGES: WorkflowStage[] = [
  */
 export const STATUS_STAGES: WorkflowStage[] = TASK_STATUSES.map(status => ({
   key: status,
-  name: STATUS_META[status].label,
+  get name() { return STATUS_META[status].label; },
   group: status,
   color: GROUP_COLOR[status],
   wipLimit: 0,
@@ -46,13 +57,13 @@ interface StageColorMeta {
 
 /** Full class names so Tailwind finds them. */
 export const STAGE_COLOR_META: Record<StageColor, StageColorMeta> = {
-  slate: { label: 'Slate', dot: 'bg-slate-400' },
-  blue: { label: 'Blue', dot: 'bg-blue-600' },
-  violet: { label: 'Violet', dot: 'bg-violet-500' },
-  amber: { label: 'Amber', dot: 'bg-warning-dot' },
-  emerald: { label: 'Green', dot: 'bg-success-dot' },
-  rose: { label: 'Rose', dot: 'bg-danger-dot' },
-  cyan: { label: 'Cyan', dot: 'bg-cyan-500' },
+  slate: { get label() { return i18n.t('tasks:workflow.color.slate'); }, dot: 'bg-slate-400' },
+  blue: { get label() { return i18n.t('tasks:workflow.color.blue'); }, dot: 'bg-blue-600' },
+  violet: { get label() { return i18n.t('tasks:workflow.color.violet'); }, dot: 'bg-violet-500' },
+  amber: { get label() { return i18n.t('tasks:workflow.color.amber'); }, dot: 'bg-warning-dot' },
+  emerald: { get label() { return i18n.t('tasks:workflow.color.emerald'); }, dot: 'bg-success-dot' },
+  rose: { get label() { return i18n.t('tasks:workflow.color.rose'); }, dot: 'bg-danger-dot' },
+  cyan: { get label() { return i18n.t('tasks:workflow.color.cyan'); }, dot: 'bg-cyan-500' },
 };
 
 export const firstStageOf = (stages: readonly WorkflowStage[], group: TaskStatus): WorkflowStage =>
@@ -134,19 +145,19 @@ export const validateStages = (stages: readonly WorkflowStage[]): StageProblems 
   const names = new Set<string>();
   for (const stage of stages) {
     const name = stage.name.trim();
-    if (!name) byKey[stage.key] = 'Give the stage a name.';
-    else if (name.length > MAX_STAGE_NAME) byKey[stage.key] = `Use at most ${MAX_STAGE_NAME} characters.`;
-    else if (names.has(name.toLowerCase())) byKey[stage.key] = 'Another stage already has this name.';
+    if (!name) byKey[stage.key] = i18n.t('tasks:workflow.errors.nameRequired');
+    else if (name.length > MAX_STAGE_NAME) byKey[stage.key] = i18n.t('tasks:workflow.errors.nameTooLong', { max: MAX_STAGE_NAME });
+    else if (names.has(name.toLowerCase())) byKey[stage.key] = i18n.t('tasks:workflow.errors.nameTaken');
     names.add(name.toLowerCase());
     if (!byKey[stage.key] && (!Number.isInteger(stage.wipLimit) || stage.wipLimit < 0 || stage.wipLimit > MAX_STAGE_WIP)) {
-      byKey[stage.key] = `The limit is a whole number from 0 to ${MAX_STAGE_WIP}.`;
+      byKey[stage.key] = i18n.t('tasks:workflow.errors.limit', { max: MAX_STAGE_WIP });
     }
   }
-  if (stages.length > MAX_STAGES) list = `A workflow can have at most ${MAX_STAGES} stages.`;
-  else if (stages.length < MIN_STAGES) list = 'Add at least one stage.';
+  if (stages.length > MAX_STAGES) list = i18n.t('tasks:workflow.errors.tooMany', { max: MAX_STAGES });
+  else if (stages.length < MIN_STAGES) list = i18n.t('tasks:workflow.errors.tooFew');
   else {
     const missing = TASK_STATUSES.find(group => !stages.some(stage => stage.group === group));
-    if (missing) list = `Every group needs a stage: add one to "${GROUP_LABEL[missing]}".`;
+    if (missing) list = i18n.t('tasks:workflow.errors.groupMissing', { group: GROUP_LABEL[missing] });
   }
   return { byKey, list };
 };
@@ -171,40 +182,47 @@ export const moveItem = <T,>(items: readonly T[], from: number, to: number): T[]
 export interface StageTemplate {
   id: string;
   label: string;
+  /** Built when read: the stage names follow the interface language. */
   stages: WorkflowStage[];
 }
 
-const make = (name: string, group: TaskStatus, color: StageColor, key = stageKeyFor(name, [])): WorkflowStage => ({
-  key, name, group, color, wipLimit: 0,
+const make = (key: string, group: TaskStatus, color: StageColor): WorkflowStage => ({
+  key, name: i18n.t(`tasks:workflow.defaultStage.${key}`), group, color, wipLimit: 0,
 });
 
 export const STAGE_TEMPLATES: StageTemplate[] = [
   {
     id: 'scrum',
-    label: 'Scrum (To do, In progress, In review, QA, Done)',
-    stages: [
-      make('To do', 'pending', 'slate', 'todo'),
-      make('In progress', 'in-progress', 'blue', 'in-progress'),
-      make('In review', 'in-progress', 'violet'),
-      make('QA', 'in-progress', 'amber'),
-      make('Done', 'completed', 'emerald', 'done'),
-    ],
+    get label() { return i18n.t('tasks:workflow.templates.scrum'); },
+    get stages() {
+      return [
+        make('todo', 'pending', 'slate'),
+        make('in-progress', 'in-progress', 'blue'),
+        make('in-review', 'in-progress', 'violet'),
+        make('qa', 'in-progress', 'amber'),
+        make('done', 'completed', 'emerald'),
+      ];
+    },
   },
   {
     id: 'kanban',
-    label: 'Kanban (Backlog, Ready, Doing, Review, Done)',
-    stages: [
-      make('Backlog', 'pending', 'slate'),
-      make('Ready', 'pending', 'cyan'),
-      make('Doing', 'in-progress', 'blue'),
-      make('Review', 'in-progress', 'violet'),
-      make('Done', 'completed', 'emerald', 'done'),
-    ],
+    get label() { return i18n.t('tasks:workflow.templates.kanban'); },
+    get stages() {
+      return [
+        make('backlog', 'pending', 'slate'),
+        make('ready', 'pending', 'cyan'),
+        make('doing', 'in-progress', 'blue'),
+        make('review', 'in-progress', 'violet'),
+        make('done', 'completed', 'emerald'),
+      ];
+    },
   },
   {
     id: 'simple',
-    label: 'Simple (To do, In progress, Done)',
-    stages: DEFAULT_STAGES,
+    get label() { return i18n.t('tasks:workflow.templates.simple'); },
+    get stages() {
+      return [make('todo', 'pending', 'slate'), make('in-progress', 'in-progress', 'blue'), make('done', 'completed', 'emerald')];
+    },
   },
 ];
 

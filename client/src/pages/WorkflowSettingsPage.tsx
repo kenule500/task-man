@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronLeft, Plus, ShieldAlert } from 'lucide-react';
 import {
   Alert, EmptyState, ErrorState, PageHeader, SectionHeader, SkeletonList, Surface, toast,
@@ -19,11 +20,12 @@ import { usePermissions } from '../hooks/usePermissions';
 const sameStages = (a: readonly WorkflowStage[], b: readonly WorkflowStage[]) => JSON.stringify(a) === JSON.stringify(b);
 
 const WorkflowSettingsPage = () => {
+  const { t } = useTranslation('admin');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const allowed = can('settings:manage');
 
-  const { stages: saved, loaded, save, reload } = useWorkflow(allowed ? workspaceSlug : undefined);
+  const { rawStages: saved, loaded, save, reload } = useWorkflow(allowed ? workspaceSlug : undefined);
   const [checked, setChecked] = useState(false);
   const [draft, setDraft] = useState<WorkflowStage[] | null>(null);
   // removed saved stage key -> stage key that receives its tasks
@@ -50,13 +52,13 @@ const WorkflowSettingsPage = () => {
   if (!allowed) {
     return (
       <div className="max-w-4xl">
-        <PageHeader title="Workflow" />
+        <PageHeader title={t('workflow.title')} />
         <Surface className="mt-6">
           <EmptyState
             headingLevel="h2"
             icon={<ShieldAlert />}
-            title="Only people who manage settings can edit the workflow"
-            description="Ask an owner or admin of this workspace if you need a new stage."
+            title={t('workflow.restrictedTitle')}
+            description={t('workflow.restrictedBody')}
           />
         </Surface>
       </div>
@@ -87,7 +89,7 @@ const WorkflowSettingsPage = () => {
     // Keys already in use keep their tasks; the rest of the old stages are removed (the API places their tasks)
     update(template.stages.map(stage => ({ ...stage })));
     setMoves({});
-    toast.success(`${template.label.split(' (')[0]} template applied. Save to keep it.`);
+    toast.success(t('workflow.templateApplied', { name: template.label.split(' (')[0] }));
   };
 
   const removeStage = (stage: WorkflowStage, targetKey: string) => {
@@ -117,9 +119,9 @@ const WorkflowSettingsPage = () => {
       await save(request);
       setDraft(null);
       setMoves({});
-      toast.success('Workflow saved');
+      toast.success(t('workflow.saved'));
     } catch (err) {
-      setError(getApiErrorMessage(err, 'We could not save the workflow. Check your connection and try again.'));
+      setError(getApiErrorMessage(err, t('workflow.saveError')));
     } finally {
       setSaving(false);
     }
@@ -133,19 +135,19 @@ const WorkflowSettingsPage = () => {
         to={`/${workspaceSlug}/settings`}
         className="inline-flex min-h-11 items-center gap-1 rounded text-sm font-medium text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-primary sm:min-h-0"
       >
-        <ChevronLeft aria-hidden className="size-4" />
-        Workspace settings
+        <ChevronLeft aria-hidden className="size-4 rtl:-scale-x-100" />
+        {t('workflow.back')}
       </Link>
 
       <PageHeader
-        title="Workflow"
-        description="The columns of your board. Every stage belongs to a group (Pending, In Progress or Completed), so reports, burndown and integrations keep working."
+        title={t('workflow.title')}
+        description={t('workflow.description')}
         actions={(
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button type="button" variant="outline" disabled={!loaded} className="h-11 gap-2 px-4 text-sm sm:h-10" />}
             >
-              Use a template
+              {t('workflow.useTemplate')}
               <ChevronDown aria-hidden className="size-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
@@ -160,22 +162,22 @@ const WorkflowSettingsPage = () => {
       />
 
       {!loaded && !checked ? (
-        <SkeletonList label="Loading workflow" rows={3} avatar={false} />
+        <SkeletonList label={t('workflow.loading')} rows={3} avatar={false} />
       ) : !loaded ? (
         <Surface>
           <ErrorState
-            title="Could not load the workflow"
-            reason="The server did not answer."
-            nextStep="Check your connection and try again."
-            action={<Button type="button" onClick={() => { setChecked(false); void reload().finally(() => setChecked(true)); }} className="h-10 px-4 md:h-9">Try again</Button>}
+            title={t('workflow.loadFailed')}
+            reason={t('workflow.noAnswer')}
+            nextStep={t('workflow.checkConnection')}
+            action={<Button type="button" onClick={() => { setChecked(false); void reload().finally(() => setChecked(true)); }} className="h-10 px-4 md:h-9">{t('actions.retry')}</Button>}
           />
         </Surface>
       ) : (
         <>
           <Surface padding="md" className="space-y-4">
-            <SectionHeader title="Stages" count={working.length} />
+            <SectionHeader title={t('workflow.stages')} count={working.length} />
             {problems.list && <Alert tone="warning">{problems.list}</Alert>}
-            <ol className="space-y-3" aria-label="Workflow stages">
+            <ol className="space-y-3" aria-label={t('workflow.stagesList')}>
               {working.map((stage, index) => (
                 <StageRow
                   key={stage.key}
@@ -198,15 +200,15 @@ const WorkflowSettingsPage = () => {
               className="h-11 gap-2 px-4 text-sm sm:h-10"
             >
               <Plus aria-hidden />
-              Add stage
+              {t('workflow.addStage')}
             </Button>
             {working.length >= MAX_STAGES && (
-              <p role="status" className="text-sm text-slate-600">A workflow can have at most {MAX_STAGES} stages.</p>
+              <p role="status" className="text-sm text-slate-600">{t('workflow.maxStages', { max: MAX_STAGES })}</p>
             )}
           </Surface>
 
           <Surface padding="md" className="space-y-3">
-            <SectionHeader title="Board preview" />
+            <SectionHeader title={t('workflow.preview')} />
             <BoardPreview stages={working} />
           </Surface>
 
@@ -219,7 +221,7 @@ const WorkflowSettingsPage = () => {
               onClick={() => { void submit(); }}
               className="h-11 flex-1 px-4 text-sm sm:h-10 sm:flex-none"
             >
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? t('actions.saving') : t('fields.dialog.saveChanges')}
             </Button>
             <Button
               type="button"
@@ -228,7 +230,7 @@ const WorkflowSettingsPage = () => {
               onClick={cancel}
               className="h-11 flex-1 px-4 text-sm sm:h-10 sm:flex-none"
             >
-              Cancel
+              {t('actions.cancel')}
             </Button>
           </div>
         </>

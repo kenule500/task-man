@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
   CalendarDays,
@@ -30,6 +31,7 @@ import { cn } from '@/lib/utils';
 import api from '../utils/api';
 import { usePermissions } from '../hooks/usePermissions';
 import GetStartedChecklist from '@/components/dashboard/GetStartedChecklist';
+import { roleDisplayName } from '@/components/settings/rbac';
 import ActiveSprints from '@/components/dashboard/ActiveSprints';
 import MyWork from '@/components/dashboard/MyWork';
 import { useProjects } from '@/features/projects';
@@ -61,21 +63,21 @@ interface Workspace {
 
 const MAX_ROWS = 6;
 
-const getGreeting = (): string => {
+const greetingKey = (): 'morning' | 'afternoon' | 'evening' => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
 };
 
 const byDeadline = (a: Task, b: Task) =>
   dateKeyOf(a.deadline).localeCompare(dateKeyOf(b.deadline));
 
 const VIEW_LINKS = [
-  { view: 'list', label: 'List', hint: 'Dense table with inline edits', icon: List },
-  { view: 'board', label: 'Board', hint: 'Kanban by status', icon: SquareKanban },
-  { view: 'calendar', label: 'Calendar', hint: 'Deadlines by month', icon: CalendarDays },
-  { view: 'timeline', label: 'Timeline', hint: 'Schedule and dependencies', icon: ChartGantt },
+  { view: 'list', icon: List },
+  { view: 'board', icon: SquareKanban },
+  { view: 'calendar', icon: CalendarDays },
+  { view: 'timeline', icon: ChartGantt },
 ] as const;
 
 interface TaskListCardProps {
@@ -87,7 +89,9 @@ interface TaskListCardProps {
   emptyText: string;
 }
 
-const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCardProps) => (
+const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCardProps) => {
+  const { t } = useTranslation('dashboard');
+  return (
   <Surface as="section" padding="sm" className="sm:p-5">
     <SectionHeader
       className="mb-3"
@@ -119,14 +123,15 @@ const TaskListCard = ({ title, tone, tasks, total, slug, emptyText }: TaskListCa
     )}
     {total > tasks.length && (
       <p className="mt-3 text-xs text-slate-600">
-        Showing {tasks.length} of {total}.{' '}
+        {t('showing', { shown: tasks.length, total })}{' '}
         <Link to={`/${slug}/tasks?view=list`} className="font-medium text-primary hover:underline">
-          View all
+          {t('viewAll')}
         </Link>
       </p>
     )}
   </Surface>
-);
+  );
+};
 
 const DashboardSkeleton = () => (
   <div className="space-y-6">
@@ -136,6 +141,7 @@ const DashboardSkeleton = () => (
 );
 
 const DashboardPage = () => {
+  const { t } = useTranslation('dashboard');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
 
   // ===== RBAC integration =====
@@ -220,26 +226,26 @@ const DashboardPage = () => {
     <>
       {/* ===== Page header with greeting + RBAC role badge ===== */}
       <PageHeader
-        title={`${getGreeting()}, ${firstName}`}
+        title={t(`greeting.${greetingKey()}`, { name: firstName })}
         description={
           workspace?.name
-            ? `Here is what is happening in ${workspace.name}.`
-            : 'Here is your workspace at a glance.'
+            ? t('subtitleWorkspace', { name: workspace.name })
+            : t('subtitle')
         }
         actions={
           <>
             {role && (
               <Tag tone="neutral" className="!flex-none px-3 py-1.5">
                 <Shield className="size-3.5 text-primary" aria-hidden />
-                <span className="sr-only">Your role: </span>
-                {role.name}
+                <span className="sr-only">{t('yourRole')} </span>
+                {roleDisplayName(role)}
               </Tag>
             )}
             <Link
               to={`/${slug}/tasks`}
               className={buttonVariants({ className: 'h-10 rounded-lg bg-primary px-4 text-sm text-white shadow-sm hover:bg-primary-hover sm:h-9' })}
             >
-              Go to tasks
+              {t('goToTasks')}
             </Link>
           </>
         }
@@ -259,30 +265,30 @@ const DashboardPage = () => {
             {can('tasks:read') && <MyWork tasks={tasks} userId={user._id} slug={slug} />}
 
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-              <StatCard index={0} className="p-4 sm:p-5" title="Total tasks" value={stats.total} subtitle="All tasks in this workspace" icon={<ListTodo className="w-5 h-5" />} />
-              <StatCard index={1} className="p-4 sm:p-5" title="In progress" value={stats.inProgress} subtitle="Currently being worked on" icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
-              <StatCard index={2} className="p-4 sm:p-5" title="Completed" value={stats.completed} subtitle="Finished tasks" icon={<CheckSquare className="w-5 h-5" />} colorClass="text-success-fg" />
-              <StatCard index={3} className="p-4 sm:p-5" title="Overdue" value={stats.overdue} subtitle="Past their due date" icon={<AlertCircle className="w-5 h-5" />} colorClass="text-danger-fg" />
+              <StatCard index={0} className="p-4 sm:p-5" title={t('stats.total')} value={stats.total} subtitle={t('stats.totalHint')} icon={<ListTodo className="w-5 h-5" />} />
+              <StatCard index={1} className="p-4 sm:p-5" title={t('stats.inProgress')} value={stats.inProgress} subtitle={t('stats.inProgressHint')} icon={<Clock className="w-5 h-5" />} colorClass="text-blue-600" />
+              <StatCard index={2} className="p-4 sm:p-5" title={t('stats.completed')} value={stats.completed} subtitle={t('stats.completedHint')} icon={<CheckSquare className="w-5 h-5" />} colorClass="text-success-fg" />
+              <StatCard index={3} className="p-4 sm:p-5" title={t('stats.overdue')} value={stats.overdue} subtitle={t('stats.overdueHint')} icon={<AlertCircle className="w-5 h-5" />} colorClass="text-danger-fg" />
             </div>
 
             <ActiveSprints projects={projects} tasks={tasks} slug={slug} />
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               <TaskListCard
-                title="Due this week"
+                title={t('dueThisWeek')}
                 tone="default"
                 tasks={dueThisWeek.slice(0, MAX_ROWS)}
                 total={dueThisWeek.length}
                 slug={slug}
-                emptyText="Nothing due in the next 7 days."
+                emptyText={t('dueThisWeekEmpty')}
               />
               <TaskListCard
-                title="Overdue"
+                title={t('overdueTitle')}
                 tone="danger"
                 tasks={overdue.slice(0, MAX_ROWS)}
                 total={overdue.length}
                 slug={slug}
-                emptyText="You are all caught up. No overdue tasks."
+                emptyText={t('overdueEmpty')}
               />
             </div>
           </>
@@ -292,10 +298,10 @@ const DashboardPage = () => {
       {/* ===== Quick views ===== */}
       <section aria-labelledby="views-heading">
         <h2 id="views-heading" className="mb-3 text-sm font-semibold text-slate-900">
-          Open a view
+          {t('openView')}
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {VIEW_LINKS.map(({ view, label, hint, icon: Icon }) => (
+          {VIEW_LINKS.map(({ view, icon: Icon }) => (
             <Link
               key={view}
               to={`/${slug}/tasks?view=${view}`}
@@ -309,8 +315,8 @@ const DashboardPage = () => {
                 <Icon aria-hidden />
               </IconTile>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900">{label}</p>
-                <p className="mt-0.5 text-xs text-slate-600">{hint}</p>
+                <p className="text-sm font-semibold text-slate-900">{t(`views.${view}.label`)}</p>
+                <p className="mt-0.5 text-xs text-slate-600">{t(`views.${view}.hint`)}</p>
               </div>
             </Link>
           ))}
@@ -325,10 +331,10 @@ const DashboardPage = () => {
           </IconTile>
           <div className="min-w-0">
             <p className="text-2xl font-bold tabular-nums text-slate-900">
-              {workspaceLoading ? <span aria-label="Loading">-</span> : memberCount}
+              {workspaceLoading ? <span aria-label={t('common:loading')}>-</span> : memberCount}
             </p>
             <p className="text-xs text-slate-600">
-              {memberCount === 1 ? 'Member (just you so far)' : 'Members'}
+              {memberCount === 1 ? t('members.one') : t('members.other')}
             </p>
           </div>
         </Surface>
@@ -339,14 +345,14 @@ const DashboardPage = () => {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <h2 className="mb-1 text-sm font-semibold text-slate-900">
-                  Invite teammates to this workspace
+                  {t('invite.title')}
                 </h2>
                 <p className="text-xs text-slate-600">
-                  Share this code. They can join instantly.
+                  {t('invite.description')}
                 </p>
               </div>
 
-              <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 py-1 pl-4 pr-2 sm:justify-start">
+              <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 py-1 ps-4 pe-2 sm:justify-start">
                 <code className="truncate font-mono text-sm font-semibold tracking-wider text-slate-700">
                   {workspace.inviteCode}
                 </code>
@@ -357,20 +363,20 @@ const DashboardPage = () => {
                 >
                   {copied ? (
                     <>
-                      <Check className="size-3.5" aria-hidden /> Copied
+                      <Check className="size-3.5" aria-hidden /> {t('invite.copied')}
                     </>
                   ) : (
                     <>
-                      <Copy className="size-3.5" aria-hidden /> Copy
+                      <Copy className="size-3.5" aria-hidden /> {t('invite.copy')}
                     </>
                   )}
-                  <span className="sr-only"> invite code</span>
+                  <span className="sr-only"> {t('invite.codeSuffix')}</span>
                 </button>
               </div>
             </div>
             {copyFailed && (
               <p role="alert" className="mt-3 text-xs text-danger-fg">
-                Could not copy automatically. Select the code and copy it manually.
+                {t('invite.copyFailed')}
               </p>
             )}
           </Surface>

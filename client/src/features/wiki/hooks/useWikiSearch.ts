@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { wikiApi } from '../api';
 import type { WikiSearchHit } from '../types';
@@ -25,7 +26,7 @@ export const useWikiSearch = (slug: string | undefined, rawQuery: string) => {
       wikiApi.search(slug, query)
         .then(hits => { if (!cancelled) setLoaded({ query, hits, error: '' }); })
         .catch(err => {
-          if (!cancelled) setLoaded({ query, hits: [], error: getApiErrorMessage(err, 'We could not search the pages. Try again.') });
+          if (!cancelled) setLoaded({ query, hits: [], error: getApiErrorMessage(err, i18n.t('projects:wiki.errors.search')) });
         });
     }, DEBOUNCE_MS);
     return () => {

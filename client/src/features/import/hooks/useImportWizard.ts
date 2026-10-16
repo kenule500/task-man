@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { invalidate, tasksKey } from '@/lib/queryCache';
 import type { Project } from '@/features/projects';
@@ -84,7 +85,7 @@ export const useImportWizard = (slug: string | undefined, { canCreateProject, pr
       }));
     } catch (error) {
       if (ticket !== run.current) return;
-      setFileError(getApiErrorMessage(error, 'We could not read this file.'));
+      setFileError(getApiErrorMessage(error, i18n.t('admin:import.readFailed')));
     } finally {
       if (ticket === run.current) setReading(false);
     }
@@ -114,7 +115,7 @@ export const useImportWizard = (slug: string | undefined, { canCreateProject, pr
       invalidate(tasksKey(slug));
       onImported?.();
     } catch (error) {
-      setImportError(getApiErrorMessage(error, 'The import failed. Nothing was imported.'));
+      setImportError(getApiErrorMessage(error, i18n.t('admin:import.importFailed')));
     } finally {
       setImporting(false);
     }

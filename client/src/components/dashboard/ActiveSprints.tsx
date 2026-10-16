@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Timer } from 'lucide-react';
 import { ProgressBar, SectionHeader, Surface, Tag } from '@/components/ds';
 import { ProjectChip, type Project } from '@/features/projects';
@@ -13,13 +14,14 @@ interface ActiveSprintsProps {
 
 /** Dashboard panel: every running sprint with its progress and time left. Renders nothing when no sprint is active. */
 const ActiveSprints = ({ projects, tasks, slug }: ActiveSprintsProps) => {
+  const { t } = useTranslation('dashboard');
   const sprints = summarizeActiveSprints(projects, tasks);
   if (sprints.length === 0) return null;
 
   return (
     <Surface as="section" padding="sm" className="sm:p-5" aria-labelledby="active-sprints-heading">
       <SectionHeader
-        title={<span id="active-sprints-heading">Active sprints</span>}
+        title={<span id="active-sprints-heading">{t('activeSprints.title')}</span>}
         count={sprints.length}
         icon={<Timer className="size-4 text-primary" aria-hidden />}
       />
@@ -41,10 +43,10 @@ const ActiveSprints = ({ projects, tasks, slug }: ActiveSprintsProps) => {
                 </Tag>
               </div>
               {sprint.goal && <p className="mt-1 line-clamp-2 text-xs text-slate-600">{sprint.goal}</p>}
-              <ProgressBar value={progress} label={`${sprint.name} progress`} className="mt-3" />
+              <ProgressBar value={progress} label={t('activeSprints.progress', { name: sprint.name })} className="mt-3" />
               <p className="mt-2 text-xs tabular-nums text-slate-600">
-                {completed}/{total} items done
-                {points > 0 && <> · {completedPoints}/{points} points</>}
+                {t('activeSprints.itemsDone', { completed, total })}
+                {points > 0 && <> · {t('activeSprints.pointsDone', { completed: completedPoints, total: points })}</>}
                 {' · '}
                 <span className="font-semibold text-slate-900">{progress}%</span>
               </p>

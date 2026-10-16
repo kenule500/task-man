@@ -1,3 +1,6 @@
+import { currentLocale } from '@/i18n/format';
+import { t } from '@/i18n';
+
 export type BrowserName = 'Chrome' | 'Edge' | 'Firefox' | 'Safari' | 'Opera' | 'Samsung Internet' | 'Unknown browser';
 export type OsName = 'Windows' | 'macOS' | 'iOS' | 'iPadOS' | 'Android' | 'Linux' | 'ChromeOS' | 'Unknown OS';
 export type DeviceKind = 'desktop' | 'mobile' | 'tablet';
@@ -48,10 +51,10 @@ export const deviceLabel = (ua?: string | null): string => {
   const { browser, os } = describeUserAgent(ua);
   const knownBrowser = browser !== 'Unknown browser';
   const knownOs = os !== 'Unknown OS';
-  if (knownBrowser && knownOs) return `${browser} on ${os}`;
+  if (knownBrowser && knownOs) return t('settings:devices.browserOnOs', { browser, os });
   if (knownBrowser) return browser;
   if (knownOs) return os;
-  return 'Unknown device';
+  return t('settings:devices.unknownDevice');
 };
 
 /** "just now", "12 min ago", "3 h ago", "2 days ago" (a date after 30 days). */
@@ -60,11 +63,11 @@ export const formatRelativeTime = (iso: string | undefined, now: Date = new Date
   const then = new Date(iso);
   if (Number.isNaN(then.getTime())) return '';
   const minutes = Math.floor((now.getTime() - then.getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return t('settings:devices.relative.justNow');
+  if (minutes < 60) return t('settings:devices.relative.minutes', { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
+  if (hours < 24) return t('settings:devices.relative.hours', { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return days === 1 ? '1 day ago' : `${days} days ago`;
-  return then.toLocaleDateString();
+  if (days < 30) return t('settings:devices.relative.days', { count: days });
+  return then.toLocaleDateString(currentLocale());
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '@/i18n';
 import { getApiErrorMessage } from '@/utils/api';
 import { flowApi } from '../api';
 import type { FlowReport } from '../types';
@@ -25,7 +26,7 @@ export const useFlowReport = (
     flowApi.report(slug, { project, sprint, from, to })
       .then(report => { if (!cancelled) setLoaded({ key, report, error: '' }); })
       .catch(err => {
-        if (!cancelled) setLoaded({ key, report: null, error: getApiErrorMessage(err, 'Could not load the flow report') });
+        if (!cancelled) setLoaded({ key, report: null, error: getApiErrorMessage(err, i18n.t('reports:flow.loadError')) });
       });
     return () => { cancelled = true; };
   }, [key, slug, project, sprint, from, to]);

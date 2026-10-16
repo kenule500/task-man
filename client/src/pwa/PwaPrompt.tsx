@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Banner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ const OFFLINE_READY_HIDE_MS = 4000;
 
 /** Service worker lifecycle: an info Banner when an update is available, a small toast when ready offline. */
 export default function PwaPrompt() {
+  const { t } = useTranslation('nav');
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
@@ -24,13 +26,13 @@ export default function PwaPrompt() {
       <Banner
         tone="info"
         rounded={false}
-        title="New version available"
-        action={<Button size="sm" onClick={() => void updateServiceWorker(true)}>Reload</Button>}
+        title={t('pwa.updateTitle')}
+        action={<Button size="sm" onClick={() => void updateServiceWorker(true)}>{t('pwa.reload')}</Button>}
         onDismiss={() => setNeedRefresh(false)}
-        dismissLabel="Remind me later"
+        dismissLabel={t('pwa.later')}
         className="pointer-events-auto pt-[max(0.625rem,env(safe-area-inset-top))]"
       >
-        Reload to get the latest TaskMan.
+        {t('pwa.updateDescription')}
       </Banner>
     );
   }
@@ -38,12 +40,12 @@ export default function PwaPrompt() {
   if (!offlineReady) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 pb-[env(safe-area-inset-bottom)] sm:left-auto sm:right-4 sm:w-96">
+    <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 pb-[env(safe-area-inset-bottom)] sm:start-auto sm:end-4 sm:w-96">
       <div
         role="status"
         className="pointer-events-auto rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-lg"
       >
-        <p className="font-medium text-slate-900">Ready to work offline</p>
+        <p className="font-medium text-slate-900">{t('pwa.offlineReady')}</p>
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
+import i18n from '@/i18n';
 import { ALL_EVENTS } from '../types';
 
 // Mirrors server/src/config/permissions.ts (scopes) and models/activityModel.ts (events)
 
 export interface ScopeOption { key: string; label: string; group: string }
 
-export const SCOPES: ScopeOption[] = [
+const RAW_SCOPES: ScopeOption[] = [
   { key: 'projects:read', label: 'View projects', group: 'Projects' },
   { key: 'projects:write', label: 'Create and edit projects', group: 'Projects' },
   { key: 'projects:delete', label: 'Delete projects', group: 'Projects' },
@@ -16,6 +17,19 @@ export const SCOPES: ScopeOption[] = [
   { key: 'reports:read', label: 'View analytics', group: 'Reports' },
   { key: 'settings:manage', label: 'Change workspace settings', group: 'Settings' },
 ];
+
+/** The scopes with their labels translated when read (the English text above is the fallback). */
+export const SCOPES: ScopeOption[] = RAW_SCOPES.map(scope => ({
+  key: scope.key,
+  group: scope.group,
+  get label() { return i18n.t(`admin:developers.scopes.${scope.key.replace(':', '_')}`, { defaultValue: scope.label }); },
+}));
+
+/** Heading of a scope group. */
+export const scopeGroupLabel = (group: string): string => i18n.t(`admin:developers.scopeGroups.${group}`, { defaultValue: group });
+
+/** Heading of an event area. */
+export const areaLabel = (area: string): string => i18n.t(`admin:developers.areas.${area}`, { defaultValue: area });
 
 /** Scopes a person may give a token: only ones they hold themselves. */
 export const grantableScopes = (permissions: string[]): ScopeOption[] =>
@@ -36,10 +50,10 @@ export const defaultScopes = (scopes: ScopeOption[]): string[] =>
 export interface ExpiryOption { value: string; label: string; days: number | null }
 
 export const EXPIRY_OPTIONS: ExpiryOption[] = [
-  { value: '30', label: '30 days', days: 30 },
-  { value: '90', label: '90 days', days: 90 },
-  { value: '365', label: '1 year', days: 365 },
-  { value: 'never', label: 'No expiry', days: null },
+  { value: '30', get label() { return i18n.t('admin:developers.expiry.30'); }, days: 30 },
+  { value: '90', get label() { return i18n.t('admin:developers.expiry.90'); }, days: 90 },
+  { value: '365', get label() { return i18n.t('admin:developers.expiry.365'); }, days: 365 },
+  { value: 'never', get label() { return i18n.t('admin:developers.expiry.never'); }, days: null },
 ];
 
 export const DEFAULT_EXPIRY = '90';
@@ -47,7 +61,7 @@ export const DEFAULT_EXPIRY = '90';
 export interface EventOption { key: string; label: string }
 export interface EventGroup { area: string; events: EventOption[] }
 
-export const EVENT_GROUPS: EventGroup[] = [
+const RAW_EVENT_GROUPS: EventGroup[] = [
   { area: 'Tasks', events: [
     { key: 'task.created', label: 'Task created' },
     { key: 'task.updated', label: 'Task updated' },
@@ -101,16 +115,22 @@ export const EVENT_GROUPS: EventGroup[] = [
   ] },
 ];
 
+/** The event catalog with labels translated when read. */
+export const EVENT_GROUPS: EventGroup[] = RAW_EVENT_GROUPS.map(group => ({
+  area: group.area,
+  events: group.events.map(event => ({
+    key: event.key,
+    get label() { return i18n.t(`admin:developers.events.${event.key}`, { defaultValue: event.label }); },
+  })),
+}));
+
 export const ALL_EVENT_KEYS: string[] = EVENT_GROUPS.flatMap(group => group.events.map(event => event.key));
 
-const LABELS = new Map<string, string>(EVENT_GROUPS.flatMap(group => group.events.map(event => [event.key, event.label] as const)));
-LABELS.set('ping', 'Test event');
-
-export const eventLabel = (key: string): string => LABELS.get(key) ?? key;
+export const eventLabel = (key: string): string => i18n.t(`admin:developers.events.${key}`, { defaultValue: key });
 
 /** "All events", "Task created", or "3 events". */
 export const describeEvents = (events: string[]): string => {
-  if (events.includes(ALL_EVENTS)) return 'All events';
+  if (events.includes(ALL_EVENTS)) return i18n.t('admin:developers.allEvents');
   if (events.length === 1) return eventLabel(events[0]);
-  return `${events.length} events`;
+  return i18n.t('admin:developers.eventsCount', { count: events.length });
 };

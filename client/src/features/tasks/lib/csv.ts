@@ -1,4 +1,4 @@
-import { PRIORITY_META, STATUS_META, TASK_TYPE_META } from '../constants';
+import i18n from '@/i18n';
 import type { Task } from '../types';
 import { dateKeyOf, toDateKey } from './date';
 import { taskKey } from './taskKey';
@@ -56,9 +56,9 @@ export const taskCsvRows = (tasks: Task[], allTasks: Task[] = tasks, lookups: Ta
     return [
       keyOf(task),
       task.title,
-      TASK_TYPE_META[task.type ?? 'task'].label,
-      STATUS_META[task.status].label,
-      PRIORITY_META[task.priority].label,
+      i18n.t(`tasks:type.${task.type ?? 'task'}`, { lng: 'en' }), // exports stay in English so they can be imported back
+      i18n.t(`tasks:status.${task.status}`, { lng: 'en' }),
+      i18n.t(`tasks:priority.${task.priority}`, { lng: 'en' }),
       typeof task.storyPoints === 'number' ? String(task.storyPoints) : '',
       task.project ?? '',
       task.sprint ? sprintName?.(task.sprint) ?? '' : '',

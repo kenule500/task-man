@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../utils/api';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { AuthPageShell, AuthStatusHeader } from '@/components/auth/AuthPageShell
 import { getStoredUser, getToken, updateStoredUser } from '../utils/session';
 
 const JoinWorkspacePage = () => {
+  const { t } = useTranslation('auth');
   const { inviteCode } = useParams<{ inviteCode: string }>();
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -29,7 +31,7 @@ const JoinWorkspacePage = () => {
       try {
         const response = await api.post('/workspaces/join', { inviteCode });
         setStatus('success');
-        setMessage(`You joined ${response.data.name}.`);
+        setMessage(response.data.name);
 
         // Update stored user's active workspace
         const storedUser = getStoredUser();
@@ -46,26 +48,26 @@ const JoinWorkspacePage = () => {
       } catch (error: unknown) {
         const axiosError = error as { response?: { data?: { message?: string } } };
         setStatus('error');
-        setMessage(axiosError.response?.data?.message || 'Failed to join workspace.');
+        setMessage(axiosError.response?.data?.message || t('join.failed'));
       }
     };
     join();
-  }, [inviteCode, navigate]);
+  }, [inviteCode, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <AuthPageShell>
       <div aria-live="polite" className="text-center">
         {status === 'loading' && (
-          <AuthStatusHeader icon={<Loader2 />} spin title="Joining workspace" description="Please wait..." />
+          <AuthStatusHeader icon={<Loader2 />} spin title={t('join.loadingTitle')} description={t('invite.wait')} />
         )}
         {status === 'success' && (
-          <AuthStatusHeader icon={<CheckCircle2 />} tone="success" title="Welcome aboard" description={`${message} Opening your dashboard...`} />
+          <AuthStatusHeader icon={<CheckCircle2 />} tone="success" title={t('join.successTitle')} description={t('join.successDescription', { name: message })} />
         )}
         {status === 'error' && (
           <>
-            <AuthStatusHeader icon={<XCircle />} tone="danger" title="Could not join" description={message} />
+            <AuthStatusHeader icon={<XCircle />} tone="danger" title={t('join.errorTitle')} description={message} />
             <Link to="/" className={buttonVariants({ variant: 'outline', className: 'h-11 w-full rounded-xl' })}>
-              Back to home
+              {t('invite.backHome')}
             </Link>
           </>
         )}

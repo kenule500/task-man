@@ -1,12 +1,13 @@
+import i18n from '@/i18n';
 import type { AgingItem, CfdDay, FlowReport, FlowStatusKey, TimeStats } from '../types';
 
 const DAY_MS = 86_400_000;
 
 export const RANGE_PRESETS = [
-  { value: '14', label: 'Last 14 days', days: 14 },
-  { value: '30', label: 'Last 30 days', days: 30 },
-  { value: '90', label: 'Last 90 days', days: 90 },
-  { value: '180', label: 'Last 180 days', days: 180 },
+  { value: '14', get label() { return i18n.t('reports:flow.range.14'); }, days: 14 },
+  { value: '30', get label() { return i18n.t('reports:flow.range.30'); }, days: 30 },
+  { value: '90', get label() { return i18n.t('reports:flow.range.90'); }, days: 90 },
+  { value: '180', get label() { return i18n.t('reports:flow.range.180'); }, days: 180 },
 ] as const;
 
 export const DEFAULT_RANGE_PRESET = '30';
@@ -15,9 +16,9 @@ export const DEFAULT_RANGE_PRESET = '30';
 export const STACK_ORDER: FlowStatusKey[] = ['completed', 'inProgress', 'pending'];
 
 export const FLOW_STATUS_LABEL: Record<FlowStatusKey, string> = {
-  pending: 'Pending',
-  inProgress: 'In progress',
-  completed: 'Completed',
+  get pending() { return i18n.t('reports:flow.status.pending'); },
+  get inProgress() { return i18n.t('reports:flow.status.inProgress'); },
+  get completed() { return i18n.t('reports:flow.status.completed'); },
 };
 
 /** The last `days` UTC calendar days ending today (the server counts days in UTC). */
@@ -33,11 +34,11 @@ export const presetDays = (value: string): number => RANGE_PRESETS.find(preset =
 export const formatDays = (days: number | null): string => {
   if (days === null) return '–';
   const rounded = Math.round(days * 10) / 10;
-  return `${rounded} ${rounded === 1 ? 'day' : 'days'}`;
+  return i18n.t('reports:flow.days', { count: rounded, n: rounded });
 };
 
 /** Short form for chart labels: "3.5d". */
-export const shortDays = (days: number | null): string => (days === null ? '–' : `${Math.round(days * 10) / 10}d`);
+export const shortDays = (days: number | null): string => (days === null ? '–' : i18n.t('reports:flow.shortDays', { n: Math.round(days * 10) / 10 }));
 
 /** A round upper bound for an axis and evenly spaced ticks from 0 to it (`max` of 0 still gives 1). */
 export const axisScale = (max: number, steps = 4): { max: number; ticks: number[] } => {
@@ -104,10 +105,10 @@ export const agingLevel = (days: number, p85: number | null): AgingLevel => {
 };
 
 export const AGING_META: Record<AgingLevel, { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }> = {
-  ok: { label: 'On track', tone: 'success' },
-  watch: { label: 'Watch', tone: 'warning' },
-  over: { label: 'Over p85', tone: 'danger' },
-  unknown: { label: 'No baseline', tone: 'neutral' },
+  ok: { get label() { return i18n.t('reports:flow.aging.ok'); }, tone: 'success' },
+  watch: { get label() { return i18n.t('reports:flow.aging.watch'); }, tone: 'warning' },
+  over: { get label() { return i18n.t('reports:flow.aging.over'); }, tone: 'danger' },
+  unknown: { get label() { return i18n.t('reports:flow.aging.unknown'); }, tone: 'neutral' },
 };
 
 export const countOverP85 = (aging: AgingItem[], p85: number | null): number =>
@@ -124,18 +125,16 @@ export const isEmptyReport = (report: FlowReport): boolean =>
 export const totalThroughput = (report: Pick<FlowReport, 'throughput'>): number =>
   report.throughput.reduce((sum, week) => sum + week.count, 0);
 
-const plural = (count: number, singular: string) => `${count} ${singular}${count === 1 ? '' : 's'}`;
-
 /** Text alternative of the cumulative flow chart. */
 export const describeCfd = (cfd: CfdDay[]): string => {
   const first = cfd[0];
   const last = cfd[cfd.length - 1];
-  if (!first || !last) return 'Cumulative flow: no data.';
-  return `Cumulative flow from ${first.date} to ${last.date}. On the last day ${last.pending} pending, ${last.inProgress} in progress and ${last.completed} completed.`;
+  if (!first || !last) return i18n.t('reports:flow.cfdNoData');
+  return i18n.t('reports:flow.cfdSummary', { from: first.date, to: last.date, pending: last.pending, inProgress: last.inProgress, completed: last.completed });
 };
 
 /** Text alternative of a cycle or lead time scatter plot. */
 export const describeStats = (name: string, stats: TimeStats): string => {
-  if (stats.count === 0) return `${name} scatter plot: no completed tasks in this range.`;
-  return `${name} scatter plot of ${plural(stats.count, 'completed task')}. Median ${formatDays(stats.p50)}, 85th percentile ${formatDays(stats.p85)}, 95th percentile ${formatDays(stats.p95)}.`;
+  if (stats.count === 0) return i18n.t('reports:flow.statsNone', { name });
+  return i18n.t('reports:flow.statsSummary', { name, count: stats.count, p50: formatDays(stats.p50), p85: formatDays(stats.p85), p95: formatDays(stats.p95) });
 };

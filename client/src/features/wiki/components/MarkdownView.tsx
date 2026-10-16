@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { memo, useMemo, type ComponentProps } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -35,18 +36,18 @@ const components: MarkdownProps['components'] = {
   h6: ({ children }) => <h6 className="mt-4 mb-1.5 text-sm font-semibold text-text-subtle first:mt-0">{children}</h6>,
   p: ({ children }) => <p className="my-3 leading-7 first:mt-0 last:mb-0">{children}</p>,
   ul: ({ children, className }) => (
-    <ul className={cn('my-3 space-y-1 pl-6', className?.includes('contains-task-list') ? 'list-none pl-1' : 'list-disc')}>{children}</ul>
+    <ul className={cn('my-3 space-y-1 ps-6', className?.includes('contains-task-list') ? 'list-none ps-1' : 'list-disc')}>{children}</ul>
   ),
-  ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-6">{children}</ol>,
+  ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 ps-6">{children}</ol>,
   li: ({ children, className }) => (
     // Inline flow (not flex): text, links and code inside a checklist item keep their normal spacing
     <li className={cn('leading-7', className?.includes('task-list-item') && 'list-none')}>{children}</li>
   ),
   input: ({ checked, type }) => (type === 'checkbox'
-    ? <input type="checkbox" checked={Boolean(checked)} disabled readOnly aria-label={checked ? 'Done' : 'Not done'} className="mr-2 inline-block size-4 align-[-0.15em] accent-primary" />
+    ? <input type="checkbox" checked={Boolean(checked)} disabled readOnly aria-label={i18n.t(checked ? 'projects:wiki.checkboxDone' : 'projects:wiki.checkboxNotDone')} className="me-2 inline-block size-4 align-[-0.15em] accent-primary" />
     : null),
   blockquote: ({ children }) => (
-    <blockquote className="my-3 border-l-4 border-border-strong bg-surface-sunken py-1 pl-4 text-text-body [&>p]:my-1">{children}</blockquote>
+    <blockquote className="my-3 border-s-4 border-border-strong bg-surface-sunken py-1 ps-4 text-text-body [&>p]:my-1">{children}</blockquote>
   ),
   hr: () => <hr className="my-6 border-slate-200" />,
   code: ({ children, className }) => (
@@ -62,7 +63,7 @@ const components: MarkdownProps['components'] = {
       <table className="w-full border-collapse text-sm">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className="bg-surface-sunken text-left text-text-strong">{children}</thead>,
+  thead: ({ children }) => <thead className="bg-surface-sunken text-start text-text-strong">{children}</thead>,
   th: ({ children }) => <th className="border-b border-slate-200 px-3 py-2 font-semibold">{children}</th>,
   td: ({ children }) => <td className="border-t border-slate-200 px-3 py-2 align-top">{children}</td>,
   // Remote images would tell other servers who reads the page, so an image shows as a link to it

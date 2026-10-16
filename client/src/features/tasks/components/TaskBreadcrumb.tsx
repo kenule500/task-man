@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 // Deep import: the projects index imports the tasks module back
 import { useProjectDirectory } from '@/features/projects/context/ProjectsContext';
@@ -33,6 +34,7 @@ const crumbClass = 'inline-flex min-h-11 min-w-0 max-w-full items-center gap-1 r
  * nearest ancestor is shown: `… › Parent › KEY`.
  */
 const TaskBreadcrumb = ({ task, tasks, workspaceSlug, onOpenTask, className }: TaskBreadcrumbProps) => {
+  const { t } = useTranslation('tasks');
   const directory = useProjectDirectory();
   const slug = workspaceSlug ?? directory.slug;
   const project = task.project ? directory.byName(task.project) : undefined;
@@ -64,27 +66,27 @@ const TaskBreadcrumb = ({ task, tasks, workspaceSlug, onOpenTask, className }: T
     crumbs.push({
       id: 'project',
       node: project && slug ? (
-        <Link to={`/${slug}/projects/${project._id}`} title={`Project: ${project.name}`} className={cn(crumbClass, 'max-w-40 sm:max-w-48')}>
+        <Link to={`/${slug}/projects/${project._id}`} title={t('breadcrumb.project', { name: project.name })} className={cn(crumbClass, 'max-w-40 sm:max-w-48')}>
           <span className="truncate">{project.name}</span>
         </Link>
       ) : (
-        <span className={cn(crumbClass, 'max-w-40 hover:no-underline sm:max-w-48')} title={`Project: ${task.project}`}>
+        <span className={cn(crumbClass, 'max-w-40 hover:no-underline sm:max-w-48')} title={t('breadcrumb.project', { name: task.project })}>
           <span className="truncate">{task.project}</span>
         </span>
       ),
     });
   }
-  if (epic) crumbs.push({ id: 'epic', node: taskCrumb(epic, `Open epic ${epic.title}`, <Zap aria-hidden className={cn('size-3 shrink-0', TASK_TYPE_META.epic.text)} />) });
-  if (parent) crumbs.push({ id: 'parent', node: taskCrumb(parent, `Back to parent: ${parent.title}`) });
+  if (epic) crumbs.push({ id: 'epic', node: taskCrumb(epic, t('breadcrumb.openEpic', { title: epic.title }), <Zap aria-hidden className={cn('size-3 shrink-0', TASK_TYPE_META.epic.text)} />) });
+  if (parent) crumbs.push({ id: 'parent', node: taskCrumb(parent, t('breadcrumb.backToParent', { title: parent.title })) });
 
   if (crumbs.length === 0 && typeof task.number !== 'number') return null;
 
   return (
-    <nav aria-label="Task path" className={className}>
-      <ol className="-ml-1 flex min-w-0 flex-wrap items-center gap-x-0.5">
+    <nav aria-label={t('breadcrumb.path')} className={className}>
+      <ol className="-ms-1 flex min-w-0 flex-wrap items-center gap-x-0.5">
         {crumbs.length > 1 && (
           <li aria-hidden className="flex items-center text-xs text-slate-500 sm:hidden">
-            …<ChevronRight className="size-3.5 shrink-0 text-slate-400" />
+            …<ChevronRight className="size-3.5 shrink-0 text-slate-400 rtl:-scale-x-100" />
           </li>
         )}
         {crumbs.map((crumb, index) => (
@@ -92,7 +94,7 @@ const TaskBreadcrumb = ({ task, tasks, workspaceSlug, onOpenTask, className }: T
             {/* Phones keep only the nearest ancestor */}
             <li className={cn('flex min-w-0 items-center', index < crumbs.length - 1 && 'max-sm:hidden')}>
               {crumb.node}
-              <ChevronRight aria-hidden className="size-3.5 shrink-0 text-slate-400" />
+              <ChevronRight aria-hidden className="size-3.5 shrink-0 text-slate-400 rtl:-scale-x-100" />
             </li>
           </Fragment>
         ))}

@@ -45,6 +45,18 @@ export interface ChecklistInput {
   done?: boolean;
 }
 
+/** One acceptance criterion of a task: what "done" means, checked by the AI code review. */
+export interface TaskCriterion {
+  _id: string;
+  text: string;
+}
+
+/** Acceptance criterion as sent to the API (new ones may omit `_id` or bring a fresh 24-hex id). */
+export interface TaskCriterionInput {
+  _id?: string;
+  text: string;
+}
+
 export type RecurrenceUnit = 'day' | 'week' | 'month';
 export type RecurrenceBasis = 'due' | 'completion';
 
@@ -110,6 +122,8 @@ export interface Task {
   assignees?: TaskUser[];
   /** Items to tick off inside the task, in display order. */
   checklist?: ChecklistItem[];
+  /** What "done" means, in display order (max 30); the AI code review checks the pull request against them. */
+  acceptanceCriteria?: TaskCriterion[];
   /** User ids of the people following the task. */
   watchers?: string[];
   /** Repeat rule of a top-level task; null/unset = does not repeat. */
@@ -152,6 +166,8 @@ export interface TaskInput {
   assignees?: string[];
   /** Whole checklist; items keep their `_id` (new ones may omit it or bring a fresh 24-hex id). */
   checklist?: ChecklistInput[];
+  /** Whole list of acceptance criteria; items keep their `_id`. */
+  acceptanceCriteria?: TaskCriterionInput[];
   recurrence?: TaskRecurrence | null;
   /** Custom field values by key; merged into the task's values, `null` clears one. */
   custom?: CustomValuesInput;

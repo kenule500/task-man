@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -6,7 +7,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ds';
 import { fieldMessageId } from '@/components/ds/variants';
-import { STATUS_META, TASK_STATUSES } from '../constants';
+import { TASK_STATUSES } from '../constants';
 import { MAX_WIP_LIMIT, parseWipInput, type WipLimits } from '../lib/wip';
 import type { TaskStatus } from '../types';
 
@@ -21,6 +22,7 @@ interface WipLimitsDialogProps {
 
 /** Soft limits per column: an empty field means "no limit". Mount it only while it is open. */
 const WipLimitsDialog = ({ limits, focusStatus, onClose, onSave }: WipLimitsDialogProps) => {
+  const { t } = useTranslation('tasks');
   const [values, setValues] = useState<Record<TaskStatus, string>>(
     () => Object.fromEntries(TASK_STATUSES.map(status => [status, limits[status]?.toString() ?? ''])) as Record<TaskStatus, string>,
   );
@@ -35,7 +37,7 @@ const WipLimitsDialog = ({ limits, focusStatus, onClose, onSave }: WipLimitsDial
     const found: Partial<Record<TaskStatus, string>> = {};
     for (const status of TASK_STATUSES) {
       const parsed = parseWipInput(values[status]);
-      if (parsed === undefined) found[status] = `Enter a whole number from 1 to ${MAX_WIP_LIMIT}, or leave empty`;
+      if (parsed === undefined) found[status] = t('wip.error', { max: MAX_WIP_LIMIT });
       else next[status] = parsed;
     }
     setErrors(found);
@@ -54,21 +56,21 @@ const WipLimitsDialog = ({ limits, focusStatus, onClose, onSave }: WipLimitsDial
       <DialogContent initialFocus={focusRef} className="sm:max-w-sm">
         <form onSubmit={submit} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Set WIP limits</DialogTitle>
+            <DialogTitle>{t('wip.title')}</DialogTitle>
             <DialogDescription>
-              A column over its limit turns red. It is a warning only; cards can still be moved in.
+              {t('wip.description')}
             </DialogDescription>
           </DialogHeader>
 
           {TASK_STATUSES.map(status => {
             const id = `wip-limit-${status}`;
             return (
-              <Field key={status} label={STATUS_META[status].label} htmlFor={id} error={errors[status]}>
+              <Field key={status} label={t(`status.${status}`)} htmlFor={id} error={errors[status]}>
                 <Input
                   ref={status === focusStatus ? focusRef : undefined}
                   id={id}
                   inputMode="numeric"
-                  placeholder="No limit"
+                  placeholder={t('wip.noLimit')}
                   value={values[status]}
                   onChange={event => setValues(prev => ({ ...prev, [status]: event.target.value }))}
                   aria-invalid={Boolean(errors[status])}
@@ -82,8 +84,8 @@ const WipLimitsDialog = ({ limits, focusStatus, onClose, onSave }: WipLimitsDial
           {failure && <p role="alert" className="text-sm text-danger-fg">{failure}</p>}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-8">Cancel</Button>
-            <Button type="submit" disabled={saving} className="h-11 sm:h-8">{saving ? 'Saving…' : 'Save limits'}</Button>
+            <Button type="button" variant="outline" onClick={onClose} className="h-11 sm:h-8">{t('actions.cancel')}</Button>
+            <Button type="submit" disabled={saving} className="h-11 sm:h-8">{saving ? t('actions.saving') : t('wip.save')}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

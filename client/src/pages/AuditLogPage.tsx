@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Download, ScrollText, ShieldAlert } from 'lucide-react';
 import { EmptyState, ErrorState, PageHeader, Surface, toast, Spinner } from '@/components/ds';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { usePermissions } from '../hooks/usePermissions';
 const DEFAULT_RETENTION_DAYS = 365;
 
 const AuditLogPage = () => {
+  const { t } = useTranslation('settings');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { can } = usePermissions();
   const allowed = can('settings:manage');
@@ -37,9 +39,9 @@ const AuditLogPage = () => {
     try {
       const blob = await auditApi.exportCsv(workspaceSlug, filters);
       downloadBlob(blob, `audit-${workspaceSlug}-${new Date().toISOString().slice(0, 10)}.csv`);
-      toast.success('Audit log exported');
+      toast.success(t('audit.exported'));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'We could not export the audit log.'));
+      toast.error(getApiErrorMessage(err, t('audit.exportFailed')));
     } finally {
       setExporting(false);
     }
@@ -48,13 +50,13 @@ const AuditLogPage = () => {
   if (!allowed) {
     return (
       <div>
-        <PageHeader title="Audit log" />
+        <PageHeader title={t('audit.title')} />
         <Surface className="mt-6">
           <EmptyState
             headingLevel="h2"
             icon={<ShieldAlert />}
-            title="Only people who manage settings can see the audit log"
-            description="Ask an owner or admin of this workspace if you need to see the audit log."
+            title={t('audit.restrictedTitle')}
+            description={t('audit.restrictedDescription')}
           />
         </Surface>
       </div>
@@ -68,8 +70,8 @@ const AuditLogPage = () => {
   return (
     <div className="space-y-5 pb-6">
       <PageHeader
-        title="Audit log"
-        description={`Every change in this workspace: who did what, when and from where. Entries are kept for ${retention} days.`}
+        title={t('audit.title')}
+        description={t('audit.description', { count: retention })}
         actions={(
           <>
             <Button
@@ -81,7 +83,7 @@ const AuditLogPage = () => {
               className="h-10 gap-2 px-4 text-sm md:h-9"
             >
               {exporting ? <Spinner decorative /> : <Download aria-hidden />}
-              {exporting ? 'Exporting…' : 'Export CSV'}
+              {exporting ? t('audit.exporting') : t('audit.exportCsv')}
             </Button>
           </>
         )}
@@ -89,7 +91,7 @@ const AuditLogPage = () => {
 
       <Surface padding="sm" className="sm:p-5">
         <AuditFilterBar filters={filters} members={members} onChange={changeFilters} />
-        <p className="mt-3 text-xs text-slate-600">The export includes the entries that match these filters.</p>
+        <p className="mt-3 text-xs text-slate-600">{t('audit.exportHint')}</p>
       </Surface>
 
       <div className="space-y-4">
@@ -98,10 +100,10 @@ const AuditLogPage = () => {
         ) : error ? (
           <Surface>
             <ErrorState
-              title="Could not load the audit log"
+              title={t('audit.loadFailed')}
               reason={error}
-              nextStep="Check your connection and try again."
-              action={<Button type="button" onClick={retry} className="h-10 px-4 md:h-9">Try again</Button>}
+              nextStep={t('audit.loadFailedNext')}
+              action={<Button type="button" onClick={retry} className="h-10 px-4 md:h-9">{t('common:retry')}</Button>}
             />
           </Surface>
         ) : items.length === 0 ? (
@@ -109,13 +111,11 @@ const AuditLogPage = () => {
             <EmptyState
             headingLevel="h2"
               icon={<ScrollText />}
-              title={filtered ? 'No entries match these filters' : 'No entries yet'}
-              description={filtered
-                ? 'Try another area or actor, or clear the filters to see everything.'
-                : 'Changes to tasks, projects, sprints, members and settings will appear here.'}
+              title={filtered ? t('audit.noMatchTitle') : t('audit.emptyTitle')}
+              description={filtered ? t('audit.noMatchDescription') : t('audit.emptyDescription')}
               action={filtered ? (
                 <Button type="button" variant="outline" onClick={() => changeFilters({ area: '', actor: '' })} className="h-10 px-4 md:h-9">
-                  Clear filters
+                  {t('audit.clearFilters')}
                 </Button>
               ) : undefined}
             />

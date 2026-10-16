@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactElement, ReactNode } from 'react';
 import { AlertCircle, BookOpen, Bug, SquareCheck, Zap, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { UserAvatar } from './primitives';
 import {
@@ -63,7 +64,7 @@ export const ProgressRing = ({ value, label, size = 48, strokeWidth = 5, showVal
 // StatusPill and TypeBadge
 // ---------------------------------------------------------------------------
 
-const STATUS_LABELS = { pending: 'Pending', 'in-progress': 'In progress', completed: 'Completed' } as const;
+const STATUS_KEYS = { pending: 'status.pending', 'in-progress': 'status.inProgress', completed: 'status.completed' } as const;
 
 type StatusPillProps = Omit<ComponentProps<'span'>, 'children'> & StatusPillVariants & {
   /** Overrides the default label ("In progress"). */
@@ -74,26 +75,26 @@ type StatusPillProps = Omit<ComponentProps<'span'>, 'children'> & StatusPillVari
 export const StatusPill = ({ status = 'pending', size, className, children, ...props }: StatusPillProps) => (
   <span className={cn(statusPillVariants({ status, size }), className)} {...props}>
     <span aria-hidden className={statusDotVariants({ status })} />
-    {children ?? STATUS_LABELS[status ?? 'pending']}
+    {children ?? t(STATUS_KEYS[status ?? 'pending'])}
   </span>
 );
 
-const TYPE_META: Record<'story' | 'task' | 'bug' | 'spike', { label: string; icon: LucideIcon }> = {
-  story: { label: 'Story', icon: BookOpen },
-  task: { label: 'Task', icon: SquareCheck },
-  bug: { label: 'Bug', icon: Bug },
-  spike: { label: 'Spike', icon: Zap },
+const TYPE_META: Record<'story' | 'task' | 'bug' | 'spike', { labelKey: string; icon: LucideIcon }> = {
+  story: { labelKey: 'taskTypes.story', icon: BookOpen },
+  task: { labelKey: 'taskTypes.task', icon: SquareCheck },
+  bug: { labelKey: 'taskTypes.bug', icon: Bug },
+  spike: { labelKey: 'taskTypes.spike', icon: Zap },
 };
 
 type TypeBadgeProps = Omit<ComponentProps<'span'>, 'children'> & TypeBadgeVariants;
 
 /** Scrum work item type: icon + name in the type color. */
 export const TypeBadge = ({ type = 'task', size, className, ...props }: TypeBadgeProps) => {
-  const { label, icon: Icon } = TYPE_META[type ?? 'task'];
+  const { labelKey, icon: Icon } = TYPE_META[type ?? 'task'];
   return (
     <span className={cn(typeBadgeVariants({ type, size }), className)} {...props}>
       <Icon aria-hidden />
-      {label}
+      {t(labelKey)}
     </span>
   );
 };
@@ -117,7 +118,7 @@ export const AvatarStack = ({ people, max = 4, size = 'sm', className }: AvatarS
   return (
     <div
       role="group"
-      aria-label={people.length === 0 ? 'No one assigned' : `Assigned to ${people.map(person => person.name).join(', ')}`}
+      aria-label={people.length === 0 ? t('noOneAssigned') : t('assignedTo', { names: people.map(person => person.name).join(t('listSeparator')) })}
       className={cn('flex items-center -space-x-2', className)}
     >
       {shown.map(person => (

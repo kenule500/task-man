@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { describeDuration, describeProgress, timeProgress } from '../lib/duration';
 
@@ -9,6 +10,7 @@ interface TimeProgressBarProps {
 
 /** Logged time against the estimate. Over the estimate the bar turns warning and the text says "over". */
 const TimeProgressBar = ({ logged, estimate, className }: TimeProgressBarProps) => {
+  const { t } = useTranslation('tasks');
   const progress = timeProgress(logged, estimate);
   const summary = describeProgress(logged, estimate);
   return (
@@ -16,11 +18,13 @@ const TimeProgressBar = ({ logged, estimate, className }: TimeProgressBarProps) 
       {progress && (
         <div
           role="progressbar"
-          aria-label="Logged time against the estimate"
+          aria-label={t('time.progressLabel')}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progress.percent}
-          aria-valuetext={`${describeDuration(logged)} logged of ${describeDuration(estimate ?? 0)}${progress.over ? `, ${describeDuration(progress.overBy)} over` : ''}`}
+          aria-valuetext={progress.over
+            ? t('time.valueTextOver', { logged: describeDuration(logged), estimate: describeDuration(estimate ?? 0), over: describeDuration(progress.overBy) })
+            : t('time.valueText', { logged: describeDuration(logged), estimate: describeDuration(estimate ?? 0) })}
           className="h-2 overflow-hidden rounded-full bg-slate-100"
         >
           <div
