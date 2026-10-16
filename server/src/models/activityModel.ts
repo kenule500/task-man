@@ -13,6 +13,8 @@ export const ACTIVITY_ACTIONS = [
   'time.logged', 'time.deleted', 'release.created', 'release.updated', 'release.deleted', 'release.released',
   'field.created', 'field.updated', 'field.deleted', 'import.completed',
   'page.created', 'page.updated', 'page.deleted',
+  'chat.channel_created', 'chat.channel_updated', 'chat.channel_deleted',
+  'ai.review_completed', 'ai.settings_updated',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

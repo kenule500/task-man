@@ -42,6 +42,8 @@ import fieldRoutes from './fieldRoutes.js';
 import importRoutes from './importRoutes.js';
 import pageRoutes from './pageRoutes.js';
 import changeRoutes from './changeRoutes.js';
+import chatRoutes from './chatRoutes.js';
+import aiRoutes from './aiRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -250,6 +252,10 @@ router.use('/:slug/import', importRoutes);
 // Wiki pages and the live-update feed
 router.use('/:slug/pages', pageRoutes);
 router.use('/:slug/changes', changeRoutes);
+
+// Team chat (channels, messages) and the AI code review agent
+router.use('/:slug/chat', chatRoutes);
+router.use('/:slug/ai', aiRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);
