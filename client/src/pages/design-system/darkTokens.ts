@@ -40,6 +40,12 @@ export const DARK_COLORS = {
   input: '#3A4A63',
   ring: '#60A5FA',
   canvas: '#0B1220',
+  'surface-raised': '#0F172A',
+  'border-subtle': '#172033',
+  'border-strong': '#3A4A63',
+  'text-strong': '#F1F5F9',
+  'text-body': '#CBD5E1',
+  secondary: '#172033',
   'surface-sunken': '#172033',
   'text-subtle': '#94A3B8',
   'text-faint': '#64748B',
@@ -48,7 +54,9 @@ export const DARK_COLORS = {
   'inverse-text': '#F8FAFC',
   'inverse-muted': '#CBD5E1',
   'inverse-border': '#334155',
-  // Status, priority and type
+  // Status, priority and type (markers are lighter on dark so they keep 3:1)
+  'status-pending': '#64748B', 'status-in-progress': '#3B82F6', 'status-completed': '#4BAA84',
+  'priority-high': '#D4685B', 'priority-medium': '#D19A33', 'priority-low': '#4BAA84',
   'status-pending-fg': '#CBD5E1', 'status-pending-bg': '#1B2740',
   'status-in-progress-fg': '#93C5FD', 'status-in-progress-bg': '#13244A',
   'status-completed-fg': '#8FD3B4', 'status-completed-bg': '#0F2620',

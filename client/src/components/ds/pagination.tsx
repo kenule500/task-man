@@ -78,7 +78,7 @@ export const Pagination = ({
         )}
       </div>
 
-      <ul className="flex items-center gap-1">
+      <ul className="flex max-w-full flex-wrap items-center gap-1">
         <li className={compact ? 'flex-1 sm:flex-none' : undefined}>
           <button
             type="button"

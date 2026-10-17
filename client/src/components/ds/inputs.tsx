@@ -140,7 +140,7 @@ export const SegmentedControl = <T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={cn('inline-flex max-w-full gap-0.5 rounded-lg bg-surface-sunken p-0.5', className)}
+      className={cn('inline-flex max-w-full flex-wrap gap-0.5 rounded-lg bg-surface-sunken p-0.5', className)}
     >
       {options.map((option, index) => (
         <button

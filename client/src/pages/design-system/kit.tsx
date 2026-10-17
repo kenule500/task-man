@@ -1,8 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Check, Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Check, Copy, Link2, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as ds from '@/components/ds';
 import { Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
+import { buildImportStatement } from './importStatement';
+import { PreviewArea } from './preview';
 
 // Documentation kit: the building blocks every section of the style guide is made of.
 
@@ -18,27 +21,47 @@ interface DocSectionProps {
   className?: string;
 }
 
-/** A navigable section of the guide. The id is the anchor and the scrollspy target. */
+/**
+ * Deep link to a heading. It sits next to the heading (not inside it) so the heading keeps a clean accessible name.
+ * Reachable with Tab; the browser updates the hash and the page scrolls to the target.
+ */
+export const HeadingAnchor = ({ id, label }: { id: string; label: string }) => (
+  <a
+    href={`#${id}`}
+    aria-label={`Link to ${label}`}
+    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-text-subtle outline-none hover:bg-surface-sunken hover:text-text-strong focus-visible:outline-2 focus-visible:outline-focus"
+  >
+    <Link2 aria-hidden className="size-4" />
+  </a>
+);
+
+/**
+ * A navigable section of the guide: an `h3` under its group's `h2`. The id is the anchor and the scrollspy target.
+ * Sub-headings inside are `h4` (SubHeading); headings inside live examples are `h5` or lower and sit in a `[data-demo]` area.
+ */
 export const DocSection = ({ id, title, description, children, className }: DocSectionProps) => (
   <section id={id} aria-labelledby={`${id}-title`} data-doc-section className={cn('scroll-mt-24 space-y-5', className)}>
     <div className="max-w-3xl">
-      <h2 id={`${id}-title`} className="text-xl font-bold tracking-tight text-text-strong">{title}</h2>
+      <div className="flex items-center gap-1">
+        <h3 id={`${id}-title`} className="text-xl font-bold tracking-tight text-text-strong">{title}</h3>
+        <HeadingAnchor id={id} label={title} />
+      </div>
       {description && <p className="mt-1 text-sm text-text-subtle">{description}</p>}
     </div>
     {children}
   </section>
 );
 
-/** Heading inside a section (h3). */
+/** Heading inside a section (h4). Listed in the "On this page" rail on wide screens. */
 export const SubHeading = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <h3 className={cn('text-xs font-semibold uppercase tracking-wider text-text-subtle', className)}>{children}</h3>
+  <h4 className={cn('text-xs font-semibold uppercase tracking-wider text-text-subtle', className)}>{children}</h4>
 );
 
-/** Labelled live example on a white card. */
+/** Labelled live example on a white card. The example itself is a preview area: it follows the guide's language and direction. */
 export const Specimen = ({ label, children, className, bare }: { label: string; children: ReactNode; className?: string; bare?: boolean }) => (
   <Surface padding="sm" className={cn('min-w-0 space-y-3', className)}>
     <SubHeading>{label}</SubHeading>
-    {bare ? children : <div className="flex flex-wrap items-center gap-3">{children}</div>}
+    <PreviewArea className={bare ? undefined : 'flex flex-wrap items-center gap-3'}>{children}</PreviewArea>
   </Surface>
 );
 
@@ -95,7 +118,7 @@ export const PropsTable = ({ rows, caption }: { rows: PropRow[]; caption: string
     caption={caption}
     columns={['Prop', 'Type', 'Default', 'Description']}
     rows={rows.map(row => [
-      <code key="n" className="font-mono text-xs">{row.name}</code>,
+      <code key="n" data-prop-name="" className="font-mono text-xs">{row.name}</code>,
       <code key="t" className="font-mono text-xs text-text-subtle">{row.type}</code>,
       <span key="d" className="font-mono text-xs text-text-subtle">{row.default ?? '—'}</span>,
       row.description,
@@ -107,15 +130,15 @@ export const PropsTable = ({ rows, caption }: { rows: PropRow[]; caption: string
 // Code
 // ---------------------------------------------------------------------------
 
-/** Copyable snippet. Clipboard access is optional: the text stays selectable without it. */
-export const CodeBlock = ({ code, label = 'Code' }: { code: string; label?: string }) => {
+/** Clipboard access is optional: without it nothing happens and the text stays selectable. */
+const useCopy = (text: string) => {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const copy = async () => {
     try {
       if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return;
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1800);
@@ -123,6 +146,12 @@ export const CodeBlock = ({ code, label = 'Code' }: { code: string; label?: stri
       setCopied(false);
     }
   };
+  return { copied, copy };
+};
+
+/** Copyable snippet. Clipboard access is optional: the text stays selectable without it. */
+export const CodeBlock = ({ code, label = 'Code' }: { code: string; label?: string }) => {
+  const { copied, copy } = useCopy(code);
 
   return (
     <div className="relative min-w-0 overflow-hidden rounded-xl border border-inverse-border bg-inverse">
@@ -183,23 +212,45 @@ interface ComponentDocProps {
   dontText: ReactNode;
   code: string;
   props: PropRow[];
+  /** Overrides the generated import statement of the "Copy import" button. */
+  importStatement?: string;
 }
+
+const DS_EXPORTS = Object.keys(ds);
+
+/** "Copy import" button of a component page: the import statement, ready to paste. */
+const CopyImportButton = ({ name, statement }: { name: string; statement: string }) => {
+  const { copied, copy } = useCopy(statement);
+  return (
+    <Button type="button" variant="outline" size="sm" onClick={copy} data-import={statement}>
+      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+      <span>{copied ? 'Copied' : 'Copy import'}</span>
+      <span className="sr-only"> statement for {name}</span>
+    </Button>
+  );
+};
 
 /**
  * The per-component template: Purpose, Anatomy, Variants (live), States,
  * Accessibility, Do/Don't, Code, Props. Every component page in the guide uses it.
  */
 export const ComponentDoc = ({
-  id, name, source, maturity, purpose, anatomy, variants, states, a11y, doText, dontText, code, props,
+  id, name, source, maturity, purpose, anatomy, variants, states, a11y, doText, dontText, code, props, importStatement,
 }: ComponentDocProps) => (
   <section id={id} aria-labelledby={`${id}-title`} data-doc-section className="scroll-mt-24">
     <Surface padding="none" className="min-w-0 overflow-hidden">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border-subtle px-5 py-4">
         <div className="min-w-0">
-          <h2 id={`${id}-title`} className="text-lg font-bold tracking-tight text-text-strong">{name}</h2>
-          <p className="mt-0.5 font-mono text-xs text-text-subtle">{source}</p>
+          <div className="flex items-center gap-1">
+            <h3 id={`${id}-title`} className="text-lg font-bold tracking-tight text-text-strong">{name}</h3>
+            <HeadingAnchor id={id} label={name} />
+          </div>
+          <p className="mt-0.5 break-words font-mono text-xs text-text-subtle">{source}</p>
         </div>
-        <Tag tone={maturity === 'stable' ? 'success' : 'warning'} aria-label={`Maturity: ${maturity}`}>{maturity}</Tag>
+        <div className="flex flex-wrap items-center gap-2">
+          <CopyImportButton name={name} statement={importStatement ?? buildImportStatement(name, source, code, DS_EXPORTS)} />
+          <Tag tone={maturity === 'stable' ? 'success' : 'warning'} aria-label={`Maturity: ${maturity}`}>{maturity}</Tag>
+        </div>
       </header>
 
       <div className="space-y-6 px-5 py-5">
@@ -223,7 +274,7 @@ export const ComponentDoc = ({
         <div className="space-y-2">
           <SubHeading>Variants</SubHeading>
           <div className="min-w-0 rounded-xl border border-border-subtle bg-canvas p-4">
-            <div className="flex flex-wrap items-center gap-3">{variants}</div>
+            <PreviewArea className="flex flex-wrap items-center gap-3">{variants}</PreviewArea>
           </div>
         </div>
 
@@ -234,7 +285,7 @@ export const ComponentDoc = ({
               {states.map(state => (
                 <div key={state.label} className="min-w-0 rounded-xl border border-border-subtle bg-canvas p-3">
                   <p className="mb-2 text-xs font-medium text-text-subtle">{state.label}</p>
-                  <div className="flex flex-wrap items-center gap-2">{state.node}</div>
+                  <PreviewArea className="flex flex-wrap items-center gap-2">{state.node}</PreviewArea>
                 </div>
               ))}
             </div>

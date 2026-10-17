@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { CodeBlock, DataTable, DoDont, DocSection, Prose, Specimen } from '../kit';
+import { PreviewArea } from '../preview';
 
 // ---------------------------------------------------------------------------
 // Forms and validation
@@ -83,18 +84,18 @@ export const FormsPatternSection = () => (
 
 export const StatesPatternSection = () => (
   <DocSection id="p-states" title="Empty, loading and error states" description="Every list, page and panel has all three, designed on purpose.">
-    <div className="grid gap-4 lg:grid-cols-2">
+    <PreviewArea className="grid gap-4 lg:grid-cols-2">
       <Surface padding="none">
-        <EmptyState icon={<FolderKanban />} title="No projects yet" description="Create a project to plan sprints and track progress." action={<Button className="bg-primary text-white hover:bg-primary-hover"><Plus aria-hidden />New project</Button>} />
+        <EmptyState headingLevel="h5" icon={<FolderKanban />} title="No projects yet" description="Create a project to plan sprints and track progress." action={<Button className="bg-primary text-white hover:bg-primary-hover"><Plus aria-hidden />New project</Button>} />
       </Surface>
       <Surface padding="none">
-        <EmptyState icon={<Search />} title="No tasks match these filters" description="Try a different status or clear the search." action={<Button variant="outline">Clear filters</Button>} />
+        <EmptyState headingLevel="h5" icon={<Search />} title="No tasks match these filters" description="Try a different status or clear the search." action={<Button variant="outline">Clear filters</Button>} />
       </Surface>
       <div className="lg:col-span-2"><SkeletonCards count={4} columns="grid-cols-2 lg:grid-cols-4" /></div>
       <Surface padding="none" className="lg:col-span-2">
-        <ErrorState title="We could not load your tasks" reason="The server did not respond." nextStep="Check your connection, then try again." action={<Button variant="outline"><RefreshCw aria-hidden />Try again</Button>} />
+        <ErrorState headingLevel={5} title="We could not load your tasks" reason="The server did not respond." nextStep="Check your connection, then try again." action={<Button variant="outline"><RefreshCw aria-hidden />Try again</Button>} />
       </Surface>
-    </div>
+    </PreviewArea>
     <DataTable
       caption="Which state to use"
       columns={['Situation', 'Use', 'Why']}

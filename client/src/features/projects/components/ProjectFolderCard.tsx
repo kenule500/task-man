@@ -20,6 +20,8 @@ interface ProjectFolderCardProps {
   index?: number;
   canWrite: boolean;
   canDelete: boolean;
+  /** Heading element of the project name (default 2: it sits under the page h1). */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   onEdit: (project: Project) => void;
   onToggleArchive: (project: Project) => void;
   onDelete: (project: Project) => void;
@@ -55,9 +57,10 @@ export const FolderBack = ({ backClass, index = 0 }: { backClass: string; index?
  * (stretched over the card through the title) and the actions menu is the only other tab stop.
  */
 const ProjectFolderCard = ({
-  project, summary, workspaceSlug, index = 0, canWrite, canDelete, onEdit, onToggleArchive, onDelete,
+  project, summary, workspaceSlug, index = 0, canWrite, canDelete, headingLevel = 2, onEdit, onToggleArchive, onDelete,
 }: ProjectFolderCardProps) => {
   const { t } = useTranslation('projects');
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const navigate = useNavigate();
   const style = colorStyleOf(project.color);
   const href = `/${workspaceSlug}/projects/${project._id}`;
@@ -117,14 +120,14 @@ const ProjectFolderCard = ({
             </DropdownMenu>
         </div>
 
-        <h2 className="mt-3 line-clamp-2 hyphens-auto break-words text-base font-bold leading-snug">
+        <Heading className="mt-3 line-clamp-2 hyphens-auto break-words text-base font-bold leading-snug">
           <Link
             to={href}
             className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-primary"
           >
             {project.name}
           </Link>
-        </h2>
+        </Heading>
         <p className="mt-0.5 text-sm tabular-nums">
           {taskLabel}
           <span aria-hidden> · </span>

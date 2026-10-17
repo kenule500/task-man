@@ -60,7 +60,7 @@ interface DisclosureProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Heading level of the title row, so the outline stays correct. */
-  headingLevel?: 2 | 3 | 4;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   className?: string;
 }
 
@@ -69,7 +69,7 @@ export const Disclosure = ({ title, children, defaultOpen = false, open, onOpenC
   const [inner, setInner] = useState(defaultOpen);
   const id = useId();
   const expanded = open ?? inner;
-  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   const toggle = () => {
     if (open === undefined) setInner(!expanded);
     onOpenChange?.(!expanded);
@@ -107,7 +107,7 @@ interface AccordionProps {
   /** `single` closes the others when one opens. */
   type?: 'single' | 'multiple';
   defaultOpenIds?: string[];
-  headingLevel?: 2 | 3 | 4;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   className?: string;
 }
 

@@ -1,13 +1,13 @@
 # TaskMan Design System
 
 One shared visual language for every TaskMan screen: tokens, accessible components and patterns, built on
-**shadcn (Base UI)** primitives and **Tailwind CSS v4**. Version **2.0**.
+**shadcn (Base UI)** primitives and **Tailwind CSS v4**. Version **2.1**.
 
 ## Where to find it
 
 | What | Where |
 |---|---|
-| **Live style guide** (documentation site: search, section navigation, every component with live variants, states, code and props; no login needed) | **Production:** https://taskman-mauve.vercel.app/design-system · **Local:** http://localhost:5173/design-system |
+| **Live style guide** (documentation site: search by title, keyword and prop name, section navigation and an "On this page" rail, a specimen language toggle (English, Français, العربية with right-to-left) and a theme toggle, "Copy import" and deep links, every component with live variants, states, code and props; no login needed) | **Production:** https://taskman-mauve.vercel.app/design-system · **Local:** http://localhost:5173/design-system |
 | Link from the app | Landing page footer → **Design system** |
 | Design system components | `client/src/components/ds/`, import from `@/components/ds` |
 | Base primitives (shadcn / Base UI) | `client/src/components/ui/` |
@@ -16,9 +16,10 @@ One shared visual language for every TaskMan screen: tokens, accessible componen
 | Rules (colors, layout, mobile, Scrum visuals, accessibility, PWA) | [`DESIGN.md`](../DESIGN.md) |
 | Teammate UI rules | [`perfect-ui-rules.md`](../perfect-ui-rules.md) |
 
-The guide is organized as **Start** (overview, principles, changelog) · **Foundations** (color, typography, spacing,
-radius, elevation, motion, z-index, breakpoints, iconography) · **Components** (one page each) · **Patterns** ·
-**Content** · **Accessibility**. It is a single page with anchors (`/design-system#c-button`); on phones the side
+The guide is organized as **Start** (overview, principles, changelog) · **Foundations** (color, contrast pairs, dark mode, typography, spacing,
+radius, elevation, motion, internationalization and RTL, z-index, breakpoints, iconography) · **Components** (one page each, including LanguageSwitcher) · **Patterns** (forms, states, feedback,
+navigation, data views, data visualization, chat, realtime and presence, AI features, Scrum, mobile) · **Content** (voice, errors, labels, writing for three languages, dates and numbers) · **Accessibility**.
+Its outline is `h1` page, `h2` group, `h3` section, `h4` sub-heading; headings inside examples are `h5` or lower. It is a single page with anchors (`/design-system#c-button`); on phones the side
 navigation becomes a "Jump to section" select.
 
 ## Architecture: three layers
@@ -132,6 +133,18 @@ Adding a color: light value in `@theme`, dark value in `.dark`, mirror in `darkT
 | Breakpoints | `sm` 640 · `md` 768 (sidebar docks, tab bar hides) · `lg` 1024 · `xl` 1280 | Mobile first; 360px minimum |
 | Icons | Lucide, outline, stroke 2, sizes 16 / 20 / 24 | Decorative icons are `aria-hidden` |
 
+### Motion and inverse tokens
+
+Also documented with light and dark values on the guide: `--motion-fast|base|slow` (120/200/320ms, shared with `lib/motion.ts`), `--ease-spring-bouncy|soft` (CSS `linear()` curves),
+the `--animate-tm-*` utilities, `inverse`, `inverse-text`, `inverse-muted`, `inverse-border`, the `project-*-deep` back panels and the shadcn role variables. **Foundations → Contrast pairs**
+lists every text/background pair in both themes; `contrastPairs.test.ts` fails when one drops under 4.5:1 (text) or 3:1 (markers, icons, focus).
+
+### Languages and direction
+
+English, French and Arabic (right to left). Strings go through i18next (one JSON per namespace and language, English fallback, a parity test), layout uses logical utilities (`ms-`, `pe-`, `start-`, `text-start`),
+pointing icons carry `rtl:-scale-x-100`, the board, timeline and charts stay left to right, Arabic uses Noto Sans Arabic with Western digits. The full rules, the plural table and the logical-class table are on the guide
+(**Foundations → Internationalization and RTL**) and in [`DESIGN.md`](../DESIGN.md#languages-and-right-to-left). Use the guide's **Specimen language** toggle to check a component in each language.
+
 ## Components
 
 Import from `@/components/ds` unless noted. **Maturity:** `stable` = used across the app, API frozen except additive
@@ -141,12 +154,12 @@ changes · `beta` = new in v2, API may still change in a minor version.
 |---|---|---|---|
 | `PageHeader` | Page `h1`, subtitle, primary actions (full width on phones) | stable | `title`, `description`, `actions`, `headingLevel` |
 | `Surface` | White card / panel | stable | `padding` none·sm·md·lg, `radius` lg·xl, `interactive`, `as` |
-| `SectionHeader` | Heading row inside a Surface | stable | `title`, `count`, `icon`, `action` |
+| `SectionHeader` | Heading row inside a Surface (count read after the title) | stable | `title`, `count`, `icon`, `action`, `headingLevel` |
 | `StatCard` | Key number in a stat row | stable | `title`, `value`, `subtitle`, `icon`, `colorClass` |
 | `Alert` | Inline message (`error` → `role="alert"`) | stable | `tone`, `title`, `onDismiss` |
 | `toast()` + `Toaster` | Transient feedback with optional Undo | stable | `toast.success(text)`, `toast({ title, description, action })` |
 | `EmptyState` | Explains an empty list, offers the next action | stable | `title`, `description`, `icon`, `action` |
-| `ErrorState` | Failed page or panel: what happened · why · what to do | beta | `title`, `reason`, `nextStep`, `action` |
+| `ErrorState` | Failed page or panel: what happened · why · what to do | beta | `title`, `reason`, `nextStep`, `action`, `headingLevel` |
 | `SkeletonCards` | Loading placeholders (preferred over spinners) | stable | `count`, `columns` |
 | `ProgressBar` | Linear completion, green at 100% | stable | `value`, `label`, `showValue` |
 | `ProgressRing` | Circular completion for compact cards | beta | `value`, `label`, `size`, `strokeWidth`, `showValue` |
@@ -173,6 +186,8 @@ changes · `beta` = new in v2, API may still change in a minor version.
 | `OptionCombobox` | Searchable single/multiple select | beta | `options`, `value`, `multiple`, `label` |
 | `DescriptionList` + `DescriptionItem` | Label/value details (`<dl>`) | stable | `layout`, `columns`, `wide` |
 | `TagInput` | Free-text chip input with suggestions | stable | `value`, `onChange`, `suggestions`, `noun`, `max` |
+| `Spinner` / `DotsLoader` / `TopProgressBar` / `PageLoader` / `BrandMark` | Waits for actions and routes; the logo tile of the page loader | beta | `size`, `label`, `decorative`, `fullscreen` |
+| `LanguageSwitcher` (`@/components/LanguageSwitcher`) | Globe menu: English, Français, العربية; applies at once, saved on the account | stable | `labelFrom` |
 
 shadcn primitives in `@/components/ui` (all **stable**, documented in the guide): `Button`, `Input`, `Select`,
 `Checkbox`, `Switch`, `Tabs`, `Dialog`, `DropdownMenu`, `Tooltip`, `Popover`, `HoverCard` (beta), `Combobox` (beta), `Avatar`, `Skeleton`; also `Textarea`, `AlertDialog`, `Sheet`, `Sidebar`.
@@ -239,6 +254,10 @@ Documented with live examples in the guide (Patterns group):
 - **Data views:** list, board, calendar and timeline share `TaskViewProps` and the toolbar; each has a phone shape and a keyboard alternative to drag.
 - **Scrum visuals:** project folder cards (tab in the project color), sprint cards, burndown (SVG with a text alternative), backlog rows with `TypeBadge`.
 - **Mobile and PWA:** safe areas, 44px targets, 16px inputs, installable, app shell cached only, opt-in updates, offline banner.
+- **Data visualization:** token colors (`-dot` marks at 3:1, `text-subtle` labels), `role="img"` plus a hidden table, labelled axes from zero, color never alone, always left to right.
+- **Chat building blocks:** `MessageItem`, `Composer`, `TypingIndicator`, `OnlineDot`, `ConnectionBadge` (plain text messages, a polite typing line that reserves its height, dot plus word).
+- **Realtime and presence:** live dot with words, held-back updates behind a "3 new changes" pill, polite live regions, pause when hidden, quiet fallback to polling.
+- **AI features:** an opt-in notice above the switch (what is sent, to whom), progress in words, a partial-results banner above the summary, verdict tones (Match success, Partial warning, Mismatch danger), output rendered as plain text.
 - **Permissions:** the UI hides what the role cannot do; the API enforces it anyway.
 
 ## Content
@@ -246,6 +265,7 @@ Documented with live examples in the guide (Patterns group):
 - **Voice:** professional, literal, brief. Sentence case everywhere; **no exclamation marks**; "you" for the person.
 - **Error messages:** *what happened · why · what to do*. "We could not save your changes. You are offline. Reconnect and try again." Never raw API errors.
 - **Button and link labels:** verb first ("Create task", "Start sprint"), match the dialog title, name the destructive result ("Remove member"), never "OK" or "Click here".
+- **Writing for three languages:** about 40% more room than English; whole sentences with placeholders, never concatenation; every plural form (Arabic has six); no text in images; `localeCompare` for sorting.
 - **Dates and numbers:** dates are calendar days (`YYYY-MM-DD` on the wire; format with `lib/date.ts`, never `new Date('YYYY-MM-DD')` for display);
   `Intl` for locale formats; `tabular-nums`; correct plurals; overdue in words.
 
@@ -271,7 +291,7 @@ The guide lists ten checks with an honest status for TaskMan today. Update the s
 1. Build it from tokens and existing primitives in `client/src/components/ds/` (semantic tokens, `cva` recipe in `variants.ts` if it has variants).
 2. Export it from `ds/index.ts`.
 3. Add a test in `ds/__tests__/` (Jest + Testing Library): roles, names, keyboard.
-4. Document it in the guide: add a `ComponentDoc` page in `pages/design-system/sections/` (all eight template parts) and one line in `pages/design-system/registry.ts`.
+4. Document it in the guide (and add its export to `pages/design-system/coverage.ts`; `coverage.test.ts` fails for an export with no page): add a `ComponentDoc` page in `pages/design-system/sections/` (all eight template parts) and one line in `pages/design-system/registry.ts`.
    The smoke test `pages/__tests__/DesignSystemPage.test.tsx` fails if the page is missing, has duplicate ids, or lacks a template part.
 5. New color or scale value? Add it to `index.css`, to `pages/design-system/tokens.ts` (the sync test compares the two) and to the tables above.
 6. Set its maturity (`beta` until it has shipped in two screens), list it in the table above and in [`DESIGN.md`](../DESIGN.md) if it adds a rule.

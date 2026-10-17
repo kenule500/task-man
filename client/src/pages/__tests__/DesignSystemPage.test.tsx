@@ -7,7 +7,7 @@ import { DOC_ENTRIES } from '../design-system/registry';
 // The page is large and getByRole is slow on it: bulk checks use plain DOM queries and
 // each test renders it once. Clicks use fireEvent because userEvent takes seconds here
 // (longer than a toast lives).
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 const renderGuide = () =>
   render(
@@ -19,7 +19,7 @@ const renderGuide = () =>
 
 const section = (id: string) => document.getElementById(id) as HTMLElement;
 const sectionNav = () => screen.getByRole('navigation', { name: 'Sections' });
-const navTitles = () => Array.from(sectionNav().querySelectorAll('a')).map(link => link.textContent);
+const navTitles = () => Array.from(sectionNav().querySelectorAll('ul a')).map(link => link.textContent);
 const texts = (parent: ParentNode, selector: string) => Array.from(parent.querySelectorAll(selector)).map(node => node.textContent);
 
 describe('DesignSystemPage (living style guide)', () => {
@@ -34,10 +34,10 @@ describe('DesignSystemPage (living style guide)', () => {
     expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main');
     expect(screen.getByRole('link', { name: /back to app/i })).toHaveAttribute('href', '/');
 
-    // Every registered entry has an h2 with its title and a nav link to it
-    const links = Array.from(sectionNav().querySelectorAll('a'));
+    // Every registered entry has an h3 with its title and a nav link to it
+    const links = Array.from(sectionNav().querySelectorAll('ul a'));
     for (const entry of DOC_ENTRIES) {
-      expect(texts(section(entry.id), 'h2')).toContain(entry.title);
+      expect(texts(section(entry.id), 'h3')).toContain(entry.title);
       expect(links.find(link => link.textContent === entry.title)).toHaveAttribute('href', `#${entry.id}`);
     }
 
@@ -55,10 +55,11 @@ describe('DesignSystemPage (living style guide)', () => {
     expect(components.length).toBeGreaterThanOrEqual(30);
     for (const entry of components) {
       const root = section(entry.id);
-      expect(texts(root, 'h3.uppercase')).toEqual(['Purpose', 'Anatomy', 'Variants', 'States', 'Accessibility', 'Do and don\'t', 'Code', 'Props']);
+      expect(texts(root, 'h4.uppercase')).toEqual(['Purpose', 'Anatomy', 'Variants', 'States', 'Accessibility', 'Do and don\'t', 'Code', 'Props']);
       expect(root.querySelector('pre code')).not.toBeNull();
       expect(root.querySelector('table caption')?.textContent).toMatch(/props$/i);
-      expect(texts(root, 'button').some(label => /^copy/i.test(label ?? ''))).toBe(true);
+      expect(texts(root, 'button').some(label => /^copy .* to clipboard$/i.test(label ?? ''))).toBe(true);
+      expect(texts(root, 'button').some(label => /^copy import/i.test(label ?? ''))).toBe(true);
     }
 
     // No duplicate ids (anchors, aria-controls and label targets stay unambiguous)
@@ -105,7 +106,7 @@ describe('DesignSystemPage (living style guide)', () => {
 
     fireEvent.change(search, { target: { value: 'burndown' } });
     await screen.findByRole('link', { name: 'Scrum visuals' });
-    expect(navTitles()).toEqual(['Scrum visuals']);
+    expect(navTitles()).toEqual(['Scrum visuals', 'Data visualization']);
 
     fireEvent.change(search, { target: { value: 'zzzz-nothing' } });
     expect(await screen.findByText(/no sections match/i)).toBeInTheDocument();
@@ -125,7 +126,7 @@ describe('DesignSystemPage (living style guide)', () => {
   it('copies code snippets when the clipboard is available and stays safe when it is not', async () => {
     renderGuide();
     const kbd = within(section('c-kbd'));
-    const copyButton = kbd.getByRole('button', { name: /^copy/i });
+    const copyButton = kbd.getByRole('button', { name: /copy kbd example to clipboard/i });
 
     // No clipboard (insecure context, old browser): nothing happens, no crash
     Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
@@ -151,8 +152,10 @@ describe('DesignSystemPage (living style guide)', () => {
   });
 
   it('demonstrates toasts, including one with an Undo action', async () => {
-    renderGuide();
-    fireEvent.click(within(section('c-toast')).getByRole('button', { name: /toast with action/i }));
+    // Only the Toast page: rendering the whole guide for one click times out on a busy machine
+    const ToastDoc = DOC_ENTRIES.find(entry => entry.id === 'c-toast')!.Component;
+    render(<MemoryRouter><ToastDoc /><Toaster /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /toast with action/i }));
     expect(await screen.findByText('Task deleted')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));

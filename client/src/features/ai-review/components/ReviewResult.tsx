@@ -12,6 +12,10 @@ const CRITERION_ICONS: Record<CriterionStatus, LucideIcon> = { met: CircleCheck,
 const BANNER_TONE = { match: 'success', partial: 'warning', mismatch: 'error' } as const;
 const NUMBER_TONE = { success: 'text-success-fg', warning: 'text-warning-fg', danger: 'text-danger-fg' } as const;
 
+type HeadingTag = 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+/** The heading level for a base level plus an offset, between 2 and 6. */
+const clampLevel = (level: number): number => Math.min(Math.max(level, 2), 6);
+
 const formatTime = (iso: string): string =>
   formatDateTimeIn(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -48,8 +52,9 @@ const Counts = ({ review }: { review: AiReview }) => {
 // ----------------------------------------------------------------
 // One criterion (expandable)
 // ----------------------------------------------------------------
-const CriterionRow = ({ criterion }: { criterion: ReviewCriterion }) => {
+const CriterionRow = ({ criterion, headingLevel }: { criterion: ReviewCriterion; headingLevel: number }) => {
   const { t } = useTranslation('ai');
+  const Sub = `h${clampLevel(headingLevel + 1)}` as HeadingTag;
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const Icon = CRITERION_ICONS[criterion.status];
@@ -73,7 +78,7 @@ const CriterionRow = ({ criterion }: { criterion: ReviewCriterion }) => {
       {open && (
         <div id={panelId} className="space-y-3 pb-3 ps-1 text-sm text-slate-700">
           <div>
-            <h5 className="mb-1 text-xs font-medium text-slate-600">{t('result.criterion.evidence')}</h5>
+            <Sub className="mb-1 text-xs font-medium text-slate-600">{t('result.criterion.evidence')}</Sub>
             {criterion.evidence.length === 0 ? (
               <p className="text-slate-600">{t('result.criterion.noEvidence')}</p>
             ) : (
@@ -93,7 +98,7 @@ const CriterionRow = ({ criterion }: { criterion: ReviewCriterion }) => {
           </div>
           {criterion.explanation && (
             <div>
-              <h5 className="mb-1 text-xs font-medium text-slate-600">{t('result.criterion.explanation')}</h5>
+              <Sub className="mb-1 text-xs font-medium text-slate-600">{t('result.criterion.explanation')}</Sub>
               <p className="[overflow-wrap:anywhere]">{criterion.explanation}</p>
             </div>
           )}
@@ -106,12 +111,14 @@ const CriterionRow = ({ criterion }: { criterion: ReviewCriterion }) => {
 // ----------------------------------------------------------------
 // Issues
 // ----------------------------------------------------------------
-const Issues = ({ review }: { review: AiReview }) => {
+const Issues = ({ review, headingLevel }: { review: AiReview; headingLevel: number }) => {
   const { t } = useTranslation('ai');
+  const Title = `h${clampLevel(headingLevel)}` as HeadingTag;
+  const Sub = `h${clampLevel(headingLevel + 1)}` as HeadingTag;
   const groups = groupIssues(review.issues);
   return (
     <section aria-label={t('result.issues.title')}>
-      <h4 className="mb-2 text-sm font-semibold text-slate-900">{t('result.issues.title')}</h4>
+      <Title className="mb-2 text-sm font-semibold text-slate-900">{t('result.issues.title')}</Title>
       {groups.length === 0 ? (
         <p className="flex items-center gap-1.5 text-sm text-slate-600">
           <CircleCheck className="size-4 text-success-fg" aria-hidden /> {t('result.issues.none')}
@@ -120,9 +127,9 @@ const Issues = ({ review }: { review: AiReview }) => {
         <div className="space-y-3">
           {groups.map(group => (
             <div key={group.severity}>
-              <h5 className="mb-1 text-xs font-medium text-slate-600">
+              <Sub className="mb-1 text-xs font-medium text-slate-600">
                 {t('result.issues.group', { count: group.issues.length, severity: t(`result.issues.severity.${group.severity}`) })}
-              </h5>
+              </Sub>
               <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
                 {group.issues.map((issue, index) => (
                   <li key={`${issue.file}-${issue.line}-${index}`} className="space-y-1 px-3 py-2.5">
@@ -152,9 +159,13 @@ const Issues = ({ review }: { review: AiReview }) => {
 // ----------------------------------------------------------------
 const MAX_LISTED_FILES = 12;
 
-/** Verdict, counts, summary, per-criterion analysis, code issues, and a warning when the review is partial. */
-const ReviewResult = ({ review }: { review: AiReview }) => {
+/**
+ * Verdict, counts, summary, per-criterion analysis, code issues, and a warning when the review is partial.
+ * `headingLevel` is the level of its section headings (default 4, under the task dialog's h3); sub-headings go one lower.
+ */
+const ReviewResult = ({ review, headingLevel = 4 }: { review: AiReview; headingLevel?: number }) => {
   const { t } = useTranslation('ai');
+  const Title = `h${clampLevel(headingLevel)}` as HeadingTag;
   const criteria = review.criteria ?? [];
   const omitted = review.omittedFiles.slice(0, MAX_LISTED_FILES);
   const moreOmitted = review.omittedFiles.length - omitted.length;
@@ -164,7 +175,7 @@ const ReviewResult = ({ review }: { review: AiReview }) => {
     <div className="space-y-4" data-testid="review-result">
       <div className="flex flex-wrap items-center gap-2">
         {verdict && <VerdictBadge verdict={verdict} />}
-        {verdict && <h4 className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{t(`verdictHeadline.${verdict}`)}</h4>}
+        {verdict && <Title className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{t(`verdictHeadline.${verdict}`)}</Title>}
       </div>
 
       <Counts review={review} />
@@ -195,14 +206,14 @@ const ReviewResult = ({ review }: { review: AiReview }) => {
 
       {criteria.length > 0 && (
         <section aria-label={t('result.detailed')}>
-          <h4 className="mb-2 text-sm font-semibold text-slate-900">{t('result.detailed')}</h4>
+          <Title className="mb-2 text-sm font-semibold text-slate-900">{t('result.detailed')}</Title>
           <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
-            {criteria.map((criterion, index) => <CriterionRow key={`${index}-${criterion.text}`} criterion={criterion} />)}
+            {criteria.map((criterion, index) => <CriterionRow key={`${index}-${criterion.text}`} criterion={criterion} headingLevel={headingLevel} />)}
           </ul>
         </section>
       )}
 
-      <Issues review={review} />
+      <Issues review={review} headingLevel={headingLevel} />
 
       <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-600">
         <span dir="ltr">{prLabel(review.pr)}</span>

@@ -154,7 +154,7 @@ components, patterns, content rules and the accessibility checklist, with search
 |---|---|---|
 | `PageHeader` | The page `h1`, subtitle and primary actions (wrap full width on mobile) | `title`, `description`, `actions` |
 | `Surface` | Any white card / panel | `padding` none·sm·md·lg, `radius` lg·xl, `interactive`, `as` |
-| `SectionHeader` | Heading row inside a Surface | `title`, `count`, `icon`, `action` |
+| `SectionHeader` | Heading row inside a Surface; the count is read after the title ("Due this week, 3") | `title`, `count`, `icon`, `action`, `headingLevel` |
 | `StatCard` | Key numbers in stat rows | `title`, `value`, `subtitle`, `icon`, `colorClass` |
 | `Alert` | Inline feedback (`error` → `role="alert"`, others `role="status"`) | `tone` info·success·warning·error, `title`, `onDismiss` |
 | `EmptyState` | Empty lists: explain and offer the next action | `title`, `description`, `icon`, `action` |
@@ -164,7 +164,7 @@ components, patterns, content rules and the accessibility checklist, with search
 | `IconTile` | Decorative icon in a tinted square | `tone`, `size` |
 | `UserAvatar` | People (image or initials) | `name`, `src`, `size` |
 | `Field` | Label + control + hint/error (`fieldMessageId(id)` for `aria-describedby`) | `label`, `htmlFor`, `required`, `hint`, `error` |
-| `ErrorState` | Failed page or panel: what happened · why · what to do (`role="alert"`) | `title`, `reason`, `nextStep`, `action` |
+| `ErrorState` | Failed page or panel: what happened · why · what to do (`role="alert"`) | `title`, `reason`, `nextStep`, `action`, `headingLevel` |
 | `ProgressRing` | Circular progress on compact cards (`role="progressbar"`) | `value`, `label`, `size`, `strokeWidth` |
 | `StatusPill` / `TypeBadge` | Status (dot + text) and Scrum type (icon + name) from the status and type tokens | `status` · `type`, `size` |
 | `AvatarStack` | Assignees with `+N` overflow, group labelled with every name | `people`, `max`, `size` |
@@ -188,7 +188,10 @@ components, patterns, content rules and the accessibility checklist, with search
    Floating UI that is not a ds component: `ui/Popover` (interactive panel from a button) and `ui/HoverCard` (read-only preview after 400 ms
    hover or focus; `TaskKey preview`, `AssigneeStack preview` and breadcrumb crumbs use it). A hover card never holds the only copy of information.
 | `FadeIn` / `Stagger` + `StaggerItem` / `AnimatedNumber` / `TiltCard` / `Pressable` / `CheckBurst` | Entrances, count-up stats, 3D hover tilt, press and completion feedback | `delay`; `value`, `format`; `max` |
-| `Spinner` / `DotsLoader` / `TopProgressBar` / `PageLoader` | Waits for actions and lazy routes (`Button loading` for pending buttons) | `size`, `label`, `decorative`, `fullscreen` |
+| `Spinner` / `DotsLoader` / `TopProgressBar` / `PageLoader` / `BrandMark` | Waits for actions and lazy routes (`Button loading` for pending buttons); `BrandMark` is the logo tile the page loader flips | `size`, `label`, `decorative`, `fullscreen` |
+
+   Outside `ds`: `components/LanguageSwitcher.tsx` (globe menu: English, Français, العربية; documented as a component on the guide) and the chat, realtime and AI review
+   building blocks (`features/chat`, `features/live`, `features/ai-review`), documented as patterns (Patterns → Chat building blocks, Realtime and presence, AI features).
 
    The authenticated page frame is `components/AppShell.tsx` (guard + sidebar + content column; children or
    `(user) => …`). It stays outside `ds` because it depends on routing and the session.
@@ -202,6 +205,15 @@ Adding a component: build it from tokens and existing primitives, add it to `com
 `components/ds/__tests__`, document it on the style guide (a `ComponentDoc` page in `pages/design-system/sections/` plus a line in
 `pages/design-system/registry.ts`: purpose, anatomy, variants, states, accessibility, do/don't, code, props), and list it here.
 `docs/DESIGN_SYSTEM.md` has the full checklist and the maturity (stable/beta) of every component.
+
+### The style guide (`/design-system`)
+
+- **Outline:** one `h1`, an `h2` per group (Start, Foundations, Components, Patterns, Content, Accessibility), an `h3` per section or component, `h4` sub-headings.
+  Headings inside live examples are `h5` or lower (`headingLevel` on `PageHeader`, `SectionHeader`, `EmptyState`, `ErrorState`, `Disclosure`, `ProjectFolderCard`, `ReviewResult`) and sit
+  in a `[data-demo]` area, so examples never compete with section titles. A group heading is a block with its own space; never pull the next section up with a negative margin.
+- **Controls:** a specimen language toggle (English, Français, العربية; examples switch text, direction and font, the documentation stays English), a theme toggle, "Copy import" on every component page,
+  deep-link anchors on headings, an "On this page" rail from 1360px, search that also matches prop names.
+- **Coverage:** every export of `components/ds` has a page or a stated reason in `pages/design-system/coverage.ts`; a test fails when a new export has neither.
 
 ## Responsive & mobile
 
@@ -258,6 +270,9 @@ auth pages) and in Settings → Profile → Language. It applies at once with no
 - **Numbers and dates** follow the language through `i18n/format.ts` (`currentLocale`, `formatNumber`, `localeFormatter`, `formatRelative`);
   `features/tasks/lib/date.ts` keeps the `YYYY-MM-DD` keys untouched and only the display changes. Arabic uses Western digits (0-9) so keys, counts and
   tables line up, with the Gregorian calendar. English keeps the US pattern (the audit log keeps en-GB).
+- **Writing:** plan for about 40% more room than English (French runs 15 to 35% longer), let controls wrap instead of clipping, never concatenate pieces of a sentence (word order, gender and
+  plural differ), write every plural form a language needs, no text in images, sort with `localeCompare`. Details and a live length table: `/design-system` → Content → Writing for three languages;
+  the plural, logical-class and mirrored-icon tables: Foundations → Internationalization and RTL.
 - **Fonts:** Inter for Latin, **Noto Sans Arabic** for `:lang(ar)` (same Google Fonts origin, so the CSP in `vercel.json` is unchanged). Arabic has no case
   or letter-spacing: `uppercase` and `tracking-*` are reset under `:lang(ar)`.
 

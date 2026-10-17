@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  AnimatedNumber, CheckBurst, DotsLoader, FadeIn, PageLoader, Pressable, Spinner, Stagger, StaggerItem, Surface, Tag,
+  AnimatedNumber, BrandMark, CheckBurst, DotsLoader, FadeIn, PageLoader, Pressable, Spinner, Stagger, StaggerItem, Surface, Tag,
   TiltCard, TopProgressBar,
 } from '@/components/ds';
 import { DURATION, SPRING } from '@/lib/motion';
-import { ComponentDoc, DataTable, DocSection, Prose, Specimen } from '../kit';
+import { ComponentDoc, DataTable, DocSection, Prose, Specimen, SubHeading } from '../kit';
 
 const REPLAY_BUTTON = 'Replay';
 
@@ -32,7 +32,7 @@ export const MotionComponentsSection = () => {
       <div className="grid gap-4 lg:grid-cols-2">
         <DataTable caption="Motion tokens (lib/motion.ts and index.css)" columns={['Token', 'Value', 'Use']} rows={TOKEN_ROWS.map(row => row.map((cell, index) => (index === 0 ? <code key="c" className="font-mono text-xs">{cell}</code> : cell)))} />
         <Surface padding="sm" className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-text-subtle">The reduced-motion rule</h3>
+          <SubHeading>The reduced-motion rule</SubHeading>
           <Prose>
             <ul>
               <li><code>prefers-reduced-motion: reduce</code> is the only switch (the app has no separate motion setting). <code>useReducedMotionSafe()</code> reads it live.</li>
@@ -97,8 +97,8 @@ export const LoadersDoc = () => {
       name="Loaders"
       source="@/components/ds"
       maturity="beta"
-      purpose="Spinner, DotsLoader, TopProgressBar and PageLoader, plus the Button loading state. Use skeletons for content, loaders for actions and route changes."
-      anatomy={['Spinner / dots', 'Top progress bar', 'Branded page loader', 'Button loading']}
+      purpose="Spinner, DotsLoader, TopProgressBar and PageLoader, plus the Button loading state and the BrandMark logo tile the page loader flips. Use skeletons for content, loaders for actions and route changes."
+      anatomy={['Spinner / dots', 'Top progress bar', 'Branded page loader (BrandMark)', 'Button loading']}
       variants={
         <div className="grid w-full gap-4 md:grid-cols-2">
           <div className="flex flex-wrap items-center gap-4 text-primary">
@@ -107,6 +107,7 @@ export const LoadersDoc = () => {
             <Spinner size="md" />
             <Spinner size="lg" />
             <DotsLoader />
+            <BrandMark className="size-8" />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button loading={loading} onClick={() => { setLoading(true); window.setTimeout(() => setLoading(false), 1800); }}>Save changes</Button>
@@ -134,6 +135,7 @@ export const LoadersDoc = () => {
       props={[
         { name: 'Spinner size', type: "'xs' | 'sm' | 'md' | 'lg'", default: "'sm'", description: 'Ring size; uses currentColor.' },
         { name: 'Spinner decorative', type: 'boolean', default: 'false', description: 'Hide from assistive technology (inside a busy control).' },
+        { name: 'BrandMark className', type: 'string', description: 'The TaskMan logo tile (decorative svg); size it with a size-* class. Used inside PageLoader.' },
         { name: 'PageLoader fullscreen', type: 'boolean', default: 'true', description: 'Fill the viewport or just the parent.' },
         { name: 'Button loading', type: 'boolean', default: 'false', description: 'Shows a spinner, keeps width, sets aria-busy, disables.' },
       ]}

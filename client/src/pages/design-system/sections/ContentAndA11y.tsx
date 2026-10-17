@@ -156,7 +156,7 @@ export const AccessibilitySection = () => {
           return (
             <li key={check.id} className="rounded-xl border border-border bg-white p-4">
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-sm font-semibold text-text-strong"><span className="me-1.5 tabular-nums text-text-subtle">{index + 1}.</span>{check.title}</h3>
+                <h4 className="text-sm font-semibold text-text-strong"><span className="me-1.5 tabular-nums text-text-subtle">{index + 1}.</span>{check.title}</h4>
                 <Tag tone={meta.tone} size="sm"><meta.icon aria-hidden className={cn('size-3', meta.className)} />{meta.label}</Tag>
               </div>
               <p className="mt-0.5 font-mono text-[11px] text-text-subtle">WCAG {check.criterion}</p>

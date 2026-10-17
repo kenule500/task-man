@@ -52,7 +52,7 @@ const SprintCardMock = () => (
   <Surface as="article" aria-label="Sprint 4" padding="sm" className="space-y-3">
     <div className="flex items-start justify-between gap-2">
       <div>
-        <h4 className="text-sm font-semibold text-text-strong">Sprint 4</h4>
+        <h5 className="text-sm font-semibold text-text-strong">Sprint 4</h5>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-text-subtle"><CalendarDays aria-hidden className="size-3.5" />Oct 5 to Oct 18 · 6 days left</p>
       </div>
       <StatusPill status="in-progress" size="sm">Active</StatusPill>
@@ -72,7 +72,7 @@ const BACKLOG = [
 
 const BacklogRowsMock = () => (
   <Surface padding="none" className="overflow-hidden">
-    <h4 className="border-b border-border-subtle px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-text-subtle">Backlog · 4 items · 11 points</h4>
+    <h5 className="border-b border-border-subtle px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-text-subtle">Backlog · 4 items · 11 points</h5>
     <ul className="divide-y divide-border-subtle">
       {BACKLOG.map(row => (
         <li key={row.key} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 sm:flex-nowrap">
@@ -102,6 +102,7 @@ export const ScrumPatternSection = () => (
             index={index}
             canWrite={false}
             canDelete={false}
+            headingLevel={5}
             onEdit={noop}
             onToggleArchive={noop}
             onDelete={noop}

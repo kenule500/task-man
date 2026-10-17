@@ -350,19 +350,20 @@ export const DisclosureDoc = () => (
       <div className="w-full space-y-4">
         <Accordion
           defaultOpenIds={['one']}
+          headingLevel={5}
           items={[
             { id: 'one', title: 'What is a sprint?', content: 'A fixed period, usually one to four weeks, in which the team completes a set of stories.' },
             { id: 'two', title: 'Can I move tasks between sprints?', content: 'Yes. Open the task and choose another sprint, or move it back to the backlog.' },
           ]}
         />
         <div className="rounded-xl border border-border bg-white px-4">
-          <Disclosure title="Advanced options" headingLevel={4}>Only shown when expanded.</Disclosure>
+          <Disclosure title="Advanced options" headingLevel={5}>Only shown when expanded.</Disclosure>
         </div>
       </div>
     }
     states={[
-      { label: 'Collapsed', node: <div className="w-full rounded-lg border border-border bg-white px-3"><Disclosure title="Collapsed" headingLevel={4}>Hidden</Disclosure></div> },
-      { label: 'Expanded', node: <div className="w-full rounded-lg border border-border bg-white px-3"><Disclosure title="Expanded" defaultOpen headingLevel={4}>Visible</Disclosure></div> },
+      { label: 'Collapsed', node: <div className="w-full rounded-lg border border-border bg-white px-3"><Disclosure title="Collapsed" headingLevel={5}>Hidden</Disclosure></div> },
+      { label: 'Expanded', node: <div className="w-full rounded-lg border border-border bg-white px-3"><Disclosure title="Expanded" defaultOpen headingLevel={5}>Visible</Disclosure></div> },
     ]}
     a11y={['Each trigger is a button with aria-expanded and aria-controls, inside a heading.', 'The panel is a labelled region and uses the hidden attribute when collapsed, so it leaves the accessibility tree.', 'Enter and Space toggle; the 44px minimum height is the touch target.']}
     doText="Put the question or topic in the trigger and keep panels short."
@@ -377,7 +378,7 @@ export const DisclosureDoc = () => (
       { name: 'defaultOpenIds', type: 'string[]', default: '[]', description: 'Accordion: initially open items.' },
       { name: 'title / children', type: 'ReactNode', description: 'Disclosure: trigger text and panel.' },
       { name: 'defaultOpen / open / onOpenChange', type: 'boolean / boolean / fn', description: 'Disclosure: uncontrolled or controlled.' },
-      { name: 'headingLevel', type: '2 | 3 | 4', default: '3', description: 'Keeps the outline correct.' },
+      { name: 'headingLevel', type: '2 | 3 | 4 | 5 | 6', default: '3', description: 'Keeps the outline correct.' },
     ]}
   />
 );
