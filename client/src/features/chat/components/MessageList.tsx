@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { groupByDay } from '../lib/messages';
-import type { ChatMessage, Reaction } from '../types';
-import MessageItem from './MessageItem';
+import type { ChatMessage, Reaction } from '../types';import MessageItem from './MessageItem';
 
 interface MessageListProps {
   messages: ChatMessage[];
   reactions: Record<string, Reaction[]>;
   currentUserId: string | undefined;
+  /** Known member names, so @mentions render highlighted. */
+  memberNames: readonly string[];
   canWrite: boolean;
   canModerate: boolean;
   loading: boolean;
@@ -27,7 +28,7 @@ interface MessageListProps {
 
 /** The channel's messages, oldest at the top, with an accessible live region for new arrivals. */
 export const MessageList = ({
-  messages, reactions, currentUserId, canWrite, canModerate, loading, loadingOlder, hasMore,
+  messages, reactions, currentUserId, memberNames, canWrite, canModerate, loading, loadingOlder, hasMore,
   error, emptyCopy, attachmentHref, onLoadOlder, onToggleReaction, onReply, onEdit, onDelete, onPin,
   announcement,
 }: MessageListProps) => {
@@ -82,6 +83,7 @@ export const MessageList = ({
                   message={message}
                   reactions={reactions[message._id] ?? []}
                   currentUserId={currentUserId}
+                  memberNames={memberNames}
                   canWrite={canWrite}
                   canModerate={canModerate}
                   onToggleReaction={onToggleReaction}

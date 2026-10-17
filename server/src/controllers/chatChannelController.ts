@@ -482,12 +482,37 @@ export const listChannels = async (req: Request, res: Response): Promise<void> =
     rows.sort((a, b) => (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9)
       || String(a.name).localeCompare(String(b.name)));
 
+    // Member counts and unread state come from one query each, not one per channel
+    const ids = rows.map(row => row._id);
+    const [workspace, projectRows, reads] = await Promise.all([
+      Workspace.findById(workspaceId).select('members').lean(),
+      Project.find({ workspace: workspaceId }).select('_id members').lean(),
+      ids.length === 0
+        ? []
+        : ChatRead.find({ channel: { $in: ids }, user: new mongoose.Types.ObjectId(userId) })
+          .select('channel lastReadAt').lean(),
+    ]);
+
+    const workspaceMembers = workspace?.members.length ?? 0;
+    const projectMemberCount = new Map(projectRows.map(p => [String(p._id), p.members?.length ?? 0]));
+    const readAt = new Map(reads.map(row => [String(row.channel), row.lastReadAt]));
+
     // Only the two default channels are main-menu entries; project channels belong to the chat screen's
     // team list, so the server states this rather than leaving each client to hardcode it (spec T12.3)
-    res.status(200).json(rows.map(row => ({
-      ...row,
-      mainMenu: row.kind === 'team' || row.kind === 'general',
-    })));
+    res.status(200).json(rows.map(row => {
+      const lastReadAt = readAt.get(String(row._id));
+      const memberCount = row.kind === 'direct'
+        ? (row.participants?.length ?? 0)
+        : row.kind === 'project'
+          ? projectMemberCount.get(String(row.project)) ?? 0
+          : workspaceMembers;
+      return {
+        ...row,
+        mainMenu: row.kind === 'team' || row.kind === 'general',
+        memberCount,
+        unread: Boolean(row.lastMessageAt && (!lastReadAt || new Date(row.lastMessageAt) > new Date(lastReadAt))),
+      };
+    }));
   } catch (error) {
     handleError(res, error, 'listChannels');
   }

@@ -33,8 +33,35 @@ export const applyMention = (
   return { text: next, caret: match.start + insert.length };
 };
 
-/** User ids whose `@name` appears in the text, matched case-insensitively against the candidate list. */
-export const mentionedUserIds = (
+/** One run of message text: a mention is rendered in its own colour, like a chat app highlights @name. */
+export interface BodySegment {
+  text: string;
+  isMention: boolean;
+}
+
+/**
+ * Splits a message body into plain and mention runs.
+ * A token counts as a mention only when it matches a known member name, so an email address or a
+ * stray "@" is left as text.
+ */
+export const segmentMentions = (body: string, names: readonly string[]): BodySegment[] => {
+  if (!body) return [];
+  const known = new Set(names.map(name => name.replace(/\s+/g, '').toLowerCase()));
+  const segments: BodySegment[] = [];
+  const pattern = /@([\w.-]+)/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(body)) !== null) {
+    if (match.index > last) segments.push({ text: body.slice(last, match.index), isMention: false });
+    segments.push({ text: match[0], isMention: known.has(match[1].toLowerCase()) });
+    last = match.index + match[0].length;
+  }
+  if (last < body.length) segments.push({ text: body.slice(last), isMention: false });
+  return segments;
+};
+
+/** User ids whose `@name` appears in the text, matched case-insensitively against the candidate list. */export const mentionedUserIds = (
   text: string,
   candidates: readonly { _id: string; name: string }[],
 ): string[] => {

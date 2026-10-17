@@ -11,6 +11,8 @@ interface ComposerProps {
   slug: string;
   channelId: string;
   members: ChatUser[];
+  /** The signed-in user, excluded from the mention menu. */
+  currentUserId: string | undefined;
   disabled: boolean;
   disabledReason?: string;
   placeholder: string;
@@ -24,7 +26,7 @@ interface ComposerProps {
 
 /** Message composer: text, @mentions with a keyboard menu, and file attachments. */
 export const Composer = ({
-  slug, channelId, members, disabled, disabledReason, placeholder,
+  slug, channelId, members, currentUserId, disabled, disabledReason, placeholder,
   onSend, parentId, onTyping, autoFocus,
 }: ComposerProps) => {
   const [body, setBody] = useState('');
@@ -38,6 +40,8 @@ export const Composer = ({
 
   const suggestions = mention
     ? members
+      // You cannot mention yourself, so you never appear in your own suggestion list (spec AC-049)
+      .filter(member => member._id !== currentUserId)
       .filter(member => member.name.toLowerCase().includes(mention.term.toLowerCase()))
       .slice(0, MAX_MENTION_SUGGESTIONS)
     : [];
@@ -80,22 +84,28 @@ export const Composer = ({
     }
   };
 
-  const upload = async (file: File) => {
+  const upload = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     setError('');
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const { data } = await api.post(`/workspaces/${encodeURIComponent(slug)}/chat/${channelId}/attachments`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      if (data?.attachment) setAttachments(current => [...current, data.attachment as ChatAttachment]);
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'Could not upload that file.'));
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
+    // Several files may be chosen at once; each is uploaded separately so one rejection does not
+    // discard the rest (spec AC-053)
+    for (const file of files) {
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const { data } = await api.post(
+          `/workspaces/${encodeURIComponent(slug)}/chat/${channelId}/attachments`,
+          form,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        );
+        if (data?.attachment) setAttachments(current => [...current, data.attachment as ChatAttachment]);
+      } catch (err) {
+        setError(getApiErrorMessage(err, `Could not upload ${file.name}.`));
+      }
     }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   return (
@@ -183,16 +193,17 @@ export const Composer = ({
           <input
             ref={fileRef}
             type="file"
+            multiple
             hidden
             onChange={event => {
-              const file = event.target.files?.[0];
-              if (file) void upload(file);
+              const files = Array.from(event.target.files ?? []);
+              if (files.length > 0) void upload(files);
             }}
           />
           <button
             type="button"
             disabled={disabled || uploading}
-            aria-label="Attach a file"
+            aria-label="Attach files"
             onClick={() => fileRef.current?.click()}
             className="flex size-10 shrink-0 items-center justify-center rounded-lg text-slate-500 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50"
           >

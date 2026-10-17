@@ -80,7 +80,7 @@ export const ChatHeader = ({
         <TooltipHint label={`${memberCount} ${memberCount === 1 ? 'member' : 'members'}`}>
           <button
             type="button"
-            aria-label={`Members, ${memberCount} in this workspace`}
+            aria-label={`Members, ${memberCount} in this channel`}
             onClick={onOpenMembers}
             className="flex size-8 items-center justify-center rounded-md text-slate-500 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary"
           >

@@ -137,6 +137,9 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     return map;
   }, [channels, lastRead]);
 
+  // Highlighting @mentions needs the member names available in this channel
+  const memberNames = useMemo(() => members.map(member => member.name), [members]);
+
   const attachmentHref = useCallback((attachmentId: string) => (
     `${API_URL}/workspaces/${encodeURIComponent(workspaceSlug ?? '')}/chat/attachments/${attachmentId}`
   ), [workspaceSlug]);
@@ -322,7 +325,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           channel={channel}
           label={label}
           onlineUserIds={onlineUserIds}
-          memberCount={members.length}
+          memberCount={channel.memberCount ?? members.length}
           transport={transport}
           onOpenSearch={() => setSearchOpen(value => !value)}
           onTogglePins={() => {
@@ -363,6 +366,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
             messages={messages}
             reactions={reactions}
             currentUserId={user?._id}
+            memberNames={memberNames}
             canWrite={canWrite}
             canModerate={canModerate}
             loading={loading}
@@ -409,6 +413,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           slug={workspaceSlug ?? ''}
           channelId={currentChannelId ?? ''}
           members={members}
+          currentUserId={user?._id}
           disabled={!canWrite || channel.archived}
           disabledReason={channel.archived ? 'This project was deleted' : 'You cannot post in this channel'}
           placeholder={`Message ${label}`}

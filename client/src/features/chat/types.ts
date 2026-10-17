@@ -9,6 +9,10 @@ export interface ChatChannel {
   description: string;
   /** True only for the two default channels; project channels belong to the chat screen's team list. */
   mainMenu?: boolean;
+  /** How many people can read this channel: workspace members, project members, or the two participants. */
+  memberCount?: number;
+  /** True when the channel has messages newer than the caller's last visit. */
+  unread?: boolean;
   avatarUrl?: string | null;
   project?: string | null;
   participants: string[];

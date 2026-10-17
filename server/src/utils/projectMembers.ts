@@ -38,16 +38,13 @@ export const addAssigneesToProjectMembers = async (
   const name = (projectName ?? '').trim();
   if (!name || assigneeIds.length === 0) return;
 
-  const project = await Project.findOne({ workspace: workspaceId, nameKey: name.toLowerCase() })
-    .select('members');
-  if (!project) return;
-
-  const merged = mergeMemberIds(project.members ?? [], assigneeIds);
-  // Skip the write when everyone is already a member
-  if (merged.length === (project.members ?? []).length) return;
-
-  project.members = merged.map(id => new mongoose.Types.ObjectId(id));
-  await project.save();
+  // $addToSet on the array rather than load-and-save: a partially selected document would fail
+  // full-document validation on fields it never loaded (e.g. `Path nameKey is required`), and this
+  // is a single atomic write anyway.
+  await Project.updateOne(
+    { workspace: workspaceId, nameKey: name.toLowerCase() },
+    { $addToSet: { members: { $each: assigneeIds.map(id => new mongoose.Types.ObjectId(String(id))) } } },
+  );
 };
 
 /** A member who leaves the workspace loses access to every project channel (spec FR-044). */

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body, param, query } from 'express-validator';
 import ChatChannel, { IChatChannel } from '../models/chatChannelModel.js';
-import ChatMessage, { IChatMessage, MAX_MESSAGE_BODY } from '../models/chatMessageModel.js';
+import ChatMessage, { ChatAttachment, IChatMessage, MAX_MESSAGE_BODY } from '../models/chatMessageModel.js';
 import ChatReaction, { MAX_EMOJI_LENGTH } from '../models/chatReactionModel.js';
 import ChatRead from '../models/chatReadModel.js';
 import Notification from '../models/notificationModel.js';
@@ -13,7 +13,7 @@ import { canModerate } from '../utils/chatAccess.js';
 import { snippetOf, uniqueIds } from '../utils/chatMentions.js';
 import { clampPageSize, decodeMessageCursor, encodeMessageCursor, olderThanCursor, searchFilter } from '../utils/chatQuery.js';
 import { MessageInput, parseMessageInput } from '../utils/chatValidation.js';
-import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
+import { deleteFiles, fileInfoOf, openFileStream, saveFile } from '../utils/gridfs.js';
 import { loadChannelForCaller, permissionsOf, workspaceIdOf } from './chatChannelController.js';
 import { handleError, hasValidationErrors, PUBLIC_USER_FIELDS } from './taskController.js';
 
@@ -100,6 +100,16 @@ export const createMessageInChannel = async ({
 
   const mentions = await resolveMentions(workspaceId, input.mentionIds);
 
+  // Attachments must have been uploaded to this channel, so a message cannot borrow another
+  // channel's file and expose it to readers who could not otherwise see it
+  const attachments: ChatAttachment[] = [];
+  for (const attachmentId of input.attachmentIds) {
+    const info = await fileInfoOf(attachmentId);
+    if (info && info.channel === String(channel._id)) {
+      attachments.push({ id: info.id, name: info.name, size: info.size, type: info.type });
+    }
+  }
+
   const message = await ChatMessage.create({
     workspace: workspaceId,
     channel: channel._id,
@@ -107,7 +117,7 @@ export const createMessageInChannel = async ({
     body: input.body,
     parent: parentId,
     mentions,
-    attachments: [],
+    attachments,
   });
 
   // Keep the channel's ordering pointer current so the list never scans messages
@@ -174,8 +184,7 @@ export const validateSendMessage = [
   body('parentId').optional({ nullable: true })
     .custom(value => value === null || mongoose.isValidObjectId(String(value)))
     .withMessage('Invalid parent message'),
-  body('attachmentIds').optional().isArray({ max: 10 }).withMessage('Too many attachments'),
-  body('mentionIds').optional().isArray({ max: 20 }).withMessage('Too many mentions'),
+  body('attachmentIds').optional().isArray({ max: 10 }).withMessage('Too many attachments'),  body('mentionIds').optional().isArray({ max: 20 }).withMessage('Too many mentions'),
 ];
 
 export const validateListMessages = [
@@ -651,7 +660,10 @@ export const uploadAttachment = async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const fileId = await saveFile(file.buffer, file.originalname, file.mimetype);
+    // The channel id travels with the file so a message cannot attach another channel's upload
+    const fileId = await saveFile(file.buffer, file.originalname, file.mimetype, {
+      channel: String(lookup.channel._id),
+    });
     res.status(201).json({
       attachment: {
         id: String(fileId),

@@ -4,7 +4,6 @@ import {
   SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from '@/components/ui/sidebar';import { usePermissions } from '@/hooks/usePermissions';
 import { getStoredUser } from '@/utils/session';
-import { cn } from '@/lib/utils';
 import { chatApi } from '../api';
 import { allLastRead, setLastRead } from '../lib/readState';
 import { unreadCount } from '../lib/messages';
@@ -55,7 +54,10 @@ export const SidebarChannels = () => {
   ), [members]);
 
   const unreadByChannel: Record<string, number> = {};
-  for (const channel of visibleChannels) unreadByChannel[channel._id] = unreadCount(channel, readState);
+  for (const channel of visibleChannels) {
+    // The server states whether a channel has newer messages, which survives across devices
+    unreadByChannel[channel._id] = channel.unread ? 1 : unreadCount(channel, readState);
+  }
 
   if (!canRead || !workspaceSlug || visibleChannels.length === 0) return null;
 
@@ -97,7 +99,9 @@ export const SidebarChannels = () => {
                     <span className="min-w-0 flex-1 truncate">{label}</span>
                     {unread > 0 && !active && (
                       <>
-                        <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full bg-primary')} />
+                        <span aria-hidden className="flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-4 text-white">
+                          {unread > 9 ? '9+' : unread}
+                        </span>
                         <span className="sr-only">Unread messages</span>
                       </>
                     )}

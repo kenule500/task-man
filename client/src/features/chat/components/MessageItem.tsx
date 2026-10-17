@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pencil, Pin, Reply, Smile, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ds';
+import { segmentMentions } from '../lib/mentions';
 import { REACTION_CHOICES } from '../lib/reactions';
 import type { ChatMessage, Reaction } from '../types';
 import { authorOf } from '../types';
@@ -80,6 +81,8 @@ interface MessageItemProps {
   message: ChatMessage;
   reactions: Reaction[];
   currentUserId: string | undefined;
+  /** Known member names, used to highlight @mentions the way a chat app does. */
+  memberNames: readonly string[];
   canWrite: boolean;
   canModerate: boolean;
   onToggleReaction: (messageId: string, emoji: string) => void;
@@ -105,8 +108,12 @@ const formatSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+/**
+ * One message. The caller's own messages sit on the right in a tinted bubble and everyone else's on the
+ * left with an avatar, so a conversation reads the way a group chat does.
+ */
 export const MessageItem = ({
-  message, reactions, currentUserId, canWrite, canModerate,
+  message, reactions, currentUserId, memberNames, canWrite, canModerate,
   onToggleReaction, onReply, onEdit, onDelete, onPin, attachmentHref,
 }: MessageItemProps) => {
   const [editing, setEditing] = useState(false);
@@ -119,19 +126,23 @@ export const MessageItem = ({
 
   if (deleted) {
     return (
-      <li className="px-4 py-1.5 text-sm italic text-slate-400">
-        This message was deleted
+      <li className={cn('flex px-4 py-1.5', mine ? 'justify-end' : 'justify-start')}>
+        <span className="text-xs italic text-slate-400">This message was deleted</span>
       </li>
     );
   }
 
+  const segments = segmentMentions(message.body, memberNames);
+
   return (
-    <li className="group px-4 py-1.5 hover:bg-slate-50/60">
-      <div className="flex gap-2.5">
-        <UserAvatar name={author?.name ?? '?'} src={author?.avatarUrl} size="sm" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-sm font-semibold text-slate-900">{author?.name ?? 'Unknown member'}</span>
+    <li className={cn('group flex px-4 py-1.5', mine ? 'justify-end' : 'justify-start')}>
+      <div className={cn('flex max-w-[85%] gap-2 md:max-w-[70%]', mine ? 'flex-row-reverse' : 'flex-row')}>
+        {/* The caller does not need their own avatar; other people's identify the speaker */}
+        {!mine && <UserAvatar name={author?.name ?? '?'} src={author?.avatarUrl} size="sm" />}
+
+        <div className="min-w-0">
+          <div className={cn('flex flex-wrap items-baseline gap-2', mine && 'justify-end')}>
+            {!mine && <span className="text-sm font-semibold text-slate-900">{author?.name ?? 'Unknown member'}</span>}
             <time dateTime={message.createdAt} className="text-xs text-slate-500">{timeOf(message.createdAt)}</time>
             {message.editedAt && <span className="text-xs text-slate-400">(edited)</span>}
             {message.pinnedAt && (
@@ -171,11 +182,25 @@ export const MessageItem = ({
               </div>
             </form>
           ) : (
-            <p className="whitespace-pre-wrap break-words text-sm text-slate-800">{message.body}</p>
+            <div
+              className={cn(
+                'mt-0.5 inline-block max-w-full rounded-2xl px-3 py-1.5 text-left text-sm',
+                mine ? 'rounded-br-sm bg-primary/10 text-slate-900' : 'rounded-bl-sm bg-slate-100 text-slate-800',
+              )}
+            >
+              <p className="whitespace-pre-wrap break-words">
+                {segments.map((segment, index) => (
+                  segment.isMention
+                    // Mentions stand out the way they do in a group chat (spec AC-052)
+                    ? <span key={index} className="rounded bg-primary/15 px-1 font-medium text-primary">{segment.text}</span>
+                    : <span key={index}>{segment.text}</span>
+                ))}
+              </p>
+            </div>
           )}
 
           {message.attachments.length > 0 && (
-            <ul className="mt-1 space-y-1">
+            <ul className={cn('mt-1 space-y-1', mine && 'text-right')}>
               {message.attachments.map(attachment => (
                 <li key={attachment.id}>
                   <a
@@ -191,26 +216,28 @@ export const MessageItem = ({
             </ul>
           )}
 
-          <ReactionBar
-            reactions={reactions}
-            currentUserId={currentUserId}
-            disabled={!canWrite}
-            onToggle={emoji => onToggleReaction(message._id, emoji)}
-          />
+          <div className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
+            <ReactionBar
+              reactions={reactions}
+              currentUserId={currentUserId}
+              disabled={!canWrite}
+              onToggle={emoji => onToggleReaction(message._id, emoji)}
+            />
+          </div>
 
           {message.replyCount > 0 && (
             <button
               type="button"
               onClick={() => onReply(message)}
-              className="mt-1 text-xs font-medium text-primary underline underline-offset-2"
+              className={cn('mt-1 block text-xs font-medium text-primary underline underline-offset-2', mine && 'ml-auto')}
             >
               {message.replyCount} {message.replyCount === 1 ? 'reply' : 'replies'}
             </button>
           )}
         </div>
 
-        {/* Row actions: always reachable by keyboard, revealed on hover for the pointer */}
-        <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        {/* Row actions: reachable by keyboard, revealed on hover for the pointer */}
+        <div className="flex shrink-0 items-start gap-0.5 self-start opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <button
             type="button"
             aria-label="Reply in thread"
