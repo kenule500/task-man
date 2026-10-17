@@ -44,6 +44,7 @@ import pageRoutes from './pageRoutes.js';
 import changeRoutes from './changeRoutes.js';
 import chatRoutes from './chatRoutes.js';
 import aiRoutes from './aiRoutes.js';
+import aiPlanRoutes from './aiPlanRoutes.js';
 import {
   getBoardSettings,
   updateBoardSettings,
@@ -255,6 +256,8 @@ router.use('/:slug/changes', changeRoutes);
 
 // Team chat (channels, messages) and the AI code review agent
 router.use('/:slug/chat', chatRoutes);
+// Before the settings router below: its /:slug/ai prefix would also match /:slug/ai/plans
+router.use('/:slug/ai/plans', aiPlanRoutes);
 router.use('/:slug/ai', aiRoutes);
 
 // Workspace-scoped projects and their sprints

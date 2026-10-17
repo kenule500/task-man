@@ -83,6 +83,8 @@ app.use('/api/integrations/github', express.raw({ type: 'application/json', limi
 app.use('/api/workspaces/:slug/import', express.json({ limit: '3mb' }));
 // A wiki page is up to 100,000 characters of Markdown (more once JSON-escaped)
 app.use('/api/workspaces/:slug/pages', express.json({ limit: '400kb' }));
+// An edited AI project plan is up to a few hundred kB of JSON (the upload itself is multipart and not parsed here)
+app.use('/api/workspaces/:slug/ai/plans', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '100kb' }));
 
 // ============================================================

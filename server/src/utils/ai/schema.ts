@@ -59,15 +59,15 @@ const stripFence = (raw: string): string => {
 
 export type ParseOutcome = { ok: true; output: ModelOutput } | { ok: false; problem: string };
 
-/** Parses and validates the raw answer; `problem` is short and safe to send back to the model. */
-export const parseModelOutput = (raw: string): ParseOutcome => {
+/** Parses and validates a raw answer against any zod schema; `problem` is short and safe to send back to the model. */
+export const parseJsonWith = <S extends z.ZodType>(schema: S, raw: string): { ok: true; output: z.output<S> } | { ok: false; problem: string } => {
   let json: unknown;
   try {
     json = JSON.parse(stripFence(raw));
   } catch {
     return { ok: false, problem: 'The answer is not parseable JSON.' };
   }
-  const result = modelOutputSchema.safeParse(json);
+  const result = schema.safeParse(json);
   if (result.success) return { ok: true, output: result.data };
   const problem = result.error.issues
     .slice(0, 5)
@@ -75,6 +75,9 @@ export const parseModelOutput = (raw: string): ParseOutcome => {
     .join('; ');
   return { ok: false, problem };
 };
+
+/** Parses and validates the raw review answer. */
+export const parseModelOutput = (raw: string): ParseOutcome => parseJsonWith(modelOutputSchema, raw);
 
 // ----------------------------------------------------------------
 // Verdict rules

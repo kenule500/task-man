@@ -52,6 +52,7 @@ const JoinWorkspacePage = lazy(() => import('./pages/JoinWorkspacePage'));
 const AcceptInvitePage = lazy(() => import('./pages/AcceptInvitePage'));
 const WorkspaceSettingsPage = lazy(() => import('./pages/WorkspaceSettingsPage'));
 const ImportPage = lazy(() => import('./pages/ImportPage'));
+const AiProjectPage = lazy(() => import('./pages/AiProjectPage'));
 const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
 const AutomationsPage = lazy(() => import('./pages/AutomationsPage'));
 const WorkflowSettingsPage = lazy(() => import('./pages/WorkflowSettingsPage'));
@@ -171,6 +172,16 @@ function App() {
                 element={
                   <PermissionRoute permission="projects:read">
                     <Lazy><ProjectsPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Create a project from a requirements document with AI: requires projects:write (the page also checks tasks:write) */}
+              <Route
+                path="/:workspaceSlug/projects/new/ai"
+                element={
+                  <PermissionRoute permission="projects:write">
+                    <Lazy><AiProjectPage /></Lazy>
                   </PermissionRoute>
                 }
               />

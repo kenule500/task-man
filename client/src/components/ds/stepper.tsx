@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/i18n';
 import { stepperMarkerVariants } from './variants';
 
 export interface StepperStep {
@@ -26,8 +27,6 @@ interface StepperProps {
 
 const stateOf = (step: StepperStep, index: number, current: number) =>
   step.complete || index < current ? 'complete' : index === current ? 'current' : 'upcoming';
-
-const STATE_TEXT = { complete: 'completed', current: 'current step', upcoming: 'not started' } as const;
 
 /**
  * Progress through a fixed sequence of steps. An ordered list; the current step has
@@ -66,7 +65,7 @@ export const Stepper = ({ steps, current, orientation = 'horizontal', size = 'md
               <div className={cn('min-w-0', vertical ? 'pb-5' : 'px-1')}>
                 <p className={cn('text-sm font-medium', state === 'upcoming' ? 'text-text-subtle' : 'text-text-strong')}>
                   {step.title}
-                  <span className="sr-only">, {STATE_TEXT[state]}</span>
+                  <span className="sr-only">{t('listSeparator')}{t(`stepper.${state}`)}</span>
                 </p>
                 {step.description && <p className="mt-0.5 text-xs text-text-subtle">{step.description}</p>}
                 {step.action && <div className="mt-2">{step.action}</div>}

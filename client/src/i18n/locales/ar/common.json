@@ -87,5 +87,10 @@
     "days_few": "منذ {{count}} أيام",
     "days_many": "منذ {{count}} يومًا",
     "days_other": "منذ {{count}} يوم"
+  },
+  "stepper": {
+    "complete": "مكتملة",
+    "current": "الخطوة الحالية",
+    "upcoming": "لم تبدأ"
   }
 }
