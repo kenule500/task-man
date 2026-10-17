@@ -16,8 +16,8 @@ export const PageHeaderDoc = () => (
     anatomy={['Title (h1)', 'Description', 'Actions']}
     variants={
       <div className="w-full space-y-4">
-        <PageHeader headingLevel={3} title="My tasks" description="Manage and track all your tasks" actions={<Button><Plus aria-hidden />Add task</Button>} />
-        <PageHeader headingLevel={3} title="Projects" />
+        <PageHeader headingLevel={5} title="My tasks" description="Manage and track all your tasks" actions={<Button><Plus aria-hidden />Add task</Button>} />
+        <PageHeader headingLevel={5} title="Projects" />
       </div>
     }
     a11y={['Renders the page h1: use exactly once per page.', 'Actions are real buttons or links in DOM order after the title.']}
@@ -80,14 +80,14 @@ export const SectionHeaderDoc = () => (
     source="@/components/ds"
     maturity="stable"
     purpose="The heading row inside a Surface: title, optional icon, count and a trailing action."
-    anatomy={['Icon', 'Title (h2)', 'Count', 'Action']}
+    anatomy={['Icon', 'Title (h2 by default)', 'Count', 'Action']}
     variants={
       <Surface className="w-full">
-        <SectionHeader title="Due this week" count={3} icon={<IconTile size="sm"><Clock /></IconTile>} action={<Button variant="ghost" size="sm">View all</Button>} />
-        <SectionHeader title="Recent activity" className="mb-0" />
+        <SectionHeader headingLevel={5} title="Due this week" count={3} icon={<IconTile size="sm"><Clock /></IconTile>} action={<Button variant="ghost" size="sm">View all</Button>} />
+        <SectionHeader headingLevel={5} title="Recent activity" className="mb-0" />
       </Surface>
     }
-    a11y={['Renders an h2. Pick a Surface heading level that continues the page outline.', 'The count is plain text and is read after the title.']}
+    a11y={['Renders an h2 by default. Set headingLevel (2 to 6) so the title continues the page outline; the guide’s own examples use 5.', 'The count is read after the title with a pause (“Due this week, 3”), not glued to it.']}
     doText="Keep titles to 2–4 words and put the count next to them."
     dontText="Put long descriptions or several buttons in the action slot."
     code={`<SectionHeader
@@ -100,6 +100,7 @@ export const SectionHeaderDoc = () => (
       { name: 'count', type: 'number', description: 'Small badge after the title.' },
       { name: 'icon', type: 'ReactNode', description: 'Leading icon, usually an IconTile.' },
       { name: 'action', type: 'ReactNode', description: 'Trailing control.' },
+      { name: 'headingLevel', type: '2 | 3 | 4 | 5 | 6', default: '2', description: 'Heading element of the title, so it continues the page outline.' },
     ]}
   />
 );
@@ -179,7 +180,7 @@ export const EmptyStateDoc = () => (
     anatomy={['Icon', 'Title', 'Description', 'Action']}
     variants={
       <Surface padding="none" className="w-full">
-        <EmptyState icon={<FolderKanban />} title="No projects yet" description="Create a project to group tasks into sprints." action={<Button><Plus aria-hidden />New project</Button>} />
+        <EmptyState headingLevel="h5" icon={<FolderKanban />} title="No projects yet" description="Create a project to group tasks into sprints." action={<Button><Plus aria-hidden />New project</Button>} />
       </Surface>
     }
     a11y={['Title is an h3: place it under a section heading.', 'The icon is decorative.']}
@@ -196,6 +197,7 @@ export const EmptyStateDoc = () => (
       { name: 'description', type: 'string', description: 'Why, and what to do.' },
       { name: 'icon', type: 'ReactNode', description: 'Defaults to an info icon.' },
       { name: 'action', type: 'ReactNode', description: 'Primary next step.' },
+      { name: 'headingLevel', type: "'h2' | 'h3' | 'h4' | 'h5' | 'h6'", default: "'h3'", description: 'Heading element of the title; use h2 directly under the page h1.' },
     ]}
   />
 );
@@ -211,6 +213,7 @@ export const ErrorStateDoc = () => (
     variants={
       <Surface padding="none" className="w-full">
         <ErrorState
+          headingLevel={5}
           title="We could not load your tasks"
           reason="The server did not respond."
           nextStep="Check your connection, then try again."
@@ -232,6 +235,7 @@ export const ErrorStateDoc = () => (
       { name: 'reason', type: 'string', description: 'Why, in plain words.' },
       { name: 'nextStep', type: 'string', description: 'What the person can do.' },
       { name: 'action', type: 'ReactNode', description: 'Recovery button.' },
+      { name: 'headingLevel', type: '2 | 3 | 4 | 5 | 6', default: '3', description: 'Heading element of the title, so it continues the page outline.' },
     ]}
   />
 );

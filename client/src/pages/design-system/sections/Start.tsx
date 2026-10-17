@@ -1,6 +1,7 @@
 import { Accessibility, Keyboard, Layers, MousePointerClick, Smartphone, Undo2 } from 'lucide-react';
 import { IconTile, Surface, Tag } from '@/components/ds';
 import { DataTable, DocSection, Prose } from '../kit';
+import { GUIDE_VERSION } from '../version';
 
 export const OverviewSection = () => (
   <DocSection id="overview" title="Overview" description="What the TaskMan design system is, where it lives and how it is layered.">
@@ -66,10 +67,10 @@ export const PrinciplesSection = () => (
           <Surface padding="sm" className="h-full space-y-2">
             <div className="flex items-center gap-3">
               <IconTile size="sm">{principle.icon}</IconTile>
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h4 className="text-sm font-semibold text-text-strong">
                 <span className="me-1.5 tabular-nums text-text-subtle">{index + 1}.</span>
                 {principle.title}
-              </h3>
+              </h4>
             </div>
             <p className="text-sm text-text-body">{principle.body}</p>
           </Surface>
@@ -80,6 +81,18 @@ export const PrinciplesSection = () => (
 );
 
 const RELEASES = [
+  {
+    version: 'v2.1',
+    date: 'October 2026',
+    changes: [
+      'Guide: the group dividers are real headings with their own space (they no longer overlap the first section title), and the outline is h1 page, h2 group, h3 section, h4 sub-heading. Headings inside live examples are h5 or lower.',
+      'Guide: a specimen language toggle (English, Français, العربية with right-to-left layout), a theme toggle, “Copy import” on every component page, deep-link anchors on headings, a sticky “On this page” rail on wide screens, and search that also matches prop names.',
+      'New foundations: Internationalization and RTL (namespaces, plural rules, logical classes, mirrored icons, what stays left to right, Arabic font, number and date formats) and Contrast pairs (every text and background pair in light and dark).',
+      'New patterns: Data visualization, Chat building blocks, Realtime and presence, and AI features (opt-in notice, untrusted content, progress, partial results, verdict colors). New content page: Writing for three languages. New component page: LanguageSwitcher.',
+      'Tokens: inverse surface, primitive roles, project deep colors, motion tokens, spring curves and animation utilities are documented with light and dark values; every design-system export now has a documentation page, and a test fails when a new export has none.',
+      'Components: SectionHeader, ErrorState, Disclosure, Accordion and ProjectFolderCard take a headingLevel; the SectionHeader count is read after the title (“Due this week, 3”), not glued to it.',
+    ],
+  },
   {
     version: 'v2.0',
     date: 'October 2026',
@@ -110,8 +123,8 @@ export const ChangelogSection = () => (
         <li key={release.version}>
           <Surface padding="sm" className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold text-text-strong">{release.version}</h3>
-              <Tag tone={release.version === 'v2.0' ? 'primary' : 'neutral'} size="sm">{release.date}</Tag>
+              <h4 className="text-sm font-semibold text-text-strong">{release.version}</h4>
+              <Tag tone={release.version === GUIDE_VERSION ? 'primary' : 'neutral'} size="sm">{release.date}</Tag>
             </div>
             <ul className="list-disc space-y-1 ps-5 text-sm text-text-body">
               {release.changes.map(change => <li key={change}>{change}</li>)}

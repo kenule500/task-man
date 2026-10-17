@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { contrastLevel, contrastRatio, formatRatio } from '../contrast';
 import { DataTable, DoDont, DocSection, Prose, Specimen, SubHeading } from '../kit';
-import { TONE_DARK } from '../darkTokens';
+import { DARK_COLORS, TONE_DARK } from '../darkTokens';
 import {
-  BREAKPOINTS, COLOR_GROUPS, DURATIONS, EASINGS, ELEVATION_LEVELS, ICON_SIZES, PROJECT_BG, PROJECT_COLORS,
-  RADIUS_SCALE, SPACING_SCALE, TONES, TONE_LIGHT, TONE_MEANING, TONE_PARTS, TONE_USAGE, TYPE_SCALE, Z_INDEX, type ColorToken,
+  ANIMATIONS, BREAKPOINTS, COLOR_GROUPS, DURATIONS, EASINGS, ELEVATION_LEVELS, ICON_SIZES, MOTION_TOKENS, PROJECT_BG, PROJECT_COLORS,
+  RADIUS_SCALE, SPRINGS, SPACING_SCALE, TONES, TONE_LIGHT, TONE_MEANING, TONE_PARTS, TONE_USAGE, TYPE_SCALE, Z_INDEX, type ColorToken,
 } from '../tokens';
 
 const WHITE = '#FFFFFF';
@@ -32,28 +32,36 @@ const ContrastCell = ({ label, ratio }: { label: string; ratio: number }) => {
   );
 };
 
-const Swatch = ({ color }: { color: ColorToken }) => (
-  <li>
-    <Surface padding="none" className="h-full overflow-hidden">
-      <div
-        className="flex h-16 items-end border-b border-border-subtle p-2"
-        style={{ backgroundColor: `var(${color.name})` }}
-        aria-hidden
-      />
-      <div className="space-y-2 p-3">
-        <div>
-          <p className="break-all font-mono text-xs font-semibold text-text-strong">{color.name}</p>
-          <p className="font-mono text-xs text-text-subtle">{color.hex} · <span>{color.role === 'text' ? 'text' : 'fill'}</span></p>
+/** The dark value of a token, when index.css re-authors it under .dark. */
+const darkValue = (utility: string): string | undefined => (DARK_COLORS as Record<string, string>)[utility];
+
+const Swatch = ({ color }: { color: ColorToken }) => {
+  const dark = darkValue(color.utility);
+  return (
+    <li>
+      <Surface padding="none" className="h-full overflow-hidden">
+        <div className="flex h-16 border-b border-border-subtle" aria-hidden>
+          {/* Fixed hex values, so both halves look the same whichever theme the guide is in */}
+          <div className="flex-1" style={{ backgroundColor: color.hex }} />
+          {dark && <div className="flex-1" style={{ backgroundColor: dark }} />}
         </div>
-        <p className="text-xs text-text-body">{color.usage}</p>
-        <div className="space-y-1 border-t border-border-subtle pt-2">
-          <ContrastCell label="On white" ratio={contrastRatio(color.hex, WHITE)} />
-          <ContrastCell label="Text on it" ratio={contrastRatio(TEXT, color.hex)} />
+        <div className="space-y-2 p-3">
+          <div>
+            <p className="break-all font-mono text-xs font-semibold text-text-strong">{color.name}</p>
+            <p className="font-mono text-xs text-text-subtle">Light {color.hex} · <span>{color.role === 'text' ? 'text' : 'fill'}</span></p>
+            <p className="font-mono text-xs text-text-subtle">{dark ? `Dark ${dark}` : 'Dark: same value'}</p>
+          </div>
+          <p className="text-xs text-text-body">{color.usage}</p>
+          <div className="space-y-1 border-t border-border-subtle pt-2">
+            <ContrastCell label="On white" ratio={contrastRatio(color.hex, WHITE)} />
+            <ContrastCell label="Text on it" ratio={contrastRatio(TEXT, color.hex)} />
+            {dark && <ContrastCell label="On dark card" ratio={contrastRatio(dark, DARK_COLORS.white)} />}
+          </div>
         </div>
-      </div>
-    </Surface>
-  </li>
-);
+      </Surface>
+    </li>
+  );
+};
 
 const HexSwatch = ({ hex }: { hex: string }) => (
   <span className="inline-flex items-center gap-1.5">
@@ -237,7 +245,7 @@ export const ElevationSection = () => (
         </li>
       ))}
     </ul>
-    <Specimen label="Scrim: --color-scrim (slate-900 at 50%)" bare>
+    <Specimen label="Scrim: --color-scrim (slate-900 at 50% in light, slate-950 at 70% in dark)" bare>
       <div className="relative h-24 overflow-hidden rounded-xl border border-border bg-white">
         <p className="p-3 text-sm text-text-body">Page content behind a modal</p>
         <div aria-hidden className="absolute inset-0 bg-scrim" />
@@ -292,6 +300,27 @@ export const MotionSection = () => (
         {DURATIONS.map(item => <div key={item.token} className="min-w-0 [container-type:inline-size]"><MotionDemo duration={item.ms} easing="cubic-bezier(0.2, 0, 0, 1)" /></div>)}
       </div>
     </Specimen>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <DataTable
+        caption="Motion tokens shared by CSS and JavaScript"
+        columns={['Token', 'Value', 'Use']}
+        rows={MOTION_TOKENS.map(item => [
+          <code key="t" className="font-mono text-xs">{item.token}</code>,
+          <span key="v" className="tabular-nums">{item.ms}ms</span>,
+          item.usage,
+        ])}
+      />
+      <DataTable
+        caption="Spring curves (CSS linear() easings)"
+        columns={['Token', 'Use']}
+        rows={SPRINGS.map(item => [<code key="t" className="font-mono text-xs">{item.token}</code>, item.usage])}
+      />
+    </div>
+    <DataTable
+      caption="Animation utilities (--animate-tm-*); every one stops under prefers-reduced-motion"
+      columns={['Token', 'Use']}
+      rows={ANIMATIONS.map(item => [<code key="t" className="font-mono text-xs">{item.token}</code>, item.usage])}
+    />
     <Prose>
       <ul>
         <li><strong>Animate transform and opacity</strong> only. Color, border and shadow may transition at 150ms. Never animate width, height or top/left (progress fills are the one exception).</li>

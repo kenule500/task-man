@@ -174,21 +174,26 @@ interface ErrorStateProps {
   nextStep?: string;
   /** Primary recovery action (a Button). */
   action?: ReactNode;
+  /** Heading element of the title (default 3). Documentation demos use 5 so they stay out of the page outline. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   className?: string;
 }
 
 /** A failed page or panel: what happened, why, and what to do. Announced as an alert. */
-export const ErrorState = ({ title, reason, nextStep, action, className }: ErrorStateProps) => (
-  <div role="alert" className={cn('px-4 py-14 text-center sm:py-16', className)}>
-    <div aria-hidden className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger-bg text-danger-fg">
-      <AlertCircle className="size-7" />
+export const ErrorState = ({ title, reason, nextStep, action, headingLevel = 3, className }: ErrorStateProps) => {
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  return (
+    <div role="alert" className={cn('px-4 py-14 text-center sm:py-16', className)}>
+      <div aria-hidden className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-danger-bg text-danger-fg">
+        <AlertCircle className="size-7" />
+      </div>
+      <Heading className="mb-1 text-lg font-semibold text-text-strong">{title}</Heading>
+      {reason && <p className="mx-auto max-w-md text-sm text-text-subtle">{reason}</p>}
+      {nextStep && <p className="mx-auto mt-1 max-w-md text-sm text-text-body">{nextStep}</p>}
+      {action && <div className="mt-5 flex justify-center">{action}</div>}
     </div>
-    <h3 className="mb-1 text-lg font-semibold text-text-strong">{title}</h3>
-    {reason && <p className="mx-auto max-w-md text-sm text-text-subtle">{reason}</p>}
-    {nextStep && <p className="mx-auto mt-1 max-w-md text-sm text-text-body">{nextStep}</p>}
-    {action && <div className="mt-5 flex justify-center">{action}</div>}
-  </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Timeline and ActivityItem

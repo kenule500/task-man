@@ -561,7 +561,8 @@ body {
 }
 
 /* Arabic: Noto Sans Arabic (same Google Fonts origin, so the CSP is unchanged; the browser only downloads its Arabic subset when needed) */
-body:lang(ar) {
+body:lang(ar),
+[data-demo]:lang(ar) {
   font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
 }
 

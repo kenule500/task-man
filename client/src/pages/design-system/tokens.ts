@@ -104,6 +104,31 @@ export const COLOR_GROUPS: ColorGroup[] = [
     ],
   },
   {
+    id: 'inverse',
+    title: 'Inverse surface',
+    description: 'Toasts, code blocks and dark chips: a surface that stays dark in both themes (near-black in light, a raised slate in dark). Text on it uses inverse-text or inverse-muted.',
+    tokens: [
+      token('inverse', '#0F172A', 'Toast, code block and dark chip background'),
+      token('inverse-text', '#FFFFFF', 'Text on inverse', 'text'),
+      token('inverse-muted', '#CBD5E1', 'Secondary text and icons on inverse', 'text'),
+      token('inverse-border', '#1E293B', 'Hairlines on inverse'),
+    ],
+  },
+  {
+    id: 'primitives',
+    title: 'Primitive roles (shadcn)',
+    description: 'The variables the shadcn primitives in components/ui read. Existing names; new code prefers the role tokens above.',
+    tokens: [
+      token('card', '#FFFFFF', 'Card and sidebar background'),
+      token('popover', '#FFFFFF', 'Menus, popovers and hover cards (one step above cards in dark)'),
+      token('muted', '#F1F5F9', 'Muted wells and chips'),
+      token('secondary', '#F1F5F9', 'Secondary button background'),
+      token('accent', '#F1F5F9', 'Hover and selected rows in menus and lists'),
+      token('input', '#E2E8F0', 'Input border'),
+      token('primary-foreground', '#FFFFFF', 'Text on a primary fill', 'text'),
+    ],
+  },
+  {
     id: 'status',
     title: 'Status',
     description: 'Pending, in progress, completed. Marker color, text on the soft background, and the soft background.',
@@ -160,6 +185,14 @@ export const COLOR_GROUPS: ColorGroup[] = [
       token('project-emerald', '#2F6F57', 'Pine; back panel #255946'),
       token('project-teal', '#2A6B78', 'Lagoon; back panel #21555F'),
       token('project-slate', '#4A5568', 'Slate; back panel #3A4353'),
+      token('project-blue-deep', '#2E4778', 'Back panel and tab of the blue folder'),
+      token('project-violet-deep', '#4A3B7C', 'Back panel and tab of the violet folder'),
+      token('project-rose-deep', '#7E354B', 'Back panel and tab of the rose folder'),
+      token('project-orange-deep', '#87452E', 'Back panel and tab of the orange folder'),
+      token('project-amber-deep', '#6E5418', 'Back panel and tab of the amber folder'),
+      token('project-emerald-deep', '#255946', 'Back panel and tab of the emerald folder'),
+      token('project-teal-deep', '#21555F', 'Back panel and tab of the teal folder'),
+      token('project-slate-deep', '#3A4353', 'Back panel and tab of the slate folder'),
     ],
   },
 ];
@@ -247,6 +280,35 @@ export const EASINGS = [
   { token: '--ease-standard', utility: 'ease-standard', value: 'cubic-bezier(0.2, 0, 0, 1)', usage: 'Moves and resizes of elements already on screen' },
   { token: '--ease-enter', utility: 'ease-enter', value: 'cubic-bezier(0, 0, 0.2, 1)', usage: 'Elements entering: decelerate' },
   { token: '--ease-exit', utility: 'ease-exit', value: 'cubic-bezier(0.4, 0, 1, 1)', usage: 'Elements leaving: accelerate, and use a shorter duration' },
+];
+
+/** Motion tokens shared by CSS and lib/motion.ts (JavaScript uses seconds). */
+export const MOTION_TOKENS = [
+  { token: '--motion-fast', ms: 120, usage: 'Press feedback, exits, small fades (DURATION.fast)' },
+  { token: '--motion-base', ms: 200, usage: 'Hover lift, entrances of small elements (DURATION.base)' },
+  { token: '--motion-slow', ms: 320, usage: 'Page and list entrances, the largest single move (DURATION.slow)' },
+];
+
+/** CSS spring curves (linear() easings). */
+export const SPRINGS = [
+  { token: '--ease-spring-bouncy', usage: 'Overshoots once: toast entrance, check pop, completion burst' },
+  { token: '--ease-spring-soft', usage: 'Settles without overshoot: sheets and panels' },
+];
+
+/** Animation utilities declared in index.css (@theme --animate-tm-*). All stop under prefers-reduced-motion. */
+export const ANIMATIONS = [
+  { token: '--animate-tm-rise', usage: 'Entrance: 8px rise and fade (FadeIn, Stagger), --motion-slow' },
+  { token: '--animate-tm-float', usage: 'Empty-state icon float, 3.6s loop' },
+  { token: '--animate-tm-dot', usage: 'DotsLoader, 1.2s loop' },
+  { token: '--animate-tm-bar', usage: 'TopProgressBar, 1.3s loop' },
+  { token: '--animate-tm-flip', usage: 'Landing 3D mock, 2.2s loop' },
+  { token: '--animate-tm-flip-shadow', usage: 'Shadow of the landing 3D mock, 2.2s loop' },
+  { token: '--animate-tm-toast-in', usage: 'Toast entrance, 420ms, bouncy spring' },
+  { token: '--animate-tm-pop', usage: 'Check pop, 360ms, bouncy spring' },
+  { token: '--animate-tm-ring', usage: 'CheckBurst ring, 520ms' },
+  { token: '--animate-tm-spark', usage: 'CheckBurst sparks, 520ms' },
+  { token: '--animate-tm-pulse-once', usage: 'One-time highlight of a changed row, 1.1s' },
+  { token: '--animate-tm-delayed-in', usage: 'Loaders that appear after 160ms so quick loads never flash' },
 ];
 
 export const BREAKPOINTS = [

@@ -26,6 +26,10 @@ import {
 } from './sections/Patterns';
 import { DarkModeSection } from './sections/DarkMode';
 import { LoadersDoc, MotionComponentsSection } from './sections/MotionDocs';
+import { ContrastPairsSection } from './sections/ContrastPairs';
+import { I18nRtlSection, LanguageSwitcherDoc, WritingSection } from './sections/Languages';
+import { DataVizSection } from './sections/PatternsDataViz';
+import { AiPatternSection, ChatPatternSection, RealtimePatternSection } from './sections/PatternsLive';
 import { ScrumPatternSection } from './sections/ScrumPattern';
 import { ChangelogSection, OverviewSection, PrinciplesSection } from './sections/Start';
 
@@ -37,6 +41,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'changelog', group: 'Start', title: 'Changelog', keywords: 'release version v2 history new', Component: ChangelogSection },
 
   { id: 'color', group: 'Foundations', title: 'Color', keywords: 'tokens palette contrast hex status priority type project', Component: ColorSection },
+  { id: 'contrast-pairs', group: 'Foundations', title: 'Contrast pairs', keywords: 'contrast ratio wcag aa text background pairs light dark 4.5 accessibility tokens', Component: ContrastPairsSection },
   { id: 'dark-mode', group: 'Foundations', title: 'Dark mode', keywords: 'theme night light system toggle appearance contrast dark class', Component: DarkModeSection },
   { id: 'typography', group: 'Foundations', title: 'Typography', keywords: 'font inter type scale headings text size weight', Component: TypographySection },
   { id: 'spacing', group: 'Foundations', title: 'Spacing', keywords: 'gap padding margin 4px scale', Component: SpacingSection },
@@ -44,6 +49,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'elevation', group: 'Foundations', title: 'Elevation', keywords: 'shadow scrim depth', Component: ElevationSection },
   { id: 'motion', group: 'Foundations', title: 'Motion', keywords: 'animation duration easing transition reduced', Component: MotionSection },
   { id: 'motion-components', group: 'Foundations', title: 'Motion components', keywords: 'animation fade stagger tilt 3d press animated number count up burst reduced motion spring', Component: MotionComponentsSection },
+  { id: 'i18n-rtl', group: 'Foundations', title: 'Internationalization and RTL', keywords: 'language translation i18n french arabic right to left rtl direction logical classes plural namespaces icons mirror font noto intl format locale dir', Component: I18nRtlSection },
   { id: 'z-index', group: 'Foundations', title: 'Z-index', keywords: 'layers stacking order', Component: ZIndexSection },
   { id: 'breakpoints', group: 'Foundations', title: 'Breakpoints', keywords: 'responsive screen width mobile', Component: BreakpointsSection },
   { id: 'iconography', group: 'Foundations', title: 'Iconography', keywords: 'icons lucide sizes stroke', Component: IconographySection },
@@ -92,6 +98,7 @@ const ENTRIES: DocEntry[] = [
   { id: 'c-combobox', group: 'Components', title: 'Combobox', keywords: 'autocomplete search select multi assignee picker filter listbox chips', Component: ComboboxDoc },
   { id: 'c-description-list', group: 'Components', title: 'DescriptionList', keywords: 'key value details dl dt dd properties definition', Component: DescriptionListDoc },
   { id: 'c-tag-input', group: 'Components', title: 'TagInput', keywords: 'chips labels tags free text enter comma suggestions', Component: TagInputDoc },
+  { id: 'c-language-switcher', group: 'Components', title: 'LanguageSwitcher', keywords: 'language locale english french arabic globe menu translate i18n switch', Component: LanguageSwitcherDoc },
   { id: 'c-skeleton', group: 'Components', title: 'Skeleton', keywords: 'loading placeholder shimmer shadcn', Component: SkeletonDoc },
 
   { id: 'p-forms', group: 'Patterns', title: 'Forms and validation', keywords: 'form errors required submit focus', Component: FormsPatternSection },
@@ -100,11 +107,16 @@ const ENTRIES: DocEntry[] = [
   { id: 'p-navigation', group: 'Patterns', title: 'Navigation', keywords: 'sidebar tab bar command palette ctrl k menu', Component: NavigationPatternSection },
   { id: 'p-data-views', group: 'Patterns', title: 'Data views', keywords: 'list board calendar timeline gantt table', Component: DataViewsPatternSection },
   { id: 'p-scrum', group: 'Patterns', title: 'Scrum visuals', keywords: 'project folder sprint burndown backlog story points', Component: ScrumPatternSection },
+  { id: 'p-dataviz', group: 'Patterns', title: 'Data visualization', keywords: 'chart graph bar line axis legend burndown velocity svg table colors series figure', Component: DataVizSection },
+  { id: 'p-chat', group: 'Patterns', title: 'Chat building blocks', keywords: 'chat message messageitem composer typing presence mention channel conversation connection', Component: ChatPatternSection },
+  { id: 'p-realtime', group: 'Patterns', title: 'Realtime and presence', keywords: 'live online dot typing new changes pill polling socket presence indicator updates', Component: RealtimePatternSection },
+  { id: 'p-ai', group: 'Patterns', title: 'AI features', keywords: 'ai review verdict opt-in notice untrusted prompt injection progress partial result match mismatch model', Component: AiPatternSection },
   { id: 'p-mobile', group: 'Patterns', title: 'Mobile and PWA', keywords: 'safe area touch target install offline phone', Component: MobilePatternSection },
 
   { id: 'content-voice', group: 'Content', title: 'Voice and tone', keywords: 'writing copy tone sentence case', Component: VoiceSection },
   { id: 'content-errors', group: 'Content', title: 'Error messages', keywords: 'copy errors what happened why what to do', Component: ErrorMessagesSection },
   { id: 'content-buttons', group: 'Content', title: 'Button and link labels', keywords: 'copy verb cta links', Component: ButtonLabelsSection },
+  { id: 'content-three-languages', group: 'Content', title: 'Writing for three languages', keywords: 'translation length expansion concatenate plural french arabic english localize copy strings', Component: WritingSection },
   { id: 'content-formats', group: 'Content', title: 'Dates and numbers', keywords: 'format date number locale intl', Component: FormatsSection },
 
   { id: 'a11y', group: 'Accessibility', title: 'WCAG 2.2 AA checklist', keywords: 'accessibility wcag keyboard focus contrast screen reader zoom', Component: AccessibilitySection },

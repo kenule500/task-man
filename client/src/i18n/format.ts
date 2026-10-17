@@ -7,7 +7,7 @@ import type { AppLanguage } from './language';
  * BCP 47 tags used for Intl. English keeps the US pattern the screens were designed with (a few places ask for en-GB).
  * Arabic uses Western digits (0-9) like most Arabic product UIs, so keys, counts and ids line up in tables and mixed text.
  */
-const LOCALES: Record<AppLanguage, string> = { en: 'en-US', fr: 'fr-FR', ar: 'ar-u-nu-latn' };
+export const LOCALES: Record<AppLanguage, string> = { en: 'en-US', fr: 'fr-FR', ar: 'ar-u-nu-latn' };
 
 /** The Intl locale for the current interface language; `english` overrides the English variant (e.g. 'en-GB'). */
 export const currentLocale = (english?: string): string => {

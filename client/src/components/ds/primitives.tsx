@@ -19,14 +19,14 @@ interface PageHeaderProps {
   description?: ReactNode;
   /** Primary actions, right-aligned on desktop and full width below on mobile */
   actions?: ReactNode;
-  /** Heading element of the title. Keep the default (1) on real pages; documentation demos use 3. */
-  headingLevel?: 1 | 2 | 3;
+  /** Heading element of the title. Keep the default (1) on real pages; documentation demos use 5 so they stay out of the outline. */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   className?: string;
 }
 
 /** Page title block: one per screen, the `h1` of the page. */
 export const PageHeader = ({ title, description, actions, headingLevel = 1, className }: PageHeaderProps) => {
-  const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3';
+  const Heading = `h${headingLevel}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   return (
   <header className={cn('flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between', className)}>
     <div className="min-w-0">
@@ -51,24 +51,35 @@ interface SectionHeaderProps {
   count?: number;
   icon?: ReactNode;
   action?: ReactNode;
+  /** Heading element of the title (default 2). Documentation demos use 5 so they stay out of the page outline. */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
   className?: string;
 }
 
-/** Heading row inside a Surface (title, optional count and action). */
-export const SectionHeader = ({ title, count, icon, action, className }: SectionHeaderProps) => (
-  <div className={cn('mb-4 flex items-center justify-between gap-3', className)}>
-    <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-900">
-      {icon}
-      <span className="truncate">{title}</span>
-      {count !== undefined && (
-        <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-500">
-          {count}
-        </span>
-      )}
-    </h2>
-    {action}
-  </div>
-);
+/**
+ * Heading row inside a Surface (title, optional count and action).
+ * The count is separated from the title for assistive technology ("Due this week, 3"), not glued to it.
+ */
+export const SectionHeader = ({ title, count, icon, action, headingLevel = 2, className }: SectionHeaderProps) => {
+  const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  return (
+    <div className={cn('mb-4 flex items-center justify-between gap-3', className)}>
+      <Heading className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-900">
+        {icon}
+        <span className="truncate">{title}</span>
+        {count !== undefined && (
+          <>
+            <span className="sr-only">, </span>
+            <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 text-xs font-medium tabular-nums text-slate-500">
+              {count}
+            </span>
+          </>
+        )}
+      </Heading>
+      {action}
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Feedback
@@ -110,7 +121,7 @@ interface EmptyStateProps {
   action?: ReactNode;
   className?: string;
   /** Heading level of the title; use 'h2' when the state sits directly under the page h1. */
-  headingLevel?: 'h2' | 'h3';
+  headingLevel?: 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
 /** Explains why a list is empty and what to do next. */
@@ -139,7 +150,7 @@ export const SkeletonCards = ({ count = 4, columns = 'md:grid-cols-2 lg:grid-col
       <Surface key={index} className="space-y-3">
         <Skeleton className="h-4 w-24 bg-slate-200" />
         <Skeleton className="h-8 w-14 bg-slate-200" />
-        <Skeleton className="h-3 w-32 bg-slate-200" />
+        <Skeleton className="h-3 w-32 max-w-full bg-slate-200" />
       </Surface>
     ))}
   </div>
