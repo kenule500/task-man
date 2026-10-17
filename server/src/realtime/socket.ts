@@ -11,7 +11,8 @@ import Session from '../models/sessionModel.js';
 import User from '../models/userModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { hashToken } from '../utils/tokens.js';
-import { attachBus, detachBus, userRoom, workspaceRoom } from './bus.js';
+import { attachBus, auditRoom, detachBus, projectRoom, userRoom, workspaceRoom } from './bus.js';
+import { registerActivityRealtime } from './activityEvents.js';
 import { registerChatEvents } from './chatEvents.js';
 
 /** What a connection is allowed to act as, resolved once per handshake. */
@@ -151,11 +152,15 @@ export const createSocketServer = (httpServer: HttpServer): Server => {
     // Workspace and personal rooms are joined once; channel rooms are joined on demand and access-checked
     void socket.join(workspaceRoom(ctx.workspaceId));
     void socket.join(userRoom(ctx.userId));
+    // Permission rooms: a restricted activity entry is emitted straight to the members who may see it
+    if (ctx.permissions.includes('settings:manage')) void socket.join(auditRoom(ctx.workspaceId));
+    if (ctx.permissions.includes('projects:read')) void socket.join(projectRoom(ctx.workspaceId));
     registerChatEvents(io, socket);
     registerPresence(io, socket, ctx);
   });
 
   attachBus(io);
+  registerActivityRealtime();
 
   io.on('close', () => detachBus());
 

@@ -48,6 +48,8 @@ export const auditLookup = async <T>(lookup: () => Promise<T>): Promise<T | unde
 
 /** An entry as it was written, handed to activity listeners. */
 export interface RecordedActivity extends ActivityInput {
+  // Needed by the socket push so the client can advance its cursor past this exact entry
+  _id?: Id;
   workspace: Id;
   actor?: Id;
   createdAt: Date;
@@ -101,7 +103,7 @@ export const recordActivity = async (req: Request, input: ActivityInput): Promis
       userAgent: req.get('user-agent')?.slice(0, 200),
     });
     if (listeners.length > 0) {
-      await notifyListeners(req, { ...input, workspace, actor: req.user?._id as Id | undefined, createdAt: entry.createdAt });
+      await notifyListeners(req, { ...input, _id: entry._id as Id, workspace, actor: req.user?._id as Id | undefined, createdAt: entry.createdAt });
     }
   } catch (error) {
     console.error('recordActivity error:', (error as Error).message);

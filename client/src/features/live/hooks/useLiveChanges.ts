@@ -5,6 +5,8 @@ import { liveApi } from '../api';
 import { setLiveState, publishBatch, resetLiveStore, subscribeIncoming } from '../lib/liveStore';
 import { planRefresh, withoutOwn } from '../lib/merge';
 import { createPoller } from '../lib/poller';
+import { connectWorkspaceSocket } from '../lib/socket';
+import type { LiveChange } from '../types';
 
 /** Identifies this hook's refreshes of the bell, so the bell does not refetch twice. */
 const NOTIFICATION_SOURCE = { source: 'live-changes' };
@@ -53,6 +55,40 @@ export const useLiveChanges = (slug: string | undefined, { enabled = true, selfI
       onState: setLiveState,
     });
 
+    // The socket push and the poller must feed the caches identically
+    const publish = (changes: LiveChange[], reset: boolean) => {
+      if (changes.length > 0 || reset) publishBatch({ slug, changes, reset });
+    };
+
+    let firstSocketConnect = true;
+    const socket = connectWorkspaceSocket(slug, {
+      onActivity: push => {
+        // The push carries its own cursor, so a reconnect can resume exactly after it
+        cursor = push.cursor;
+        publish(withoutOwn([push.change], selfRef.current), false);
+      },
+      onConnected: () => {
+        setLiveState('live', Date.now());
+        if (firstSocketConnect) {
+          // The first connection is the starting point, not a gap to replay
+          firstSocketConnect = false;
+          return;
+        }
+        // Replay what was missed while the socket was down (spec NFR-015)
+        void liveApi.changes(slug, cursor)
+          .then(result => {
+            cursor = result.cursor;
+            publish(withoutOwn(result.changes ?? [], selfRef.current), Boolean(result.reset));
+          })
+          .catch(() => poller.pollNow());
+      },
+      onDisconnected: () => {
+        // Degraded, not broken: the poller keeps the screen current until the socket returns
+        setLiveState('reconnecting', null);
+        poller.pollNow();
+      },
+    });
+
     // The bell shows what others did to me (assignments, comments): refetch it as soon as such changes arrive
     const stopBell = subscribeIncoming(batch => {
       if (planRefresh(batch).notifications) announceNotificationsChanged(NOTIFICATION_SOURCE);
@@ -81,6 +117,7 @@ export const useLiveChanges = (slug: string | undefined, { enabled = true, selfI
     poller.start();
 
     return () => {
+      socket.close();
       poller.stop();
       stopBell();
       for (const name of ACTIVITY_EVENTS) window.removeEventListener(name, onActivity);
