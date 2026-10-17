@@ -1,4 +1,4 @@
-import { AtSign, CheckCircle2, MessageSquare, UserPlus, type LucideIcon } from 'lucide-react';
+import { AtSign, CheckCircle2, MessageSquare, MessagesSquare, UserPlus, type LucideIcon } from 'lucide-react';
 import { formatRelativeTime } from '@/features/tasks/lib/date';
 import { cn } from 'cn';
 import { notificationSentence } from '../lib/format';
@@ -9,6 +9,7 @@ const ICONS: Record<NotificationType, { icon: LucideIcon; tile: string }> = {
   'task.completed': { icon: CheckCircle2, tile: 'bg-success-bg text-success-fg' },
   'comment.mention': { icon: AtSign, tile: 'bg-violet-50 text-violet-700' },
   'comment.reply_on_my_task': { icon: MessageSquare, tile: 'bg-slate-100 text-slate-700' },
+  'chat.mention': { icon: MessagesSquare, tile: 'bg-violet-50 text-violet-700' },
 };
 
 export interface NotificationRowProps {

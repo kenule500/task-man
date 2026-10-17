@@ -43,6 +43,7 @@ type Populated = {
   createdAt: Date;
   actor: { _id: unknown; name: string; avatarUrl?: string } | null;
   task: { _id: mongoose.Types.ObjectId; title: string; number?: number; project?: string } | null;
+  channel: { _id: mongoose.Types.ObjectId; name: string } | null;
   workspace: { _id: mongoose.Types.ObjectId; slug: string; name: string } | null;
 };
 
@@ -75,6 +76,7 @@ export const listNotifications = async (req: Request, res: Response): Promise<vo
         .limit(limit + 1)
         .populate('actor', 'name avatarUrl')
         .populate('task', 'title number project')
+        .populate('channel', 'name')
         .populate('workspace', 'slug name')
         .lean(),
       Notification.countDocuments({ ...scope, readAt: null }),
@@ -111,6 +113,8 @@ export const listNotifications = async (req: Request, res: Response): Promise<vo
       task: row.task
         ? { _id: row.task._id, title: row.task.title, number: row.task.number ?? null, key: keyFor(row) }
         : null,
+      // Chat notifications have no task: the channel is what the client opens
+      channel: row.channel ? { _id: row.channel._id, name: row.channel.name } : null,
       workspace: row.workspace ? { _id: row.workspace._id, slug: row.workspace.slug, name: row.workspace.name } : null,
     }));
 

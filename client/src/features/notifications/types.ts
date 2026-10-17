@@ -2,18 +2,21 @@ export type NotificationType =
   | 'task.assigned'
   | 'task.completed'
   | 'comment.mention'
-  | 'comment.reply_on_my_task';
+  | 'comment.reply_on_my_task'
+  | 'chat.mention';
 
 export interface AppNotification {
   _id: string;
   type: NotificationType;
-  /** Task title when the notification was created (still readable if the task is deleted). */
+  /** Task title or message excerpt when the notification was created (readable if the subject is gone). */
   summary: string;
   readAt: string | null;
   createdAt: string;
   actor: { _id: string; name: string; avatarUrl?: string } | null;
-  /** Null once the task has been deleted. */
+  /** Null once the task has been deleted, and null for chat notifications. */
   task: { _id: string; title: string; number: number | null; key: string } | null;
+  /** Set for chat notifications, which have no task to open. */
+  channel?: { _id: string; name: string } | null;
   workspace: { _id: string; slug: string; name: string } | null;
 }
 
