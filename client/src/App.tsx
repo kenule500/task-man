@@ -36,6 +36,7 @@ const RoadmapPage = lazy(loaders.roadmap);
 const WorkloadPage = lazy(loaders.workload);
 const TimesheetPage = lazy(() => import('./pages/TimesheetPage'));
 const WikiPage = lazy(() => import('./pages/WikiPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
 const SprintReportPage = lazy(() => import('./pages/SprintReportPage'));
 const ReleasePage = lazy(() => import('./pages/ReleasePage'));
 const TeamMembersPage = lazy(loaders.team);
@@ -245,6 +246,24 @@ function App() {
                 element={
                   <PermissionRoute permission="tasks:read">
                     <Lazy><WikiPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
+              {/* Chat: requires chat:read; the channel id is optional and defaults to the first channel */}
+              <Route
+                path="/:workspaceSlug/chat"
+                element={
+                  <PermissionRoute permission="chat:read">
+                    <Lazy><ChatPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/:workspaceSlug/chat/:channelId"
+                element={
+                  <PermissionRoute permission="chat:read">
+                    <Lazy><ChatPage /></Lazy>
                   </PermissionRoute>
                 }
               />

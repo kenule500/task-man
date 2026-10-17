@@ -38,7 +38,8 @@ api.interceptors.response.use(
     }
 
     // The workspace requires two-factor authentication and this account has none: the layout shows a blocking screen
-    if (status === 403 && error?.response?.data?.code === 'TWO_FACTOR_REQUIRED') {
+    const payload = error?.response?.data as { code?: string } | undefined;
+    if (status === 403 && payload?.code === 'TWO_FACTOR_REQUIRED') {
       window.dispatchEvent(new Event(TWO_FACTOR_REQUIRED_EVENT));
     }
 

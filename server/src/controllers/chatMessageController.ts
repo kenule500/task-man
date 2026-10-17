@@ -15,7 +15,7 @@ import { clampPageSize, decodeMessageCursor, encodeMessageCursor, olderThanCurso
 import { MessageInput, parseMessageInput } from '../utils/chatValidation.js';
 import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
 import { loadChannelForCaller, permissionsOf, workspaceIdOf } from './chatChannelController.js';
-import { handleError, hasValidationErrors } from './taskController.js';
+import { handleError, hasValidationErrors, PUBLIC_USER_FIELDS } from './taskController.js';
 
 export class ChatRuleError extends Error {}
 
@@ -115,6 +115,9 @@ export const createMessageInChannel = async ({
     { _id: channel._id },
     { $set: { lastMessageAt: message.createdAt, lastMessageAuthor: authorId } },
   );
+
+  // The client renders the author's name and avatar, so they travel with the message
+  await message.populate('author', PUBLIC_USER_FIELDS);
 
   if (parentId) {
     await ChatMessage.updateOne(
@@ -234,6 +237,7 @@ export const listMessages = async (req: Request, res: Response): Promise<void> =
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .select('-workspace -__v')
+      .populate('author', PUBLIC_USER_FIELDS)
       .lean();
 
     const hasMore = rows.length > limit;
@@ -269,6 +273,7 @@ export const listReplies = async (req: Request, res: Response): Promise<void> =>
       .sort({ createdAt: 1, _id: 1 })
       .limit(200)
       .select('-workspace -__v')
+      .populate('author', PUBLIC_USER_FIELDS)
       .lean();
 
     res.status(200).json({
@@ -545,6 +550,7 @@ export const listPinned = async (req: Request, res: Response): Promise<void> => 
       .sort({ pinnedAt: -1 })
       .limit(50)
       .select('-workspace -__v')
+      .populate('author', PUBLIC_USER_FIELDS)
       .lean();
 
     res.status(200).json({ pinned: rows });
@@ -582,6 +588,7 @@ export const searchMessages = async (req: Request, res: Response): Promise<void>
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .select('-workspace -__v')
+      .populate('author', PUBLIC_USER_FIELDS)
       .lean();
 
     const hasMore = rows.length > limit;

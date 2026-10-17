@@ -108,6 +108,30 @@ export const validateStartDirect = [
 ];
 
 /**
+ * @desc    Members the caller can mention or message: id, name and avatar only
+ * @route   GET /api/workspaces/:slug/chat/members
+ * Scoped to chat:read so a Viewer can mention people without holding users:read.
+ */
+export const listChatMembers = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workspace = await Workspace.findById(workspaceIdOf(req))
+      .select('members.user')
+      .populate('members.user', 'name avatarUrl')
+      .lean();
+
+    const members = (workspace?.members ?? [])
+      .map(member => member.user as unknown as { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } | null)
+      .filter((user): user is { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } => Boolean(user))
+      .map(user => ({ _id: String(user._id), name: user.name ?? '', avatarUrl: user.avatarUrl ?? '' }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.status(200).json({ members });
+  } catch (error) {
+    handleError(res, error, 'listChatMembers');
+  }
+};
+
+/**
  * @desc    Open (or reuse) the direct conversation between the caller and one teammate
  * @route   POST /api/workspaces/:slug/chat/direct
  */

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { CheckSquare, FolderKanban, LayoutDashboard, Menu, Plus, type LucideIcon } from 'lucide-react';
+import { CheckSquare, FolderKanban, LayoutDashboard, Menu, MessageSquare, Plus, type LucideIcon } from 'lucide-react';
 import { cn } from 'cn';
 import { useSidebar } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -75,6 +75,11 @@ const MobileTabBar = ({ slug }: MobileTabBarProps) => {
         <li className="flex flex-1">
           {allowed('projects:read') && (
             <TabLink to={`${base}/projects`} label="Projects" icon={FolderKanban} active={isActive('projects')} />
+          )}
+        </li>
+        <li className="flex flex-1">
+          {allowed('chat:read') && (
+            <TabLink to={`${base}/chat`} label="Chat" icon={MessageSquare} active={isActive('chat')} />
           )}
         </li>
         <li className="flex flex-1">

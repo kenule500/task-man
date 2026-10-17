@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import {
   listChannels,
+  listChatMembers,
   startDirect,
   validateListChannels,
   validateStartDirect,
@@ -39,6 +40,8 @@ router.use(protect);
 
 // Channels
 router.get('/channels', requirePermission('chat:read'), validateListChannels, listChannels);
+// The mention menu and the direct-message picker need names; users:read is not required for chat
+router.get('/chat/members', requirePermission('chat:read'), listChatMembers);
 router.post('/chat/direct', requirePermission('chat:dm'), validateStartDirect, startDirect);
 
 // Attachments are served through a message the caller may read

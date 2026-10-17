@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import SidebarProjects from '@/features/projects/components/SidebarProjects';
+import SidebarChannels from '@/features/chat/components/SidebarChannels';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import CommandPalette from './CommandPalette';
 import MobileTabBar from './MobileTabBar';
@@ -323,6 +324,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             permissionsLoading={permissionsLoading}
           />
           <SidebarProjects slug={targetSlug} canRead={!permissionsLoading && can('projects:read')} />
+          {/* Chat channels sit between the main navigation and General, as in the product mock */}
+          <SidebarChannels />
           <NavGroup
             label="General"
             items={navGeneral}
