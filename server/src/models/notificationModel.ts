@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 // What happened to the recipient, named "<subject>.<event>"
 export const NOTIFICATION_TYPES = [
   'task.assigned', 'task.completed', 'comment.mention', 'comment.reply_on_my_task',
+  'chat.mention',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -18,8 +19,11 @@ export interface INotification extends Document {
   // Who caused it
   actor: mongoose.Types.ObjectId;
   type: NotificationType;
-  task: mongoose.Types.ObjectId;
-  // Task title at the time (kept readable if the task is renamed or deleted)
+  // Task notifications carry the task; chat notifications carry the channel and message instead
+  task?: mongoose.Types.ObjectId | null;
+  channel?: mongoose.Types.ObjectId | null;
+  message?: mongoose.Types.ObjectId | null;
+  // Task title or message excerpt (kept readable if the subject is renamed or deleted)
   summary: string;
   readAt?: Date | null;
   createdAt: Date;
@@ -30,7 +34,9 @@ const notificationSchema = new Schema<INotification>({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
   actor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   type: { type: String, enum: NOTIFICATION_TYPES, required: true },
-  task: { type: Schema.Types.ObjectId, ref: 'Task', required: true },
+  task: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+  channel: { type: Schema.Types.ObjectId, ref: 'ChatChannel', default: null },
+  message: { type: Schema.Types.ObjectId, ref: 'ChatMessage', default: null },
   summary: { type: String, default: '', maxlength: MAX_NOTIFICATION_SUMMARY },
   readAt: { type: Date, default: null },
 }, { timestamps: { createdAt: true, updatedAt: false } });

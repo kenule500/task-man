@@ -65,6 +65,7 @@ import {
 } from '../controllers/integrationController.js';
 import taskRoutes from './taskRoutes.js';
 import projectRoutes from './projectRoutes.js';
+import chatRoutes from './chatRoutes.js';
 
 const router: Router = express.Router();
 
@@ -253,5 +254,8 @@ router.use('/:slug/changes', changeRoutes);
 
 // Workspace-scoped projects and their sprints
 router.use('/:slug/projects', projectRoutes);
+
+// Chat: /channels and /chat/* (declares its own full paths, so it is mounted on the slug)
+router.use('/:slug', chatRoutes);
 
 export default router;

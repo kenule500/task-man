@@ -9,6 +9,7 @@ export const ACTIVITY_ACTIONS = [
   'role.created', 'role.updated', 'role.deleted', 'task.comment_deleted', 'invitation.sent', 'invitation.cancelled',
   'workspace.updated', 'workspace.invite_code_regenerated', 'audit.exported', 'integration.updated',
   'task.duplicated', 'automation.created', 'automation.updated', 'automation.deleted', 'automation.ran',
+  'chat.message_deleted',
   'workflow.updated', 'webhook.created', 'webhook.updated', 'webhook.deleted', 'token.created', 'token.revoked',
   'time.logged', 'time.deleted', 'release.created', 'release.updated', 'release.deleted', 'release.released',
   'field.created', 'field.updated', 'field.deleted', 'import.completed',

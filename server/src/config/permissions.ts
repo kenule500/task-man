@@ -18,6 +18,11 @@ export const PERMISSIONS = {
 
   'reports:read':    { label: 'View analytics',          group: 'Reports' },
 
+  'chat:read':       { label: 'View channels and messages', group: 'Chat' },
+  'chat:write':      { label: 'Send, edit and pin messages', group: 'Chat' },
+  'chat:dm':         { label: 'Start direct messages',      group: 'Chat' },
+  'chat:moderate':   { label: 'Delete any message',         group: 'Chat' },
+
   'settings:manage': { label: 'Change workspace settings', group: 'Settings' },
 } as const;
 
@@ -44,6 +49,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'tasks:read', 'tasks:write', 'tasks:delete',
       'users:read', 'users:write',
       'reports:read',
+      'chat:read', 'chat:write', 'chat:dm', 'chat:moderate',
       'settings:manage',
     ],
   },
@@ -55,6 +61,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'tasks:read', 'tasks:write',
       'users:read',
       'reports:read',
+      'chat:read', 'chat:write', 'chat:dm',
     ],
   },
   {
@@ -65,6 +72,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'tasks:read', 'tasks:write',
       'users:read',
       'reports:read',
+      'chat:read', 'chat:write', 'chat:dm',
     ],
   },
   {
@@ -74,6 +82,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'projects:read',
       'tasks:read', 'tasks:write',
       'reports:read',
+      'chat:read', 'chat:write', 'chat:dm',
     ],
   },
   {
@@ -83,6 +92,7 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
       'projects:read',
       'tasks:read',
       'reports:read',
+      'chat:read',
     ],
   },
 ];
@@ -100,6 +110,7 @@ export const deriveActions = (permissions: string[]): string[] => {
     if (action === 'write')  { actions.add('create'); actions.add('update'); }
     if (action === 'delete') actions.add('delete');
     if (action === 'manage') actions.add('manage');
+    if (action === 'moderate') actions.add('moderate');
   }
   return Array.from(actions);
 };

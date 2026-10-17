@@ -111,12 +111,24 @@ const apiLimiter = rateLimit({
   message: limitMessage,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: isLivePoll,
+  skip: (req: Request) => isLivePoll(req) || isChatRequest(req),
 });
 
 const liveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Math.max(config.rateLimitMax * 4, 2000),
+  message: limitMessage,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Chat sends, history pages and read markers are frequent and small; they get their own budget so an
+// active conversation in one workspace does not starve the rest of the API for that IP address
+const isChatRequest = (req: Request) => /^\/api\/workspaces\/[^/]+\/(chat|channels)(\/|$)/.test(req.originalUrl.split('?')[0]);
+
+const chatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Math.max(config.rateLimitMax * 3, 1500),
   message: limitMessage,
   standardHeaders: true,
   legacyHeaders: false,
@@ -137,7 +149,11 @@ app.use(
     '/api/workspaces/join', '/api/invitations', '/api/profile/password', '/api/auth/login/2fa', '/api/profile/2fa'],
   (req, res, next) => (req.method === 'GET' ? next() : sensitiveLimiter(req, res, next)),
 );
-app.use('/api', (req, res, next) => (isLivePoll(req) ? liveLimiter(req, res, next) : next()));
+app.use('/api', (req, res, next) => {
+  if (isLivePoll(req)) return liveLimiter(req, res, next);
+  if (isChatRequest(req)) return chatLimiter(req, res, next);
+  return next();
+});
 app.use('/api', apiLimiter);
 
 // ============================================================

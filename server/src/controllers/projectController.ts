@@ -14,6 +14,7 @@ import Page from '../models/pageModel.js';
 import PageVersion from '../models/pageVersionModel.js';
 import CustomField from '../models/customFieldModel.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
+import { archiveProjectChannel, createProjectChannel } from './chatChannelController.js';
 import { TaskRuleError, handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
 // Tasks store their project by name; matching ignores case like the unique index does
@@ -184,6 +185,11 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
       createdBy: req.user?._id,
     });
     await recordActivity(req, { action: 'project.created', summary: project.name, project: project._id as mongoose.Types.ObjectId });
+    // Every project has one chat channel; creating it here keeps the two lifecycles together
+    await createProjectChannel(workspaceIdOf(req), {
+      _id: project._id as mongoose.Types.ObjectId,
+      name: project.name,
+    });
     res.status(201).json({ ...project.toObject(), nameKey: undefined, sprints: [] });
   } catch (error) {
     respondError(res, error, 'createProject');
@@ -261,6 +267,9 @@ export const deleteProject = async (req: Request, res: Response): Promise<void> 
       await Page.deleteMany({ _id: { $in: pageIds } });
     }
     await project.deleteOne();
+
+    // The project's conversation goes read-only but keeps its history; message rows are never removed here
+    await archiveProjectChannel(project.workspace as mongoose.Types.ObjectId, project._id as mongoose.Types.ObjectId);
 
     await recordActivity(req, { action: 'project.deleted', summary: project.name, project: project._id as mongoose.Types.ObjectId });
     res.status(200).json({ message: 'Project deleted', id: String(project._id) });

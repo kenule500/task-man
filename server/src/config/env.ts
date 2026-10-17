@@ -17,6 +17,8 @@ export interface AppConfig {
   rateLimitMax: number;
   /** Number of reverse proxies in front of the API (Render, Railway, Nginx...) */
   trustProxy: number;
+  /** How long chat messages are kept before they are purged */
+  chatRetentionDays: number;
 }
 
 export interface ConfigCheck {
@@ -49,6 +51,7 @@ export const readConfig = (source: NodeJS.ProcessEnv): ConfigCheck => {
     corsOrigins: corsOrigins.length > 0 ? corsOrigins : [clientUrl],
     rateLimitMax: Number(source.RATE_LIMIT_MAX) || 500,
     trustProxy: Number(source.TRUST_PROXY) || 0,
+    chatRetentionDays: Number(source.CHAT_RETENTION_DAYS) || 365,
   };
 
   const errors: string[] = [];
