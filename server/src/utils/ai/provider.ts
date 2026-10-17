@@ -1,7 +1,8 @@
 import OpenAI from 'openai';
+import type { z } from 'zod';
 import { readAiConfig } from './config.js';
 import { buildMessages, buildRepairMessages, type ChatMessage } from './prompt.js';
-import { parseModelOutput } from './schema.js';
+import { parseJsonWith, parseModelOutput } from './schema.js';
 import { AiReviewError, type ReviewModelInput, type ReviewModelResult } from './types.js';
 
 // The only place that talks to the model. Today that is Alibaba Cloud Model Studio (DashScope) through its
@@ -12,6 +13,13 @@ export const MAX_HTTP_RETRIES = 2;
 /** Stop starting new attempts after this long, so the whole review fits in the function's time limit. */
 const TOTAL_BUDGET_MS = 240_000;
 const MAX_OUTPUT_TOKENS = 4096;
+
+/** Per-call limits: the review keeps the defaults, a generated plan needs a longer answer and more time. */
+interface CallLimits {
+  maxTokens: number;
+  timeoutMs: number;
+}
+const REVIEW_LIMITS: CallLimits = { maxTokens: MAX_OUTPUT_TOKENS, timeoutMs: REQUEST_TIMEOUT_MS };
 
 /** The slice of the OpenAI client this module uses (so tests can pass a fake). */
 export interface ChatClient {
@@ -27,7 +35,7 @@ export interface ChatClient {
         },
         options: { timeout: number; maxRetries: number },
       ): Promise<{
-        choices: { message: { content: string | null } }[];
+        choices: { message: { content: string | null }; finish_reason?: string | null }[];
         usage?: { prompt_tokens?: number; completion_tokens?: number } | null;
         model?: string;
       }>;
@@ -74,6 +82,8 @@ export const describeProviderError = (error: unknown): AiReviewError => {
 
 interface Completion {
   content: string;
+  /** `length` = the answer was cut off at the token limit. */
+  finishReason: string;
   inputTokens: number;
   outputTokens: number;
 }
@@ -85,6 +95,8 @@ const complete = async (
   messages: ChatMessage[],
   started: number,
   options: Required<Pick<ProviderOptions, 'sleep' | 'now'>>,
+  limits: CallLimits = REVIEW_LIMITS,
+  budgetMs: number = TOTAL_BUDGET_MS,
 ): Promise<Completion> => {
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -93,17 +105,18 @@ const complete = async (
         messages,
         response_format: { type: 'json_object' },
         temperature: 0.1,
-        max_tokens: MAX_OUTPUT_TOKENS,
-      }, { timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 });
+        max_tokens: limits.maxTokens,
+      }, { timeout: limits.timeoutMs, maxRetries: 0 });
       const content = response.choices?.[0]?.message?.content;
       if (typeof content !== 'string' || content.trim() === '') throw new AiReviewError('The AI provider returned an empty answer. Try again.', 'AI_EMPTY');
       return {
         content,
+        finishReason: response.choices?.[0]?.finish_reason ?? '',
         inputTokens: response.usage?.prompt_tokens ?? 0,
         outputTokens: response.usage?.completion_tokens ?? 0,
       };
     } catch (error) {
-      const outOfTime = options.now() - started > TOTAL_BUDGET_MS;
+      const outOfTime = options.now() - started > budgetMs;
       if (!isRetryable(error) || attempt >= MAX_HTTP_RETRIES || outOfTime) throw describeProviderError(error);
       await options.sleep(attempt === 0 ? 2000 : 6000);
     }
@@ -137,6 +150,68 @@ export const reviewWithModel = async (input: ReviewModelInput, options: Provider
     parsed = parseModelOutput(completion.content);
   }
   if (!parsed.ok) throw new AiReviewError('The AI provider did not return a usable review twice in a row. Try again.', 'AI_INVALID_OUTPUT');
+
+  return { output: parsed.output, model: config.model, usage };
+};
+
+// ----------------------------------------------------------------
+// Any JSON answer (used by the project plan generator)
+// ----------------------------------------------------------------
+export interface GenerateOptions extends ProviderOptions {
+  maxTokens?: number;
+  /** Time one request may take. */
+  timeoutMs?: number;
+  /** Time the whole call may take, retries included (the function limit minus a margin). */
+  hardLimitMs?: number;
+}
+
+export interface GenerateResult<T> {
+  output: T;
+  model: string;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
+const CUT_OFF_HINT = 'The answer was cut off because it was too long. Return a shorter complete JSON object: fewer items, shorter text, at most 3 acceptance criteria per item.';
+
+/**
+ * Asks the model for a JSON object and returns it validated and cleaned by `schema` (zod). When the answer does not
+ * match, the model is told what was wrong and gets one more try, as long as the time budget allows.
+ * Throws `AiReviewError` (safe message) when no valid answer could be obtained.
+ */
+export const generateJson = async <S extends z.ZodType>(
+  schema: S,
+  messages: ChatMessage[],
+  options: GenerateOptions = {},
+): Promise<GenerateResult<z.output<S>>> => {
+  const config = readAiConfig();
+  if (!config.available && !options.client) throw new AiReviewError('The AI features are not configured on this server.', 'AI_DISABLED');
+
+  const client = options.client ?? createClient();
+  const runtime = { sleep: options.sleep ?? defaultSleep, now: options.now ?? Date.now };
+  const started = runtime.now();
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const hardLimitMs = options.hardLimitMs ?? 285_000;
+  const limits: CallLimits = { maxTokens: options.maxTokens ?? MAX_OUTPUT_TOKENS, timeoutMs };
+  const usage = { inputTokens: 0, outputTokens: 0 };
+
+  // A retry after a transport error may only start when a whole request still fits
+  let completion = await complete(client, config.model, messages, started, runtime, limits, Math.max(0, hardLimitMs - timeoutMs));
+  usage.inputTokens += completion.inputTokens;
+  usage.outputTokens += completion.outputTokens;
+
+  let parsed = parseJsonWith(schema, completion.content);
+  if (!parsed.ok) {
+    const remaining = hardLimitMs - (runtime.now() - started);
+    if (remaining > 30_000) {
+      const problem = completion.finishReason === 'length' ? CUT_OFF_HINT : parsed.problem;
+      const repairLimits: CallLimits = { ...limits, timeoutMs: Math.min(timeoutMs, remaining - 5000) };
+      completion = await complete(client, config.model, buildRepairMessages(messages, completion.content, problem), started, runtime, repairLimits, 0);
+      usage.inputTokens += completion.inputTokens;
+      usage.outputTokens += completion.outputTokens;
+      parsed = parseJsonWith(schema, completion.content);
+    }
+  }
+  if (!parsed.ok) throw new AiReviewError('The AI provider did not return a usable answer twice in a row. Try again, or use a shorter document.', 'AI_INVALID_OUTPUT');
 
   return { output: parsed.output, model: config.model, usage };
 };

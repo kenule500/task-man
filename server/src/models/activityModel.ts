@@ -14,7 +14,7 @@ export const ACTIVITY_ACTIONS = [
   'field.created', 'field.updated', 'field.deleted', 'import.completed',
   'page.created', 'page.updated', 'page.deleted',
   'chat.channel_created', 'chat.channel_updated', 'chat.channel_deleted',
-  'ai.review_completed', 'ai.settings_updated',
+  'ai.review_completed', 'ai.settings_updated', 'ai.plan_created',
 ] as const;
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

@@ -1,0 +1,288 @@
+{
+  "page": {
+    "title": "Create a project from a document",
+    "description": "Upload a requirements document and let AI draft the whole project: sprints, tasks, subtasks and acceptance criteria. You review and edit the plan before anything is created.",
+    "back": "Back to projects",
+    "stepsLabel": "Progress",
+    "noAccessTitle": "You cannot create projects with AI",
+    "noAccessBody": "Creating a project and its tasks needs permission to edit projects and tasks. Ask an owner or admin of this workspace.",
+    "loading": "Loading your plan",
+    "created": "Project “{{name}}” created",
+    "createdBody": "{{tasks}} tasks in {{sprints}} sprints are ready."
+  },
+  "steps": {
+    "upload": "Upload",
+    "analyze": "Analyze",
+    "review": "Review",
+    "create": "Create"
+  },
+  "card": {
+    "title": "Create with AI",
+    "hint": "From a PDF, Word or text document"
+  },
+  "edit": {
+    "hint": "Press Enter to save or Escape to cancel.",
+    "hintMultiline": "Press Ctrl+Enter to save or Escape to cancel.",
+    "empty": "Click to add text",
+    "edit": "(edit {{label}})"
+  },
+  "list": {
+    "count": "{{count}} of {{max}}",
+    "empty": "Nothing here yet.",
+    "full": "Limit of {{max}} reached"
+  },
+  "criteria": {
+    "title": "Acceptance criteria",
+    "rowLabel": "Criterion {{number}} of {{task}}",
+    "remove": "Remove criterion {{number}} of {{task}}",
+    "add": "Add a criterion",
+    "missing_one": "{{count}} task has no acceptance criteria yet. Add some so people know when it is done.",
+    "missing_other": "{{count}} tasks have no acceptance criteria yet. Add some so people know when they are done.",
+    "listLabel": "Acceptance criteria by task"
+  },
+  "subtasks": {
+    "title": "Subtasks",
+    "empty": "No subtasks.",
+    "rowLabel": "Subtask {{number}} of {{task}}",
+    "criteriaToggle": "Acceptance criteria of subtask {{number}} ({{count}})",
+    "remove": "Remove subtask {{number}} of {{task}}",
+    "criteriaTitle": "Subtask criteria",
+    "newTitle": "New subtask",
+    "add": "Add a subtask",
+    "full": "Subtask limit reached",
+    "listLabel": "Subtasks by task"
+  },
+  "item": {
+    "notEstimated": "Not estimated",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "titleLabel": "title of {{title}}",
+    "pointsLabel": "Story points of {{title}}",
+    "priorityLabel": "Priority of {{title}}",
+    "moveLabel": "Sprint of {{title}}",
+    "subtasksCount_one": "{{count}} subtask",
+    "subtasksCount_other": "{{count}} subtasks",
+    "criteriaCount_one": "{{count}} acceptance criterion",
+    "criteriaCount_other": "{{count}} acceptance criteria",
+    "remove": "Delete {{title}}",
+    "hideDetails": "Hide details of {{title}}",
+    "showDetails": "Show details of {{title}}",
+    "description": "Description",
+    "descriptionLabel": "description of {{title}}",
+    "noDescription": "No description",
+    "type": "Type",
+    "typeLabel": "Type of {{title}}",
+    "sprint": "Sprint",
+    "newTitle": "New task",
+    "add": "Add a task to {{name}}"
+  },
+  "sprint": {
+    "backlog": "Backlog",
+    "backlogHint": "Work that does not fit in a sprint yet. Move a task here to plan it later.",
+    "unnamed": "Sprint {{number}}",
+    "collapse": "Collapse {{name}}",
+    "expand": "Expand {{name}}",
+    "nameLabel": "name of {{name}}",
+    "goalLabel": "goal of {{name}}",
+    "noGoal": "No goal",
+    "week": "Week {{number}}",
+    "weeks": "Weeks {{from}}–{{to}}",
+    "tasks_one": "{{count}} task",
+    "tasks_other": "{{count}} tasks",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "empty": "No tasks here. Add one, or move a task into this sprint.",
+    "itemsLabel": "Tasks of {{name}}"
+  },
+  "tasks": {
+    "emptyTitle": "No tasks left",
+    "emptyBody": "The plan needs at least one task. Add one, or regenerate the plan.",
+    "listLabel": "All tasks",
+    "add": "Add a task to the backlog",
+    "full": "Task limit reached"
+  },
+  "header": {
+    "label": "Generated project",
+    "nameLabel": "project name",
+    "ready": "Ready",
+    "descriptionLabel": "project description",
+    "noDescription": "No description",
+    "key": "Key",
+    "keyLabel": "project key",
+    "keyInvalid": "The key must be 2 to 6 letters or digits.",
+    "source": "From {{name}} ({{size}})",
+    "stats": {
+      "sprints": "Sprints",
+      "tasks": "Tasks",
+      "subtasks": "Subtasks",
+      "criteria": "Criteria",
+      "points": "Points"
+    }
+  },
+  "notes": {
+    "label": "Assumptions and risks",
+    "assumptions": "Assumptions",
+    "risks": "Risks",
+    "noAssumptions": "The AI listed no assumptions.",
+    "noRisks": "The AI listed no risks."
+  },
+  "review": {
+    "partialTitle": "Only part of the document was analysed",
+    "partialBody": "The document is long ({{chars}} characters), so the middle was left out. The plan covers the beginning and the section headings. Check that nothing important is missing, or split the document and upload the parts separately.",
+    "hint": "Read the plan, then change what you need: click a title, points or priority to edit it, move a task to another sprint, or delete and add tasks. Nothing is created until you press Create.",
+    "nameTakenTitle": "A project with this name already exists",
+    "keyTakenTitle": "This project key is already used",
+    "useName": "Use “{{value}}”",
+    "useKey": "Use {{value}}",
+    "createFailedTitle": "The project was not created",
+    "problemsTitle_one": "{{count}} thing to fix before you can create the project",
+    "problemsTitle_other": "{{count}} things to fix before you can create the project",
+    "problems": {
+      "projectName": "The project needs a name.",
+      "projectKey": "The project key must be 2 to 6 letters or digits.",
+      "noItems": "The plan needs at least one task.",
+      "sprintName": "Sprint {{number}} needs a name.",
+      "itemTitle": "Every task needs a title.",
+      "subtaskTitle": "Every subtask needs a title.",
+      "criterion": "A criterion is empty."
+    },
+    "discard": "Discard",
+    "regenerate": "Regenerate",
+    "regenerateUnavailable": "The document is no longer in this tab. Discard the plan and upload it again.",
+    "creating": "Creating the project…",
+    "create_one": "Create project ({{count}} task)",
+    "create_other": "Create project ({{count}} tasks)",
+    "tabsLabel": "Parts of the plan",
+    "tabs": {
+      "sprints": "Sprints",
+      "tasks": "Tasks",
+      "subtasks": "Subtasks",
+      "criteria": "Acceptance criteria"
+    },
+    "removed": "Deleted “{{title}}”",
+    "undo": "Undo",
+    "confirmRegenerateTitle": "Generate the plan again?",
+    "confirmRegenerateBody": "Your edits are lost and the document is sent to the AI provider again. It counts toward the daily limit.",
+    "confirmDiscardTitle": "Discard this plan?",
+    "confirmDiscardBody": "Your edits are lost. Nothing has been created."
+  },
+  "upload": {
+    "cannotStart": "We could not start the analysis",
+    "openRunning": "Open it",
+    "documentTitle": "Requirements document",
+    "dropTitle": "Drop your document here, or choose a file",
+    "dropHint": "PDF, Word (.docx), text or Markdown, up to {{size}}",
+    "removeFile": "Remove {{name}}",
+    "fileProblem": {
+      "type": "This file type is not supported. Upload a PDF, DOCX, TXT or Markdown file.",
+      "doc": "Old Word files (.doc) are not supported. Save the document as .docx or PDF and try again.",
+      "empty": "This file is empty.",
+      "size": "This file is too large. The limit is {{size}}."
+    },
+    "optionsTitle": "Options",
+    "optionsHint": "All optional. The AI chooses a name, a key and the number of sprints when you leave them empty.",
+    "projectName": "Project name",
+    "projectNameHint": "Leave empty to let the AI name it.",
+    "projectKey": "Project key",
+    "projectKeyHint": "2 to 6 letters or digits, for task references like WEB-12.",
+    "sprintLength": "Sprint length",
+    "weeks_one": "{{count}} week",
+    "weeks_other": "{{count}} weeks",
+    "startDate": "First sprint starts",
+    "startDateHint": "Defaults to next Monday.",
+    "startDatePast": "Choose today or a later day.",
+    "teamSize": "Team size",
+    "teamSizeHint": "Used to size the sprints. Defaults to 4 people.",
+    "language": "Language of the plan",
+    "languageHint": "Titles, descriptions and criteria are written in this language.",
+    "notes": "Extra instructions",
+    "notesHint": "For example “mobile first” or “skip the admin area”. {{count}} of {{max}} characters.",
+    "needFile": "Choose a document to continue.",
+    "uploading": "Uploading…",
+    "submit": "Analyze document"
+  },
+  "notice": {
+    "title": "What happens to your document",
+    "body": "The text of your document is sent to Alibaba Cloud Model Studio, the AI provider this workspace uses, to build the plan. Nothing is sent until you press Analyze, and only when an administrator has turned AI on for this workspace.",
+    "sent": "Sent to the provider: the text of the document and your options. Pictures are not read.",
+    "stored": "Kept by TaskMan: the file name, its size, the first 2,000 characters as a preview and the plan, for {{days}} days. The document itself is never stored.",
+    "untrusted": "Instructions written inside the document are treated as text to plan, not as commands.",
+    "checking": "Checking whether AI is available…",
+    "retry": "Try again",
+    "unavailableTitle": "AI is not set up on this server",
+    "unavailableBody": "An administrator of this TaskMan installation has to add an Alibaba Cloud Model Studio key first.",
+    "offTitle": "AI is turned off for this workspace",
+    "offBody": "Nothing leaves TaskMan until an owner or admin turns it on in the workspace settings.",
+    "openSettings": "Open workspace settings",
+    "askAdmin": "Ask an owner or admin to turn it on.",
+    "limitTitle": "Daily limit reached",
+    "limitBody": "This workspace has used its {{limit}} AI project plans for today. The limit resets at midnight UTC.",
+    "on": "AI is on for this workspace. {{used}} of {{limit}} project plans used today."
+  },
+  "recent": {
+    "title": "Continue where you left off",
+    "status": {
+      "ready": "Ready to review",
+      "working": "Still being analyzed"
+    },
+    "open": "Open"
+  },
+  "analyzing": {
+    "elapsed": "{{time}} elapsed",
+    "title": "The AI is building your project",
+    "stepsLabel": "Analysis progress",
+    "phase": {
+      "0": "Reading the document…",
+      "1": "Designing the sprints…",
+      "2": "Writing tasks and acceptance criteria…"
+    },
+    "steps": {
+      "read": "Reading the document",
+      "readHint": "Extracting the text and sending it to the AI.",
+      "design": "Designing sprints",
+      "designHint": "Grouping the work into sprints that fit your team.",
+      "write": "Writing tasks and acceptance criteria",
+      "writeHint": "Estimating, adding subtasks and testable criteria."
+    },
+    "truncated": "The document is long, so only the beginning and the section headings are analysed.",
+    "slowTitle": "This is taking longer than usual",
+    "slowBody": "You can keep waiting, or cancel and try a shorter document.",
+    "leave": "This usually takes one to two minutes. If you leave this page, come back to it from your browser history to pick the plan up.",
+    "cancel": "Cancel",
+    "cancelling": "Cancelling…"
+  },
+  "errors": {
+    "loadFailed": "We could not load the plan. Check your connection and try again.",
+    "gone": "This plan no longer exists. It may have been deleted or expired.",
+    "failed": "The analysis failed. Try again.",
+    "uploadFailed": "We could not upload the document. Check your connection and try again.",
+    "cancelFailed": "We could not cancel. Try again.",
+    "createFailed": "We could not create the project. Nothing was changed. Try again.",
+    "rateLimited": "Too many requests. Wait a few minutes and try again.",
+    "network": "We could not reach the server. Check your connection and try again.",
+    "codes": {
+      "FILE_TOO_LARGE": "The file is too large. Use a smaller file or split the document.",
+      "UNSUPPORTED_TYPE": "This file is not a PDF, DOCX, TXT or Markdown document, or it is damaged.",
+      "EMPTY_DOCUMENT": "No readable text was found. A scanned PDF needs text recognition (OCR) first.",
+      "UNREADABLE": "The document could not be read. It may be damaged or password protected.",
+      "AI_DISABLED": "AI is turned off for this workspace or not set up on this server.",
+      "PLAN_IN_PROGRESS": "A project is already being analyzed for you. Wait for it to finish or cancel it.",
+      "AI_DAILY_LIMIT": "This workspace has used all its AI project plans for today. Try again tomorrow.",
+      "NO_FILE": "Choose a document to upload.",
+      "BAD_UPLOAD": "The upload could not be read. Choose the file again."
+    },
+    "failure": {
+      "AI_AUTH": "The AI provider rejected the server key. Ask an administrator to check the configuration.",
+      "AI_RATE_LIMIT": "The AI provider is limiting requests or the account has no quota left. Try again later.",
+      "AI_BAD_REQUEST": "The AI provider refused the request, probably because the document is too long. Try a shorter document.",
+      "AI_UNAVAILABLE": "The AI provider is having problems. Try again in a few minutes.",
+      "AI_TIMEOUT": "The AI provider took too long to answer. Try again, or use a shorter document.",
+      "AI_UNREACHABLE": "The AI provider could not be reached. Try again later.",
+      "AI_EMPTY": "The AI provider returned an empty answer. Try again.",
+      "AI_INVALID_OUTPUT": "The AI did not return a usable plan twice in a row. Try again, or use a shorter document.",
+      "AI_DISABLED": "AI was turned off before the analysis started.",
+      "STALE": "The analysis did not finish and was stopped. Try again.",
+      "CANCELLED": "The analysis was cancelled."
+    }
+  }
+}

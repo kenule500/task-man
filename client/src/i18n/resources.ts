@@ -39,11 +39,14 @@ import arLanding from './locales/ar/landing.json';
 import enAi from './locales/en/ai.json';
 import frAi from './locales/fr/ai.json';
 import arAi from './locales/ar/ai.json';
+import enAiPlan from './locales/en/aiPlan.json';
+import frAiPlan from './locales/fr/aiPlan.json';
+import arAiPlan from './locales/ar/aiPlan.json';
 
 export const resources = {
-  en: { common: enCommon, nav: enNav, auth: enAuth, dashboard: enDashboard, settings: enSettings, landing: enLanding, tasks: enTasks, projects: enProjects, planning: enPlanning, reports: enReports, admin: enAdmin, ai: enAi, chat: enChat },
-  fr: { common: frCommon, nav: frNav, auth: frAuth, dashboard: frDashboard, settings: frSettings, landing: frLanding, tasks: frTasks, projects: frProjects, planning: frPlanning, reports: frReports, admin: frAdmin, ai: frAi, chat: frChat },
-  ar: { common: arCommon, nav: arNav, auth: arAuth, dashboard: arDashboard, settings: arSettings, landing: arLanding, tasks: arTasks, projects: arProjects, planning: arPlanning, reports: arReports, admin: arAdmin, ai: arAi, chat: arChat },
+  en: { common: enCommon, nav: enNav, auth: enAuth, dashboard: enDashboard, settings: enSettings, landing: enLanding, tasks: enTasks, projects: enProjects, planning: enPlanning, reports: enReports, admin: enAdmin, ai: enAi, aiPlan: enAiPlan, chat: enChat },
+  fr: { common: frCommon, nav: frNav, auth: frAuth, dashboard: frDashboard, settings: frSettings, landing: frLanding, tasks: frTasks, projects: frProjects, planning: frPlanning, reports: frReports, admin: frAdmin, ai: frAi, aiPlan: frAiPlan, chat: frChat },
+  ar: { common: arCommon, nav: arNav, auth: arAuth, dashboard: arDashboard, settings: arSettings, landing: arLanding, tasks: arTasks, projects: arProjects, planning: arPlanning, reports: arReports, admin: arAdmin, ai: arAi, aiPlan: arAiPlan, chat: arChat },
 } as const;
 
-export const NAMESPACES = ['common', 'nav', 'auth', 'dashboard', 'settings', 'landing', 'tasks', 'projects', 'planning', 'reports', 'admin', 'ai', 'chat'] as const;
+export const NAMESPACES = ['common', 'nav', 'auth', 'dashboard', 'settings', 'landing', 'tasks', 'projects', 'planning', 'reports', 'admin', 'ai', 'aiPlan', 'chat'] as const;

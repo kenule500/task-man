@@ -644,7 +644,8 @@
       "import": "Imports",
       "page": "Pages du wiki",
       "role": "Rôles",
-      "integration": "Intégrations"
+      "integration": "Intégrations",
+      "ai": "IA"
     },
     "fields": {
       "startDate": "date de début",
@@ -678,6 +679,7 @@
       "more": "+{{count}} de plus"
     },
     "sentence": {
+      "aiPlanCreated": "{{name}} a créé le projet {{subject}} à partir d’un document avec l’IA ({{tasks}} tâches)",
       "aTask": "une tâche",
       "aFile": "un fichier",
       "aSprint": "un sprint",
@@ -776,7 +778,8 @@
       "import_completed": "Import terminé",
       "page_created": "Page créée",
       "page_updated": "Page mise à jour",
-      "page_deleted": "Page supprimée"
+      "page_deleted": "Page supprimée",
+      "ai_plan_created": "Projet créé avec l’IA"
     }
   }
 }

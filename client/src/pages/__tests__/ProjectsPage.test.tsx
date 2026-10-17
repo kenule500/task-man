@@ -200,6 +200,19 @@ describe('ProjectsPage', () => {
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
+  it('offers "Create with AI" to people who can write both projects and tasks', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    const link = await screen.findByRole('link', { name: /Create with AI/ });
+    expect(link).toHaveAttribute('href', '/demo/projects/new/ai');
+  });
+
+  it('keeps "Create with AI" away from people who cannot create tasks', async () => {
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+    expect(screen.queryByRole('link', { name: /Create with AI/ })).not.toBeInTheDocument();
+  });
+
   it('explains an empty workspace and offers the first project', async () => {
     projects.list.mockResolvedValue([]);
     renderPage();

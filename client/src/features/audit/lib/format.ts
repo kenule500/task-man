@@ -1,7 +1,7 @@
 import {
   BookOpen, CheckCircle2, Copy, Download, FolderPlus, FolderX, GitPullRequest, KeyRound, LogOut, Mail, MailX, MessageSquare,
   MessageSquareX, Package, Paperclip, Pencil, Play, Plus, Rocket, Settings, ShieldCheck, ShieldX, Timer, Trash2, UserCog, UserMinus,
-  UserPlus, Webhook, Zap, type LucideIcon,
+  UserPlus, Webhook, Zap, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import { t } from '@/i18n';
 import { localeFormatter } from '@/i18n/format';
@@ -73,6 +73,7 @@ export const ACTION_STYLE: Record<string, Pick<ActionMeta, 'icon' | 'tone'>> = {
   'page.created': { icon: BookOpen, tone: 'success' },
   'page.updated': { icon: BookOpen, tone: 'primary' },
   'page.deleted': { icon: BookOpen, tone: 'danger' },
+  'ai.plan_created': { icon: Sparkles, tone: 'success' },
 };
 
 const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -179,6 +180,8 @@ export const describeEntry = (entry: AuditEntry): string => {
       return s('projectUpdated');
     case 'project.deleted':
       return s('projectDeleted');
+    case 'ai.plan_created':
+      return s('aiPlanCreated', { tasks: changeOf(entry, 'tasks')?.to ?? '0' });
     case 'sprint.created': {
       const [sprint, project] = summary.split(' · ');
       return project ? s('sprintCreatedIn', { sprint, project }) : s('sprintCreated', { sprint: sprint || t('settings:audit.sentence.aSprint') });

@@ -75,5 +75,10 @@
     "hours_other": "{{count}} hours ago",
     "days_one": "{{count}} day ago",
     "days_other": "{{count}} days ago"
+  },
+  "stepper": {
+    "complete": "completed",
+    "current": "current step",
+    "upcoming": "not started"
   }
 }

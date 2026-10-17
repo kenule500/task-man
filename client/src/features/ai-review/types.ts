@@ -63,6 +63,8 @@ export interface AiSettings {
   usedToday: number;
   /** Whether a GitHub token is saved. The token itself is never returned. */
   githubTokenSet: boolean;
+  /** Project plans generated from uploaded documents have their own daily limit and size limits. */
+  plan: { dailyLimit: number; usedToday: number; maxChars: number; maxBytes: number };
 }
 
 export interface AiSettingsPatch {

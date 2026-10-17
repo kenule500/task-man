@@ -91,6 +91,10 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - **AI code review**: an agent checks whether a ticket's linked GitHub pull request implements its acceptance criteria
   (Match, Partial or Mismatch, with evidence per criterion and code issues). Opt-in per workspace; see
   [AI code review](#ai-code-review-alibaba-cloud-model-studio--dashscope)
+- **Project from a document (AI)**: upload a requirements document (PDF, DOCX, TXT or Markdown) and the AI drafts the whole
+  project: sprints, tasks, subtasks and acceptance criteria. You review and edit the plan, then create everything in one step.
+  Same provider and opt-in as the code review; see
+  [Create a project from a document](#create-a-project-from-a-document-ai)
 - **Team chat**: real-time channels (#general, team and project channels, private channels), direct messages, @mentions
   that notify, unread badges, online status and typing indicators; works in English, French and Arabic (right to left).
   See [Team chat and realtime](#team-chat-and-realtime)
@@ -301,13 +305,68 @@ labelled **Partial review** (it can never be a Match). Up to 300 changed files a
 | `POST /api/workspaces/:slug/tasks/:id/ai-review` `{ prUrl? }` | `tasks:write` | Queue a review (`202`); `prUrl` must be `https://github.com/<owner>/<repo>/pull/<n>` |
 | `GET /api/workspaces/:slug/tasks/:id/ai-reviews` | `tasks:read` | Latest 10 reviews without the long parts |
 | `GET /api/workspaces/:slug/tasks/:id/ai-reviews/:reviewId` | `tasks:read` | One review with criteria and issues |
-| `GET /api/workspaces/:slug/ai` | `tasks:read` | `{ available, enabled, autoReview, model, dailyLimit, usedToday, githubTokenSet }` |
+| `GET /api/workspaces/:slug/ai` | `tasks:read` | `{ available, enabled, autoReview, model, dailyLimit, usedToday, githubTokenSet, plan: { dailyLimit, usedToday, maxChars, maxBytes } }` |
 | `PATCH /api/workspaces/:slug/ai` `{ enabled?, autoReview?, githubToken? }` | `settings:manage`, never an API token | Change settings; `githubToken: null` removes the token |
 
 **Costs.** Alibaba Cloud bills the key owner per input and output token of the chosen model; see the Model Studio price list for the
 current rates. A review sends the ticket, the pull request text and up to `AI_REVIEW_MAX_DIFF_CHARS` of diff (roughly 10,000 to
 40,000 input tokens for a large one) and receives about 1,000 to 3,000 tokens back. Every review records its token usage. Use
 `AI_REVIEW_DAILY_LIMIT`, `AI_REVIEW_MAX_DIFF_CHARS` and a smaller model to cap spend. Security notes are in [SECURITY.md](SECURITY.md#ai-code-review).
+
+## Create a project from a document (AI)
+
+Upload a requirements document and let the AI build the project: details, sprints sized to your team, epics, tasks with story
+points and priorities, subtasks for the bigger ones, and 2 to 6 testable acceptance criteria per task (Given/When/Then or checklist
+style), plus the assumptions it made and the risks it sees. You read the plan, edit what you want, and create everything in one step.
+It reuses the provider, key, model and workspace opt-in of the [AI code review](#ai-code-review-alibaba-cloud-model-studio--dashscope).
+
+**Using it.** *Projects > Create with AI* (or the command palette, Ctrl/Cmd+K, "Create project with AI"), needs `projects:write` and
+`tasks:write`.
+
+1. **Upload.** Drop a PDF, DOCX, TXT or Markdown file (up to 4 MB). Optional: project name and key, sprint length (1 to 4 weeks),
+   the day the first sprint starts (next Monday by default), team size, the language of the plan (English, French or Arabic; your
+   interface language by default) and up to 500 characters of extra instructions. The page says plainly that the document text is sent
+   to Alibaba Cloud Model Studio and links to the setting that turns AI on.
+2. **Analyze.** The API answers `202` and the generation continues on the server (`waitUntil` on Vercel, `maxDuration` 300 s). The
+   page polls, shows the phases and lets you cancel. The plan id is kept in the address (`?plan=`), so a reload or the back button
+   picks the plan up again, and *Continue where you left off* lists your recent plans.
+3. **Review.** A header card (name, key, description, Ready), then four tabs: **Sprints** (collapsible sections with dates, goal, week
+   range and their tasks), **Tasks** (all of them, with a sprint selector to move a task), **Subtasks** and **Acceptance criteria**.
+   Click a title, points or priority to change it, move tasks between sprints and the backlog, add or delete tasks (delete has Undo), edit
+   subtasks and criteria, or **Regenerate** (the document stays in the browser tab only for this). A banner says when the document was
+   too long and only the beginning and the section headings were analysed. Assumptions and risks are listed under the plan.
+4. **Create.** One all-or-nothing operation: the project, its sprints (planned, with the computed dates), epics, tasks with workspace
+   numbers (`KEY-n`), subtasks linked to their parents, criteria and estimates. If anything fails, everything written is taken back. A
+   project name or key that is already used answers `409` with a free suggestion. The audit log gets `project.created`,
+   `sprint.created` for each sprint and one `ai.plan_created` summary for the tasks.
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `AI_PLAN_DAILY_LIMIT` | `20` | Plan generations a workspace may start per UTC day (`429 AI_DAILY_LIMIT`). Separate from `AI_REVIEW_DAILY_LIMIT`; failures before the model is reached do not count, cancelled ones do |
+| `AI_PLAN_MAX_CHARS` | `60000` | Characters of the document sent to the model. A longer document keeps its beginning (about 70%) and the section headings of the rest, and the plan is marked partial |
+| `AI_PLAN_MAX_MB` | `4` | Largest upload. Vercel refuses request bodies above 4.5 MB before the API sees them, so keep it at 4 or below there |
+| `AI_PLAN_MAX_OUTPUT_TOKENS` | `8192` | Size of the model's answer. Raise it for models that allow more (more items fit); a plan holds at most 120 tasks |
+| `AI_PLAN_TIMEOUT_SECONDS` | `200` | Time the provider gets to answer (the function limit is 300 s, so a retry only happens when it still fits) |
+
+**API** (all under `/api/workspaces/:slug/ai/plans`)
+
+| Route | Permission | Purpose |
+|---|---|---|
+| `POST /` multipart: `file` and optional `projectName`, `projectKey`, `sprintLengthWeeks`, `startDate`, `teamSize`, `extraInstructions`, `language` | `projects:write` + `tasks:write` | Upload and queue (`202`). Errors: `503 AI_DISABLED` (no key, or AI off for the workspace), `413`, `415` (type checked by extension and first bytes), `422` (empty or unreadable), `429 AI_DAILY_LIMIT`, `409 PLAN_IN_PROGRESS` (one generation per person at a time) |
+| `GET /` | `projects:read` | Your latest 10 plans, without their content |
+| `GET /:id` | `projects:read`; the owner, or `settings:manage` | Status and, once `ready`, the plan (this is what the page polls) |
+| `PATCH /:id` `{ plan }` | owner; `projects:write` + `tasks:write` | Save your edits, validated with the same schema (`400 PLAN_INVALID`) |
+| `POST /:id/create` | owner; `projects:write` + `tasks:write` | Create the project (`201 { project, counts }`; `409` when it was already created or the name or key is taken) |
+| `DELETE /:id` | owner | Delete the plan; one still generating is cancelled (`204`) |
+
+**Limits.** At most 8 sprints, 12 epics, 120 tasks, 8 subtasks per task (300 in total), 6 criteria per task, 5 labels per task;
+estimates are Fibonacci values up to 13. The model proposes and the server decides: unknown types and priorities are corrected,
+estimates snapped to the scale, references checked, sprint dates computed from your start date and sprint length, and anything over
+a limit is dropped. A plan is deleted automatically after 30 days.
+
+**Reading files.** PDF text is read with `unpdf` (PDF.js without native code, so it runs in the Vercel function), DOCX text from
+`word/document.xml` with `jszip` and a small linear reader, TXT and Markdown as UTF-8. Scanned PDFs have no text and are refused
+with a hint to run OCR first; images inside documents are not read. Security notes are in [SECURITY.md](SECURITY.md#ai-project-from-a-document).
 
 ## Team chat and realtime
 

@@ -6,6 +6,7 @@ import AppShell from '@/components/AppShell';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Alert, EmptyState, PageHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
+import { AiProjectCard } from '@/features/ai-plan';
 import { Input } from '@/components/ui/input';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,8 @@ const ProjectsPage = () => {
   const { can } = usePermissions();
   const canWrite = can('projects:write');
   const canDelete = can('projects:delete');
+  // The AI plan creates a project and its tasks, so it needs both rights
+  const canCreateWithAi = canWrite && can('tasks:write');
 
   const projectsState = useProjects(workspaceSlug);
   const { projects } = projectsState;
@@ -179,6 +182,7 @@ const ProjectsPage = () => {
                 <ul aria-label={t('page.projectsList')} className={GRID}>
                   {active.map(renderCard)}
                   {canWrite && !searching && <NewProjectCard onClick={() => setForm({ mode: 'create' })} />}
+                  {canCreateWithAi && !searching && <AiProjectCard workspaceSlug={workspaceSlug ?? ''} />}
                 </ul>
               )}
 

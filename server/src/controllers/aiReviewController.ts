@@ -6,6 +6,8 @@ import Task from '../models/taskModel.js';
 import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import { recordActivity } from '../utils/activity.js';
 import { readAiConfig } from '../utils/ai/config.js';
+import { readPlanConfig } from '../utils/ai/plan/config.js';
+import { countPlansUsedToday } from '../utils/ai/plan/service.js';
 import { AiQueueError, countUsedToday, queueReview, runInBackground, runReview } from '../utils/ai/reviewService.js';
 import { encryptSecret } from '../utils/secretBox.js';
 
@@ -158,6 +160,8 @@ const settingsView = async (req: Request) => {
     dailyLimit: config.dailyLimit,
     usedToday: await countUsedToday(workspace._id as Id),
     githubTokenSet: Boolean(stored?.integrations?.github?.accessTokenEncrypted),
+    // Project plans generated from documents have their own daily limit
+    plan: { dailyLimit: readPlanConfig().dailyLimit, usedToday: await countPlansUsedToday(workspace._id as Id), maxChars: readPlanConfig().maxChars, maxBytes: readPlanConfig().maxBytes },
   };
 };
 

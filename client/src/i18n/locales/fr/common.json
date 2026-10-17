@@ -78,5 +78,10 @@
     "days_one": "il y a {{count}} jour",
     "days_many": "il y a {{count}} de jours",
     "days_other": "il y a {{count}} jours"
+  },
+  "stepper": {
+    "complete": "terminée",
+    "current": "étape en cours",
+    "upcoming": "pas commencée"
   }
 }
