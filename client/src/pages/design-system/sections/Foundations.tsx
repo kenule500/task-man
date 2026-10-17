@@ -79,7 +79,7 @@ const THEMES = [
 const ToneTables = () => (
   <div className="space-y-3">
     <div>
-      <SubHeading>Semantic tones</SubHeading>
+      <SubHeading>Semantic tones: usage and contrast</SubHeading>
       <p className="mt-1 max-w-3xl text-sm text-text-subtle">
         Neutral (slate), info, success, warning and danger are the five tones. Use the tokens, for example{' '}
         <code>bg-danger-bg text-danger-fg border-danger-border</code> or <code>bg-success-solid text-white</code>. Never use raw

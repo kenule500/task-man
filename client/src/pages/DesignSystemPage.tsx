@@ -56,7 +56,8 @@ const DesignSystemPage = () => {
 
   return (
     <GuidePreviewProvider>
-      <div className="min-h-screen bg-canvas text-text-body">
+      {/* The guide is written in English: it stays left to right in any app language; examples follow the preview language */}
+      <div lang="en" dir="ltr" className="relative min-h-screen overflow-x-clip bg-canvas text-text-body">
         <a
           href="#main"
           className="sr-only z-(--z-tooltip) rounded-lg bg-white px-4 py-2 text-sm font-medium text-text-strong shadow-floating focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus-visible:outline-2 focus-visible:outline-focus"

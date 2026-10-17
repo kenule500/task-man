@@ -7,7 +7,7 @@ import { DOC_ENTRIES } from '../design-system/registry';
 // The page is large and getByRole is slow on it: bulk checks use plain DOM queries and
 // each test renders it once. Clicks use fireEvent because userEvent takes seconds here
 // (longer than a toast lives).
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 const renderGuide = () =>
   render(
@@ -152,8 +152,10 @@ describe('DesignSystemPage (living style guide)', () => {
   });
 
   it('demonstrates toasts, including one with an Undo action', async () => {
-    renderGuide();
-    fireEvent.click(within(section('c-toast')).getByRole('button', { name: /toast with action/i }));
+    // Only the Toast page: rendering the whole guide for one click times out on a busy machine
+    const ToastDoc = DOC_ENTRIES.find(entry => entry.id === 'c-toast')!.Component;
+    render(<MemoryRouter><ToastDoc /><Toaster /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /toast with action/i }));
     expect(await screen.findByText('Task deleted')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));

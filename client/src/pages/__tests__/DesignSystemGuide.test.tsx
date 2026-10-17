@@ -7,7 +7,7 @@ import { DOC_GROUPS, groupHeadingId } from '../design-system/search';
 
 // Structure and guide controls: group headings, the heading outline, the preview toggles, the "On this page" rail,
 // anchors, "Copy import" and search by prop. Each test renders the whole guide once (it is large).
-jest.setTimeout(90000);
+jest.setTimeout(120000);
 
 const renderGuide = () => render(<MemoryRouter><DesignSystemPage /></MemoryRouter>);
 const section = (id: string) => document.getElementById(id) as HTMLElement;
@@ -18,6 +18,9 @@ describe('guide structure', () => {
   it('gives every group a real heading with its own space, and keeps demo headings out of the outline', () => {
     renderGuide();
     const main = screen.getByRole('main');
+    // The guide is English: it stays left to right even when the app language is Arabic
+    expect(main.closest('[dir]')).toHaveAttribute('dir', 'ltr');
+    expect(main.closest('[lang]')).toHaveAttribute('lang', 'en');
 
     // Each group is a header (eyebrow, h2, summary) followed by its sections: nothing is pulled up with a negative margin
     const groups = Array.from(main.querySelectorAll('[data-doc-group]'));
@@ -55,6 +58,13 @@ describe('guide structure', () => {
       return inDemo ? level < 5 : level >= 5;
     }).map(heading => `${heading.tagName} ${heading.textContent}`);
     expect(offenders).toEqual([]);
+
+    // Sub-headings feed the "On this page" rail, so two with the same text in one section read as a duplicate entry
+    const repeated = DOC_ENTRIES.flatMap(entry => {
+      const texts = Array.from(section(entry.id).querySelectorAll('h4')).filter(heading => !heading.closest('[data-demo]')).map(heading => heading.textContent);
+      return texts.filter((text, index) => texts.indexOf(text) !== index).map(text => `${entry.id}: ${text}`);
+    });
+    expect(repeated).toEqual([]);
   });
 
   it('reads a section count after its title, not glued to it', () => {

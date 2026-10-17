@@ -66,7 +66,7 @@ const toneTokens = (): ColorToken[] =>
 export const COLOR_GROUPS: ColorGroup[] = [
   {
     id: 'tones',
-    title: 'Semantic tones',
+    title: 'Semantic tone swatches',
     description: 'Danger, success, warning and info: the only reds, greens, ochres and blues used for meaning. Calm hues with a solid, hover, dot, fg, bg and border part each, authored for light and dark. Raw red, green, emerald and rose utilities are not allowed.',
     tokens: toneTokens(),
   },
