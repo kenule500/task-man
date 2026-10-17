@@ -97,7 +97,7 @@ describe('searchCommands', () => {
 
   it('lists pages and the most recent tasks for an empty query', () => {
     const results = searchCommands('', items);
-    expect(results.filter(item => item.group === 'Pages')).toHaveLength(19);
+    expect(results.filter(item => item.group === 'Pages')).toHaveLength(20);
     expect(results.filter(item => item.group === 'Tasks').map(item => item.label)).toEqual([
       'Fix login bug', 'Plan sprint', 'Write launch email',
     ]);
@@ -123,6 +123,12 @@ describe('searchCommands', () => {
     const projects = searchCommands('web', items).filter(item => item.group === 'Projects');
     expect(projects).toHaveLength(1);
     expect(projects[0]).toMatchObject({ label: 'Website', hint: '2 tasks', href: '/acme/projects' });
+  });
+
+  it('offers to create a project from a document with AI, only to people who can write projects', () => {
+    expect(searchCommands('ai document', items)[0]).toMatchObject({ label: 'Create project with AI', href: '/acme/projects/new/ai' });
+    const readOnly = buildCommandItems('acme', permission => permission === 'projects:read', tasks);
+    expect(searchCommands('ai document', readOnly).some(item => item.href.endsWith('/projects/new/ai'))).toBe(false);
   });
 
   it('routes board, calendar and timeline to the tasks views', () => {

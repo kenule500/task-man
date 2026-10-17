@@ -49,6 +49,7 @@ nothing is merged unless all of them pass.
 | Team chat (Socket.IO) | mentions, cursors, rate limits | REST channels/messages/DMs/unread, Socket.IO auth and broadcast | a message sent in one browser appears live in another; @mention notifies; online count |
 | Languages (English, French, Arabic) | switcher, parity of keys in every namespace, French/Arabic rendering | account language saved on the profile | switch to French and Arabic; Arabic is right-to-left with no sideways scroll on desktop and phone; the account language follows to another device |
 | AI code review (Alibaba Cloud DashScope) | diff selection, prompt, JSON validation, verdict rules | queue, result, disabled/limit/conflict, simultaneous requests, token never returned, webhook auto-review (model mocked) | acceptance criteria in the task dialog; clear message when no API key is configured |
+| AI project from a document (DashScope) | PDF/DOCX/TXT extraction, prompt fencing, plan schema and limits, dates, unique name/key, form rules, review editing | upload checks, disabled/limit/in-progress, plan lifecycle, edits, create with sprints/epics/tasks/subtasks, name/key conflicts, ownership (model mocked) | upload, analyzing, review tabs, create, PDF, discard, French and Arabic on a phone, dark mode, keyboard (against a local fake model) |
 
 ## End-to-end pass
 
@@ -101,6 +102,10 @@ Result on the final build: 40/40, 16/16 and 9/9, no page errors in the console.
 | Language menu | After choosing a language the menu stayed open, so the next click closed it instead of opening it | The menu closes on selection |
 | AI code review | Two simultaneous requests could both start a review of the same task | A unique index allows one active review per task (409 for the second) |
 | AI code review | The default model (qwen-max) has a smaller context than the diff limit | Default is qwen-plus; the model is configurable |
+| AI project upload | The 5 MB default was above what Vercel accepts (4.5 MB), so large files got the platform's error instead of ours | Default is 4 MB |
+| AI project upload (phone) | In French the options grid grew to fit the sprint-length control and the page scrolled sideways (438 px on a 390 px screen) | One shrinkable column; the four choices share the width |
+| Stepper | The hidden step status ("current step", "not started") stayed English in French and Arabic | Translated in the common namespace |
+| AI project review (dark) | Epic chips kept a light background | Theme-aware violet tokens |
 
 ## Re-running the checks
 

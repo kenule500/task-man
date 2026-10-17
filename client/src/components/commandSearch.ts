@@ -1,6 +1,6 @@
 import {
   BarChart3, BookOpen, Calendar, CheckSquare, Code2, FolderKanban, GanttChart, HelpCircle,
-  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, MessagesSquare, ScrollText, Settings, Timer, Upload, Users, Zap, type LucideIcon,
+  Gauge, Inbox, LayoutDashboard, Columns3, Milestone, MessagesSquare, ScrollText, Settings, Sparkles, Timer, Upload, Users, Zap, type LucideIcon,
 } from 'lucide-react';
 import { faqCategories } from '@/content/faq';
 import { t } from '@/i18n';
@@ -53,6 +53,7 @@ const PAGES: PageDef[] = [
   { key: 'calendar', label: 'Calendar', icon: Calendar, permission: 'tasks:read', path: 'tasks?view=calendar', keywords: 'schedule' },
   { key: 'timeline', label: 'Timeline', icon: GanttChart, permission: 'tasks:read', path: 'tasks?view=timeline', keywords: 'gantt' },
   { key: 'projects', label: 'Projects', icon: FolderKanban, permission: 'projects:read', path: 'projects' },
+  { key: 'aiProject', label: 'Create project with AI', icon: Sparkles, permission: 'projects:write', path: 'projects/new/ai', keywords: 'ai artificial intelligence document upload pdf docx word requirements spec generate' },
   { key: 'roadmap', label: 'Roadmap', icon: Milestone, permission: 'projects:read', path: 'roadmap', keywords: 'epics milestones' },
   { key: 'workload', label: 'Workload', icon: Gauge, permission: 'projects:read', path: 'workload', keywords: 'capacity people assignee points' },
   { key: 'timesheet', label: 'Timesheet', icon: Timer, permission: 'tasks:read', path: 'timesheet', keywords: 'time tracking hours logged timer week' },

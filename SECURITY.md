@@ -197,6 +197,50 @@ so it is built to be off by default and to send as little as possible.
   task's activity; the requester is notified. Automatic reviews (webhook) run only when the workspace turned on both options and only
   once per commit.
 
+## AI project from a document
+
+"Create a project from a document" (`server/src/utils/ai/plan/*`, `controllers/aiPlanController.ts`) sends the text of an uploaded
+requirements document to the same third-party provider as the code review, so it follows the same rules and adds its own.
+
+- **What is sent.** The cleaned text of the document (at most `AI_PLAN_MAX_CHARS`, default 60,000 characters) and the options the
+  person chose: project name and key, sprint length, team size, the language and up to 500 characters of extra instructions. Nothing
+  else from the workspace is included. Nothing is sent unless the server has `DASHSCOPE_API_KEY` **and** the workspace opted in
+  (`workspace.ai.enabled`): the upload route answers `503 { code: 'AI_DISABLED' }` before the file is even read, and the generation
+  checks the setting again when it starts. The upload page says in plain words what is sent and where, before the button.
+- **What is stored.** The document is never stored: the file is held in memory, its text is passed in memory to the background
+  generation (a closure, not the database) and is gone when the request ends. The plan record keeps the sanitized file name, the
+  type derived from the content, the size, the character count, whether the text was cut, **a preview of the first 2,000
+  characters** (shown only on the review screen and never in lists), the chosen options and the generated plan. Plans are deleted by
+  a TTL index after 30 days; deleting a plan wipes its content and preview at once and keeps only a counter row (so the daily limit
+  cannot be reset by deleting). The plan is available to its owner and to people with `settings:manage`; only the owner can edit,
+  create from or delete it. Everything is filtered by the workspace of the request. Server logs and stored errors never contain the
+  document, the provider's response body or the API key.
+- **Upload checks.** Multer memory storage, `AI_PLAN_MAX_MB` (default 4 MB, `413`), one file. The type is decided by the extension
+  **and** the first bytes (`%PDF-`, the zip signature plus a `word/document.xml` entry, or UTF-8 text without NUL bytes); the type
+  the browser declares is ignored (`415`). DOCX files are refused when they declare too many entries or an unreasonable uncompressed
+  size (zip bombs), and PDFs are read with PDF.js with `isEvalSupported: false`, a page cap and no system fonts. Control and
+  bidirectional-override characters are removed from the text. The DOCX body is read by a linear `indexOf` scanner, not a backtracking
+  regular expression, and no external entities or macros are ever evaluated. Empty or unreadable documents answer `422` and cost nothing.
+- **Prompt injection.** The document is untrusted. The system prompt fences it between random per-request boundary lines and
+  declares everything inside to be data, never instructions; the boundary is stripped from the data so it cannot close the fence. The
+  requester's own preferences sit outside the fence but cannot change the rules or the format. The answer must be JSON that passes a
+  `zod` schema (one retry with the validation error, only while the time budget allows). The model has no tools and its output is never
+  executed or rendered as HTML. The server then decides: item types, priorities and estimates are whitelisted or snapped, all counts and
+  text lengths are capped (8 sprints, 120 tasks, 8 subtasks per task, 6 criteria per task), references are checked, sprint dates are
+  computed from the requester's start date (the model never sets dates), and project name and key are made unique in the workspace.
+  What a person sends back when editing is validated with a strict version of the same schema (`400 PLAN_INVALID`).
+- **Creating the project.** Needs both `projects:write` and `tasks:write`, from the plan's owner. The plan is claimed atomically
+  (`creating` flag) so two clicks or tabs cannot create the project twice, and everything is written all or nothing: if any step fails,
+  the tasks, sprints and project written by that call are deleted again. Task numbers come from the workspace counter like any other task.
+  Written to the audit log: `project.created`, `sprint.created` (one per sprint) and one `ai.plan_created` summary (file name, counts).
+- **Abuse and cost.** One generation per person and workspace at a time (a unique partial index, `409`), `AI_PLAN_DAILY_LIMIT` per
+  workspace and UTC day (default 20, `429`; a cancelled generation still counts, one that failed before reaching the model does not),
+  the request to the model times out after `AI_PLAN_TIMEOUT_SECONDS` (default 200) so the whole job fits the 300 s function limit, and
+  only 429 and 5xx errors are retried. Token usage is stored on the plan. A queued or running plan that never finished (the function was
+  stopped) stops blocking its owner after 10 minutes. The edit endpoint accepts up to 2 MB of JSON; other routes keep the 100 kB limit.
+- **Dependencies.** `unpdf` (PDF.js, no native code) and `jszip` are the only new runtime packages; `pnpm audit` is clean. Text from
+  documents is rendered by the web app as plain text.
+
 ## Team chat and realtime
 
 - **Socket authentication.** The browser sends the session JWT in `auth.token` of the Socket.IO handshake (never in the URL).

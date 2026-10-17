@@ -671,7 +671,8 @@
       "import": "عمليات الاستيراد",
       "page": "صفحات الويكي",
       "role": "الأدوار",
-      "integration": "التكاملات"
+      "integration": "التكاملات",
+      "ai": "الذكاء الاصطناعي"
     },
     "fields": {
       "startDate": "تاريخ البدء",
@@ -705,6 +706,7 @@
       "more": "+{{count}} أخرى"
     },
     "sentence": {
+      "aiPlanCreated": "أنشأ {{name}} المشروع {{subject}} من مستند بالذكاء الاصطناعي ({{tasks}} مهمة)",
       "aTask": "مهمة",
       "aFile": "ملفًا",
       "aSprint": "سبرينت",
@@ -806,7 +808,8 @@
       "import_completed": "اكتمل الاستيراد",
       "page_created": "أُنشئت صفحة",
       "page_updated": "حُدّثت صفحة",
-      "page_deleted": "حُذفت صفحة"
+      "page_deleted": "حُذفت صفحة",
+      "ai_plan_created": "أُنشئ مشروع بالذكاء الاصطناعي"
     }
   }
 }

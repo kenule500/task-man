@@ -1,0 +1,288 @@
+{
+  "page": {
+    "title": "Créer un projet à partir d’un document",
+    "description": "Importez un document d’exigences et laissez l’IA rédiger tout le projet : sprints, tâches, sous-tâches et critères d’acceptation. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit créé.",
+    "back": "Retour aux projets",
+    "stepsLabel": "Progression",
+    "noAccessTitle": "Vous ne pouvez pas créer de projet avec l’IA",
+    "noAccessBody": "Créer un projet et ses tâches demande l’autorisation de modifier les projets et les tâches. Adressez-vous à un propriétaire ou à un administrateur de cet espace de travail.",
+    "loading": "Chargement de votre plan",
+    "created": "Projet « {{name}} » créé",
+    "createdBody": "{{tasks}} tâches réparties en {{sprints}} sprints sont prêtes."
+  },
+  "steps": {
+    "upload": "Importer",
+    "analyze": "Analyser",
+    "review": "Relire",
+    "create": "Créer"
+  },
+  "card": {
+    "title": "Créer avec l’IA",
+    "hint": "À partir d’un PDF, d’un document Word ou d’un texte"
+  },
+  "edit": {
+    "hint": "Appuyez sur Entrée pour enregistrer ou sur Échap pour annuler.",
+    "hintMultiline": "Appuyez sur Ctrl+Entrée pour enregistrer ou sur Échap pour annuler.",
+    "empty": "Cliquez pour ajouter du texte",
+    "edit": "(modifier {{label}})"
+  },
+  "list": {
+    "count": "{{count}} sur {{max}}",
+    "empty": "Rien pour le moment.",
+    "full": "Limite de {{max}} atteinte"
+  },
+  "criteria": {
+    "title": "Critères d’acceptation",
+    "rowLabel": "Critère {{number}} de {{task}}",
+    "remove": "Supprimer le critère {{number}} de {{task}}",
+    "add": "Ajouter un critère",
+    "missing_one": "{{count}} tâche n’a pas encore de critère d’acceptation. Ajoutez-en pour savoir quand elle est terminée.",
+    "missing_other": "{{count}} tâches n’ont pas encore de critère d’acceptation. Ajoutez-en pour savoir quand elles sont terminées.",
+    "listLabel": "Critères d’acceptation par tâche"
+  },
+  "subtasks": {
+    "title": "Sous-tâches",
+    "empty": "Aucune sous-tâche.",
+    "rowLabel": "Sous-tâche {{number}} de {{task}}",
+    "criteriaToggle": "Critères d’acceptation de la sous-tâche {{number}} ({{count}})",
+    "remove": "Supprimer la sous-tâche {{number}} de {{task}}",
+    "criteriaTitle": "Critères de la sous-tâche",
+    "newTitle": "Nouvelle sous-tâche",
+    "add": "Ajouter une sous-tâche",
+    "full": "Limite de sous-tâches atteinte",
+    "listLabel": "Sous-tâches par tâche"
+  },
+  "item": {
+    "notEstimated": "Non estimée",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "titleLabel": "titre de {{title}}",
+    "pointsLabel": "Points de {{title}}",
+    "priorityLabel": "Priorité de {{title}}",
+    "moveLabel": "Sprint de {{title}}",
+    "subtasksCount_one": "{{count}} sous-tâche",
+    "subtasksCount_other": "{{count}} sous-tâches",
+    "criteriaCount_one": "{{count}} critère d’acceptation",
+    "criteriaCount_other": "{{count}} critères d’acceptation",
+    "remove": "Supprimer {{title}}",
+    "hideDetails": "Masquer les détails de {{title}}",
+    "showDetails": "Afficher les détails de {{title}}",
+    "description": "Description",
+    "descriptionLabel": "description de {{title}}",
+    "noDescription": "Aucune description",
+    "type": "Type",
+    "typeLabel": "Type de {{title}}",
+    "sprint": "Sprint",
+    "newTitle": "Nouvelle tâche",
+    "add": "Ajouter une tâche à {{name}}"
+  },
+  "sprint": {
+    "backlog": "Backlog",
+    "backlogHint": "Le travail qui ne tient pas encore dans un sprint. Déplacez une tâche ici pour la planifier plus tard.",
+    "unnamed": "Sprint {{number}}",
+    "collapse": "Réduire {{name}}",
+    "expand": "Développer {{name}}",
+    "nameLabel": "nom de {{name}}",
+    "goalLabel": "objectif de {{name}}",
+    "noGoal": "Aucun objectif",
+    "week": "Semaine {{number}}",
+    "weeks": "Semaines {{from}} à {{to}}",
+    "tasks_one": "{{count}} tâche",
+    "tasks_other": "{{count}} tâches",
+    "points_one": "{{count}} point",
+    "points_other": "{{count}} points",
+    "empty": "Aucune tâche ici. Ajoutez-en une ou déplacez une tâche dans ce sprint.",
+    "itemsLabel": "Tâches de {{name}}"
+  },
+  "tasks": {
+    "emptyTitle": "Plus aucune tâche",
+    "emptyBody": "Le plan a besoin d’au moins une tâche. Ajoutez-en une ou régénérez le plan.",
+    "listLabel": "Toutes les tâches",
+    "add": "Ajouter une tâche au backlog",
+    "full": "Limite de tâches atteinte"
+  },
+  "header": {
+    "label": "Projet généré",
+    "nameLabel": "nom du projet",
+    "ready": "Prêt",
+    "descriptionLabel": "description du projet",
+    "noDescription": "Aucune description",
+    "key": "Clé",
+    "keyLabel": "clé du projet",
+    "keyInvalid": "La clé doit comporter de 2 à 6 lettres ou chiffres.",
+    "source": "D’après {{name}} ({{size}})",
+    "stats": {
+      "sprints": "Sprints",
+      "tasks": "Tâches",
+      "subtasks": "Sous-tâches",
+      "criteria": "Critères",
+      "points": "Points"
+    }
+  },
+  "notes": {
+    "label": "Hypothèses et risques",
+    "assumptions": "Hypothèses",
+    "risks": "Risques",
+    "noAssumptions": "L’IA n’a listé aucune hypothèse.",
+    "noRisks": "L’IA n’a listé aucun risque."
+  },
+  "review": {
+    "partialTitle": "Seule une partie du document a été analysée",
+    "partialBody": "Le document est long ({{chars}} caractères) : le milieu a été laissé de côté. Le plan couvre le début et les titres de section. Vérifiez qu’il ne manque rien d’important ou découpez le document et importez les parties séparément.",
+    "hint": "Lisez le plan, puis modifiez ce qui doit l’être : cliquez sur un titre, des points ou une priorité pour les changer, déplacez une tâche vers un autre sprint, supprimez ou ajoutez des tâches. Rien n’est créé tant que vous n’appuyez pas sur Créer.",
+    "nameTakenTitle": "Un projet porte déjà ce nom",
+    "keyTakenTitle": "Cette clé de projet est déjà utilisée",
+    "useName": "Utiliser « {{value}} »",
+    "useKey": "Utiliser {{value}}",
+    "createFailedTitle": "Le projet n’a pas été créé",
+    "problemsTitle_one": "{{count}} point à corriger avant de pouvoir créer le projet",
+    "problemsTitle_other": "{{count}} points à corriger avant de pouvoir créer le projet",
+    "problems": {
+      "projectName": "Le projet a besoin d’un nom.",
+      "projectKey": "La clé du projet doit comporter de 2 à 6 lettres ou chiffres.",
+      "noItems": "Le plan a besoin d’au moins une tâche.",
+      "sprintName": "Le sprint {{number}} a besoin d’un nom.",
+      "itemTitle": "Chaque tâche a besoin d’un titre.",
+      "subtaskTitle": "Chaque sous-tâche a besoin d’un titre.",
+      "criterion": "Un critère est vide."
+    },
+    "discard": "Abandonner",
+    "regenerate": "Régénérer",
+    "regenerateUnavailable": "Le document n’est plus dans cet onglet. Abandonnez le plan et importez-le à nouveau.",
+    "creating": "Création du projet…",
+    "create_one": "Créer le projet ({{count}} tâche)",
+    "create_other": "Créer le projet ({{count}} tâches)",
+    "tabsLabel": "Parties du plan",
+    "tabs": {
+      "sprints": "Sprints",
+      "tasks": "Tâches",
+      "subtasks": "Sous-tâches",
+      "criteria": "Critères d’acceptation"
+    },
+    "removed": "« {{title}} » supprimée",
+    "undo": "Annuler",
+    "confirmRegenerateTitle": "Générer à nouveau le plan ?",
+    "confirmRegenerateBody": "Vos modifications seront perdues et le document sera renvoyé au fournisseur d’IA. Cela compte dans la limite quotidienne.",
+    "confirmDiscardTitle": "Abandonner ce plan ?",
+    "confirmDiscardBody": "Vos modifications seront perdues. Rien n’a été créé."
+  },
+  "upload": {
+    "cannotStart": "Nous n’avons pas pu lancer l’analyse",
+    "openRunning": "L’ouvrir",
+    "documentTitle": "Document d’exigences",
+    "dropTitle": "Déposez votre document ici ou choisissez un fichier",
+    "dropHint": "PDF, Word (.docx), texte ou Markdown, jusqu’à {{size}}",
+    "removeFile": "Retirer {{name}}",
+    "fileProblem": {
+      "type": "Ce type de fichier n’est pas pris en charge. Importez un fichier PDF, DOCX, TXT ou Markdown.",
+      "doc": "Les anciens fichiers Word (.doc) ne sont pas pris en charge. Enregistrez le document en .docx ou en PDF et réessayez.",
+      "empty": "Ce fichier est vide.",
+      "size": "Ce fichier est trop volumineux. La limite est de {{size}}."
+    },
+    "optionsTitle": "Options",
+    "optionsHint": "Tout est facultatif. L’IA choisit un nom, une clé et le nombre de sprints si vous laissez ces champs vides.",
+    "projectName": "Nom du projet",
+    "projectNameHint": "Laissez vide pour que l’IA le nomme.",
+    "projectKey": "Clé du projet",
+    "projectKeyHint": "2 à 6 lettres ou chiffres, pour les références de tâches comme WEB-12.",
+    "sprintLength": "Durée des sprints",
+    "weeks_one": "{{count}} semaine",
+    "weeks_other": "{{count}} semaines",
+    "startDate": "Début du premier sprint",
+    "startDateHint": "Par défaut, lundi prochain.",
+    "startDatePast": "Choisissez aujourd’hui ou un jour ultérieur.",
+    "teamSize": "Taille de l’équipe",
+    "teamSizeHint": "Sert à dimensionner les sprints. 4 personnes par défaut.",
+    "language": "Langue du plan",
+    "languageHint": "Les titres, descriptions et critères sont rédigés dans cette langue.",
+    "notes": "Consignes supplémentaires",
+    "notesHint": "Par exemple « mobile d’abord » ou « ignorer l’espace d’administration ». {{count}} caractères sur {{max}}.",
+    "needFile": "Choisissez un document pour continuer.",
+    "uploading": "Envoi en cours…",
+    "submit": "Analyser le document"
+  },
+  "notice": {
+    "title": "Ce qu’il advient de votre document",
+    "body": "Le texte de votre document est envoyé à Alibaba Cloud Model Studio, le fournisseur d’IA de cet espace de travail, pour construire le plan. Rien n’est envoyé avant que vous n’appuyiez sur Analyser, et seulement si un administrateur a activé l’IA pour cet espace de travail.",
+    "sent": "Envoyé au fournisseur : le texte du document et vos options. Les images ne sont pas lues.",
+    "stored": "Conservé par TaskMan : le nom du fichier, sa taille, les 2 000 premiers caractères en aperçu et le plan, pendant {{days}} jours. Le document lui-même n’est jamais conservé.",
+    "untrusted": "Les instructions écrites dans le document sont traitées comme du texte à planifier, pas comme des commandes.",
+    "checking": "Vérification de la disponibilité de l’IA…",
+    "retry": "Réessayer",
+    "unavailableTitle": "L’IA n’est pas configurée sur ce serveur",
+    "unavailableBody": "Un administrateur de cette installation de TaskMan doit d’abord ajouter une clé Alibaba Cloud Model Studio.",
+    "offTitle": "L’IA est désactivée pour cet espace de travail",
+    "offBody": "Rien ne quitte TaskMan tant qu’un propriétaire ou un administrateur ne l’a pas activée dans les paramètres de l’espace de travail.",
+    "openSettings": "Ouvrir les paramètres de l’espace de travail",
+    "askAdmin": "Demandez à un propriétaire ou à un administrateur de l’activer.",
+    "limitTitle": "Limite quotidienne atteinte",
+    "limitBody": "Cet espace de travail a utilisé ses {{limit}} plans de projet IA du jour. La limite est réinitialisée à minuit UTC.",
+    "on": "L’IA est activée pour cet espace de travail. {{used}} plans de projet utilisés sur {{limit}} aujourd’hui."
+  },
+  "recent": {
+    "title": "Reprendre là où vous en étiez",
+    "status": {
+      "ready": "Prêt à relire",
+      "working": "Analyse en cours"
+    },
+    "open": "Ouvrir"
+  },
+  "analyzing": {
+    "elapsed": "{{time}} écoulées",
+    "title": "L’IA construit votre projet",
+    "stepsLabel": "Progression de l’analyse",
+    "phase": {
+      "0": "Lecture du document…",
+      "1": "Conception des sprints…",
+      "2": "Rédaction des tâches et des critères d’acceptation…"
+    },
+    "steps": {
+      "read": "Lecture du document",
+      "readHint": "Extraction du texte et envoi à l’IA.",
+      "design": "Conception des sprints",
+      "designHint": "Regroupement du travail en sprints adaptés à votre équipe.",
+      "write": "Rédaction des tâches et des critères d’acceptation",
+      "writeHint": "Estimation, sous-tâches et critères vérifiables."
+    },
+    "truncated": "Le document est long : seuls le début et les titres de section sont analysés.",
+    "slowTitle": "Cela prend plus de temps que d’habitude",
+    "slowBody": "Vous pouvez continuer à attendre, ou annuler et essayer un document plus court.",
+    "leave": "Cela prend en général une à deux minutes. Si vous quittez cette page, revenez-y depuis l’historique de votre navigateur pour retrouver le plan.",
+    "cancel": "Annuler",
+    "cancelling": "Annulation…"
+  },
+  "errors": {
+    "loadFailed": "Nous n’avons pas pu charger le plan. Vérifiez votre connexion et réessayez.",
+    "gone": "Ce plan n’existe plus. Il a peut-être été supprimé ou a expiré.",
+    "failed": "L’analyse a échoué. Réessayez.",
+    "uploadFailed": "Nous n’avons pas pu envoyer le document. Vérifiez votre connexion et réessayez.",
+    "cancelFailed": "Nous n’avons pas pu annuler. Réessayez.",
+    "createFailed": "Nous n’avons pas pu créer le projet. Rien n’a été modifié. Réessayez.",
+    "rateLimited": "Trop de requêtes. Patientez quelques minutes et réessayez.",
+    "network": "Nous n’avons pas pu joindre le serveur. Vérifiez votre connexion et réessayez.",
+    "codes": {
+      "FILE_TOO_LARGE": "Le fichier est trop volumineux. Utilisez un fichier plus petit ou découpez le document.",
+      "UNSUPPORTED_TYPE": "Ce fichier n’est pas un document PDF, DOCX, TXT ou Markdown, ou il est endommagé.",
+      "EMPTY_DOCUMENT": "Aucun texte lisible n’a été trouvé. Un PDF numérisé doit d’abord passer par la reconnaissance de texte (OCR).",
+      "UNREADABLE": "Le document n’a pas pu être lu. Il est peut-être endommagé ou protégé par un mot de passe.",
+      "AI_DISABLED": "L’IA est désactivée pour cet espace de travail ou n’est pas configurée sur ce serveur.",
+      "PLAN_IN_PROGRESS": "Un projet est déjà en cours d’analyse pour vous. Attendez la fin ou annulez-le.",
+      "AI_DAILY_LIMIT": "Cet espace de travail a utilisé tous ses plans de projet IA du jour. Réessayez demain.",
+      "NO_FILE": "Choisissez un document à importer.",
+      "BAD_UPLOAD": "L’envoi n’a pas pu être lu. Choisissez à nouveau le fichier."
+    },
+    "failure": {
+      "AI_AUTH": "Le fournisseur d’IA a refusé la clé du serveur. Demandez à un administrateur de vérifier la configuration.",
+      "AI_RATE_LIMIT": "Le fournisseur d’IA limite les requêtes ou le compte n’a plus de quota. Réessayez plus tard.",
+      "AI_BAD_REQUEST": "Le fournisseur d’IA a refusé la requête, probablement parce que le document est trop long. Essayez un document plus court.",
+      "AI_UNAVAILABLE": "Le fournisseur d’IA rencontre des problèmes. Réessayez dans quelques minutes.",
+      "AI_TIMEOUT": "Le fournisseur d’IA a mis trop de temps à répondre. Réessayez ou utilisez un document plus court.",
+      "AI_UNREACHABLE": "Le fournisseur d’IA est injoignable. Réessayez plus tard.",
+      "AI_EMPTY": "Le fournisseur d’IA a renvoyé une réponse vide. Réessayez.",
+      "AI_INVALID_OUTPUT": "L’IA n’a pas renvoyé de plan exploitable deux fois de suite. Réessayez ou utilisez un document plus court.",
+      "AI_DISABLED": "L’IA a été désactivée avant le début de l’analyse.",
+      "STALE": "L’analyse ne s’est pas terminée et a été arrêtée. Réessayez.",
+      "CANCELLED": "L’analyse a été annulée."
+    }
+  }
+}
