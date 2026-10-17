@@ -5,6 +5,7 @@ export const CHANNEL_KINDS = ['team', 'general', 'project', 'direct'] as const;
 export type ChannelKind = (typeof CHANNEL_KINDS)[number];
 
 export const MAX_CHANNEL_NAME = 60;
+export const MAX_CHANNEL_DESCRIPTION = 200;
 export const MAX_DIRECT_PARTICIPANTS = 2;
 
 export interface IChatChannel extends Document {
@@ -13,6 +14,8 @@ export interface IChatChannel extends Document {
   name: string;
   // Lower-cased name: one channel per name, kind and workspace
   nameKey: string;
+  // What the channel is for, shown under its title so members know where to post
+  description: string;
   // Project channels only
   project?: mongoose.Types.ObjectId | null;
   // Direct channels only
@@ -34,6 +37,7 @@ const chatChannelSchema = new Schema<IChatChannel>({
   kind: { type: String, enum: CHANNEL_KINDS, required: true },
   name: { type: String, required: true, trim: true, minlength: 1, maxlength: MAX_CHANNEL_NAME },
   nameKey: { type: String, required: true },
+  description: { type: String, default: '', trim: true, maxlength: MAX_CHANNEL_DESCRIPTION },
   project: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
   participants: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
   directKey: { type: String, default: null },

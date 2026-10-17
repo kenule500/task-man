@@ -25,13 +25,15 @@ export const ChatHeader = ({
 }: ChatHeaderProps) => {
   const Glyph = channel.kind === 'direct' ? Lock : Hash;
   const online = onlineUserIds.length;
+  // A direct conversation has no shared purpose to state
+  const purpose = channel.kind === 'direct' ? '' : channel.description;
 
   return (
     <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
       <Glyph className="size-4 shrink-0 text-slate-400" aria-hidden />
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-semibold text-slate-900">{label}</h1>
-        <p className="flex items-center gap-1.5 text-xs text-slate-500">
+        <p className="flex items-center gap-1.5 truncate text-xs text-slate-500">
           {channel.archived ? (
             <span className="text-warning-fg">Project deleted — this conversation is read-only</span>
           ) : (
@@ -40,9 +42,15 @@ export const ChatHeader = ({
                 aria-hidden
                 className={online > 0 ? 'size-1.5 rounded-full bg-success-fg' : 'size-1.5 rounded-full bg-slate-300'}
               />
-              <span>{online > 0 ? `${online} online` : 'No one else online'}</span>
+              <span className="shrink-0">{online > 0 ? `${online} online` : 'No one else online'}</span>
               <span aria-hidden>·</span>
-              <span>{TRANSPORT_COPY[transport]}</span>
+              <span className="shrink-0">{TRANSPORT_COPY[transport]}</span>
+              {purpose && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="truncate text-slate-400">{purpose}</span>
+                </>
+              )}
             </>
           )}
         </p>

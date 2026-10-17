@@ -14,20 +14,32 @@ export { permissionsOf };
 const isDuplicateKey = (error: unknown) => (error as { code?: number } | null)?.code === 11000;
 
 // Fixed channels every workspace has. Their names are seeded, not editable (spec AC-003).
+// They differ in purpose, not permission: both are open to anyone with chat:read, and anyone with
+// chat:write can post. The description tells members which one to use.
 export const DEFAULT_CHANNELS = [
-  { kind: 'team' as const, name: 'Team Chat' },
-  { kind: 'general' as const, name: 'General' },
+  {
+    kind: 'team' as const,
+    name: 'Team Chat',
+    description: 'Day-to-day team coordination: workflows, resources, blockers and internal check-ins.',
+  },
+  {
+    kind: 'general' as const,
+    name: 'General',
+    description: 'Workspace-wide announcements, broad discussion, and the watercooler.',
+  },
 ];
 
 const nameKeyOf = (name: string) => name.trim().toLowerCase();
 
 /** Creates the team and general channels if the workspace does not have them yet. */
 export const ensureDefaultChannels = async (workspaceId: mongoose.Types.ObjectId): Promise<void> => {
-  await ChatChannel.bulkWrite(DEFAULT_CHANNELS.map(({ kind, name }) => ({
+  await ChatChannel.bulkWrite(DEFAULT_CHANNELS.map(({ kind, name, description }) => ({
     updateOne: {
       filter: { workspace: workspaceId, kind, nameKey: nameKeyOf(name) },
       update: {
         $setOnInsert: { workspace: workspaceId, kind, name, nameKey: nameKeyOf(name), archived: false },
+        // The purpose is fixed, so it is refreshed on every pass rather than only on insert
+        $set: { description },
       },
       upsert: true,
     },

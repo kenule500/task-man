@@ -5,6 +5,8 @@ export interface ChatChannel {
   _id: string;
   kind: ChannelKind;
   name: string;
+  /** What the channel is for; empty for direct conversations. */
+  description: string;
   project?: string | null;
   participants: string[];
   archived: boolean;
