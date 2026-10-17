@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
-} from '@/components/ui/sidebar';
-import { usePermissions } from '@/hooks/usePermissions';
+} from '@/components/ui/sidebar';import { usePermissions } from '@/hooks/usePermissions';
 import { getStoredUser } from '@/utils/session';
 import { cn } from '@/lib/utils';
 import { chatApi } from '../api';
@@ -37,8 +36,7 @@ export const SidebarChannels = () => {
         if (cancelled) return;
         setChannels(list.filter(channel => !channel.archived));
         setMembers(directory);
-      })
-      .catch(() => {
+      })      .catch(() => {
         // The chat screen surfaces the failure; the sidebar stays quiet
         if (!cancelled) setChannels([]);
       });
@@ -47,7 +45,10 @@ export const SidebarChannels = () => {
     };
   }, [workspaceSlug, canRead]);
 
-  const visibleChannels = canRead && workspaceSlug ? channels : [];
+  const visibleChannels = canRead && workspaceSlug
+    // Only the two default channels are main-menu entries; project channels live in the team list
+    ? channels.filter(channel => channel.mainMenu ?? (channel.kind === 'team' || channel.kind === 'general'))
+    : [];
 
   const nameOf = useCallback((userId: string) => (
     members.find(member => member._id === userId)?.name ?? 'Teammate'

@@ -268,15 +268,18 @@ function App() {
                 }
               />
 
-              {/* Team: requires users:read */}
+              {/* Members: requires users:read */}
               <Route
-                path="/:workspaceSlug/team"
+                path="/:workspaceSlug/members"
                 element={
                   <PermissionRoute permission="users:read">
                     <Lazy><TeamMembersPage /></Lazy>
                   </PermissionRoute>
                 }
               />
+
+              {/* The old address stays valid for bookmarks and existing links (spec AC-035) */}
+              <Route path="/:workspaceSlug/team" element={<Navigate to="members" replace />} />
 
               {/* Calendar: no permission required */}
               <Route

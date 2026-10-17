@@ -1,9 +1,14 @@
 import express, { Router } from 'express';
 import {
+  getChannelAvatar,
   listChannels,
   listChatMembers,
+  listTeamChannels,
+  renameChannel,
+  setChannelAvatar,
   startDirect,
   validateListChannels,
+  validateRenameChannel,
   validateStartDirect,
 } from '../controllers/chatChannelController.js';
 import {
@@ -40,6 +45,12 @@ router.use(protect);
 
 // Channels
 router.get('/channels', requirePermission('chat:read'), validateListChannels, listChannels);
+// Team channels: only what this caller may read, with previews and unread state
+router.get('/chat/teams', requirePermission('chat:read'), listTeamChannels);
+// Avatar upload is declared before the generic :channelId routes so it is not captured as an id
+router.post('/chat/:channelId/avatar', requirePermission('chat:moderate'), uploadAttachmentFile, setChannelAvatar);
+router.get('/chat/:channelId/avatar', requirePermission('chat:read'), getChannelAvatar);
+router.patch('/chat/:channelId', requirePermission('chat:moderate'), validateRenameChannel, renameChannel);
 // The mention menu and the direct-message picker need names; users:read is not required for chat
 router.get('/chat/members', requirePermission('chat:read'), listChatMembers);
 router.post('/chat/direct', requirePermission('chat:dm'), validateStartDirect, startDirect);

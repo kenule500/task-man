@@ -20,6 +20,7 @@ import Sprint from '../models/sprintModel.js';
 import Release from '../models/releaseModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
+import { addAssigneesToProjectMembers } from '../utils/projectMembers.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
 import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
@@ -552,6 +553,8 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       action: 'task.created', summary: task.title, task: task._id as mongoose.Types.ObjectId,
       changes: parentId ? [{ field: 'parent', to: parentId }] : [],
     });
+    // Being assigned work makes someone a member of the project, which grants its channel (spec T11.3)
+    await addAssigneesToProjectMembers(workspace._id as mongoose.Types.ObjectId, task.project, assignees);
     await notifyTaskEvents(req, task);
     res.status(201).json(await populateTasks(task));
   } catch (error) {
@@ -658,6 +661,11 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
       await reconcileRelease(workspaceId, task as unknown as ITask, before.release);
     }
     await task.save();
+
+    // Being assigned work makes someone a member of the project, which grants its channel (spec T11.3)
+    if ('assignees' in req.body) {
+      await addAssigneesToProjectMembers(workspaceId, task.project, task.assignees ?? []);
+    }
 
     const after = task.toObject() as unknown as Record<string, unknown>;
     const changes = describeTaskChanges(before, after);

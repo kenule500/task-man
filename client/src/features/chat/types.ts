@@ -7,6 +7,9 @@ export interface ChatChannel {
   name: string;
   /** What the channel is for; empty for direct conversations. */
   description: string;
+  /** True only for the two default channels; project channels belong to the chat screen's team list. */
+  mainMenu?: boolean;
+  avatarUrl?: string | null;
   project?: string | null;
   participants: string[];
   archived: boolean;
@@ -76,6 +79,24 @@ export interface SocketAck {
   ok: boolean;
   error?: string;
   message?: ChatMessage;
+}
+
+/** One row of the team-channel list. */
+export interface TeamChannelSummary {
+  _id: string;
+  name: string;
+  project: string | null;
+  avatarUrl: string | null;
+  archived: boolean;
+  lastMessage: { body: string; at: string; authorName: string } | null;
+  unread: boolean;
+}
+
+export interface ChannelSummary {
+  _id: string;
+  name: string;
+  avatarUrl: string | null;
+  archived: boolean;
 }
 
 /** Who is connected, by user id. */

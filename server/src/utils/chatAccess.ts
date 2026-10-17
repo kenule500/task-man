@@ -5,6 +5,8 @@ export interface ChannelAccessShape {
   kind: ChannelKind;
   participants?: (string | { toString(): string })[] | null;
   archived?: boolean | null;
+  /** Set on project channels: the project whose members may read it. */
+  project?: (string | { toString(): string }) | null;
 }
 
 export type AccessDecision = 'allow' | 'forbidden' | 'not_found';
@@ -15,6 +17,11 @@ interface AccessInput {
   permissions: readonly string[];
   // Writing includes sending, editing, reacting and pinning
   requireWrite?: boolean;
+  /**
+   * Whether the caller is in the owning project's members list.
+   * Left undefined when the caller is not a project channel, or when the caller holds chat:moderate.
+   */
+  isProjectMember?: boolean;
 }
 
 const idsOf = (participants: ChannelAccessShape['participants']): string[] =>
@@ -33,7 +40,7 @@ export const isParticipant = (channel: ChannelAccessShape, userId: string): bool
  * `forbidden`, which the controller turns into 403.
  */
 export const decideChannelAccess = ({
-  channel, userId, permissions, requireWrite = false,
+  channel, userId, permissions, requireWrite = false, isProjectMember,
 }: AccessInput): AccessDecision => {
   const can = (permission: string) => permissions.includes(permission);
 
@@ -41,7 +48,12 @@ export const decideChannelAccess = ({
   if (isDirect(channel) && !isParticipant(channel, userId)) return 'not_found';
 
   if (!can('chat:read')) return 'forbidden';
-  if (channel.kind === 'project' && !can('projects:read')) return 'forbidden';
+
+  // A project channel belongs to its project's members. `chat:moderate` (the Product Owner capability)
+  // sees every one of them (spec FR-037). A non-member gets not_found so existence is not disclosed.
+  if (channel.kind === 'project' && !can('chat:moderate') && isProjectMember !== true) {
+    return 'not_found';
+  }
 
   if (requireWrite) {
     if (channel.archived) return 'forbidden';
@@ -52,19 +64,27 @@ export const decideChannelAccess = ({
 };
 
 /**
- * Project channels follow projects: a member who cannot read projects cannot see them.
- * Direct conversations are only visible to their two participants, so they are added by participant
- * rather than by kind.
+ * Which channels the caller may see.
+ *
+ * Project channels are visible to members of the owning project and, for `chat:moderate` holders, all of
+ * them. Direct conversations are visible only by participation.
  */
 export const visibleChannelClause = (
   permissions: readonly string[],
   userId: string,
+  memberProjectIds: readonly string[] = [],
 ): Record<string, unknown> => {
-  const kinds: ChannelKind[] = ['team', 'general'];
-  if (permissions.includes('projects:read')) kinds.push('project');
+  const baseKinds: ChannelKind[] = ['team', 'general'];
+  const projectClause: Record<string, unknown>[] = permissions.includes('chat:moderate')
+    ? [{ kind: 'project' }]
+    : memberProjectIds.length > 0
+      ? [{ kind: 'project', project: { $in: memberProjectIds } }]
+      : [];
+
   return {
     $or: [
-      { kind: { $in: kinds } },
+      { kind: { $in: baseKinds } },
+      ...projectClause,
       { kind: 'direct', participants: String(userId) },
     ],
   };

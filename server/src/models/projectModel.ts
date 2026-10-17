@@ -22,6 +22,9 @@ export interface IProject extends Document {
   color: ProjectColor;
   icon: ProjectIcon;
   archived: boolean;
+  // Materialised audience of this project's team channel: whoever is assigned one of its tasks.
+  // Maintained automatically by utils/projectMembers.ts, never edited by hand (spec FR-035).
+  members: mongoose.Types.ObjectId[];
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -44,10 +47,13 @@ const projectSchema = new Schema<IProject>({
   color: { type: String, enum: PROJECT_COLORS, default: 'blue' },
   icon: { type: String, enum: PROJECT_ICONS, default: 'folder' },
   archived: { type: Boolean, default: false },
+  members: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, { timestamps: true });
 
 projectSchema.index({ workspace: 1, nameKey: 1 }, { unique: true });
+// Channel reads filter on this, so it needs its own index rather than a collection scan
+projectSchema.index({ workspace: 1, members: 1 });
 
 projectSchema.pre('validate', function () {
   this.nameKey = (this.name ?? '').trim().toLowerCase();

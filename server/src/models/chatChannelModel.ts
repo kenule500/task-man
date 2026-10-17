@@ -22,6 +22,10 @@ export interface IChatChannel extends Document {
   participants: mongoose.Types.ObjectId[];
   // Stable key for the participant pair, so two people cannot accumulate duplicate direct channels
   directKey?: string | null;
+  // A team channel can be renamed and re-pictured by a chat:moderate holder without touching its project
+  nameOverride?: string | null;
+  avatarFileId?: string | null;
+  avatarType?: string | null;
   archived: boolean;
   lastMessageAt?: Date | null;
   lastMessageAuthor?: mongoose.Types.ObjectId | null;
@@ -41,6 +45,9 @@ const chatChannelSchema = new Schema<IChatChannel>({
   project: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
   participants: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
   directKey: { type: String, default: null },
+  nameOverride: { type: String, default: null, trim: true, maxlength: MAX_CHANNEL_NAME },
+  avatarFileId: { type: String, default: null },
+  avatarType: { type: String, default: null },
   archived: { type: Boolean, default: false },
   lastMessageAt: { type: Date, default: null },
   lastMessageAuthor: { type: Schema.Types.ObjectId, ref: 'User', default: null },

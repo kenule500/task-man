@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/utils/api';
 import { chatApi } from '../api';
 import ChannelList from '../components/ChannelList';
+import ChannelSettingsDialog from '../components/ChannelSettingsDialog';
+import TeamChannelList from '../components/TeamChannelList';
 import ChatHeader from '../components/ChatHeader';
 import Composer from '../components/Composer';
 import MessageList from '../components/MessageList';
@@ -17,7 +19,7 @@ import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { unreadCount } from '../lib/messages';
-import type { ChatMessage, PresenceMap } from '../types';
+import type { ChatMessage, PresenceMap, TeamChannelSummary } from '../types';
 
 /** How long a typing indicator stays visible without a new event. */
 const TYPING_TTL_MS = 4000;
@@ -74,6 +76,21 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const [pinsOpen, setPinsOpen] = useState(false);
   const [pinned, setPinned] = useState<ChatMessage[]>([]);
   const [pinsLoading, setPinsLoading] = useState(false);
+  const [teams, setTeams] = useState<TeamChannelSummary[]>([]);
+  const [teamsLoadedFor, setTeamsLoadedFor] = useState<string | null>(null);
+  const [settingsTeam, setSettingsTeam] = useState<TeamChannelSummary | null>(null);
+  const teamsLoading = Boolean(workspaceSlug) && canRead && teamsLoadedFor !== workspaceSlug;
+
+  // Team channels the caller may read, with previews and unread state, in one request
+  useEffect(() => {
+    if (!workspaceSlug || !canRead) return undefined;
+    let cancelled = false;
+    chatApi.teams(workspaceSlug)
+      .then(list => { if (!cancelled) setTeams(list); })
+      .catch(() => { if (!cancelled) setTeams([]); })
+      .finally(() => { if (!cancelled) setTeamsLoadedFor(workspaceSlug); });
+    return () => { cancelled = true; };
+  }, [workspaceSlug, canRead]);
 
   const { state: transport, send, notifyTyping } = useChatSocket({
     slug: workspaceSlug,
@@ -257,12 +274,12 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
 
   return (
     <div className="flex h-[calc(100dvh-var(--workspace-header,0px))] min-h-0">
-      {/* The sidebar carries the list on wide screens; this copy covers phones and tablets */}
-      <div className="flex w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar p-2 lg:hidden lg:w-56">
-        <h2 className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/60">Chat</h2>
+      {/* Team channels and direct conversations; the two default channels are in the main menu */}
+      <div className="flex w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar lg:w-72">
         <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* Direct conversations and the two default channels stay available here */}
           <ChannelList
-            channels={active}
+            channels={active.filter(item => item.kind === 'direct')}
             currentChannelId={currentChannelId}
             currentUserId={user?._id}
             members={members}
@@ -272,8 +289,33 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
             canStartDirect={canDirect}
             onStartDirect={startDirect}
           />
+          {/* Project conversations, as group chats beside the conversation */}
+          <div className="mt-2 border-t border-slate-200 pt-1">
+            <TeamChannelList
+              slug={workspaceSlug ?? ''}
+              teams={teams}
+              currentChannelId={currentChannelId}
+              loading={teamsLoading}
+              canManage={canModerate}
+              onSelect={id => navigate(`/${workspaceSlug}/chat/${id}`)}
+              onOpenSettings={setSettingsTeam}
+            />
+          </div>
         </div>
       </div>
+
+      {settingsTeam && workspaceSlug && (
+        <ChannelSettingsDialog
+          slug={workspaceSlug}
+          team={settingsTeam}
+          onClose={() => setSettingsTeam(null)}
+          onSaved={summary => {
+            setTeams(current => current.map(team => (
+              team._id === summary._id ? { ...team, name: summary.name, avatarUrl: summary.avatarUrl } : team
+            )));
+          }}
+        />
+      )}
 
       <div className={cn('flex min-w-0 flex-1 flex-col bg-white', channel.archived && 'opacity-95')}>
         <ChatHeader

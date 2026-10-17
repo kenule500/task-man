@@ -1,6 +1,7 @@
 import api from '@/utils/api';
 import type {
-  ChatChannel, ChatMessage, ChatUser, MessagePage, OutgoingMessage, Reaction, SearchPage,
+  ChannelSummary, ChatChannel, ChatMessage, ChatUser, MessagePage, OutgoingMessage, Reaction, SearchPage,
+  TeamChannelSummary,
 } from './types';
 
 const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}`;
@@ -87,6 +88,28 @@ export const chatApi = {
 
   startDirect: async (slug: string, userId: string): Promise<ChatChannel> => {
     const { data } = await api.post(`${base(slug)}/chat/direct`, { userId });
+    return data;
+  },
+
+  /** Team channels the caller may read, with previews and unread state. */
+  teams: async (slug: string): Promise<TeamChannelSummary[]> => {
+    const { data } = await api.get(`${base(slug)}/chat/teams`);
+    return Array.isArray(data?.teams) ? data.teams : [];
+  },
+
+  renameChannel: async (slug: string, channelId: string, name: string): Promise<ChannelSummary> => {
+    const { data } = await api.patch(`${base(slug)}/chat/${encodeURIComponent(channelId)}`, { name });
+    return data;
+  },
+
+  uploadAvatar: async (slug: string, channelId: string, file: File): Promise<ChannelSummary> => {
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await api.post(
+      `${base(slug)}/chat/${encodeURIComponent(channelId)}/avatar`,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return data;
   },
 };

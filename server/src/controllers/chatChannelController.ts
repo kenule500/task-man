@@ -2,8 +2,12 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body, query } from 'express-validator';
 import ChatChannel, { CHANNEL_KINDS, MAX_CHANNEL_NAME, directKeyOf } from '../models/chatChannelModel.js';
+import ChatMessage from '../models/chatMessageModel.js';
+import ChatRead from '../models/chatReadModel.js';
 import Project from '../models/projectModel.js';
 import Workspace from '../models/workspaceModel.js';
+import { emitToChannel } from '../realtime/bus.js';
+import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
 import { canStartDirect, decideChannelAccess, visibleChannelClause } from '../utils/chatAccess.js';
 import { handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
@@ -114,6 +118,187 @@ export const archiveProjectChannel = async (
 export const validateListChannels = [
   query('kind').optional().isIn(CHANNEL_KINDS).withMessage('Unknown channel kind'),
 ];
+
+/** Display name of a channel: the override a Product Owner set, else the project's name. */
+export const displayNameOf = (
+  channel: { name: string; nameOverride?: string | null },
+  projectName?: string | null,
+): string => channel.nameOverride?.trim() || projectName?.trim() || channel.name;
+
+/**
+ * @desc    Team channels the caller may read, with preview and unread state, in one request
+ * @route   GET /api/workspaces/:slug/chat/teams
+ */
+export const listTeamChannels = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workspaceId = workspaceIdOf(req);
+    await backfillProjectChannels(workspaceId);
+
+    const permissions = permissionsOf(req);
+    const userId = String(req.user?._id);
+    const moderator = permissions.includes('chat:moderate');
+
+    const memberProjects = moderator
+      ? await Project.find({ workspace: workspaceId }).select('_id name').lean()
+      : await Project.find({
+        workspace: workspaceId,
+        members: new mongoose.Types.ObjectId(userId),
+      }).select('_id name').lean();
+    const projectNameById = new Map(memberProjects.map(project => [String(project._id), project.name]));
+
+    const projectIds = memberProjects.map(project => project._id);
+    const channels = projectIds.length === 0
+      ? []
+      : await ChatChannel.find({
+        workspace: workspaceId,
+        kind: 'project',
+        project: { $in: projectIds },
+      }).select('-nameKey -__v -directKey').sort({ archived: 1, name: 1 }).lean();
+
+    // Last message per channel and the caller's read pointers, in two queries rather than per channel
+    const channelIds = channels.map(channel => channel._id);
+    const [lastMessages, reads] = await Promise.all([
+      channelIds.length === 0 ? [] : ChatMessage.aggregate<{
+        _id: mongoose.Types.ObjectId; body: string; createdAt: Date; authorName?: string;
+      }>([
+        { $match: { channel: { $in: channelIds }, deletedAt: null } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: '$channel', body: { $first: '$body' }, createdAt: { $first: '$createdAt' }, author: { $first: '$author' } } },
+        { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorDoc' } },
+        { $project: { body: 1, createdAt: 1, authorName: { $ifNull: [{ $first: '$authorDoc.name' }, ''] } } },
+      ]),
+      ChatRead.find({ channel: { $in: channelIds }, user: new mongoose.Types.ObjectId(userId) })
+        .select('channel lastReadAt').lean(),
+    ]);
+
+    const previewOf = new Map(lastMessages.map(row => [String(row._id), row]));
+    const readOf = new Map(reads.map(row => [String(row.channel), row.lastReadAt]));
+
+    const teams = channels.map(channel => {
+      const preview = previewOf.get(String(channel._id));
+      const lastReadAt = readOf.get(String(channel._id));
+      const projectName = channel.project ? projectNameById.get(String(channel.project)) : undefined;
+      return {
+        _id: String(channel._id),
+        name: displayNameOf(channel, projectName),
+        project: channel.project ? String(channel.project) : null,
+        avatarUrl: channel.avatarFileId ? `/chat/${String(channel._id)}/avatar` : null,
+        archived: Boolean(channel.archived),
+        lastMessage: preview ? { body: preview.body, at: preview.createdAt, authorName: preview.authorName } : null,
+        unread: Boolean(preview && (!lastReadAt || preview.createdAt > lastReadAt)),
+      };
+    });
+
+    res.status(200).json({ teams });
+  } catch (error) {
+    handleError(res, error, 'listTeamChannels');
+  }
+};
+
+export const validateRenameChannel = [
+  body('name').isString().trim().isLength({ min: 1, max: MAX_CHANNEL_NAME })
+    .withMessage(`Channel names are limited to ${MAX_CHANNEL_NAME} characters`),
+];
+
+/**
+ * @desc    Rename a team channel (chat:moderate only)
+ * @route   PATCH /api/workspaces/:slug/chat/:channelId
+ */
+export const renameChannel = async (req: Request, res: Response): Promise<void> => {
+  if (hasValidationErrors(req, res)) return;
+  try {
+    const lookup = await loadChannelForCaller(req, true);
+    if (!lookup.ok) {
+      res.status(lookup.failure.status).json({ message: lookup.failure.message });
+      return;
+    }
+    if (lookup.channel.kind !== 'project') {
+      res.status(400).json({ message: 'Only team channels can be renamed' });
+      return;
+    }
+
+    lookup.channel.nameOverride = String(req.body.name).trim();
+    await lookup.channel.save();
+
+    emitToChannel(String(lookup.channel._id), 'chat:channel', channelSummary(lookup.channel));
+    res.status(200).json(channelSummary(lookup.channel));
+  } catch (error) {
+    handleError(res, error, 'renameChannel');
+  }
+};
+
+/**
+ * @desc    Replace a team channel's avatar (chat:moderate only)
+ * @route   POST /api/workspaces/:slug/chat/:channelId/avatar
+ */
+export const setChannelAvatar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const lookup = await loadChannelForCaller(req, true);
+    if (!lookup.ok) {
+      res.status(lookup.failure.status).json({ message: lookup.failure.message });
+      return;
+    }
+    if (lookup.channel.kind !== 'project') {
+      res.status(400).json({ message: 'Only team channels can have an avatar' });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ message: 'No image received' });
+      return;
+    }
+
+    const previous = lookup.channel.avatarFileId;
+    const fileId = await saveFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+    lookup.channel.avatarFileId = String(fileId);
+    lookup.channel.avatarType = req.file.mimetype;
+    await lookup.channel.save();
+    // The old file is only removed once the new one is stored, so a failed upload keeps the previous avatar
+    if (previous) await deleteFiles([previous]);
+
+    emitToChannel(String(lookup.channel._id), 'chat:channel', channelSummary(lookup.channel));
+    res.status(200).json(channelSummary(lookup.channel));
+  } catch (error) {
+    handleError(res, error, 'setChannelAvatar');
+  }
+};
+
+/**
+ * @desc    Stream a channel avatar to callers who may read the channel
+ * @route   GET /api/workspaces/:slug/chat/:channelId/avatar
+ */
+export const getChannelAvatar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const lookup = await loadChannelForCaller(req);
+    if (!lookup.ok) {
+      res.status(lookup.failure.status).json({ message: lookup.failure.message });
+      return;
+    }
+    if (!lookup.channel.avatarFileId) {
+      res.status(404).json({ message: 'This channel has no avatar' });
+      return;
+    }
+
+    res.setHeader('Content-Type', lookup.channel.avatarType ?? 'image/png');
+    res.setHeader('Cache-Control', 'private, no-cache');
+    const stream = openFileStream(lookup.channel.avatarFileId);
+    stream.once('error', () => {
+      if (!res.headersSent) res.status(404).json({ message: 'Avatar not found' });
+    });
+    stream.pipe(res);
+  } catch (error) {
+    handleError(res, error, 'getChannelAvatar');
+  }
+};
+
+/** What the client needs to update a channel in place after a rename or avatar change. */
+const channelSummary = (channel: {
+  _id: unknown; name: string; nameOverride?: string | null; avatarFileId?: string | null; archived?: boolean;
+}) => ({
+  _id: String(channel._id),
+  name: channel.nameOverride?.trim() || channel.name,
+  avatarUrl: channel.avatarFileId ? `/chat/${String(channel._id)}/avatar` : null,
+  archived: Boolean(channel.archived),
+});
 
 export const validateStartDirect = [
   body('userId').isMongoId().withMessage('Choose a teammate to message'),
@@ -229,11 +414,23 @@ export const loadChannelForCaller = async (
     return { ok: false, failure: { status: 404, message: 'Channel not found' } };
   }
 
+  // Project channels are gated by the owning project's membership
+  let isProjectMember: boolean | undefined;
+  if (channel.kind === 'project' && channel.project) {
+    const project = await Project.findOne({
+      _id: channel.project,
+      workspace: channel.workspace,
+      members: new mongoose.Types.ObjectId(String(req.user?._id)),
+    }).select('_id').lean();
+    isProjectMember = Boolean(project);
+  }
+
   const decision = decideChannelAccess({
     channel,
     userId: String(req.user?._id),
     permissions: permissionsOf(req),
     requireWrite,
+    isProjectMember,
   });
 
   if (decision === 'not_found') return { ok: false, failure: { status: 404, message: 'Channel not found' } };
@@ -263,9 +460,14 @@ export const listChannels = async (req: Request, res: Response): Promise<void> =
 
     const permissions = permissionsOf(req);
     const userId = String(req.user?._id);
+    // Project channels are visible by project membership, so the caller's projects are resolved once
+    const memberProjects = await Project.find({
+      workspace: workspaceId,
+      members: new mongoose.Types.ObjectId(userId),
+    }).select('_id').lean();
     const filter: Record<string, unknown> = {
       workspace: workspaceId,
-      ...visibleChannelClause(permissions, userId),
+      ...visibleChannelClause(permissions, userId, memberProjects.map(project => String(project._id))),
     };
     if (req.query.kind) {
       // Narrowing by kind must not widen visibility, so it is applied alongside the clause
@@ -280,7 +482,12 @@ export const listChannels = async (req: Request, res: Response): Promise<void> =
     rows.sort((a, b) => (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9)
       || String(a.name).localeCompare(String(b.name)));
 
-    res.status(200).json(rows);
+    // Only the two default channels are main-menu entries; project channels belong to the chat screen's
+    // team list, so the server states this rather than leaving each client to hardcode it (spec T12.3)
+    res.status(200).json(rows.map(row => ({
+      ...row,
+      mainMenu: row.kind === 'team' || row.kind === 'general',
+    })));
   } catch (error) {
     handleError(res, error, 'listChannels');
   }

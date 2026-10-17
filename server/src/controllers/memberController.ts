@@ -6,6 +6,7 @@ import Role from '../models/roleModel.js';
 import { requireUserId } from '../utils/controllerHelpers.js';
 import { findMember, isWorkspaceOwner } from '../utils/workspaceHelpers.js';
 import { canGrantRole, findAssignableRole } from '../utils/roleAccess.js';
+import { removeMemberFromAllProjects } from '../utils/projectMembers.js';
 
 // ================================================================
 // @desc    Change a member's role
@@ -140,6 +141,8 @@ export const removeMember = async (req: Request, res: Response): Promise<void> =
       { workspace: workspace._id, assignees: new mongoose.Types.ObjectId(targetUserId) },
       { $pull: { assignees: new mongoose.Types.ObjectId(targetUserId) } },
     );
+    // ...and they lose access to every project channel in this workspace (spec FR-044)
+    await removeMemberFromAllProjects(workspace._id as mongoose.Types.ObjectId, targetUserId);
     if (removedUser?.activeWorkspace && String(removedUser.activeWorkspace) === String(workspace._id)) {
       await mongoose.model('User').updateOne({ _id: targetUserId }, { $unset: { activeWorkspace: 1 } });
     }
@@ -176,6 +179,8 @@ export const leaveWorkspace = async (req: Request, res: Response): Promise<void>
 
     const memberId = new mongoose.Types.ObjectId(userId);
     await mongoose.model('Task').updateMany({ workspace: workspace._id, assignees: memberId }, { $pull: { assignees: memberId } });
+    // Leaving the workspace ends access to every project channel in it (spec FR-044)
+    await removeMemberFromAllProjects(workspace._id as mongoose.Types.ObjectId, memberId);
     const user = await mongoose.model('User').findByIdAndUpdate(userId, { $pull: { workspaces: workspace._id } })
       .select('name activeWorkspace').lean<{ name?: string; activeWorkspace?: mongoose.Types.ObjectId }>();
     if (user?.activeWorkspace && String(user.activeWorkspace) === String(workspace._id)) {

@@ -2,6 +2,8 @@
 export * from './types';
 export { chatApi } from './api';
 export { default as ChannelList } from './components/ChannelList';
+export { default as ChannelSettingsDialog } from './components/ChannelSettingsDialog';
+export { default as TeamChannelList } from './components/TeamChannelList';
 export { default as ChatHeader } from './components/ChatHeader';
 export { default as Composer } from './components/Composer';
 export { default as MessageItem } from './components/MessageItem';
@@ -16,3 +18,4 @@ export * from './lib/messages';
 export * from './lib/mentions';
 export * from './lib/reactions';
 export * from './lib/readState';
+export * from './lib/avatar';
