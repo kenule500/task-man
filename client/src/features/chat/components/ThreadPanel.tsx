@@ -24,7 +24,7 @@ export const ThreadPanel = ({
 }: ThreadPanelProps) => (
   <aside
     aria-label="Thread"
-    className="flex w-full max-w-sm shrink-0 flex-col border-l border-slate-200 bg-white md:w-80"
+    className="flex w-full shrink-0 flex-col border-l border-slate-200 bg-white max-md:absolute max-md:inset-0 max-md:z-20 md:w-80"
   >
     <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
       <h2 className="text-sm font-semibold text-slate-900">Thread</h2>

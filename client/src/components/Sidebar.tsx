@@ -427,7 +427,15 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             </div>
           )}
         </header>
-        <div id="main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 outline-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className={/\/chat(\/|$)/.test(location.pathname)
+            // The chat screen owns the viewport below the shell header: no page padding, no page
+            // scroll, and room for the fixed mobile tab bar so the composer is not covered
+            ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-50 outline-none max-md:pb-[calc(5rem+env(safe-area-inset-bottom))]'
+            : 'flex min-w-0 flex-1 flex-col gap-4 bg-slate-50 outline-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-md:pb-[calc(5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] lg:p-8'}
+        >
           {children}
         </div>
       </SidebarInset>

@@ -1,4 +1,4 @@
-import { Hash, Lock, Search, Pin, Users } from 'lucide-react';
+import { ChevronLeft, Hash, Lock, Search, Pin, Users } from 'lucide-react';
 import { TooltipHint, UserAvatar } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { avatarSrc } from '../lib/avatar';
@@ -13,6 +13,8 @@ interface ChatHeaderProps {
   onlineUserIds: string[];
   memberCount: number;
   transport: 'connecting' | 'live' | 'degraded';
+  /** Returns to the conversation list below lg, where the two panes cannot sit side by side. */
+  onBack?: () => void;
   onOpenSearch: () => void;
   onTogglePins: () => void;
   onOpenMembers: () => void;
@@ -27,7 +29,7 @@ const TRANSPORT_COPY = {
 /** Channel title, presence summary and the tools that belong to the conversation. */
 export const ChatHeader = ({
   channel, label, peer, peerOnline = false, onlineUserIds, memberCount, transport,
-  onOpenSearch, onTogglePins, onOpenMembers,
+  onBack, onOpenSearch, onTogglePins, onOpenMembers,
 }: ChatHeaderProps) => {
   const Glyph = channel.kind === 'direct' ? Lock : Hash;
   const online = onlineUserIds.length;
@@ -36,6 +38,16 @@ export const ChatHeader = ({
 
   return (
     <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
+      {onBack && (
+        <button
+          type="button"
+          aria-label="Back to conversations"
+          onClick={onBack}
+          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-md text-slate-600 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary lg:hidden"
+        >
+          <ChevronLeft className="size-5" aria-hidden />
+        </button>
+      )}
       {channel.kind === 'direct' && peer ? (
         <span className="relative shrink-0">
           <UserAvatar name={peer.name} src={avatarSrc(peer.avatarUrl)} size="sm" />
@@ -75,7 +87,7 @@ export const ChatHeader = ({
         </p>
       </div>
 
-      <div className="flex items-center gap-0.5">
+      <div className="flex shrink-0 items-center gap-0.5">
         <TooltipHint label="Search this channel">
           <button
             type="button"

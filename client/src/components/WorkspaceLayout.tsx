@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Link, Navigate, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import KeyboardShortcuts from './KeyboardShortcuts';
 import TwoFactorRequiredGate from './TwoFactorRequiredGate';
@@ -24,8 +24,12 @@ import { clearSession, getToken } from '../utils/session';
  */
 const WorkspaceLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
   const { user, error, can } = usePermissions();
+  // The chat screen is a full-height application panel; every other page is a scrolling document
+  // inside the content column, so it must not receive the document wrapper (spec §17 responsiveness)
+  const isChat = /\/chat(\/|$)/.test(location.pathname);
 
   const handleLogout = useCallback(async () => {
     await api.post('/auth/logout').catch(() => undefined);
@@ -73,9 +77,13 @@ const WorkspaceLayout = () => {
       <LiveSync slug={workspaceSlug} enabled={can('tasks:read')} selfId={user._id} />
       <Sidebar user={user} onLogout={handleLogout}>
         <InsideWorkspaceShellContext.Provider value>
-          <div className="w-full space-y-6">
+          {isChat ? (
             <Outlet />
-          </div>
+          ) : (
+            <div className="w-full space-y-6">
+              <Outlet />
+            </div>
+          )}
         </InsideWorkspaceShellContext.Provider>
       </Sidebar>
     </ProjectsProvider>

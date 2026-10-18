@@ -88,6 +88,8 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const [jumpTarget, setJumpTarget] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [scrollTarget, setScrollTarget] = useState<{ id: string; nonce: number } | null>(null);
+  // Below lg the two panes cannot fit side by side, so one of them is shown at a time
+  const [listOpen, setListOpen] = useState(false);
   // The jump, the paging and the stale-response guard all need to read the latest values without
   // re-subscribing, so they live in refs beside the state they mirror
   const jumpAttempts = useRef(0);
@@ -361,6 +363,8 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
         event.preventDefault();
+        // The find bar lives in the conversation pane, so that pane has to be visible
+        setListOpen(false);
         setSearchOpen(true);
       }
     };
@@ -464,16 +468,30 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
       // The new conversation belongs in the direct-message segment, so refresh it with its card
       const payload = await chatApi.conversations(workspaceSlug);
       setDirects(payload.directs);
+      setListOpen(false);
       navigate(`/${workspaceSlug}/chat/${created._id}`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not open that conversation.'));
     }
   };
 
+  /** Opening a conversation leaves the mobile list behind; on desktop both panes stay visible. */
+  const openChannel = (id: string) => {
+    setListOpen(false);
+    navigate(`/${workspaceSlug}/chat/${id}`);
+  };
+
   return (
-    <div className="flex h-[calc(100dvh-var(--workspace-header,0px))] min-h-0">
+    // The shell gives this screen the space below its header; the panel owns that space and never
+    // scrolls the page itself (spec §17 responsiveness)
+    <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Team channels and direct conversations; the two default channels are in the main menu */}
-      <div className="flex w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar lg:w-72">
+      <div
+        className={cn(
+          'min-h-0 w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar lg:flex lg:w-72',
+          listOpen ? 'flex' : 'hidden',
+        )}
+      >
         <div className="min-h-0 flex-1 overflow-y-auto">
           {/* The picker stays the first item; both sections are segmented the same way (spec AC-056, AC-065) */}
           <NewDirectMessage
@@ -487,7 +505,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
               directs={directs}
               currentChannelId={currentChannelId}
               loading={teamsLoading}
-              onSelect={id => navigate(`/${workspaceSlug}/chat/${id}`)}
+              onSelect={openChannel}
             />
           </div>
           <div className="border-t border-slate-200">
@@ -496,7 +514,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
               currentChannelId={currentChannelId}
               loading={teamsLoading}
               canManage={canModerate}
-              onSelect={id => navigate(`/${workspaceSlug}/chat/${id}`)}
+              onSelect={openChannel}
               onOpenSettings={setSettingsTeam}
             />
           </div>
@@ -516,7 +534,13 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         />
       )}
 
-      <div className={cn('flex min-w-0 flex-1 flex-col bg-white', channel.archived && 'opacity-95')}>
+      <div
+        className={cn(
+          'relative min-w-0 flex-1 flex-col bg-white',
+          listOpen ? 'hidden lg:flex' : 'flex',
+          channel.archived && 'opacity-95',
+        )}
+      >
         <ChatHeader
           channel={channel}
           label={label}
@@ -526,6 +550,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           // A direct conversation is always its two participants; other kinds come from the server
           memberCount={channel.memberCount ?? (channel.kind === 'direct' ? 2 : members.length)}
           transport={transport}
+          onBack={() => setListOpen(true)}
           onOpenSearch={() => {
             setSearchNotice('');
             setSearchOpen(value => !value);
