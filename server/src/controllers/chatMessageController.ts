@@ -593,6 +593,9 @@ export const searchMessages = async (req: Request, res: Response): Promise<void>
       workspace: lookup.channel.workspace,
       channel: lookup.channel._id,
       ...searchFilter(String(req.query.q)),
+      // The find widget navigates the conversation body, so a thread reply (which is only rendered
+      // inside its thread panel) would produce a result that cannot be jumped to
+      parent: null,
       ...(cursor ? olderThanCursor(cursor) : {}),
     })
       .sort({ createdAt: -1, _id: -1 })

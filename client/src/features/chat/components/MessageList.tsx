@@ -16,6 +16,9 @@ interface MessageListProps {
   error: string;
   emptyCopy: string;
   attachmentHref: (attachmentId: string) => string;
+  /** A message the search jumped to: scroll to it and let the list flash it (spec AC-074). */
+  scrollTo?: { id: string; nonce: number } | null;
+  highlightedMessageId?: string | null;
   onLoadOlder: () => void;
   onToggleReaction: (messageId: string, emoji: string) => void;
   onReply: (message: ChatMessage) => void;
@@ -29,9 +32,10 @@ interface MessageListProps {
 /** The channel's messages, oldest at the top, with an accessible live region for new arrivals. */
 export const MessageList = ({
   messages, reactions, currentUserId, memberNames, canWrite, canModerate, loading, loadingOlder, hasMore,
-  error, emptyCopy, attachmentHref, onLoadOlder, onToggleReaction, onReply, onEdit, onDelete, onPin,
-  announcement,
+  error, emptyCopy, attachmentHref, scrollTo, highlightedMessageId, onLoadOlder, onToggleReaction, onReply,
+  onEdit, onDelete, onPin, announcement,
 }: MessageListProps) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const previousCount = useRef(0);
 
@@ -43,6 +47,13 @@ export const MessageList = ({
     previousCount.current = messages.length;
   }, [messages.length]);
 
+  // A search jump wins over "follow the newest message"
+  useEffect(() => {
+    if (!scrollTo) return;
+    const target = containerRef.current?.querySelector(`[data-message-id="${scrollTo.id}"]`);
+    target?.scrollIntoView({ block: 'center' });
+  }, [scrollTo]);
+
   const groups = groupByDay(messages);
 
   return (
@@ -50,7 +61,7 @@ export const MessageList = ({
       {/* New messages are announced without stealing focus (AC/NFR-003) */}
       <p aria-live="polite" className="sr-only">{announcement}</p>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={containerRef} className="min-h-0 flex-1 overflow-y-auto">
         {hasMore && (
           <div className="p-3 text-center">
             <button
@@ -92,6 +103,7 @@ export const MessageList = ({
                   onDelete={onDelete}
                   onPin={onPin}
                   attachmentHref={attachmentHref}
+                  highlighted={message._id === highlightedMessageId}
                 />
               ))}
             </ul>

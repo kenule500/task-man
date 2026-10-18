@@ -74,8 +74,16 @@ export const chatApi = {
     return Array.isArray(data?.pinned) ? data.pinned : [];
   },
 
-  search: async (slug: string, channelId: string, term: string): Promise<SearchPage> => {
-    const { data } = await api.get(`${channelBase(slug, channelId)}/search`, { params: { q: term } });
+  search: async (
+    slug: string,
+    channelId: string,
+    term: string,
+    cursor?: string | null,
+  ): Promise<SearchPage> => {
+    const params: Record<string, string> = { q: term };
+    // The endpoint has always accepted `before`; sending it lets the find widget page through matches
+    if (cursor) params.before = cursor;
+    const { data } = await api.get(`${channelBase(slug, channelId)}/search`, { params });
     return {
       results: Array.isArray(data?.results) ? data.results : [],
       nextCursor: data?.nextCursor ?? null,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, EmptyState, PageLoader, toast } from '@/components/ds';
 import { API_URL } from '@/config';
@@ -14,16 +14,22 @@ import TeamChannelList from '../components/TeamChannelList';
 import ChatHeader from '../components/ChatHeader';
 import Composer from '../components/Composer';
 import MessageList from '../components/MessageList';
-import SearchPanel, { PinnedPanel } from '../components/Panels';
+import { PinnedPanel } from '../components/Panels';
+import SearchBar from '../components/SearchBar';
+import SearchResults from '../components/SearchResults';
 import ThreadPanel from '../components/ThreadPanel';
 import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { applyIncomingMessage } from '../lib/conversations';
+import { formatCounter, nextIndex } from '../lib/search';
 import type { ChatMessage, ConversationCard, PresenceMap } from '../types';
 
 /** How long a typing indicator stays visible without a new event. */
 const TYPING_TTL_MS = 4000;
+
+/** Pages the jump will load before reporting that a message cannot be reached. */
+const MAX_JUMP_PAGES = 8;
 
 interface ChatViewProps {
   /** Channel id from the route; absent means "open the first channel". */
@@ -73,7 +79,21 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<ChatMessage[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [searchCursor, setSearchCursor] = useState<string | null>(null);
+  const [searchHasMore, setSearchHasMore] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
+  const [activeResult, setActiveResult] = useState(0);
+  const [searchNotice, setSearchNotice] = useState('');
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [scrollTarget, setScrollTarget] = useState<{ id: string; nonce: number } | null>(null);
+  // The jump, the paging and the stale-response guard all need to read the latest values without
+  // re-subscribing, so they live in refs beside the state they mirror
+  const jumpAttempts = useRef(0);
+  const searchPageToken = useRef(0);
+  const searchTermRef = useRef('');
+  const channelRef = useRef<string | undefined>(currentChannelId);
   const [pinsOpen, setPinsOpen] = useState(false);
   const [pinned, setPinned] = useState<ChatMessage[]>([]);
   const [pinsLoading, setPinsLoading] = useState(false);
@@ -203,24 +223,168 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     }
   };
 
-  // Search runs as the term changes, debounced so typing does not flood the API
+  // The term and channel are mirrored so a late response can be recognised as stale (NFR-028)
+  useEffect(() => { searchTermRef.current = searchTerm.trim(); }, [searchTerm]);
+  useEffect(() => { channelRef.current = currentChannelId; }, [currentChannelId]);
+
+  // A new channel starts a new search: the old rows belong to a conversation the member left
   useEffect(() => {
-    if (!searchOpen || !workspaceSlug || !currentChannelId || searchTerm.trim().length === 0) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting per channel is the point
+    setSearchOpen(false);
+    setSearchResults([]);
+    setSearchCursor(null);
+    setSearchHasMore(false);
+    setSearchLoading(false);
+    setSearchLoadingMore(false);
+    setActiveResult(0);
+    setSearchNotice('');
+    setJumpTarget(null);
+    setHighlightedId(null);
+    searchPageToken.current += 1;
+  }, [currentChannelId]);
+
+  // Search runs as the term changes, debounced so typing does not flood the API (spec §17)
+  useEffect(() => {
+    if (!searchOpen || !workspaceSlug || !currentChannelId) return undefined;
+
+    const term = searchTerm.trim();
+    // Any page fetch still in flight belongs to the previous term
+    searchPageToken.current += 1;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a new term starts at the first match
+    setActiveResult(0);
+    setSearchNotice('');
+
+    if (!term) {
+      setSearchResults([]);
+      setSearchCursor(null);
+      setSearchHasMore(false);
+      setSearchLoading(false);
       return undefined;
     }
-    const term = searchTerm.trim();
+
+    let cancelled = false;
     const timer = setTimeout(() => {
-      setSearching(true);
+      setSearchLoading(true);
       chatApi.search(workspaceSlug, currentChannelId, term)
-        .then(page => setSearchResults(page.results))
-        .catch(() => setSearchResults([]))
-        .finally(() => setSearching(false));
+        .then(page => {
+          if (cancelled) return;
+          setSearchResults(page.results);
+          setSearchCursor(page.nextCursor);
+          setSearchHasMore(Boolean(page.nextCursor));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setSearchResults([]);
+          setSearchCursor(null);
+          setSearchHasMore(false);
+        })
+        .finally(() => { if (!cancelled) setSearchLoading(false); });
     }, 250);
-    return () => clearTimeout(timer);
+
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [searchOpen, searchTerm, workspaceSlug, currentChannelId]);
 
-  // An empty term shows no results, so clearing the box does not need an effect
-  const visibleResults = searchTerm.trim().length > 0 ? searchResults : [];
+  // Reaching the last loaded row pulls the next page, so the arrows are not capped at page one
+  useEffect(() => {
+    if (!searchOpen || !searchHasMore || !searchCursor) return undefined;
+    if (searchLoading || searchLoadingMore) return undefined;
+    if (!workspaceSlug || !currentChannelId) return undefined;
+    if (searchResults.length === 0 || activeResult < searchResults.length - 1) return undefined;
+
+    const token = ++searchPageToken.current;
+    const term = searchTerm.trim();
+    const channel = currentChannelId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the fetch starts in this effect
+    setSearchLoadingMore(true);
+
+    chatApi.search(workspaceSlug, channel, term, searchCursor)
+      .then(page => {
+        if (searchPageToken.current !== token) return;
+        if (searchTermRef.current !== term || channelRef.current !== channel) return;
+        setSearchResults(current => {
+          const seen = new Set(current.map(item => item._id));
+          return [...current, ...page.results.filter(item => !seen.has(item._id))];
+        });
+        setSearchCursor(page.nextCursor);
+        setSearchHasMore(Boolean(page.nextCursor));
+      })
+      .catch(() => {
+        if (searchPageToken.current === token) setSearchHasMore(false);
+      })
+      .finally(() => setSearchLoadingMore(false));
+
+    return undefined;
+  }, [
+    searchOpen, searchHasMore, searchCursor, searchLoading, searchLoadingMore,
+    searchResults.length, activeResult, searchTerm, workspaceSlug, currentChannelId,
+  ]);
+
+  // Opening a result lands on the message: fetch older pages until it exists, then scroll to it
+  useEffect(() => {
+    if (!jumpTarget) return undefined;
+
+    if (messages.some(message => message._id === jumpTarget)) {
+      const id = jumpTarget;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the jump is resolved against the loaded pages
+      setScrollTarget({ id, nonce: Date.now() });
+      setHighlightedId(id);
+      setJumpTarget(null);
+      jumpAttempts.current = 0;
+      const timer = setTimeout(() => setHighlightedId(null), 2500);
+      return () => clearTimeout(timer);
+    }
+
+    if (hasMore && !loadingOlder && jumpAttempts.current < MAX_JUMP_PAGES) {
+      jumpAttempts.current += 1;
+      void loadOlder();
+      return undefined;
+    }
+
+    // Bounded search of the history: the row stays selectable, the member is told it is gone
+    setJumpTarget(null);
+    jumpAttempts.current = 0;
+    setSearchNotice('That message is no longer available.');
+    setSearchOpen(true);
+    return undefined;
+  }, [jumpTarget, messages, hasMore, loadingOlder, loadOlder]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchNotice('');
+    // Esc hands the keyboard back to the composer, the way an editor returns to the document
+    document.querySelector<HTMLTextAreaElement>('[data-chat-composer]')?.focus();
+  };
+
+  // Ctrl/Cmd+F opens the find bar from anywhere on the chat screen
+  useEffect(() => {
+    if (!canRead) return undefined;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canRead]);
+
+  const openResult = (message: ChatMessage) => {
+    setSearchOpen(false);
+    setSearchNotice('');
+    jumpAttempts.current = 0;
+    setJumpTarget(message._id);
+  };
+
+  const moveResult = (delta: number) => {
+    setActiveResult(current => (
+      searchResults.length === 0 ? 0 : nextIndex(current, searchResults.length, delta)
+    ));
+  };
+
+  const openActiveResult = () => {
+    const message = searchResults[activeResult];
+    if (message) openResult(message);
+  };
 
   const loadPins = useCallback(async () => {
     if (!workspaceSlug || !currentChannelId) return;
@@ -287,6 +451,10 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     : undefined;
   const peer = peerId ? members.find(member => member._id === peerId) ?? null : null;
   const label = channel.kind === 'direct' ? nameOf(peerId ?? '') : channel.name;
+  const searchCounter = formatCounter(activeResult, searchResults.length, searchHasMore);
+  const activeOptionId = searchResults[activeResult]
+    ? `chat-search-option-${searchResults[activeResult]._id}`
+    : undefined;
 
   const startDirect = async (userId: string) => {
     if (!workspaceSlug) return;
@@ -358,7 +526,10 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           // A direct conversation is always its two participants; other kinds come from the server
           memberCount={channel.memberCount ?? (channel.kind === 'direct' ? 2 : members.length)}
           transport={transport}
-          onOpenSearch={() => setSearchOpen(value => !value)}
+          onOpenSearch={() => {
+            setSearchNotice('');
+            setSearchOpen(value => !value);
+          }}
           onTogglePins={() => {
             setPinsOpen(value => !value);
             if (!pinsOpen) void loadPins();
@@ -379,12 +550,16 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         )}
 
         {searchOpen && (
-          <SearchPanel
+          <SearchBar
             term={searchTerm}
-            results={visibleResults}
-            loading={searching}
-            onTermChange={setSearchTerm}
-            onClose={() => { setSearchOpen(false); setSearchTerm(''); }}
+            counter={searchCounter}
+            hasResults={searchResults.length > 0}
+            activeOptionId={activeOptionId}
+            onChange={setSearchTerm}
+            onPrevious={() => moveResult(-1)}
+            onNext={() => moveResult(1)}
+            onOpen={openActiveResult}
+            onClose={closeSearch}
           />
         )}
 
@@ -393,50 +568,67 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         )}
 
         <div className="flex min-h-0 flex-1">
-          <MessageList
-            messages={messages}
-            reactions={reactions}
-            currentUserId={user?._id}
-            memberNames={memberNames}
-            canWrite={canWrite}
-            canModerate={canModerate}
-            loading={loading}
-            loadingOlder={loadingOlder}
-            hasMore={hasMore}
-            error={error}
-            emptyCopy={channel.kind === 'direct' ? 'Say hello to start the conversation.' : 'No messages yet. Start the conversation.'}
-            attachmentHref={attachmentHref}
-            onLoadOlder={loadOlder}
-            onToggleReaction={(messageId, emoji) => {
-              if (!workspaceSlug || !currentChannelId) return;
-              chatApi.react(workspaceSlug, currentChannelId, messageId, emoji)
-                .then(list => applyReaction({ messageId, reactions: list }))
-                .catch(err => toast.error(getApiErrorMessage(err, 'Could not react to that message.')));
-            }}
-            onReply={openThread}
-            onEdit={(message, body) => {
-              if (!workspaceSlug || !currentChannelId) return;
-              chatApi.edit(workspaceSlug, currentChannelId, message._id, body)
-                .then(applyUpdated)
-                .catch(err => toast.error(getApiErrorMessage(err, 'Could not edit the message.')));
-            }}
-            onDelete={deleteMessage}
-            onPin={togglePin}
-            announcement={announcement}
-          />
-
-          {threadParent && (
-            <ThreadPanel
-              parent={threadParent}
-              replies={replies}
-              reactions={reactions}
-              members={members}
-              currentUserId={user?._id}
-              canWrite={canWrite && !channel.archived}
-              loading={repliesLoading}
-              onClose={() => { setThreadParent(null); setReplies([]); }}
-              onSend={deliver}
+          {searchOpen ? (
+            <SearchResults
+              results={searchResults}
+              term={searchTerm}
+              activeIndex={activeResult}
+              loading={searchLoading}
+              loadingMore={searchLoadingMore}
+              notice={searchNotice}
+              onSelect={setActiveResult}
+              onOpen={openResult}
             />
+          ) : (
+            <>
+              <MessageList
+                messages={messages}
+                reactions={reactions}
+                currentUserId={user?._id}
+                memberNames={memberNames}
+                canWrite={canWrite}
+                canModerate={canModerate}
+                loading={loading}
+                loadingOlder={loadingOlder}
+                hasMore={hasMore}
+                error={error}
+                emptyCopy={channel.kind === 'direct' ? 'Say hello to start the conversation.' : 'No messages yet. Start the conversation.'}
+                attachmentHref={attachmentHref}
+                scrollTo={scrollTarget}
+                highlightedMessageId={highlightedId}
+                onLoadOlder={loadOlder}
+                onToggleReaction={(messageId, emoji) => {
+                  if (!workspaceSlug || !currentChannelId) return;
+                  chatApi.react(workspaceSlug, currentChannelId, messageId, emoji)
+                    .then(list => applyReaction({ messageId, reactions: list }))
+                    .catch(err => toast.error(getApiErrorMessage(err, 'Could not react to that message.')));
+                }}
+                onReply={openThread}
+                onEdit={(message, body) => {
+                  if (!workspaceSlug || !currentChannelId) return;
+                  chatApi.edit(workspaceSlug, currentChannelId, message._id, body)
+                    .then(applyUpdated)
+                    .catch(err => toast.error(getApiErrorMessage(err, 'Could not edit the message.')));
+                }}
+                onDelete={deleteMessage}
+                onPin={togglePin}
+                announcement={announcement}
+              />
+
+              {threadParent && (
+                <ThreadPanel
+                  parent={threadParent}
+                  replies={replies}
+                  reactions={reactions}
+                  members={members}
+                  currentUserId={user?._id}
+                  canWrite={canWrite && !channel.archived}
+                  loading={repliesLoading}
+                  onClose={() => { setThreadParent(null); setReplies([]); }}
+                  onSend={deliver}
+                />
+              )}
+            </>
           )}
         </div>
 

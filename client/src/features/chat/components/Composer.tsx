@@ -163,6 +163,7 @@ export const Composer = ({
         >
           <textarea
             ref={textareaRef}
+            data-chat-composer
             value={body}
             autoFocus={autoFocus}
             disabled={disabled}

@@ -92,6 +92,8 @@ interface MessageItemProps {
   onPin: (message: ChatMessage, pinned: boolean) => void;
   /** Download URL for an attachment; the view builds it so this component stays free of routing concerns. */
   attachmentHref: (attachmentId: string) => string;
+  /** The search jump just landed here; the highlight clears on its own (spec AC-074). */
+  highlighted?: boolean;
 }
 
 const timeOf = (iso: string): string => {
@@ -114,7 +116,7 @@ const formatSize = (bytes: number): string => {
  */
 export const MessageItem = ({
   message, reactions, currentUserId, memberNames, canWrite, canModerate,
-  onToggleReaction, onReply, onEdit, onDelete, onPin, attachmentHref,
+  onToggleReaction, onReply, onEdit, onDelete, onPin, attachmentHref, highlighted = false,
 }: MessageItemProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body);
@@ -126,7 +128,11 @@ export const MessageItem = ({
 
   if (deleted) {
     return (
-      <li className={cn('flex px-4 py-1.5', mine ? 'justify-end' : 'justify-start')}>
+      <li
+        id={`message-${message._id}`}
+        data-message-id={message._id}
+        className={cn('flex px-4 py-1.5', mine ? 'justify-end' : 'justify-start')}
+      >
         <span className="text-xs italic text-slate-400">This message was deleted</span>
       </li>
     );
@@ -135,7 +141,15 @@ export const MessageItem = ({
   const segments = segmentMentions(message.body, memberNames);
 
   return (
-    <li className={cn('group flex px-4 py-1.5', mine ? 'justify-end' : 'justify-start')}>
+    <li
+      id={`message-${message._id}`}
+      data-message-id={message._id}
+      className={cn(
+        'group flex px-4 py-1.5 transition-colors',
+        mine ? 'justify-end' : 'justify-start',
+        highlighted && 'bg-warning-bg/60',
+      )}
+    >
       <div className={cn('flex max-w-[85%] gap-2 md:max-w-[70%]', mine ? 'flex-row-reverse' : 'flex-row')}>
         {/* The caller does not need their own avatar; other people's identify the speaker */}
         {!mine && <UserAvatar name={author?.name ?? '?'} src={author?.avatarUrl} size="sm" />}

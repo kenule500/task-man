@@ -5,6 +5,8 @@ export { default as ChannelSettingsDialog } from './components/ChannelSettingsDi
 export { default as ConversationSection } from './components/ConversationSection';
 export { default as DirectMessageList } from './components/DirectMessageList';
 export { default as NewDirectMessage } from './components/NewDirectMessage';
+export { default as SearchBar } from './components/SearchBar';
+export { default as SearchResults } from './components/SearchResults';
 export { default as TeamChannelList } from './components/TeamChannelList';
 export { default as ChatHeader } from './components/ChatHeader';
 export { default as Composer } from './components/Composer';
@@ -19,6 +21,7 @@ export { useChatSocket } from './hooks/useChatSocket';
 export * from './lib/messages';
 export * from './lib/mentions';
 export * from './lib/conversations';
+export * from './lib/search';
 export * from './lib/reactions';
 export * from './lib/readState';
 export * from './lib/avatar';

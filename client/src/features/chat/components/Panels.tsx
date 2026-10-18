@@ -1,61 +1,6 @@
 import { X } from 'lucide-react';
 import type { ChatMessage } from '../types';
 
-const timeOf = (iso: string): string => {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-};
-
-interface SearchPanelProps {
-  term: string;
-  results: ChatMessage[];
-  loading: boolean;
-  onTermChange: (term: string) => void;
-  onClose: () => void;
-}
-
-/** Search results for one channel; each result can be jumped to. */
-export const SearchPanel = ({ term, results, loading, onTermChange, onClose }: SearchPanelProps) => (
-  <section aria-label="Search results" className="border-b border-slate-200 bg-slate-50/70 p-3">
-    <div className="flex items-center gap-2">
-      <input
-        value={term}
-        autoFocus
-        aria-label="Search this channel"
-        placeholder="Search this channel…"
-        onChange={event => onTermChange(event.target.value)}
-        className="min-h-9 flex-1 rounded-md border border-slate-300 px-2 text-sm outline-none focus-visible:outline-2 focus-visible:outline-primary"
-      />
-      <button
-        type="button"
-        aria-label="Close search"
-        onClick={onClose}
-        className="flex size-8 items-center justify-center rounded-md text-slate-500 outline-none hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <X className="size-4" aria-hidden />
-      </button>
-    </div>
-
-    <div className="mt-2 max-h-56 overflow-y-auto">
-      {loading && <p className="text-xs text-slate-500">Searching…</p>}
-      {!loading && term.trim() !== '' && results.length === 0 && (
-        <p className="text-xs text-slate-500">No messages matched “{term}”.</p>
-      )}
-      <ul className="space-y-1">
-        {results.map(result => (
-          <li key={result._id} className="rounded-md bg-white px-2 py-1.5">
-            <p className="text-xs font-semibold text-slate-900">
-              {typeof result.author === 'string' ? 'Member' : result.author.name}
-              <span className="ml-2 font-normal text-slate-400">{timeOf(result.createdAt)}</span>
-            </p>
-            <p className="truncate text-sm text-slate-700">{result.body}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </section>
-);
-
 interface PinnedPanelProps {
   pinned: ChatMessage[];
   loading: boolean;
@@ -91,4 +36,4 @@ export const PinnedPanel = ({ pinned, loading, onClose }: PinnedPanelProps) => (
   </section>
 );
 
-export default SearchPanel;
+export default PinnedPanel;
