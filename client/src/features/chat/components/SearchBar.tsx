@@ -65,10 +65,7 @@ export const SearchBar = ({
         className="min-h-9 min-w-40 flex-1 rounded-md border border-slate-300 bg-white px-2 text-sm outline-none focus-visible:outline-2 focus-visible:outline-primary"
       />
 
-      <span
-        aria-hidden
-        className="flex items-center gap-0.5 rounded-md border border-slate-200 bg-white"
-      >
+      <span className="flex items-center gap-0.5 rounded-md border border-slate-200 bg-white">
         <button
           type="button"
           aria-label="Previous match"

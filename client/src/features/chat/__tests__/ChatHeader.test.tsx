@@ -44,4 +44,31 @@ describe('ChatHeader', () => {
     renderHeader();
     expect(screen.queryByRole('button', { name: 'Back to conversations' })).not.toBeInTheDocument();
   });
+
+  it('AC-068: reports the member count it is given, never a fallback', () => {
+    renderHeader();
+    expect(screen.getByRole('button', { name: 'Members, 3 in this channel' })).toBeInTheDocument();
+  });
+
+  it('AC-069: a direct conversation shows the person, not a lock glyph', () => {
+    const { container } = render(
+      <ChatHeader
+        channel={{ ...channel, kind: 'direct', name: 'Direct message' }}
+        label="Ada Lovelace"
+        peer={{ _id: 'u1', name: 'Ada Lovelace' }}
+        peerOnline
+        memberCount={2}
+        onlineUserIds={['u1']}
+        transport="live"
+        onOpenSearch={jest.fn()}
+        onTogglePins={jest.fn()}
+        onOpenMembers={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Ada Lovelace' })).toBeInTheDocument();
+    expect(container.querySelector('.lucide-lock')).toBeNull();
+    expect(container.querySelector('.lucide-hash')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Members, 2 in this channel' })).toBeInTheDocument();
+  });
 });
