@@ -183,6 +183,8 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
       color,
       icon,
       createdBy: req.user?._id,
+      // The creator belongs to the project and therefore to its team channel (spec FR-064)
+      members: req.user?._id ? [req.user._id] : [],
     });
     await recordActivity(req, { action: 'project.created', summary: project.name, project: project._id as mongoose.Types.ObjectId });
     // Every project has one chat channel; creating it here keeps the two lifecycles together

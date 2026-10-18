@@ -7,8 +7,9 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/utils/api';
 import { chatApi } from '../api';
-import ChannelList from '../components/ChannelList';
+import NewDirectMessage from '../components/NewDirectMessage';
 import ChannelSettingsDialog from '../components/ChannelSettingsDialog';
+import DirectMessageList from '../components/DirectMessageList';
 import TeamChannelList from '../components/TeamChannelList';
 import ChatHeader from '../components/ChatHeader';
 import Composer from '../components/Composer';
@@ -18,8 +19,8 @@ import ThreadPanel from '../components/ThreadPanel';
 import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
-import { unreadCount } from '../lib/messages';
-import type { ChatMessage, PresenceMap, TeamChannelSummary } from '../types';
+import { applyIncomingMessage } from '../lib/conversations';
+import type { ChatMessage, ConversationCard, PresenceMap } from '../types';
 
 /** How long a typing indicator stays visible without a new event. */
 const TYPING_TTL_MS = 4000;
@@ -45,8 +46,8 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const canDirect = !permissionsLoading && can('chat:dm');
 
   const {
-    channels, active, members, loading: channelsLoading, error: channelsError,
-    lastRead, markRead, addChannel, nameOf, defaultChannelId,
+    active, members, loading: channelsLoading, error: channelsError,
+    markRead, addChannel, nameOf, defaultChannelId,
   } = useChatChannels({ slug: workspaceSlug, enabled: canRead });
 
   const currentChannelId = channelId ?? defaultChannelId ?? undefined;
@@ -76,18 +77,33 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const [pinsOpen, setPinsOpen] = useState(false);
   const [pinned, setPinned] = useState<ChatMessage[]>([]);
   const [pinsLoading, setPinsLoading] = useState(false);
-  const [teams, setTeams] = useState<TeamChannelSummary[]>([]);
+  const [teams, setTeams] = useState<ConversationCard[]>([]);
+  const [directs, setDirects] = useState<ConversationCard[]>([]);
   const [teamsLoadedFor, setTeamsLoadedFor] = useState<string | null>(null);
-  const [settingsTeam, setSettingsTeam] = useState<TeamChannelSummary | null>(null);
+  const [settingsTeam, setSettingsTeam] = useState<ConversationCard | null>(null);
   const teamsLoading = Boolean(workspaceSlug) && canRead && teamsLoadedFor !== workspaceSlug;
 
-  // Team channels the caller may read, with previews and unread state, in one request
+  // The socket subscribes to every conversation, so this list must change only when membership does
+  const conversationIds = useMemo(
+    () => [...directs, ...teams].map(card => card._id),
+    [directs, teams],
+  );
+
+  // Direct messages and team channels arrive together, so the side panel loads in one round trip
   useEffect(() => {
     if (!workspaceSlug || !canRead) return undefined;
     let cancelled = false;
-    chatApi.teams(workspaceSlug)
-      .then(list => { if (!cancelled) setTeams(list); })
-      .catch(() => { if (!cancelled) setTeams([]); })
+    chatApi.conversations(workspaceSlug)
+      .then(payload => {
+        if (cancelled) return;
+        setTeams(payload.teams);
+        setDirects(payload.directs);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTeams([]);
+        setDirects([]);
+      })
       .finally(() => { if (!cancelled) setTeamsLoadedFor(workspaceSlug); });
     return () => { cancelled = true; };
   }, [workspaceSlug, canRead]);
@@ -95,8 +111,16 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const { state: transport, send, notifyTyping } = useChatSocket({
     slug: workspaceSlug,
     channelId: currentChannelId,
+    // Subscribed to every conversation so a row can refresh while another channel is open (AC-063)
+    channelIds: conversationIds,
     enabled: Boolean(canRead && workspaceSlug),
     onMessage: incoming => {
+      if (incoming.channel !== currentChannelId) {
+        // Another conversation received it: patch that row rather than adding it to this channel
+        setDirects(current => applyIncomingMessage(current, incoming, user?._id));
+        setTeams(current => applyIncomingMessage(current, incoming, user?._id));
+        return;
+      }
       applyMessage(incoming);
       if (incoming.author && typeof incoming.author !== 'string' && incoming.author._id !== user?._id) {
         setAnnouncement(`${incoming.author.name} said: ${incoming.body}`);
@@ -105,8 +129,12 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         setReplies(current => [...current, incoming]);
       }
     },
-    onUpdated: applyUpdated,
-    onReaction: applyReaction,
+    onUpdated: message => {
+      if (message.channel === currentChannelId) applyUpdated(message);
+    },
+    onReaction: payload => {
+      if (payload.channelId === currentChannelId) applyReaction(payload);
+    },
     onTyping: userId => setTyping(current => ({ ...current, [userId]: Date.now() })),
     onPresence: (userId, online) => setPresence(current => ({ ...current, [userId]: online })),
   });
@@ -130,12 +158,6 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     if (!currentChannelId) return;
     markRead(currentChannelId);
   }, [currentChannelId, markRead]);
-
-  const unreadByChannel = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const item of channels) map[item._id] = unreadCount(item, lastRead);
-    return map;
-  }, [channels, lastRead]);
 
   // Highlighting @mentions needs the member names available in this channel
   const memberNames = useMemo(() => members.map(member => member.name), [members]);
@@ -260,15 +282,20 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
 
   const others = Object.entries(typing).filter(([userId]) => userId !== user?._id).map(([userId]) => nameOf(userId));
   const onlineUserIds = Object.entries(presence).filter(([, online]) => online).map(([id]) => id);
-  const label = channel.kind === 'direct'
-    ? nameOf(channel.participants.find(id => id !== user?._id) ?? '')
-    : channel.name;
+  const peerId = channel.kind === 'direct'
+    ? channel.participants.find(id => id !== user?._id)
+    : undefined;
+  const peer = peerId ? members.find(member => member._id === peerId) ?? null : null;
+  const label = channel.kind === 'direct' ? nameOf(peerId ?? '') : channel.name;
 
   const startDirect = async (userId: string) => {
     if (!workspaceSlug) return;
     try {
       const created = await chatApi.startDirect(workspaceSlug, userId);
       addChannel(created);
+      // The new conversation belongs in the direct-message segment, so refresh it with its card
+      const payload = await chatApi.conversations(workspaceSlug);
+      setDirects(payload.directs);
       navigate(`/${workspaceSlug}/chat/${created._id}`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not open that conversation.'));
@@ -280,22 +307,23 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
       {/* Team channels and direct conversations; the two default channels are in the main menu */}
       <div className="flex w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar lg:w-72">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {/* Direct conversations and the two default channels stay available here */}
-          <ChannelList
-            channels={active.filter(item => item.kind === 'direct')}
-            currentChannelId={currentChannelId}
-            currentUserId={user?._id}
+          {/* The picker stays the first item; both sections are segmented the same way (spec AC-056, AC-065) */}
+          <NewDirectMessage
             members={members}
-            unreadByChannel={unreadByChannel}
-            nameOf={nameOf}
-            onSelect={id => navigate(`/${workspaceSlug}/chat/${id}`)}
+            currentUserId={user?._id}
             canStartDirect={canDirect}
             onStartDirect={startDirect}
           />
-          {/* Project conversations, as group chats beside the conversation */}
-          <div className="mt-2 border-t border-slate-200 pt-1">
+          <div className="border-t border-slate-200">
+            <DirectMessageList
+              directs={directs}
+              currentChannelId={currentChannelId}
+              loading={teamsLoading}
+              onSelect={id => navigate(`/${workspaceSlug}/chat/${id}`)}
+            />
+          </div>
+          <div className="border-t border-slate-200">
             <TeamChannelList
-              slug={workspaceSlug ?? ''}
               teams={teams}
               currentChannelId={currentChannelId}
               loading={teamsLoading}
@@ -324,8 +352,11 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         <ChatHeader
           channel={channel}
           label={label}
+          peer={peer}
+          peerOnline={Boolean(peerId && presence[peerId])}
           onlineUserIds={onlineUserIds}
-          memberCount={channel.memberCount ?? members.length}
+          // A direct conversation is always its two participants; other kinds come from the server
+          memberCount={channel.memberCount ?? (channel.kind === 'direct' ? 2 : members.length)}
           transport={transport}
           onOpenSearch={() => setSearchOpen(value => !value)}
           onTogglePins={() => {

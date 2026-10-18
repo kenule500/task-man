@@ -3,6 +3,7 @@ import {
   getChannelAvatar,
   listChannels,
   listChatMembers,
+  listConversations,
   listTeamChannels,
   renameChannel,
   setChannelAvatar,
@@ -45,7 +46,9 @@ router.use(protect);
 
 // Channels
 router.get('/channels', requirePermission('chat:read'), validateListChannels, listChannels);
-// Team channels: only what this caller may read, with previews and unread state
+// Conversations: direct messages and team channels in one request, so the side panel loads in one round trip
+router.get('/chat/conversations', requirePermission('chat:read'), listConversations);
+// Team channels only, kept for callers that need just that half
 router.get('/chat/teams', requirePermission('chat:read'), listTeamChannels);
 // Avatar upload is declared before the generic :channelId routes so it is not captured as an id
 router.post('/chat/:channelId/avatar', requirePermission('chat:moderate'), uploadAttachmentFile, setChannelAvatar);

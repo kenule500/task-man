@@ -452,7 +452,8 @@ export const toggleReaction = async (req: Request, res: Response): Promise<void>
     }
 
     const reactions = await reactionSummary(found.message._id as mongoose.Types.ObjectId);
-    const payload = { messageId: String(found.message._id), reactions };
+    // The channel is included so a client listening to several conversations can ignore other rooms
+    const payload = { channelId: String(found.channel._id), messageId: String(found.message._id), reactions };
     emitToChannel(String(found.channel._id), 'chat:reaction', payload);
 
     res.status(200).json(payload);
@@ -481,7 +482,7 @@ export const removeReaction = async (req: Request, res: Response): Promise<void>
     });
 
     const reactions = await reactionSummary(found.message._id as mongoose.Types.ObjectId);
-    const payload = { messageId: String(found.message._id), reactions };
+    const payload = { channelId: String(found.channel._id), messageId: String(found.message._id), reactions };
     emitToChannel(String(found.channel._id), 'chat:reaction', payload);
 
     res.status(200).json(payload);

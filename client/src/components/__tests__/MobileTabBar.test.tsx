@@ -37,10 +37,10 @@ const renderBar = (granted: string[], path = '/acme/tasks', slug = 'acme', loadi
     </PermissionContext.Provider>,
   );
 
-const ALL = ['tasks:read', 'tasks:write', 'projects:read'];
+const ALL = ['tasks:read', 'tasks:write', 'projects:read', 'chat:read'];
 
 describe('MobileTabBar', () => {
-  it('renders the five slots in a labelled navigation', () => {
+  it('renders the six slots in a labelled navigation', () => {
     renderBar(ALL);
     const nav = screen.getByRole('navigation', { name: 'Primary' });
     expect(nav).toHaveClass('md:hidden');
@@ -48,6 +48,7 @@ describe('MobileTabBar', () => {
     expect(screen.getByRole('link', { name: 'Tasks' })).toHaveAttribute('href', '/acme/tasks');
     expect(screen.getByRole('link', { name: 'New task' })).toHaveAttribute('href', '/acme/tasks?new=1');
     expect(screen.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/acme/projects');
+    expect(screen.getByRole('link', { name: 'Chat' })).toHaveAttribute('href', '/acme/chat');
     expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
   });
 
@@ -63,7 +64,8 @@ describe('MobileTabBar', () => {
     expect(screen.getByRole('link', { name: 'Tasks' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'New task' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Projects' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+    expect(screen.queryByRole('link', { name: 'Chat' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(6);
   });
 
   it('hides gated slots while permissions load', () => {

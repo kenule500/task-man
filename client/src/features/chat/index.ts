@@ -1,8 +1,10 @@
 // Public surface of the chat feature. Import from '@/features/chat'.
 export * from './types';
 export { chatApi } from './api';
-export { default as ChannelList } from './components/ChannelList';
 export { default as ChannelSettingsDialog } from './components/ChannelSettingsDialog';
+export { default as ConversationSection } from './components/ConversationSection';
+export { default as DirectMessageList } from './components/DirectMessageList';
+export { default as NewDirectMessage } from './components/NewDirectMessage';
 export { default as TeamChannelList } from './components/TeamChannelList';
 export { default as ChatHeader } from './components/ChatHeader';
 export { default as Composer } from './components/Composer';
@@ -16,6 +18,7 @@ export { useChatMessages } from './hooks/useChatMessages';
 export { useChatSocket } from './hooks/useChatSocket';
 export * from './lib/messages';
 export * from './lib/mentions';
+export * from './lib/conversations';
 export * from './lib/reactions';
 export * from './lib/readState';
 export * from './lib/avatar';

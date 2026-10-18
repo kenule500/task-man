@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import type { Server, Socket } from 'socket.io';
 import ChatChannel, { IChatChannel } from '../models/chatChannelModel.js';
+import Project from '../models/projectModel.js';
 import { createMessageInChannel, messageView } from '../controllers/chatMessageController.js';
 import { decideChannelAccess } from '../utils/chatAccess.js';
 import { parseMessageInput } from '../utils/chatValidation.js';
@@ -37,27 +38,65 @@ const resolveChannel = async (
   const channel = await ChatChannel.findOne({ _id: channelId, workspace: ctx.workspaceId });
   if (!channel) return null;
 
+  // A project channel is readable by its project's members, which the socket path must check just as
+  // the HTTP controllers do; otherwise a member's socket never joins the room (spec FR-037, AC-063).
+  let isProjectMember: boolean | undefined;
+  if (channel.kind === 'project' && !ctx.permissions.includes('chat:moderate')) {
+    isProjectMember = Boolean(await Project.exists({ _id: channel.project, members: ctx.userId }));
+  }
+
   const decision = decideChannelAccess({
     channel,
     userId: ctx.userId,
     permissions: ctx.permissions,
     requireWrite,
+    isProjectMember,
   });
 
   return decision === 'allow' ? channel : null;
 };
 
-type Ack = (response: { ok: boolean; error?: string; message?: unknown }) => void;
+type Ack = (response: { ok: boolean; error?: string; message?: unknown; joined?: number }) => void;
+
+// One join may subscribe a member to a whole panel; the cap keeps a crafted payload from being a
+// cheap way to make the server run thousands of access checks.
+const MAX_JOIN_CHANNELS = 200;
 
 export const registerChatEvents = (_io: Server, socket: Socket): void => {
   const ctx = contextOf(socket);
 
-  socket.on('chat:join', async (payload: { channelId?: string } | undefined, ack?: Ack) => {
+  // Accepts one channel or a list: the client subscribes to every conversation so a background row
+  // can refresh without a reload (spec AC-063). Access is decided here, once per requested channel.
+  socket.on('chat:join', async (
+    payload: { channelId?: unknown; channelIds?: unknown } | undefined,
+    ack?: Ack,
+  ) => {
     if (!allowEvent(socket)) return ack?.({ ok: false, error: 'Too many requests' });
-    const channel = await resolveChannel(ctx, payload?.channelId, false);
-    if (!channel) return ack?.({ ok: false, error: 'Channel not found' });
-    await socket.join(channelRoom(String(channel._id)));
-    ack?.({ ok: true });
+
+    const requested = Array.isArray(payload?.channelIds) ? payload.channelIds : [payload?.channelId];
+    const ids = requested
+      .filter((id): id is string => typeof id === 'string' && mongoose.isValidObjectId(id))
+      .slice(0, MAX_JOIN_CHANNELS);
+    if (ids.length === 0) return ack?.({ ok: false, error: 'Channel not found' });
+
+    const channels = await ChatChannel.find({ _id: { $in: ids }, workspace: ctx.workspaceId }).lean();
+    const projectIds = channels
+      .filter(channel => channel.kind === 'project' && channel.project)
+      .map(channel => channel.project as mongoose.Types.ObjectId);
+    const memberProjects = projectIds.length === 0
+      ? []
+      : await Project.find({ _id: { $in: projectIds }, members: ctx.userId }).select('_id').lean();
+    const memberProjectIds = new Set(memberProjects.map(project => String(project._id)));
+
+    const allowed = channels.filter(channel => decideChannelAccess({
+      channel,
+      userId: ctx.userId,
+      permissions: ctx.permissions,
+      isProjectMember: channel.project ? memberProjectIds.has(String(channel.project)) : undefined,
+    }) === 'allow');
+
+    await Promise.all(allowed.map(channel => socket.join(channelRoom(String(channel._id)))));
+    ack?.({ ok: true, joined: allowed.length });
   });
 
   socket.on('chat:leave', async (payload: { channelId?: string } | undefined, ack?: Ack) => {

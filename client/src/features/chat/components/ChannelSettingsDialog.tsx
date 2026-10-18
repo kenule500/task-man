@@ -4,11 +4,11 @@ import { getApiErrorMessage } from '@/utils/api';
 import { cn } from '@/lib/utils';
 import { chatApi } from '../api';
 import { avatarSrc } from '../lib/avatar';
-import type { TeamChannelSummary } from '../types';
+import type { ConversationCard } from '../types';
 
 interface ChannelSettingsDialogProps {
   slug: string;
-  team: TeamChannelSummary;
+  team: ConversationCard;
   onClose: () => void;
   onSaved: (summary: { _id: string; name: string; avatarUrl: string | null }) => void;
 }

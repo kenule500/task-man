@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { body, query } from 'express-validator';
-import ChatChannel, { CHANNEL_KINDS, MAX_CHANNEL_NAME, directKeyOf } from '../models/chatChannelModel.js';
+import ChatChannel, {
+  CHANNEL_KINDS, MAX_CHANNEL_NAME, MAX_DIRECT_PARTICIPANTS, directKeyOf,
+} from '../models/chatChannelModel.js';
 import ChatMessage from '../models/chatMessageModel.js';
 import ChatRead from '../models/chatReadModel.js';
 import Project from '../models/projectModel.js';
+import User from '../models/userModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { emitToChannel } from '../realtime/bus.js';
 import { deleteFiles, openFileStream, saveFile } from '../utils/gridfs.js';
@@ -58,8 +61,23 @@ export const ensureDefaultChannels = async (workspaceId: mongoose.Types.ObjectId
  * Projects can predate this feature, and `syncProjectsFromTasks` can create projects outside createProject.
  */
 export const backfillProjectChannels = async (workspaceId: mongoose.Types.ObjectId): Promise<void> => {
-  const projects = await Project.find({ workspace: workspaceId }).select('_id name').lean();
+  const projects = await Project.find({ workspace: workspaceId })
+    .select('_id name createdBy members').lean();
   if (projects.length === 0) return;
+
+  // The creator is part of the project and therefore of its channel, even without an assigned task.
+  // The channel backfill already runs on every list request, so an existing workspace corrects itself
+  // here instead of needing a migration (spec FR-064).
+  const missingCreator = projects.filter(project => project.createdBy
+    && !(project.members ?? []).some(id => String(id) === String(project.createdBy)));
+  if (missingCreator.length > 0) {
+    await Project.bulkWrite(missingCreator.map(project => ({
+      updateOne: {
+        filter: { _id: project._id },
+        update: { $addToSet: { members: project.createdBy } },
+      },
+    })), { ordered: false });
+  }
 
   await ChatChannel.bulkWrite(projects.map(project => ({
     updateOne: {
@@ -126,9 +144,168 @@ export const displayNameOf = (
 ): string => channel.nameOverride?.trim() || projectName?.trim() || channel.name;
 
 /**
- * @desc    Team channels the caller may read, with preview and unread state, in one request
- * @route   GET /api/workspaces/:slug/chat/teams
+ * Unread message count per channel for one caller: messages newer than that channel's read pointer,
+ * tombstones excluded. One aggregation for the whole list, never a query per row (spec NFR-023).
  */
+const unreadCountsFor = async (
+  channelIds: unknown[],
+  userId: string,
+): Promise<Map<string, number>> => {
+  if (channelIds.length === 0) return new Map();
+  const rows = await ChatMessage.aggregate<{ _id: mongoose.Types.ObjectId; count: number }>([
+    { $match: { channel: { $in: channelIds }, deletedAt: null } },
+    {
+      $lookup: {
+        from: 'chatreads',
+        let: { channel: '$channel' },
+        pipeline: [{
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ['$channel', '$$channel'] },
+                { $eq: ['$user', new mongoose.Types.ObjectId(userId)] },
+              ],
+            },
+          },
+        }],
+        as: 'read',
+      },
+    },
+    { $addFields: { lastReadAt: { $ifNull: [{ $first: '$read.lastReadAt' }, null] } } },
+    {
+      $match: {
+        $expr: {
+          $or: [
+            { $eq: ['$lastReadAt', null] },
+            { $gt: ['$createdAt', '$lastReadAt'] },
+          ],
+        },
+      },
+    },
+    { $group: { _id: '$channel', count: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map(row => [String(row._id), row.count]));
+};
+
+/** The shape both conversation sections render: one card per channel with its preview and unread state. */
+const conversationCard = (
+  channel: { _id: unknown; archived?: boolean },
+  fields: { name: string; avatarUrl: string | null; project?: string | null },
+  preview: { body: string; createdAt: Date; authorName?: string } | undefined,
+  unreadCount: number,
+) => ({
+  _id: String(channel._id),
+  name: fields.name,
+  project: fields.project ?? null,
+  avatarUrl: fields.avatarUrl,
+  archived: Boolean(channel.archived),
+  lastMessage: preview ? { body: preview.body, at: preview.createdAt, authorName: preview.authorName ?? '' } : null,
+  unread: unreadCount > 0,
+  unreadCount,
+});
+
+type ConversationCardShape = ReturnType<typeof conversationCard>;
+
+/** Newest first, so both sections follow recent activity; never-used conversations fall back to name. */
+const byRecency = (a: ConversationCardShape, b: ConversationCardShape): number => {
+  const at = a.lastMessage ? a.lastMessage.at.getTime() : 0;
+  const bt = b.lastMessage ? b.lastMessage.at.getTime() : 0;
+  if (at !== bt) return bt - at;
+  return a.name.localeCompare(b.name);
+};
+
+/**
+ * @desc    The caller's conversations — direct messages and team channels — with previews and unread
+ *          state, in one request so the side panel needs a single round trip
+ * @route   GET /api/workspaces/:slug/chat/conversations
+ */
+export const listConversations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const workspaceId = workspaceIdOf(req);
+    await backfillProjectChannels(workspaceId);
+
+    const permissions = permissionsOf(req);
+    const userId = String(req.user?._id);
+    const moderator = permissions.includes('chat:moderate');
+
+    const memberProjects = moderator
+      ? await Project.find({ workspace: workspaceId }).select('_id name').lean()
+      : await Project.find({
+        workspace: workspaceId,
+        members: new mongoose.Types.ObjectId(userId),
+      }).select('_id name').lean();
+    const projectNameById = new Map(memberProjects.map(project => [String(project._id), project.name]));
+    const projectIds = memberProjects.map(project => project._id);
+
+    const [teams, directs] = await Promise.all([
+      projectIds.length === 0
+        ? []
+        : ChatChannel.find({ workspace: workspaceId, kind: 'project', project: { $in: projectIds } })
+          .select('-nameKey -__v -directKey').sort({ archived: 1, name: 1 }).lean(),
+      // A direct conversation is listed for its two participants only
+      ChatChannel.find({ workspace: workspaceId, kind: 'direct', participants: new mongoose.Types.ObjectId(userId) })
+        .select('-nameKey -__v -directKey').lean(),
+    ]);
+
+    const channelIds = [...teams, ...directs].map(channel => channel._id);
+
+    // Last message, unread count and names for every channel in a few queries, never one per channel
+    const [lastMessages, unreadCounts, otherUsers] = await Promise.all([
+      channelIds.length === 0 ? [] : ChatMessage.aggregate<{
+        _id: mongoose.Types.ObjectId; body: string; createdAt: Date; authorName?: string;
+      }>([
+        { $match: { channel: { $in: channelIds }, deletedAt: null } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: '$channel', body: { $first: '$body' }, createdAt: { $first: '$createdAt' }, author: { $first: '$author' } } },
+        { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorDoc' } },
+        { $project: { body: 1, createdAt: 1, authorName: { $ifNull: [{ $first: '$authorDoc.name' }, ''] } } },
+      ]),
+      unreadCountsFor(channelIds, userId),
+      // The other participant of each direct conversation, for its name and picture
+      User.find({
+        _id: {
+          $in: directs.flatMap(channel => channel.participants ?? [])
+            .filter(id => String(id) !== userId),
+        },
+      }).select('name avatarUrl').lean(),
+    ]);
+
+    const previewOf = new Map(lastMessages.map(row => [String(row._id), row]));
+    const userById = new Map(otherUsers.map(user => [String(user._id), user]));
+
+    const teamCards = teams.map(channel => conversationCard(
+      channel,
+      {
+        name: displayNameOf(channel, channel.project ? projectNameById.get(String(channel.project)) : undefined),
+        avatarUrl: channel.avatarFileId ? `/chat/${String(channel._id)}/avatar` : null,
+        project: channel.project ? String(channel.project) : null,
+      },
+      previewOf.get(String(channel._id)),
+      unreadCounts.get(String(channel._id)) ?? 0,
+    ));
+
+    const directCards = directs.map(channel => {
+      const otherId = (channel.participants ?? []).map(String).find(id => id !== userId) ?? '';
+      const other = userById.get(otherId);
+      return conversationCard(
+        channel,
+        {
+          // A direct conversation is named after the person, not the stored placeholder
+          name: other?.name ?? 'Direct message',
+          avatarUrl: other?.avatarUrl ?? null,
+        },
+        previewOf.get(String(channel._id)),
+        unreadCounts.get(String(channel._id)) ?? 0,
+      );
+    });
+
+    res.status(200).json({ directs: directCards.sort(byRecency), teams: teamCards.sort(byRecency) });
+  } catch (error) {
+    handleError(res, error, 'listConversations');
+  }
+};
+
+/** Kept for callers that only need the team channels. */
 export const listTeamChannels = async (req: Request, res: Response): Promise<void> => {
   try {
     const workspaceId = workspaceIdOf(req);
@@ -155,9 +332,9 @@ export const listTeamChannels = async (req: Request, res: Response): Promise<voi
         project: { $in: projectIds },
       }).select('-nameKey -__v -directKey').sort({ archived: 1, name: 1 }).lean();
 
-    // Last message per channel and the caller's read pointers, in two queries rather than per channel
+    // Last message per channel and the caller's unread count, in two queries rather than per channel
     const channelIds = channels.map(channel => channel._id);
-    const [lastMessages, reads] = await Promise.all([
+    const [lastMessages, unreadCounts] = await Promise.all([
       channelIds.length === 0 ? [] : ChatMessage.aggregate<{
         _id: mongoose.Types.ObjectId; body: string; createdAt: Date; authorName?: string;
       }>([
@@ -167,27 +344,21 @@ export const listTeamChannels = async (req: Request, res: Response): Promise<voi
         { $lookup: { from: 'users', localField: 'author', foreignField: '_id', as: 'authorDoc' } },
         { $project: { body: 1, createdAt: 1, authorName: { $ifNull: [{ $first: '$authorDoc.name' }, ''] } } },
       ]),
-      ChatRead.find({ channel: { $in: channelIds }, user: new mongoose.Types.ObjectId(userId) })
-        .select('channel lastReadAt').lean(),
+      unreadCountsFor(channelIds, userId),
     ]);
 
     const previewOf = new Map(lastMessages.map(row => [String(row._id), row]));
-    const readOf = new Map(reads.map(row => [String(row.channel), row.lastReadAt]));
 
-    const teams = channels.map(channel => {
-      const preview = previewOf.get(String(channel._id));
-      const lastReadAt = readOf.get(String(channel._id));
-      const projectName = channel.project ? projectNameById.get(String(channel.project)) : undefined;
-      return {
-        _id: String(channel._id),
-        name: displayNameOf(channel, projectName),
-        project: channel.project ? String(channel.project) : null,
+    const teams = channels.map(channel => conversationCard(
+      channel,
+      {
+        name: displayNameOf(channel, channel.project ? projectNameById.get(String(channel.project)) : undefined),
         avatarUrl: channel.avatarFileId ? `/chat/${String(channel._id)}/avatar` : null,
-        archived: Boolean(channel.archived),
-        lastMessage: preview ? { body: preview.body, at: preview.createdAt, authorName: preview.authorName } : null,
-        unread: Boolean(preview && (!lastReadAt || preview.createdAt > lastReadAt)),
-      };
-    });
+        project: channel.project ? String(channel.project) : null,
+      },
+      previewOf.get(String(channel._id)),
+      unreadCounts.get(String(channel._id)) ?? 0,
+    ));
 
     res.status(200).json({ teams });
   } catch (error) {
@@ -361,7 +532,8 @@ export const startDirect = async (req: Request, res: Response): Promise<void> =>
     const directKey = directKeyOf(me, other);
     const existing = await ChatChannel.findOne({ workspace: workspaceId, directKey }).select('-nameKey -__v').lean();
     if (existing) {
-      res.status(200).json(existing);
+      // A direct conversation always counts its two participants (spec AC-068)
+      res.status(200).json({ ...existing, memberCount: MAX_DIRECT_PARTICIPANTS });
       return;
     }
 
@@ -375,12 +547,12 @@ export const startDirect = async (req: Request, res: Response): Promise<void> =>
         directKey,
       });
       const { nameKey, __v, ...view } = channel.toObject();
-      res.status(201).json(view);
+      res.status(201).json({ ...view, memberCount: MAX_DIRECT_PARTICIPANTS });
     } catch (error) {
       // Two people opening the conversation at once: the unique key resolves it, both get the same channel
       if (!isDuplicateKey(error)) throw error;
       const channel = await ChatChannel.findOne({ workspace: workspaceId, directKey }).select('-nameKey -__v').lean();
-      res.status(200).json(channel);
+      res.status(200).json({ ...channel, memberCount: MAX_DIRECT_PARTICIPANTS });
     }
   } catch (error) {
     handleError(res, error, 'startDirect');

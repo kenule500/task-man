@@ -1,10 +1,15 @@
 import { Hash, Lock, Search, Pin, Users } from 'lucide-react';
-import { TooltipHint } from '@/components/ds';
-import type { ChatChannel } from '../types';
+import { TooltipHint, UserAvatar } from '@/components/ds';
+import { cn } from '@/lib/utils';
+import { avatarSrc } from '../lib/avatar';
+import type { ChatChannel, ChatUser } from '../types';
 
 interface ChatHeaderProps {
   channel: ChatChannel;
   label: string;
+  /** The other participant, for a direct conversation (spec AC-069). */
+  peer?: ChatUser | null;
+  peerOnline?: boolean;
   onlineUserIds: string[];
   memberCount: number;
   transport: 'connecting' | 'live' | 'degraded';
@@ -21,7 +26,8 @@ const TRANSPORT_COPY = {
 
 /** Channel title, presence summary and the tools that belong to the conversation. */
 export const ChatHeader = ({
-  channel, label, onlineUserIds, memberCount, transport, onOpenSearch, onTogglePins, onOpenMembers,
+  channel, label, peer, peerOnline = false, onlineUserIds, memberCount, transport,
+  onOpenSearch, onTogglePins, onOpenMembers,
 }: ChatHeaderProps) => {
   const Glyph = channel.kind === 'direct' ? Lock : Hash;
   const online = onlineUserIds.length;
@@ -30,7 +36,20 @@ export const ChatHeader = ({
 
   return (
     <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
-      <Glyph className="size-4 shrink-0 text-slate-400" aria-hidden />
+      {channel.kind === 'direct' && peer ? (
+        <span className="relative shrink-0">
+          <UserAvatar name={peer.name} src={avatarSrc(peer.avatarUrl)} size="sm" />
+          <span
+            aria-hidden
+            className={cn(
+              'absolute -bottom-0.5 -right-0.5 size-2 rounded-full ring-2 ring-white',
+              peerOnline ? 'bg-success-fg' : 'bg-slate-300',
+            )}
+          />
+        </span>
+      ) : (
+        <Glyph className="size-4 shrink-0 text-slate-400" aria-hidden />
+      )}
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-sm font-semibold text-slate-900">{label}</h1>
         <p className="flex items-center gap-1.5 truncate text-xs text-slate-500">

@@ -9,13 +9,21 @@ const socketOrigin = (apiUrl: string = API_URL): string => apiUrl.replace(/\/api
 
 export type TransportState = 'connecting' | 'live' | 'degraded';
 
+export interface ReactionEvent {
+  channelId: string;
+  messageId: string;
+  reactions: Reaction[];
+}
+
 interface Options {
   slug: string | undefined;
   channelId: string | undefined;
+  /** Every conversation the member can read, so a row still updates when its channel is not open. */
+  channelIds?: string[];
   enabled: boolean;
   onMessage: (message: ChatMessage) => void;
   onUpdated: (message: ChatMessage) => void;
-  onReaction: (payload: { messageId: string; reactions: Reaction[] }) => void;
+  onReaction: (payload: ReactionEvent) => void;
   onTyping: (userId: string) => void;
   onPresence: (userId: string, online: boolean) => void;
 }
@@ -28,26 +36,39 @@ export interface ChatSocket {
 }
 
 /**
- * One connection per open channel. The socket is an accelerator: when it is down every action still
+ * One connection per workspace. The socket is an accelerator: when it is down every action still
  * works over REST, and `state` lets the UI say so instead of appearing healthy (spec AC-033).
+ *
+ * The connection subscribes to every conversation the member can read, not only the open one, so a
+ * message that arrives in a background row can refresh that row without a reload (spec AC-063).
  */
 export const useChatSocket = ({
-  slug, channelId, enabled, onMessage, onUpdated, onReaction, onTyping, onPresence,
+  slug, channelId, channelIds = [], enabled, onMessage, onUpdated, onReaction, onTyping, onPresence,
 }: Options): ChatSocket => {
   const socketRef = useRef<Socket | null>(null);
-  // The transport state belongs to the channel it was observed for, so switching channels never
-  // shows the previous channel's status (and no state is set synchronously inside the effect)
-  const [connection, setConnection] = useState<{ channelId: string; state: TransportState } | null>(null);
-  const state: TransportState = connection && connection.channelId === channelId ? connection.state : 'connecting';
+  const [state, setState] = useState<TransportState>('connecting');
 
   // Handlers live in a ref so re-renders never tear down the connection
   const handlers = useRef({ onMessage, onUpdated, onReaction, onTyping, onPresence });
-    useEffect(() => {
-      handlers.current = { onMessage, onUpdated, onReaction, onTyping, onPresence };
-    }, [onMessage, onUpdated, onReaction, onTyping, onPresence]);
+  useEffect(() => {
+    handlers.current = { onMessage, onUpdated, onReaction, onTyping, onPresence };
+  }, [onMessage, onUpdated, onReaction, onTyping, onPresence]);
+
+  // Refs keep the connection effect independent of the open channel and of the room list
+  const openChannel = useRef(channelId);
+  useEffect(() => { openChannel.current = channelId; }, [channelId]);
+  const rooms = useRef(channelIds);
+  useEffect(() => { rooms.current = channelIds; }, [channelIds]);
+
+  const joinRooms = useCallback((socket: Socket) => {
+    const ids = new Set<string>();
+    for (const id of rooms.current) if (id) ids.add(id);
+    if (openChannel.current) ids.add(openChannel.current);
+    if (ids.size > 0) socket.emit('chat:join', { channelIds: [...ids] });
+  }, []);
 
   useEffect(() => {
-    if (!slug || !channelId || !enabled) return undefined;
+    if (!slug || !enabled) return undefined;
 
     const socket = io(socketOrigin(), {
       path: '/socket.io',
@@ -56,32 +77,40 @@ export const useChatSocket = ({
       reconnection: true,
     });
     socketRef.current = socket;
-    const report = (value: TransportState) => setConnection({ channelId, state: value });
 
     socket.on('connect', () => {
-      report('live');
-      socket.emit('chat:join', { channelId });
+      setState('live');
+      joinRooms(socket);
     });
-    socket.on('connect_error', () => report('degraded'));
-    socket.on('disconnect', () => report('degraded'));
+    socket.on('connect_error', () => setState('degraded'));
+    socket.on('disconnect', () => setState('degraded'));
 
     socket.on('chat:message', (message: ChatMessage) => handlers.current.onMessage(message));
     socket.on('chat:updated', (message: ChatMessage) => handlers.current.onUpdated(message));
     socket.on('chat:deleted', (message: ChatMessage) => handlers.current.onUpdated(message));
-    socket.on('chat:reaction', (payload: { messageId: string; reactions: Reaction[] }) => {
-      handlers.current.onReaction(payload);
+    socket.on('chat:reaction', (payload: ReactionEvent) => handlers.current.onReaction(payload));
+    socket.on('chat:typing', (payload: { channelId?: string; userId: string }) => {
+      // Typing is only meaningful for the conversation on screen
+      if (payload.channelId === openChannel.current) handlers.current.onTyping(payload.userId);
     });
-    socket.on('chat:typing', (payload: { userId: string }) => handlers.current.onTyping(payload.userId));
     socket.on('chat:presence', (payload: { userId: string; online: boolean }) => {
       handlers.current.onPresence(payload.userId, payload.online);
     });
 
     return () => {
-      socket.emit('chat:leave', { channelId });
       socket.close();
       socketRef.current = null;
+      setState('connecting');
     };
-  }, [slug, channelId, enabled]);
+  }, [slug, enabled, joinRooms]);
+
+  // Conversations that arrive after the connection (first load, a new direct message) join then
+  const roomKey = channelIds.filter(Boolean).join(',');
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket?.connected || !roomKey) return;
+    socket.emit('chat:join', { channelIds: roomKey.split(',') });
+  }, [roomKey]);
 
   const send = useCallback((input: OutgoingMessage): Promise<ChatMessage | null> => {
     const socket = socketRef.current;

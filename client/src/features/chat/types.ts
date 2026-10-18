@@ -13,6 +13,8 @@ export interface ChatChannel {
   memberCount?: number;
   /** True when the channel has messages newer than the caller's last visit. */
   unread?: boolean;
+  /** How many messages are newer than the caller's last visit. */
+  unreadCount?: number;
   avatarUrl?: string | null;
   project?: string | null;
   participants: string[];
@@ -85,8 +87,8 @@ export interface SocketAck {
   message?: ChatMessage;
 }
 
-/** One row of the team-channel list. */
-export interface TeamChannelSummary {
+/** One row of a conversation section (direct messages and team channels share the shape). */
+export interface ConversationCard {
   _id: string;
   name: string;
   project: string | null;
@@ -94,6 +96,16 @@ export interface TeamChannelSummary {
   archived: boolean;
   lastMessage: { body: string; at: string; authorName: string } | null;
   unread: boolean;
+  /** Number of messages newer than the caller's last read; rendered as 9+ when above nine. */
+  unreadCount: number;
+}
+
+/** Kept as an alias so existing imports keep working. */
+export type TeamChannelSummary = ConversationCard;
+
+export interface ConversationsPayload {
+  directs: ConversationCard[];
+  teams: ConversationCard[];
 }
 
 export interface ChannelSummary {

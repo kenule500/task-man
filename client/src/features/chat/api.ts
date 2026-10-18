@@ -1,7 +1,7 @@
 import api from '@/utils/api';
 import type {
-  ChannelSummary, ChatChannel, ChatMessage, ChatUser, MessagePage, OutgoingMessage, Reaction, SearchPage,
-  TeamChannelSummary,
+  ChannelSummary, ChatChannel, ChatMessage, ChatUser, ConversationsPayload, ConversationCard, MessagePage,
+  OutgoingMessage, Reaction, SearchPage,
 } from './types';
 
 const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}`;
@@ -91,8 +91,17 @@ export const chatApi = {
     return data;
   },
 
+  /** Direct messages and team channels in one request, so the side panel loads in one round trip. */
+  conversations: async (slug: string): Promise<ConversationsPayload> => {
+    const { data } = await api.get(`${base(slug)}/chat/conversations`);
+    return {
+      directs: Array.isArray(data?.directs) ? data.directs : [],
+      teams: Array.isArray(data?.teams) ? data.teams : [],
+    };
+  },
+
   /** Team channels the caller may read, with previews and unread state. */
-  teams: async (slug: string): Promise<TeamChannelSummary[]> => {
+  teams: async (slug: string): Promise<ConversationCard[]> => {
     const { data } = await api.get(`${base(slug)}/chat/teams`);
     return Array.isArray(data?.teams) ? data.teams : [];
   },
