@@ -82,7 +82,8 @@ const authenticate = async (rawToken: unknown, rawSlug: unknown): Promise<Socket
  */
 const PRESENCE_REFRESH_MS = 30_000;
 
-const registerPresence = (io: Server, socket: Socket, ctx: SocketContext): void => {
+/** Exported for the presence unit test; behaviour is unchanged. */
+export const registerPresence = (io: Server, socket: Socket, ctx: SocketContext): void => {
   const workspace = new mongoose.Types.ObjectId(ctx.workspaceId);
   const user = new mongoose.Types.ObjectId(ctx.userId);
   const key = { workspace, user };

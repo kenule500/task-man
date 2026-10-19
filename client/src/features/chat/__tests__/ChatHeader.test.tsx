@@ -45,6 +45,28 @@ describe('ChatHeader', () => {
     expect(screen.queryByRole('button', { name: 'Back to conversations' })).not.toBeInTheDocument();
   });
 
+  it('AC-034: states the channel purpose under the title', () => {
+    renderHeader();
+    expect(screen.getByText('Team coordination')).toBeInTheDocument();
+  });
+
+  it('AC-033: reports a degraded transport instead of appearing healthy', () => {
+    render(
+      <ChatHeader
+        channel={channel}
+        label="Team Chat"
+        memberCount={3}
+        onlineUserIds={[]}
+        transport="degraded"
+        onOpenSearch={jest.fn()}
+        onTogglePins={jest.fn()}
+        onOpenMembers={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Reconnecting — updates may lag')).toBeInTheDocument();
+  });
+
   it('AC-068: reports the member count it is given, never a fallback', () => {
     renderHeader();
     expect(screen.getByRole('button', { name: 'Members, 3 in this channel' })).toBeInTheDocument();
