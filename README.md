@@ -81,6 +81,14 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 - **List columns and filters**: choose list columns (including custom fields), filter by custom fields and releases,
   and save those filters in views
 
+### Chat
+- Channels at `/{workspaceSlug}/chat`: a workspace-wide **General** and **Team Chat**, one channel per project, and direct messages
+- Live messages over Socket.IO with a REST fallback; if the socket drops the header says so and the screen keeps polling
+- Threads, reactions, edits, pins, @mentions with notifications, file attachments (GridFS) and channel-scoped search
+- Presence and typing indicators, server-backed unread counts and read state
+- Product Owners can rename and re-picture a project channel; project channels are readable by that project's members
+- Permissions: `chat:read`, `chat:write`, `chat:dm`, `chat:moderate`
+
 ### Developer workflow
 - **API tokens** (Settings → Developers): personal `tm_…` tokens limited to one workspace and to chosen scopes,
   never beyond the owner's role; only a hash is stored
@@ -106,7 +114,7 @@ Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architectur
 ### Role-Based Access Control (RBAC)
 - 5 system roles seeded on server startup — cannot be renamed or deleted
 - Custom roles per workspace with a permission matrix editor
-- 10 atomic permissions grouped by area (projects, tasks, users, reports, settings)
+- 14 atomic permissions grouped by area (projects, tasks, users, reports, chat, settings)
 - Route guards, sidebar filtering, and button gating driven by the user's role in the active workspace
 - Automatic self-healing — orphaned member entries get a sensible default role on first request
 
@@ -150,6 +158,8 @@ The client fetches `/api/auth/currentuser?workspaceSlug=<slug>` on every workspa
 | `projects:read`, `projects:write`, `projects:delete` | Projects |
 | `tasks:read`, `tasks:write`, `tasks:delete` | Tasks |
 | `users:read`, `users:write` | Members |
+| `chat:read`, `chat:write`, `chat:moderate` | Chat (channels, messages, moderation) |
+| `chat:dm` | Direct messages |
 | `reports:read` | Analytics |
 | `settings:manage` | Workspace settings |
 
@@ -165,6 +175,7 @@ All endpoints are under `/api` and need `Authorization: Bearer <token>` except a
 | Tasks (any of your workspaces) | same routes under `/api/workspaces/:slug/tasks`, plus `/:id/comments`, `/:id/attachments`, `PATCH /bulk`, `POST /bulk-delete` |
 | Board settings | `GET/PUT /api/workspaces/:slug/board-settings` (WIP limits) · `DELETE /api/workspaces/:slug/members/me` (leave) |
 | Projects and sprints | `GET/POST /api/workspaces/:slug/projects` · `PATCH/DELETE …/projects/:id` · `POST …/projects/:id/sprints` · `PATCH/DELETE …/sprints/:sprintId` · `POST …/sprints/:sprintId/start` · `POST …/sprints/:sprintId/complete` |
+| Chat | `GET …/channels` · `GET …/chat/conversations` · `GET/POST …/chat/:channelId/messages` · `PATCH/DELETE …/chat/:channelId/messages/:messageId` · `GET …/chat/:channelId/search` · `POST …/chat/:channelId/read` · `POST …/chat/direct` · `PATCH …/chat/:channelId` (rename) |
 | Activity and audit | `GET /api/workspaces/:slug/tasks/:id/activity` · `GET /api/workspaces/:slug/activity?area=&actor=&before=&format=csv` |
 | Sessions | `GET /api/profile/sessions` · `DELETE /api/profile/sessions/:id` · `POST /api/profile/sessions/revoke-others` |
 | Workspaces, members, roles, invitations, profile | see `server/src/routes/` |
