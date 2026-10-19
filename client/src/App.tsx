@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { PermissionProvider } from './context/PermissionProvider';
 import { PageLoader, SkeletonCards, Toaster, TopProgressBar } from './components/ds';
 import PermissionRoute from './components/PermissionRoute';
+import MembersRedirect from './components/MembersRedirect';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import PwaPrompt from './pwa/PwaPrompt';
@@ -282,15 +283,18 @@ function App() {
                 }
               />
 
-              {/* Team: requires users:read */}
+              {/* Members: requires users:read */}
               <Route
-                path="/:workspaceSlug/team"
+                path="/:workspaceSlug/members"
                 element={
                   <PermissionRoute permission="users:read">
                     <Lazy><TeamMembersPage /></Lazy>
                   </PermissionRoute>
                 }
               />
+
+              {/* The retired address stays valid for bookmarks and existing links */}
+              <Route path="/:workspaceSlug/team" element={<MembersRedirect />} />
 
               {/* Calendar: no permission required */}
               <Route

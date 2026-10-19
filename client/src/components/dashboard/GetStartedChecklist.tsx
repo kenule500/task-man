@@ -11,7 +11,7 @@ interface GetStartedChecklistProps {
 
 const TARGETS: Record<StepId, (slug: string) => string> = {
   task: (slug) => `/${slug}/tasks?view=list`,
-  invite: (slug) => `/${slug}/team`,
+  invite: (slug) => `/${slug}/members`,
   board: (slug) => `/${slug}/tasks?view=board`,
 };
 

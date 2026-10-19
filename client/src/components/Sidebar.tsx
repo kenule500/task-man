@@ -63,7 +63,7 @@ const navMain = [
   { title: 'Timesheet', key: 'timesheet', icon: Timer, permission: 'tasks:read' },
   { title: 'Wiki', key: 'wiki', icon: BookOpen, permission: 'tasks:read' },
   { title: 'Chat', key: 'chat', icon: MessagesSquare, permission: 'tasks:read' },
-  { title: 'Team', key: 'team', icon: Users, permission: 'users:read' },
+  { title: 'Members', key: 'members', icon: Users, permission: 'users:read' },
   { title: 'Calendar', key: 'calendar', icon: Calendar, permission: 'tasks:read' },
   { title: 'Reports', key: 'reports', icon: BarChart3, permission: 'reports:read' },
 ];
