@@ -14,11 +14,11 @@ const renderChecklist = (input: Parameters<typeof buildChecklist>[0]) =>
   render(<GetStartedChecklist steps={buildChecklist(input)} workspaceSlug="acme" />);
 
 describe('GetStartedChecklist', () => {
-  it('lists the three steps with links for the open ones', () => {
+  it('AC-036: lists the three steps and links the invite step to the Members route', () => {
     renderChecklist({ taskCount: 0, memberCount: 1, boardTried: false, canInvite: true });
     expect(screen.getByText('0 of 3 done')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Create task' })).toHaveAttribute('href', '/acme/tasks?view=list');
-    expect(screen.getByRole('link', { name: 'Invite teammate' })).toHaveAttribute('href', '/acme/team');
+    expect(screen.getByRole('link', { name: 'Invite teammate' })).toHaveAttribute('href', '/acme/members');
     expect(screen.getByRole('link', { name: 'Open board' })).toHaveAttribute('href', '/acme/tasks?view=board');
   });
 

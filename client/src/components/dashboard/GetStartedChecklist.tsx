@@ -19,7 +19,7 @@ const COPY: Record<StepId, { title: string; description: string; action: string;
     title: 'Invite a teammate',
     description: 'Send an invitation by email and choose what they can do.',
     action: 'Invite teammate',
-    to: (slug) => `/${slug}/team`,
+    to: (slug) => `/${slug}/members`,
   },
   board: {
     title: 'Try the board view',

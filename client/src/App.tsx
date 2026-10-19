@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { PermissionProvider } from './context/PermissionProvider';
 import { PageLoader, SkeletonCards, Toaster, TopProgressBar } from './components/ds';
 import PermissionRoute from './components/PermissionRoute';
+import MembersRedirect from './components/MembersRedirect';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import PwaPrompt from './pwa/PwaPrompt';
@@ -279,7 +280,7 @@ function App() {
               />
 
               {/* The old address stays valid for bookmarks and existing links (spec AC-035) */}
-              <Route path="/:workspaceSlug/team" element={<Navigate to="members" replace />} />
+              <Route path="/:workspaceSlug/team" element={<MembersRedirect />} />
 
               {/* Calendar: no permission required */}
               <Route

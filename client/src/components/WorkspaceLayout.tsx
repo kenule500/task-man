@@ -17,7 +17,7 @@ import { clearSession, getToken } from '../utils/session';
  * Persistent layout for all workspace-scoped routes.
  *
  * Renders the Sidebar ONCE. When the user navigates between
- * /{slug}/dashboard, /{slug}/team, etc., only the <Outlet />
+ * /{slug}/dashboard, /{slug}/members, etc., only the <Outlet />
  * content swaps — the Sidebar (and its workspace list) stays mounted.
  * Pages below it share one content column; AppShell detects the context and
  * skips its own frame.

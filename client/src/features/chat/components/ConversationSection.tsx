@@ -74,7 +74,7 @@ export const ConversationSection = ({
                 )}
               >
                 <UserAvatar name={card.name} src={avatarSrc(card.avatarUrl)} size="sm" />
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 overflow-hidden">
                   <span className="flex items-baseline gap-1.5">
                     <span className={cn('truncate text-sm', card.unread && !active ? 'font-semibold text-slate-900' : 'text-slate-800')}>
                       {card.name}
@@ -85,7 +85,7 @@ export const ConversationSection = ({
                       </span>
                     )}
                   </span>
-                  <span className="truncate text-xs text-slate-500">{previewOf(card)}</span>
+                  <span className="block truncate text-xs text-slate-500">{previewOf(card)}</span>
                 </span>
                 {card.unread && !active && (
                   <>
