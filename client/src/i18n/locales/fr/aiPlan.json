@@ -8,13 +8,42 @@
     "noAccessBody": "Créer un projet et ses tâches demande l’autorisation de modifier les projets et les tâches. Adressez-vous à un propriétaire ou à un administrateur de cet espace de travail.",
     "loading": "Chargement de votre plan",
     "created": "Projet « {{name}} » créé",
-    "createdBody": "{{tasks}} tâches réparties en {{sprints}} sprints sont prêtes."
+    "createdBody": "{{tasks}} tâches réparties en {{sprints}} sprints sont prêtes.",
+    "added": "Plan ajouté à « {{name}} »",
+    "addedBody": "{{tasks}} tâches réparties en {{sprints}} sprints ont été ajoutées. Le travail existant du projet n’a pas été modifié."
   },
   "steps": {
     "upload": "Importer",
     "analyze": "Analyser",
     "review": "Relire",
     "create": "Créer"
+  },
+  "destination": {
+    "title": "Où doit aller le plan ?",
+    "hint": "Créez un nouveau projet ou ajoutez les sprints et les tâches à un projet que votre équipe utilise déjà.",
+    "new": {
+      "title": "Créer un nouveau projet",
+      "body": "L’IA propose le nom, la clé, la couleur et la description du projet."
+    },
+    "existing": {
+      "title": "Ajouter à un projet existant",
+      "body": "Seuls les sprints, tâches, sous-tâches et critères du plan sont ajoutés."
+    },
+    "projectLabel": "Projet",
+    "projectHint": "Recherchez par nom ou par clé.",
+    "projectPlaceholder": "Choisir un projet",
+    "noMatches": "Aucun projet ne correspond à cette recherche.",
+    "projectsLoading": "Chargement de vos projets…",
+    "noProjectsTitle": "Aucun projet actif pour le moment",
+    "noProjectsBody": "Créez d’abord un projet, puis revenez pour y ajouter ce plan.",
+    "selected": "Ajout à",
+    "change": "Modifier",
+    "createProject": "Aller aux projets",
+    "problems": {
+      "targetRequired": "Choisissez le projet auquel ajouter ce plan.",
+      "targetMissing": "Ce projet n’est plus disponible. Choisissez un autre projet ou créez-en un nouveau.",
+      "targetArchived": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau."
+    }
   },
   "card": {
     "title": "Créer avec l’IA",
@@ -105,6 +134,9 @@
     "label": "Projet généré",
     "nameLabel": "nom du projet",
     "ready": "Prêt",
+    "addingTo": "Ajout à un projet existant",
+    "existingHint": "Les sprints, tâches, sous-tâches et critères du plan sont ajoutés. Le nom, les réglages et le travail existant du projet ne sont pas modifiés.",
+    "unknownTarget": "Projet indisponible",
     "descriptionLabel": "description du projet",
     "noDescription": "Aucune description",
     "key": "Clé",
@@ -130,6 +162,22 @@
     "partialTitle": "Seule une partie du document a été analysée",
     "partialBody": "Le document est long ({{chars}} caractères) : le milieu a été laissé de côté. Le plan couvre le début et les titres de section. Vérifiez qu’il ne manque rien d’important ou découpez le document et importez les parties séparément.",
     "hint": "Lisez le plan, puis modifiez ce qui doit l’être : cliquez sur un titre, des points ou une priorité pour les changer, déplacez une tâche vers un autre sprint, supprimez ou ajoutez des tâches. Rien n’est créé tant que vous n’appuyez pas sur Créer.",
+    "destinationLabel": "Destination du plan",
+    "destinationNew": "Nouveau projet",
+    "destinationExisting": "Projet existant",
+    "destinationNewHint": "Un nouveau projet est créé avec uniquement ce plan.",
+    "destinationExistingHint": "Le plan est ajouté à ce projet sans modifier ses réglages ni son travail existant.",
+    "unknownTarget": "Projet indisponible",
+    "changeDestination": "Changer de destination",
+    "doneChanging": "Terminé",
+    "add_one": "Ajouter {{count}} élément à {{target}}",
+    "add_other": "Ajouter {{count}} éléments à {{target}}",
+    "addFailedTitle": "Le plan n’a pas été ajouté",
+    "confirmAddTitle": "Ajouter ce plan à « {{target}} » ?",
+    "confirmAddBody": "Cela ajoute des sprints, des tâches, des sous-tâches et des critères d’acceptation à « {{target}} ». Les réglages et le travail existant du projet ne sont pas modifiés.",
+    "confirmAddCounts": "{{sprints}} sprints · {{tasks}} tâches · {{subtasks}} sous-tâches · {{criteria}} critères",
+    "confirmAddAction_one": "Ajouter {{count}} élément",
+    "confirmAddAction_other": "Ajouter {{count}} éléments",
     "nameTakenTitle": "Un projet porte déjà ce nom",
     "keyTakenTitle": "Cette clé de projet est déjà utilisée",
     "useName": "Utiliser « {{value}} »",
@@ -198,6 +246,7 @@
     "notes": "Consignes supplémentaires",
     "notesHint": "Par exemple « mobile d’abord » ou « ignorer l’espace d’administration ». {{count}} caractères sur {{max}}.",
     "needFile": "Choisissez un document pour continuer.",
+    "needTarget": "Choisissez le projet auquel ajouter ce plan.",
     "uploading": "Envoi en cours…",
     "submit": "Analyser le document"
   },
@@ -269,7 +318,11 @@
       "PLAN_IN_PROGRESS": "Un projet est déjà en cours d’analyse pour vous. Attendez la fin ou annulez-le.",
       "AI_DAILY_LIMIT": "Cet espace de travail a utilisé tous ses plans de projet IA du jour. Réessayez demain.",
       "NO_FILE": "Choisissez un document à importer.",
-      "BAD_UPLOAD": "L’envoi n’a pas pu être lu. Choisissez à nouveau le fichier."
+      "BAD_UPLOAD": "L’envoi n’a pas pu être lu. Choisissez à nouveau le fichier.",
+      "TARGET_INVALID": "Ce projet n’est pas valide. Choisissez un autre projet.",
+      "TARGET_NOT_FOUND": "Ce projet n’existe plus. Choisissez un autre projet.",
+      "TARGET_UNAVAILABLE": "Ce projet n’est plus disponible. Choisissez un autre projet ou créez-en un nouveau.",
+      "TARGET_ARCHIVED": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau."
     },
     "failure": {
       "AI_AUTH": "Le fournisseur d’IA a refusé la clé du serveur. Demandez à un administrateur de vérifier la configuration.",

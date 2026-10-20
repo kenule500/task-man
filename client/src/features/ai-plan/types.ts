@@ -2,9 +2,18 @@
 
 export type AiPlanStatus = 'queued' | 'running' | 'ready' | 'failed' | 'created';
 export type PlanLanguage = 'en' | 'fr' | 'ar';
+export type PlanDestination = 'new' | 'existing';
 export type PlanItemType = 'story' | 'task' | 'bug' | 'spike';
 export type PlanPriority = 'low' | 'medium' | 'high';
 export type PlanColor = 'blue' | 'violet' | 'rose' | 'orange' | 'amber' | 'emerald' | 'teal' | 'slate';
+
+/** The project a plan is added to, as the server resolves it. `archived` is true when it was archived after upload. */
+export interface PlanTarget {
+  _id: string;
+  name: string;
+  key: string;
+  archived: boolean;
+}
 
 export interface PlanSubtask {
   title: string;
@@ -78,6 +87,8 @@ export interface PlanOptions {
   teamSize: number | null;
   extraInstructions: string;
   language: PlanLanguage;
+  /** The project the plan is added to; null or absent creates a new project. */
+  targetProjectId?: string | null;
 }
 
 export interface PlanCounts {
@@ -100,6 +111,8 @@ export interface AiPlan {
   error: string;
   errorCode: string;
   projectId: string | null;
+  /** Detail response: the resolved destination project, or null when it was deleted. */
+  targetProject?: PlanTarget | null;
   createdBy?: string;
   createdAt: string;
   startedAt: string | null;
@@ -117,11 +130,16 @@ export interface PlanUploadOptions {
   teamSize: string;
   extraInstructions: string;
   language: PlanLanguage;
+  /** Where the plan goes: a new project, or a project that already exists. Absent means a new project. */
+  destination?: PlanDestination;
+  /** The chosen existing project; null for a new project. */
+  targetProjectId?: string | null;
 }
 
 export interface CreatedFromPlan {
   project: { _id: string; name: string; key: string };
   counts: { sprints: number; epics: number; items: number; subtasks: number; tasks: number; criteria: number };
+  destination?: PlanDestination;
 }
 
 /** A refusal from the API the screen reacts to. */

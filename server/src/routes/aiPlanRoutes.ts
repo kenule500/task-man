@@ -1,6 +1,7 @@
 import express, { Router } from 'express';
 import {
-  createFromPlan, deletePlan, ensurePlansEnabled, getPlan, listPlans, requireTaskWrite, updatePlan, uploadPlan, uploadPlanFile, validateUploadPlan,
+  createFromPlan, deletePlan, ensurePlansEnabled, getPlan, listPlans, requireTaskWrite, updatePlan, uploadPlan, uploadPlanFile, validateCreateFromPlan,
+  validateUploadPlan,
 } from '../controllers/aiPlanController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { requirePermission } from '../middleware/permissionMiddleware.js';
@@ -15,7 +16,7 @@ router.get('/', requirePermission('projects:read'), listPlans);
 router.post('/', requirePermission('projects:write'), requireTaskWrite, ensurePlansEnabled, uploadPlanFile, validateUploadPlan, uploadPlan);
 router.get('/:id', requirePermission('projects:read'), getPlan);
 router.patch('/:id', requirePermission('projects:write'), requireTaskWrite, updatePlan);
-router.post('/:id/create', requirePermission('projects:write'), requireTaskWrite, createFromPlan);
+router.post('/:id/create', requirePermission('projects:write'), requireTaskWrite, validateCreateFromPlan, createFromPlan);
 router.delete('/:id', requirePermission('projects:write'), requireTaskWrite, deletePlan);
 
 export default router;

@@ -8,13 +8,42 @@
     "noAccessBody": "Creating a project and its tasks needs permission to edit projects and tasks. Ask an owner or admin of this workspace.",
     "loading": "Loading your plan",
     "created": "Project “{{name}}” created",
-    "createdBody": "{{tasks}} tasks in {{sprints}} sprints are ready."
+    "createdBody": "{{tasks}} tasks in {{sprints}} sprints are ready.",
+    "added": "Plan added to “{{name}}”",
+    "addedBody": "{{tasks}} tasks in {{sprints}} sprints were added. The project's existing work was not changed."
   },
   "steps": {
     "upload": "Upload",
     "analyze": "Analyze",
     "review": "Review",
     "create": "Create"
+  },
+  "destination": {
+    "title": "Where should the plan go?",
+    "hint": "Create a new project, or add the sprints and tasks to a project your team already uses.",
+    "new": {
+      "title": "Create a new project",
+      "body": "The AI proposes the project's name, key, colour and description."
+    },
+    "existing": {
+      "title": "Add to an existing project",
+      "body": "Only the plan's sprints, tasks, subtasks and criteria are added."
+    },
+    "projectLabel": "Project",
+    "projectHint": "Search by name or key.",
+    "projectPlaceholder": "Choose a project",
+    "noMatches": "No project matches that search.",
+    "projectsLoading": "Loading your projects…",
+    "noProjectsTitle": "No active projects yet",
+    "noProjectsBody": "Create a project first, then come back to add this plan to it.",
+    "selected": "Adding to",
+    "change": "Change",
+    "createProject": "Go to projects",
+    "problems": {
+      "targetRequired": "Choose the project this plan should be added to.",
+      "targetMissing": "That project is no longer available. Choose another project or create a new one.",
+      "targetArchived": "That project is archived. Choose another project or create a new one."
+    }
   },
   "card": {
     "title": "Create with AI",
@@ -105,6 +134,9 @@
     "label": "Generated project",
     "nameLabel": "project name",
     "ready": "Ready",
+    "addingTo": "Adding to an existing project",
+    "existingHint": "The plan's sprints, tasks, subtasks and criteria are added. The project's name, settings and existing work are not changed.",
+    "unknownTarget": "Unavailable project",
     "descriptionLabel": "project description",
     "noDescription": "No description",
     "key": "Key",
@@ -130,6 +162,22 @@
     "partialTitle": "Only part of the document was analysed",
     "partialBody": "The document is long ({{chars}} characters), so the middle was left out. The plan covers the beginning and the section headings. Check that nothing important is missing, or split the document and upload the parts separately.",
     "hint": "Read the plan, then change what you need: click a title, points or priority to edit it, move a task to another sprint, or delete and add tasks. Nothing is created until you press Create.",
+    "destinationLabel": "Plan destination",
+    "destinationNew": "New project",
+    "destinationExisting": "Existing project",
+    "destinationNewHint": "A new project is created with only this plan.",
+    "destinationExistingHint": "The plan is added to this project without changing its settings or existing work.",
+    "unknownTarget": "Unavailable project",
+    "changeDestination": "Change destination",
+    "doneChanging": "Done",
+    "add_one": "Add {{count}} item to {{target}}",
+    "add_other": "Add {{count}} items to {{target}}",
+    "addFailedTitle": "The plan was not added",
+    "confirmAddTitle": "Add this plan to “{{target}}”?",
+    "confirmAddBody": "This adds sprints, tasks, subtasks and acceptance criteria to “{{target}}”. The project's settings and existing work are not changed.",
+    "confirmAddCounts": "{{sprints}} sprints · {{tasks}} tasks · {{subtasks}} subtasks · {{criteria}} criteria",
+    "confirmAddAction_one": "Add {{count}} item",
+    "confirmAddAction_other": "Add {{count}} items",
     "nameTakenTitle": "A project with this name already exists",
     "keyTakenTitle": "This project key is already used",
     "useName": "Use “{{value}}”",
@@ -198,6 +246,7 @@
     "notes": "Extra instructions",
     "notesHint": "For example “mobile first” or “skip the admin area”. {{count}} of {{max}} characters.",
     "needFile": "Choose a document to continue.",
+    "needTarget": "Choose the project this plan should be added to.",
     "uploading": "Uploading…",
     "submit": "Analyze document"
   },
@@ -269,7 +318,11 @@
       "PLAN_IN_PROGRESS": "A project is already being analyzed for you. Wait for it to finish or cancel it.",
       "AI_DAILY_LIMIT": "This workspace has used all its AI project plans for today. Try again tomorrow.",
       "NO_FILE": "Choose a document to upload.",
-      "BAD_UPLOAD": "The upload could not be read. Choose the file again."
+      "BAD_UPLOAD": "The upload could not be read. Choose the file again.",
+      "TARGET_INVALID": "That project is not valid. Choose another project.",
+      "TARGET_NOT_FOUND": "That project no longer exists. Choose another project.",
+      "TARGET_UNAVAILABLE": "That project is no longer available. Choose another project or create a new one.",
+      "TARGET_ARCHIVED": "That project is archived. Choose another project or create a new one."
     },
     "failure": {
       "AI_AUTH": "The AI provider rejected the server key. Ask an administrator to check the configuration.",

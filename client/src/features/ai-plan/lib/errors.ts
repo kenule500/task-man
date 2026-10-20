@@ -6,6 +6,7 @@ import type { AiPlan, PlanApiError } from '../types';
 
 const UPLOAD_CODES = new Set([
   'FILE_TOO_LARGE', 'UNSUPPORTED_TYPE', 'EMPTY_DOCUMENT', 'UNREADABLE', 'AI_DISABLED', 'PLAN_IN_PROGRESS', 'AI_DAILY_LIMIT', 'NO_FILE', 'BAD_UPLOAD',
+  'TARGET_INVALID', 'TARGET_NOT_FOUND', 'TARGET_ARCHIVED', 'TARGET_UNAVAILABLE',
 ]);
 
 /** Why the upload (or a later call) was refused. */

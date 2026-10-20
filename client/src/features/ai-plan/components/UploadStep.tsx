@@ -10,13 +10,16 @@ import { cn } from '@/lib/utils';
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from '@/i18n';
 import { OptionSelect } from '@/features/tasks/components/TaskSelects';
 import type { AiSettings } from '@/features/ai-review/types';
+import type { Project } from '@/features/projects';
 import { todayKey } from '@/features/tasks/lib/date';
 import { ACCEPT_ATTRIBUTE, DEFAULT_MAX_BYTES, fileProblem, formatFileSize } from '../lib/file';
 import { defaultOptions } from '../lib/options';
 import { cleanKey } from '../lib/plan';
 import { describeApiError } from '../lib/errors';
+import { targetProblem } from '../lib/destination';
 import type { AiPlan, PlanApiError, PlanLanguage, PlanUploadOptions } from '../types';
 import type { PlanRequest } from '../hooks/useAiProjectPlan';
+import { DestinationPicker } from './DestinationPicker';
 
 const LANGUAGE_OPTIONS = SUPPORTED_LANGUAGES.map(value => ({ value, label: LANGUAGE_NAMES[value] }));
 const WEEKS = [1, 2, 3, 4] as const;
@@ -30,6 +33,9 @@ interface UploadStepProps {
   onRetrySettings: () => void;
   /** The person can change workspace settings, so the notice can link to where AI is switched on. */
   canManageSettings: boolean;
+  /** The workspace's projects, for the "add to an existing project" choice. */
+  projects?: Project[];
+  projectsLoading?: boolean;
   /** Document and options of an earlier attempt (after a failure or a cancel). */
   initial: PlanRequest | null;
   busy: boolean;
@@ -44,7 +50,8 @@ interface UploadStepProps {
 
 /** Step 1: pick the requirements document, set the options, and see what happens to the text before sending it. */
 export const UploadStep = ({
-  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, initial, busy, error, failure, recent, onOpenRecent, onOpenActive, onStart,
+  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, projects = [], projectsLoading = false, initial, busy, error, failure, recent,
+  onOpenRecent, onOpenActive, onStart,
 }: UploadStepProps) => {
   const { t } = useTranslation('aiPlan');
   const inputId = useId();
@@ -52,6 +59,8 @@ export const UploadStep = ({
   const [fileError, setFileError] = useState('');
   const [dragging, setDragging] = useState(false);
   const [options, setOptions] = useState<PlanUploadOptions>(initial?.options ?? defaultOptions());
+  const destination = options.destination ?? (options.targetProjectId ? 'existing' : 'new');
+  const targetProjectId = options.targetProjectId ?? null;
 
   const maxBytes = settings?.plan.maxBytes ?? DEFAULT_MAX_BYTES;
   const limitReached = settings ? settings.plan.usedToday >= settings.plan.dailyLimit : false;
@@ -76,12 +85,15 @@ export const UploadStep = ({
     if (dropped) choose(dropped);
   };
 
+  const dateInvalid = options.startDate !== '' && options.startDate < todayKey();
+  const targetIssue = targetProblem(destination, targetProjectId, projects);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (file && aiReady && !busy) onStart(file, options);
+    if (file && aiReady && !busy && !targetIssue) {
+      onStart(file, { ...options, destination, targetProjectId });
+    }
   };
-
-  const dateInvalid = options.startDate !== '' && options.startDate < todayKey();
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
@@ -128,6 +140,20 @@ export const UploadStep = ({
             </p>
           )
         ) : null}
+      </Surface>
+
+      {/* ---- Where the plan goes */}
+      <Surface padding="md">
+        <DestinationPicker
+          slug={slug}
+          destination={destination}
+          onDestinationChange={value => change('destination', value)}
+          targetProjectId={targetProjectId}
+          onTargetChange={value => change('targetProjectId', value)}
+          projects={projects}
+          projectsLoading={projectsLoading}
+          disabled={busy}
+        />
       </Surface>
 
       {/* ---- The document */}
@@ -182,24 +208,28 @@ export const UploadStep = ({
         <h2 className="text-sm font-semibold text-text-strong">{t('upload.optionsTitle')}</h2>
         <p className="text-sm text-text-subtle">{t('upload.optionsHint')}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t('upload.projectName')} htmlFor={`${inputId}-name`} hint={t('upload.projectNameHint')}>
-            <Input
-              id={`${inputId}-name`}
-              value={options.projectName}
-              maxLength={60}
-              onChange={event => change('projectName', event.target.value)}
-              className="h-11 rounded-lg border-border-strong bg-surface-raised text-base shadow-none sm:h-9 sm:text-sm"
-            />
-          </Field>
-          <Field label={t('upload.projectKey')} htmlFor={`${inputId}-key`} hint={t('upload.projectKeyHint')}>
-            <Input
-              id={`${inputId}-key`}
-              value={options.projectKey}
-              maxLength={6}
-              onChange={event => change('projectKey', cleanKey(event.target.value))}
-              className="h-11 rounded-lg border-border-strong bg-surface-raised font-mono text-base uppercase shadow-none sm:h-9 sm:text-sm"
-            />
-          </Field>
+          {destination === 'new' && (
+            <>
+              <Field label={t('upload.projectName')} htmlFor={`${inputId}-name`} hint={t('upload.projectNameHint')}>
+                <Input
+                  id={`${inputId}-name`}
+                  value={options.projectName}
+                  maxLength={60}
+                  onChange={event => change('projectName', event.target.value)}
+                  className="h-11 rounded-lg border-border-strong bg-surface-raised text-base shadow-none sm:h-9 sm:text-sm"
+                />
+              </Field>
+              <Field label={t('upload.projectKey')} htmlFor={`${inputId}-key`} hint={t('upload.projectKeyHint')}>
+                <Input
+                  id={`${inputId}-key`}
+                  value={options.projectKey}
+                  maxLength={6}
+                  onChange={event => change('projectKey', cleanKey(event.target.value))}
+                  className="h-11 rounded-lg border-border-strong bg-surface-raised font-mono text-base uppercase shadow-none sm:h-9 sm:text-sm"
+                />
+              </Field>
+            </>
+          )}
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-slate-700">{t('upload.sprintLength')}</p>
             <SegmentedControl
@@ -282,10 +312,14 @@ export const UploadStep = ({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {!file && <p className="text-sm text-text-subtle sm:me-auto">{t('upload.needFile')}</p>}
+        {!file
+          ? <p className="text-sm text-text-subtle sm:me-auto">{t('upload.needFile')}</p>
+          : targetIssue
+            ? <p role="alert" className="text-sm text-danger-fg sm:me-auto">{t('upload.needTarget')}</p>
+            : null}
         <Button
           type="submit"
-          disabled={!file || !aiReady || busy || dateInvalid}
+          disabled={!file || !aiReady || busy || dateInvalid || Boolean(targetIssue)}
           aria-busy={busy}
           className="h-11 gap-2 rounded-lg bg-primary text-white shadow-sm hover:bg-primary-hover sm:h-9"
         >

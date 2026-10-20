@@ -71,9 +71,12 @@ const AiProjectPage = () => {
     const created = await flow.create();
     if (!created) return;
     void directory.reload();
+    const added = created.destination === 'existing';
     toast.success({
-      title: t('page.created', { name: created.project.name }),
-      description: t('page.createdBody', { tasks: created.counts.tasks, sprints: created.counts.sprints }),
+      title: added ? t('page.added', { name: created.project.name }) : t('page.created', { name: created.project.name }),
+      description: added
+        ? t('page.addedBody', { tasks: created.counts.tasks, sprints: created.counts.sprints })
+        : t('page.createdBody', { tasks: created.counts.tasks, sprints: created.counts.sprints }),
     });
     keepPlanInAddress(null);
     openProject(created.project._id);
@@ -128,6 +131,8 @@ const AiProjectPage = () => {
                 settingsError={ai.error}
                 onRetrySettings={ai.reload}
                 canManageSettings={can('settings:manage')}
+                projects={directory.projects}
+                projectsLoading={directory.loading}
                 initial={flow.request}
                 busy={flow.uploading}
                 error={flow.error}
@@ -151,6 +156,12 @@ const AiProjectPage = () => {
                 creating={flow.creating}
                 createError={flow.createError}
                 canRegenerate={Boolean(flow.request)}
+                slug={workspaceSlug}
+                projects={directory.projects}
+                projectsLoading={directory.loading}
+                destination={flow.destination}
+                targetProjectId={flow.targetProjectId}
+                onDestinationChange={flow.changeDestination}
                 onCreate={() => { void create(); }}
                 onRegenerate={() => { void flow.regenerate(); }}
                 onDiscard={() => { void flow.discard(); }}

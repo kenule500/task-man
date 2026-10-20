@@ -171,10 +171,12 @@ export type PlanProblem =
   | { kind: 'sprintName'; index: number };
 
 /** Edits the server would refuse: blank names and titles, a bad key, no items. Empty criteria are dropped by `tidyPlan`. */
-export const planProblems = (plan: PlanContent): PlanProblem[] => {
+export const planProblems = (plan: PlanContent, { existingProject = false }: { existingProject?: boolean } = {}): PlanProblem[] => {
   const problems: PlanProblem[] = [];
-  if (plan.project.name.trim() === '') problems.push({ kind: 'projectName' });
-  if (!isValidKey(plan.project.key)) problems.push({ kind: 'projectKey' });
+  if (!existingProject) {
+    if (plan.project.name.trim() === '') problems.push({ kind: 'projectName' });
+    if (!isValidKey(plan.project.key)) problems.push({ kind: 'projectKey' });
+  }
   if (plan.items.length === 0) problems.push({ kind: 'noItems' });
   plan.sprints.forEach((sprint, index) => { if (sprint.name.trim() === '') problems.push({ kind: 'sprintName', index }); });
   for (const item of plan.items) {

@@ -34,6 +34,7 @@ export interface PlanOptionsInput {
   teamSize: number | null;
   extraInstructions: string;
   language: PlanLanguage;
+  targetProjectId: mongoose.Types.ObjectId | null;
 }
 
 /** Whether the feature is on for this workspace (server key present and the workspace opted in). */
@@ -81,7 +82,10 @@ export const createQueuedPlan = async (input: QueuePlanInput): Promise<IAiPlan> 
         truncated: input.source.truncated,
         preview: input.source.text.slice(0, MAX_PLAN_PREVIEW),
       },
-      options: input.options,
+      options: {
+        ...input.options,
+        targetProjectId: input.options.targetProjectId ?? null,
+      },
       model: readAiConfig().model,
     });
   } catch (error) {
@@ -141,6 +145,7 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
         teamSize: plan.options.teamSize ?? undefined,
         extraInstructions: plan.options.extraInstructions || undefined,
         language: plan.options.language,
+        existingProject: Boolean(plan.options.targetProjectId),
       },
     });
 
