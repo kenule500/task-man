@@ -55,6 +55,11 @@ export const UploadStep = ({
 }: UploadStepProps) => {
   const { t } = useTranslation('aiPlan');
   const inputId = useId();
+  const providerLabel = settings?.provider
+    ? settings.provider.id === 'custom'
+      ? t('notice.customProvider')
+      : settings.provider.label
+    : t('notice.providerFallback');
   const [file, setFile] = useState<File | null>(initial?.file ?? null);
   const [fileError, setFileError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -109,7 +114,12 @@ export const UploadStep = ({
       {/* ---- Is AI on, and what leaves the building */}
       <Surface padding="md" className="space-y-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-text-strong"><Lock aria-hidden className="size-4 text-text-subtle" /> {t('notice.title')}</h2>
-        <p className="text-sm text-text-body">{t('notice.body')}</p>
+        <p className="text-sm text-text-body">
+          {t('notice.body', {
+            provider: providerLabel,
+            model: settings?.model ?? t('notice.modelFallback'),
+          })}
+        </p>
         <ul className="list-disc space-y-1 ps-5 text-sm text-text-body marker:text-text-faint">
           <li>{t('notice.sent')}</li>
           <li>{t('notice.stored', { days: 30 })}</li>

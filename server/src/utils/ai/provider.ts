@@ -5,8 +5,9 @@ import { buildMessages, buildRepairMessages, type ChatMessage } from './prompt.j
 import { parseJsonWith, parseModelOutput } from './schema.js';
 import { AiReviewError, type ReviewModelInput, type ReviewModelResult } from './types.js';
 
-// The only place that talks to the model. Today that is Alibaba Cloud Model Studio (DashScope) through its
-// OpenAI-compatible endpoint; callers use `reviewWithModel`, which tests replace with a fake.
+// The only place that talks to the model. The endpoint and model come from the installation's provider
+// preset (see providers.ts), always through the OpenAI-compatible client; callers use `reviewWithModel`,
+// which tests replace with a fake.
 
 export const REQUEST_TIMEOUT_MS = 120_000;
 export const MAX_HTTP_RETRIES = 2;
@@ -53,7 +54,10 @@ const defaultSleep = (ms: number) => new Promise<void>(resolve => setTimeout(res
 
 export const createClient = (): ChatClient => {
   const config = readAiConfig();
-  return new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL, timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 }) as unknown as ChatClient;
+  // A keyless `custom` endpoint is allowed (a local model server); the SDK still needs a non-empty
+  // string. Hosted presets without a key are unavailable and never reach this point.
+  const apiKey = config.apiKey || 'not-needed';
+  return new OpenAI({ apiKey, baseURL: config.baseURL, timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 }) as unknown as ChatClient;
 };
 
 const statusOf = (error: unknown): number | undefined => {
@@ -72,7 +76,7 @@ export const describeProviderError = (error: unknown): AiReviewError => {
   if (error instanceof AiReviewError) return error;
   const status = statusOf(error);
   const name = (error as { name?: string } | null)?.name ?? '';
-  if (status === 401 || status === 403) return new AiReviewError('The AI provider rejected the server API key. Ask an administrator to check DASHSCOPE_API_KEY.', 'AI_AUTH');
+  if (status === 401 || status === 403) return new AiReviewError('The AI provider rejected the server API key. Ask an administrator to check AI_API_KEY (or DASHSCOPE_API_KEY on a Qwen install).', 'AI_AUTH');
   if (status === 429) return new AiReviewError('The AI provider is rate limiting requests or the account has no quota left. Try again later.', 'AI_RATE_LIMIT');
   if (status === 400) return new AiReviewError('The AI provider refused the request (the pull request may be too large for the model). Try a model with a larger context.', 'AI_BAD_REQUEST');
   if (status !== undefined && status >= 500) return new AiReviewError('The AI provider is having problems. Try again in a few minutes.', 'AI_UNAVAILABLE');

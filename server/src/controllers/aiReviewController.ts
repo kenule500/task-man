@@ -154,6 +154,8 @@ const settingsView = async (req: Request) => {
   const config = readAiConfig();
   return {
     available: config.available,
+    provider: config.provider,
+    problem: config.problem,
     enabled: stored?.ai?.enabled === true,
     autoReview: stored?.ai?.autoReview === true,
     model: config.model,

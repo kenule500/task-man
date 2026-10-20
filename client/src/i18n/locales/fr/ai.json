@@ -47,7 +47,7 @@
     "rerun": "Relancer",
     "starting": "Démarrage...",
     "runningShort": "Revue en cours",
-    "unavailable": "La revue de code par l'IA n'est pas configurée sur ce serveur. Un administrateur doit ajouter la clé Alibaba Cloud Model Studio.",
+    "unavailable": "La revue de code par l'IA n'est pas configurée sur ce serveur. Un administrateur doit configurer le fournisseur d'IA.",
     "disabled": "La revue de code par l'IA est désactivée pour cet espace de travail.",
     "disabledManage": "Activez-la dans les paramètres de l'espace de travail.",
     "openSettings": "Ouvrir les paramètres",
@@ -152,10 +152,10 @@
     "loadError": "Impossible de charger les paramètres de la revue de code par l'IA.",
     "retry": "Réessayer",
     "saveError": "Impossible d'enregistrer ce paramètre.",
-    "unavailable": "Ce serveur n'a pas de clé Alibaba Cloud Model Studio (DASHSCOPE_API_KEY) : la fonctionnalité ne peut pas encore être activée.",
+    "unavailable": "Aucun fournisseur d'IA utilisable n'est configuré sur ce serveur. Un administrateur doit vérifier AI_PROVIDER, AI_API_KEY, AI_BASE_URL et AI_MODEL.",
     "notice": {
       "title": "Votre code est envoyé à un tiers",
-      "body": "Lorsque cette option est activée, les modifications des pull requests que vous faites relire (le diff) et le texte du ticket sont envoyés à Alibaba Cloud Model Studio (DashScope), un sous-traitant externe, pour produire la revue. Rien n'est envoyé tant qu'elle est désactivée. Ne l'activez pas pour du code que vos accords interdisent de transmettre."
+      "body": "Lorsque cette option est activée, les modifications des pull requests que vous faites relire (le diff) et le texte du ticket sont envoyés à {{provider}} ({{model}}), un sous-traitant externe, pour produire la revue. Rien n'est envoyé tant qu'elle est désactivée. Ne l'activez pas pour du code que vos accords interdisent de transmettre."
     },
     "enable": {
       "label": "Activer la revue de code par l'IA",
@@ -185,6 +185,14 @@
       "value": "{{used}} revues sur {{limit}}",
       "reset": "Le compteur repart à zéro à minuit UTC."
     },
-    "model": "Modèle : {{model}}"
+    "model": "Modèle : {{model}}",
+    "providerFallback": "le fournisseur d'IA",
+    "problems": {
+      "PROVIDER_UNKNOWN": "La valeur de AI_PROVIDER n'est pas reconnue. Utilisez qwen, deepseek, openai, openrouter ou custom.",
+      "KEY_MISSING": "La variable AI_API_KEY est vide (ou DASHSCOPE_API_KEY pour une installation Qwen existante).",
+      "MODEL_MISSING": "La variable AI_MODEL est vide.",
+      "BASE_URL_INVALID": "AI_BASE_URL doit être une adresse HTTPS. HTTP n'est accepté que pour localhost avec un fournisseur custom."
+    },
+    "customProvider": "Point de terminaison personnalisé"
   }
 }

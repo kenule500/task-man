@@ -252,21 +252,24 @@
   },
   "notice": {
     "title": "What happens to your document",
-    "body": "The text of your document is sent to Alibaba Cloud Model Studio, the AI provider this workspace uses, to build the plan. Nothing is sent until you press Analyze, and only when an administrator has turned AI on for this workspace.",
+    "body": "The text of your document is sent to {{provider}} ({{model}}), the AI provider configured for this installation, to build the plan. Nothing is sent until you press Analyze, and only when an administrator has turned AI on for this workspace.",
     "sent": "Sent to the provider: the text of the document and your options. Pictures are not read.",
     "stored": "Kept by TaskMan: the file name, its size, the first 2,000 characters as a preview and the plan, for {{days}} days. The document itself is never stored.",
     "untrusted": "Instructions written inside the document are treated as text to plan, not as commands.",
     "checking": "Checking whether AI is available…",
     "retry": "Try again",
     "unavailableTitle": "AI is not set up on this server",
-    "unavailableBody": "An administrator of this TaskMan installation has to add an Alibaba Cloud Model Studio key first.",
+    "unavailableBody": "An administrator of this TaskMan installation has to configure the AI provider first (AI_PROVIDER, AI_API_KEY, AI_BASE_URL and AI_MODEL on the server).",
     "offTitle": "AI is turned off for this workspace",
     "offBody": "Nothing leaves TaskMan until an owner or admin turns it on in the workspace settings.",
     "openSettings": "Open workspace settings",
     "askAdmin": "Ask an owner or admin to turn it on.",
     "limitTitle": "Daily limit reached",
     "limitBody": "This workspace has used its {{limit}} AI project plans for today. The limit resets at midnight UTC.",
-    "on": "AI is on for this workspace. {{used}} of {{limit}} project plans used today."
+    "on": "AI is on for this workspace. {{used}} of {{limit}} project plans used today.",
+    "providerFallback": "the configured AI provider",
+    "modelFallback": "the configured model",
+    "customProvider": "Custom endpoint"
   },
   "recent": {
     "title": "Continue where you left off",

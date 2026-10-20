@@ -52,9 +52,16 @@ export interface AiReview {
   issues?: ReviewIssue[];
 }
 
+export type AiProviderId = 'qwen' | 'deepseek' | 'openai' | 'openrouter' | 'custom' | 'unknown';
+export type AiConfigProblem = 'PROVIDER_UNKNOWN' | 'KEY_MISSING' | 'MODEL_MISSING' | 'BASE_URL_INVALID';
+
 export interface AiSettings {
-  /** The server holds an Alibaba Cloud Model Studio key. */
+  /** The server resolved a usable provider (key and endpoint). */
   available: boolean;
+  /** Provider configured for the whole installation. Older servers may omit it. */
+  provider?: { id: AiProviderId; label: string };
+  /** Why AI is unavailable, when the server can tell. */
+  problem?: AiConfigProblem | null;
   /** The workspace opted in: only then does any code leave for the provider. */
   enabled: boolean;
   autoReview: boolean;

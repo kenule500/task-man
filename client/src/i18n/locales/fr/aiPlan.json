@@ -252,21 +252,24 @@
   },
   "notice": {
     "title": "Ce qu’il advient de votre document",
-    "body": "Le texte de votre document est envoyé à Alibaba Cloud Model Studio, le fournisseur d’IA de cet espace de travail, pour construire le plan. Rien n’est envoyé avant que vous n’appuyiez sur Analyser, et seulement si un administrateur a activé l’IA pour cet espace de travail.",
+    "body": "Le texte de votre document est envoyé à {{provider}} ({{model}}), le fournisseur d'IA configuré pour cette installation, pour construire le plan. Rien n'est envoyé avant que vous n'appuyiez sur Analyser, et seulement si un administrateur a activé l'IA pour cet espace de travail.",
     "sent": "Envoyé au fournisseur : le texte du document et vos options. Les images ne sont pas lues.",
     "stored": "Conservé par TaskMan : le nom du fichier, sa taille, les 2 000 premiers caractères en aperçu et le plan, pendant {{days}} jours. Le document lui-même n’est jamais conservé.",
     "untrusted": "Les instructions écrites dans le document sont traitées comme du texte à planifier, pas comme des commandes.",
     "checking": "Vérification de la disponibilité de l’IA…",
     "retry": "Réessayer",
     "unavailableTitle": "L’IA n’est pas configurée sur ce serveur",
-    "unavailableBody": "Un administrateur de cette installation de TaskMan doit d’abord ajouter une clé Alibaba Cloud Model Studio.",
+    "unavailableBody": "Un administrateur de cette installation de TaskMan doit d'abord configurer le fournisseur d'IA (AI_PROVIDER, AI_API_KEY, AI_BASE_URL et AI_MODEL sur le serveur).",
     "offTitle": "L’IA est désactivée pour cet espace de travail",
     "offBody": "Rien ne quitte TaskMan tant qu’un propriétaire ou un administrateur ne l’a pas activée dans les paramètres de l’espace de travail.",
     "openSettings": "Ouvrir les paramètres de l’espace de travail",
     "askAdmin": "Demandez à un propriétaire ou à un administrateur de l’activer.",
     "limitTitle": "Limite quotidienne atteinte",
     "limitBody": "Cet espace de travail a utilisé ses {{limit}} plans de projet IA du jour. La limite est réinitialisée à minuit UTC.",
-    "on": "L’IA est activée pour cet espace de travail. {{used}} plans de projet utilisés sur {{limit}} aujourd’hui."
+    "on": "L’IA est activée pour cet espace de travail. {{used}} plans de projet utilisés sur {{limit}} aujourd’hui.",
+    "providerFallback": "le fournisseur d'IA configuré",
+    "modelFallback": "le modèle configuré",
+    "customProvider": "Point de terminaison personnalisé"
   },
   "recent": {
     "title": "Reprendre là où vous en étiez",

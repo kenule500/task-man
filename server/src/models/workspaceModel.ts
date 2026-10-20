@@ -37,7 +37,7 @@ export interface IWorkspace extends Document {
       accessTokenEncrypted?: string;
     };
   };
-  // AI code review (Alibaba Cloud Model Studio). Code only leaves for the provider once the workspace opts in.
+  // AI code review (the installation's configured provider). Code only leaves for the provider once the workspace opts in.
   ai?: { enabled?: boolean; autoReview?: boolean };
   createdAt: Date;
   updatedAt: Date;
