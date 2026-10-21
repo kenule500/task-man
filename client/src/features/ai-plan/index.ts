@@ -10,4 +10,3 @@ export { planActions, type PlanActions } from './components/actions';
 export { UploadStep } from './components/UploadStep';
 export { AnalyzingStep } from './components/AnalyzingStep';
 export { ReviewStep } from './components/ReviewStep';
-export { default as AiProjectCard } from './components/AiProjectCard';

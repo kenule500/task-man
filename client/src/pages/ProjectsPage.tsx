@@ -1,29 +1,29 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, FolderKanban, Plus, Search } from 'lucide-react';
+import { ChevronDown, FolderKanban, Plus, Search, Sparkles } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
 import { Alert, EmptyState, PageHeader, SkeletonList, Surface, toast } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { AiProjectCard } from '@/features/ai-plan';
 import { Input } from '@/components/ui/input';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { OptionSelect, useTasks } from '@/features/tasks';
 import {
-  NewProjectCard, PROJECT_SORT_OPTIONS, ProjectFolderCard, ProjectFormDialog, filterProjectEntries, sortProjectEntries,
+  PROJECT_SORT_OPTIONS, ProjectFolderCard, ProjectFormDialog, filterProjectEntries, sortProjectEntries,
   summarizeProject, useProjectDirectory, useProjects,
   type Project, type ProjectEntry, type ProjectSort,
 } from '@/features/projects';
 
 type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; project: Project };
 
-const GRID = 'grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4';
+const GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 xl:grid-cols-4';
 
 const ProjectsPage = () => {
   const { t } = useTranslation('projects');
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
+  const navigate = useNavigate();
   const { can } = usePermissions();
   const canWrite = can('projects:write');
   const canDelete = can('projects:delete');
@@ -116,12 +116,32 @@ const ProjectsPage = () => {
     </Button>
   ) : undefined;
 
+  const aiProjectButton = canCreateWithAi ? (
+    <Button
+      variant="outline"
+      onClick={() => {
+        if (workspaceSlug) navigate(`/${workspaceSlug}/projects/new/ai`);
+      }}
+      disabled={loading || !workspaceSlug}
+      className="h-10 gap-2 rounded-lg sm:h-9"
+    >
+      <Sparkles className="size-4" /> {t('page.createWithAi')}
+    </Button>
+  ) : undefined;
+
+  const pageActions = (newProjectButton || aiProjectButton) ? (
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      {newProjectButton}
+      {aiProjectButton}
+    </div>
+  ) : undefined;
+
   return (
     <AppShell>
       <PageHeader
         title={t('page.title')}
         description={t('page.description')}
-        actions={newProjectButton}
+        actions={pageActions}
       />
 
       {loading ? (
@@ -181,8 +201,6 @@ const ProjectsPage = () => {
               ) : (
                 <ul aria-label={t('page.projectsList')} className={GRID}>
                   {active.map(renderCard)}
-                  {canWrite && !searching && <NewProjectCard onClick={() => setForm({ mode: 'create' })} />}
-                  {canCreateWithAi && !searching && <AiProjectCard workspaceSlug={workspaceSlug ?? ''} />}
                 </ul>
               )}
 

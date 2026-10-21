@@ -45,10 +45,6 @@
       "targetArchived": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau."
     }
   },
-  "card": {
-    "title": "Créer avec l’IA",
-    "hint": "À partir d’un PDF, d’un document Word ou d’un texte"
-  },
   "edit": {
     "hint": "Appuyez sur Entrée pour enregistrer ou sur Échap pour annuler.",
     "hintMultiline": "Appuyez sur Ctrl+Entrée pour enregistrer ou sur Échap pour annuler.",

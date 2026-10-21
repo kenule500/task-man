@@ -2,7 +2,7 @@
 // Pure module: no network, no database and no logging, so the AI review and the document
 // plan features always resolve the same provider. The key is never returned by a route.
 
-export const AI_PROVIDER_IDS = ['qwen', 'deepseek', 'openai', 'openrouter', 'custom'] as const;
+export const AI_PROVIDER_IDS = ['qwen', 'deepseek', 'openai', 'opencode', 'custom'] as const;
 export type AiProviderId = (typeof AI_PROVIDER_IDS)[number];
 /** `unknown` is only used when AI_PROVIDER names a value this version does not support. */
 export type AiProviderViewId = AiProviderId | 'unknown';
@@ -40,11 +40,11 @@ export const AI_PROVIDER_PRESETS: Record<AiProviderId, AiProviderPreset> = {
     model: 'gpt-4o-mini',
     requiresKey: true,
   },
-  openrouter: {
-    id: 'openrouter',
-    label: 'OpenRouter',
-    baseURL: 'https://openrouter.ai/api/v1',
-    model: 'anthropic/claude-sonnet-4',
+  opencode: {
+    id: 'opencode',
+    label: 'OpenCode Console',
+    baseURL: 'https://opencode.ai/inference/openai/v1',
+    model: 'deepseek-v4.1-flash-free',
     requiresKey: true,
   },
   custom: {

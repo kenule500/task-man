@@ -184,7 +184,7 @@
     "model": "Model: {{model}}",
     "providerFallback": "AI provider",
     "problems": {
-      "PROVIDER_UNKNOWN": "AI_PROVIDER is not one of qwen, deepseek, openai, openrouter or custom.",
+      "PROVIDER_UNKNOWN": "AI_PROVIDER is not one of qwen, deepseek, openai, opencode or custom.",
       "KEY_MISSING": "AI_API_KEY is empty (or DASHSCOPE_API_KEY on an existing Qwen installation).",
       "MODEL_MISSING": "AI_MODEL is empty.",
       "BASE_URL_INVALID": "AI_BASE_URL must be an HTTPS address. HTTP is accepted only for localhost with a custom provider."

@@ -188,7 +188,7 @@
     "model": "Modèle : {{model}}",
     "providerFallback": "le fournisseur d'IA",
     "problems": {
-      "PROVIDER_UNKNOWN": "La valeur de AI_PROVIDER n'est pas reconnue. Utilisez qwen, deepseek, openai, openrouter ou custom.",
+      "PROVIDER_UNKNOWN": "La valeur de AI_PROVIDER n'est pas reconnue. Utilisez qwen, deepseek, openai, opencode ou custom.",
       "KEY_MISSING": "La variable AI_API_KEY est vide (ou DASHSCOPE_API_KEY pour une installation Qwen existante).",
       "MODEL_MISSING": "La variable AI_MODEL est vide.",
       "BASE_URL_INVALID": "AI_BASE_URL doit être une adresse HTTPS. HTTP n'est accepté que pour localhost avec un fournisseur custom."

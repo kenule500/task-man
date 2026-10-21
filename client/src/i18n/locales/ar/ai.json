@@ -200,7 +200,7 @@
     "model": "النموذج: {{model}}",
     "providerFallback": "مزوّد الذكاء الاصطناعي",
     "problems": {
-      "PROVIDER_UNKNOWN": "قيمة AI_PROVIDER غير معروفة. استخدم qwen أو deepseek أو openai أو openrouter أو custom.",
+      "PROVIDER_UNKNOWN": "قيمة AI_PROVIDER غير معروفة. استخدم qwen أو deepseek أو openai أو opencode أو custom.",
       "KEY_MISSING": "المتغير AI_API_KEY فارغ (أو DASHSCOPE_API_KEY في تثبيت Qwen قديم).",
       "MODEL_MISSING": "المتغير AI_MODEL فارغ.",
       "BASE_URL_INVALID": "يجب أن يكون AI_BASE_URL عنوان HTTPS. لا يُسمح بـ HTTP إلا مع localhost ومزوّد custom."

@@ -131,7 +131,8 @@
     "deleteTitle": "Supprimer « {{name}} » ?",
     "deleteBody": "Le projet et ses sprints sont supprimés. Ses tâches sont conservées, sans projet ni sprint.",
     "deleteConfirm": "Supprimer le projet",
-    "deleting": "Suppression..."
+    "deleting": "Suppression...",
+    "createWithAi": "Créer avec l’IA"
   },
   "detail": {
     "loading": "Chargement du projet",
@@ -391,8 +392,7 @@
     "description": "Description",
     "descriptionPlaceholder": "De quoi parle ce projet ?",
     "color": "Couleur",
-    "icon": "Icône",
-    "newCard": "Nouveau projet"
+    "icon": "Icône"
   },
   "colors": {
     "blue": "Bleu crépuscule",

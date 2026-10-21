@@ -52,7 +52,7 @@ export interface AiReview {
   issues?: ReviewIssue[];
 }
 
-export type AiProviderId = 'qwen' | 'deepseek' | 'openai' | 'openrouter' | 'custom' | 'unknown';
+export type AiProviderId = 'qwen' | 'deepseek' | 'openai' | 'opencode' | 'custom' | 'unknown';
 export type AiConfigProblem = 'PROVIDER_UNKNOWN' | 'KEY_MISSING' | 'MODEL_MISSING' | 'BASE_URL_INVALID';
 
 export interface AiSettings {

@@ -19,7 +19,6 @@ export { default as ProjectFolderIcon, type ProjectFolderIconSize } from './comp
 export { default as ProjectChip } from './components/ProjectChip';
 export { default as ProjectsProvider } from './context/ProjectsProvider';
 export { useProjectDirectory, type ProjectDirectory } from './context/ProjectsContext';
-export { default as NewProjectCard } from './components/NewProjectCard';
 export { default as ProjectFormDialog } from './components/ProjectFormDialog';
 export { default as SprintFormDialog } from './components/SprintFormDialog';
 export { default as CompleteSprintDialog } from './components/CompleteSprintDialog';

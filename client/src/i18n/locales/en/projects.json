@@ -127,7 +127,8 @@
     "deleteTitle": "Delete \"{{name}}\"?",
     "deleteBody": "The project and its sprints are deleted. Its tasks are kept, without a project or sprint.",
     "deleteConfirm": "Delete project",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "createWithAi": "Create with AI"
   },
   "detail": {
     "loading": "Loading project",
@@ -375,8 +376,7 @@
     "description": "Description",
     "descriptionPlaceholder": "What is this project about?",
     "color": "Color",
-    "icon": "Icon",
-    "newCard": "New project"
+    "icon": "Icon"
   },
   "colors": {
     "blue": "Dusk blue",
