@@ -135,7 +135,7 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
 
   try {
     const config = readPlanConfig();
-    const workspace = await Workspace.findById(plan.workspace).select('ai +ai.apiKeyEncrypted').lean();
+    const workspace = await Workspace.findById(plan.workspace).select('+ai.apiKeyEncrypted').lean();
     if (!workspace) throw new AiReviewError('The workspace no longer exists.', 'WORKSPACE_GONE');
     const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
     if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');

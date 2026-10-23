@@ -93,7 +93,7 @@ export const runAiReview = async (req: Request, res: Response): Promise<void> =>
       return;
     }
     const workspace = workspaceOf(req);
-    const stored = await Workspace.findById(workspace._id).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspace._id).select('+ai.apiKeyEncrypted').lean();
     const review = await queueReview({
       workspaceId: workspace._id as Id,
       settings: stored?.ai,
@@ -151,7 +151,7 @@ export const getAiReview = async (req: Request, res: Response): Promise<void> =>
 // Workspace settings
 // ================================================================
 const loadWorkspaceSettings = async (workspaceId: Id) => Workspace.findById(workspaceId)
-  .select('ai +ai.apiKeyEncrypted +integrations.github.accessTokenEncrypted')
+  .select('+ai.apiKeyEncrypted +integrations.github.accessTokenEncrypted')
   .populate('ai.configuredBy', 'name')
   .lean();
 
@@ -250,8 +250,6 @@ const providerCandidate = async (
   if (!model) return candidateFailure(400, 'MODEL_MISSING', 'A custom endpoint needs a model.');
 
   const suppliedKey = typeof input.apiKey === 'string' ? input.apiKey.trim() : '';
-  // The saved key may only be reused for the exact same provider and endpoint: otherwise a settings
-  // manager could point an existing key at a host they control and capture it with a test request.
   // A saved key may only be reused for the very same destination. Re-pointing an existing key at a
   // new endpoint would hand its secret to whoever controls that host, so a changed URL needs a new key.
   const storedBaseURL = normalizeBaseURL(String(stored?.ai?.baseURL ?? ''));
@@ -406,7 +404,7 @@ export const saveAiProvider = async (req: Request, res: Response): Promise<void>
   try {
     const workspace = workspaceOf(req);
     const workspaceId = workspace._id as Id;
-    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     const candidate = await providerCandidate(workspaceId, stored, req.body ?? {});
     if (!('settings' in candidate)) {
       res.status(candidate.status).json({ message: candidate.message, code: candidate.code });
@@ -455,7 +453,7 @@ export const removeAiProvider = async (req: Request, res: Response): Promise<voi
   try {
     const workspace = workspaceOf(req);
     const workspaceId = workspace._id as Id;
-    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     const existing = stored?.ai as WorkspaceAiSettings | undefined;
 
     if (existing?.provider || existing?.apiKeyEncrypted) {
@@ -500,7 +498,7 @@ export const testAiProvider = async (req: Request, res: Response): Promise<void>
   try {
     const workspace = workspaceOf(req);
     const workspaceId = workspace._id as Id;
-    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     const entered = typeof req.body?.provider === 'string' && req.body.provider.trim() !== '';
     let settings = stored?.ai as WorkspaceAiSettings | undefined;
 

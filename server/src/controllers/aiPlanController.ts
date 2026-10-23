@@ -86,7 +86,7 @@ export const requireTaskWrite = (req: Request, res: Response, next: NextFunction
 export const ensurePlansEnabled = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const workspaceId = workspaceOf(req)._id as Id;
-    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     assertPlanFeatureOn(workspaceId, stored?.ai);
     next();
   } catch (error) {
@@ -151,7 +151,7 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
     const userId = userIdOf(req);
     const config = readPlanConfig();
 
-    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     const ai = await assertCanQueuePlan({ workspaceId, userId, settings: stored?.ai });
 
     const field = (name: string): string => (typeof req.body?.[name] === 'string' ? (req.body[name] as string).trim() : '');
