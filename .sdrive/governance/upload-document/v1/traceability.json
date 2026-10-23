@@ -628,7 +628,7 @@
         "T11.1",
         "T11.6"
       ],
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "requirementId": "FR-032",
@@ -644,7 +644,7 @@
         "T11.3",
         "T11.4"
       ],
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "requirementId": "FR-033",
@@ -658,7 +658,7 @@
         "T11.5",
         "T11.6"
       ],
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "requirementId": "NFR-018",
@@ -677,7 +677,7 @@
       "taskIds": [
         "T11.6"
       ],
-      "status": "not_started"
+      "status": "complete"
     }
   ]
 }

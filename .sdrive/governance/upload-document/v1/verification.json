@@ -1,10 +1,10 @@
 {
   "feature": "upload-document",
   "status": "fail",
-  "checkedAt": "2026-10-23T17:13:31.862Z",
+  "checkedAt": "2026-10-23T22:14:00.762Z",
   "summary": {
-    "matched": 27,
-    "missing": 106,
+    "matched": 28,
+    "missing": 122,
     "renamed": 2,
     "extra": 188
   },
@@ -171,6 +171,11 @@
         "name": "server/src/utils/secretBox.ts",
         "action": "reuse",
         "file": "server/src/utils/secretBox.ts"
+      },
+      {
+        "type": "dependency",
+        "name": "lucide-react",
+        "action": "no_change"
       }
     ],
     "missing": [
@@ -357,6 +362,81 @@
       {
         "type": "component",
         "name": "client/src/components/ds",
+        "action": "reuse"
+      },
+      {
+        "type": "component",
+        "name": "client/src/pages/AiProjectPage.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/App.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/hooks/useAiProjectPlan.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/UploadStep.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/ReviewStep.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/lib/destination.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/DestinationPicker.tsx",
+        "action": "delete"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/ProjectPicker.tsx",
+        "action": "delete"
+      },
+      {
+        "type": "component",
+        "name": "client/src/pages/ProjectDetailPage.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/pages/ProjectsPage.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/projects/components/NewProjectCard.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/AiProjectCard.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/i18n/locales/{en,fr,ar}/aiPlan.json",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/i18n/locales/{en,fr,ar}/projects.json",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/components/ui/button.tsx",
         "action": "reuse"
       },
       {
@@ -780,6 +860,11 @@
       {
         "type": "dependency",
         "name": "react-i18next",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "react-router-dom",
         "action": "no_change"
       }
     ],
