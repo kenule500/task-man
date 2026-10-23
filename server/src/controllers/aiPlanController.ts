@@ -85,8 +85,9 @@ export const requireTaskWrite = (req: Request, res: Response, next: NextFunction
 /** Answers 503 before the file is read when AI is off, so nothing large is processed for nothing. */
 export const ensurePlansEnabled = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const stored = await Workspace.findById(workspaceOf(req)._id).select('ai').lean();
-    assertPlanFeatureOn(stored?.ai);
+    const workspaceId = workspaceOf(req)._id as Id;
+    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    assertPlanFeatureOn(workspaceId, stored?.ai);
     next();
   } catch (error) {
     failure(res, error, 'ensurePlansEnabled');
@@ -150,8 +151,8 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
     const userId = userIdOf(req);
     const config = readPlanConfig();
 
-    const stored = await Workspace.findById(workspaceId).select('ai').lean();
-    await assertCanQueuePlan({ workspaceId, userId, settings: stored?.ai });
+    const stored = await Workspace.findById(workspaceId).select('ai +ai.apiKeyEncrypted').lean();
+    const ai = await assertCanQueuePlan({ workspaceId, userId, settings: stored?.ai });
 
     const field = (name: string): string => (typeof req.body?.[name] === 'string' ? (req.body[name] as string).trim() : '');
     const targetProject = field('targetProjectId') ? await resolveTargetProject(workspaceId, field('targetProjectId')) : null;
@@ -178,6 +179,7 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
         fileName, mimeType: extracted.mimeType, size: req.file.size, chars: extracted.text.length, truncated: shortened.truncated, text: extracted.text,
       },
       options,
+      model: ai.model,
     });
     // The work continues after the response (kept alive by waitUntil on Vercel); the text lives only in this closure
     runInBackground(runPlan(plan._id as Id, { text: shortened.text, truncated: shortened.truncated }));

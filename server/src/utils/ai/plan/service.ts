@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 import AiPlan, { MAX_PLAN_PREVIEW, type IAiPlan } from '../../../models/aiPlanModel.js';
 import Project from '../../../models/projectModel.js';
 import Workspace from '../../../models/workspaceModel.js';
-import { readAiConfig } from '../config.js';
 import { generateJson } from '../provider.js';
 import { AiQueueError, STALE_AFTER_MS, startOfUtcDay } from '../reviewService.js';
 import { AiReviewError } from '../types.js';
+import { resolveWorkspaceAiConfig, type WorkspaceAiConfig, type WorkspaceAiSettings } from '../workspaceConfig.js';
 import { readPlanConfig } from './config.js';
 import { buildPlanMessages } from './prompt.js';
 import { finalizePlan, modelPlanSchema, type PlanLanguage } from './schema.js';
@@ -37,15 +37,17 @@ export interface PlanOptionsInput {
   targetProjectId: mongoose.Types.ObjectId | null;
 }
 
-/** Whether the feature is on for this workspace (server key present and the workspace opted in). */
-export const assertPlanFeatureOn = (settings: { enabled?: boolean } | undefined): void => {
-  if (!readAiConfig().available) throw new AiQueueError(503, 'AI_DISABLED', 'AI is not configured on this server.');
+/** Whether the feature is on for this workspace (provider and key present and the workspace opted in). */
+export const assertPlanFeatureOn = (workspaceId: Id | string, settings: WorkspaceAiSettings | undefined): WorkspaceAiConfig => {
+  const ai = resolveWorkspaceAiConfig(String(workspaceId), settings);
+  if (!ai.available) throw new AiQueueError(503, 'AI_NOT_CONFIGURED', 'AI is not configured for this workspace. An owner or admin can set it up in the workspace settings.');
   if (settings?.enabled !== true) throw new AiQueueError(503, 'AI_DISABLED', 'AI is turned off for this workspace. An administrator can turn it on in the settings.');
+  return ai;
 };
 
 /** Everything that can refuse a new generation before any work is done: feature off, one already running, daily limit. */
-export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: { enabled?: boolean } | undefined }): Promise<void> => {
-  assertPlanFeatureOn(input.settings);
+export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: WorkspaceAiSettings | undefined }): Promise<WorkspaceAiConfig> => {
+  const ai = assertPlanFeatureOn(input.workspaceId, input.settings);
   const config = readPlanConfig();
 
   await AiPlan.updateMany(
@@ -58,6 +60,7 @@ export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; s
   if (await countPlansUsedToday(input.workspaceId) >= config.dailyLimit) {
     throw new AiQueueError(429, 'AI_DAILY_LIMIT', `This workspace has used its ${config.dailyLimit} AI project plans for today. The limit resets at midnight UTC.`);
   }
+  return ai;
 };
 
 export interface QueuePlanInput {
@@ -65,6 +68,8 @@ export interface QueuePlanInput {
   userId: Id;
   source: { fileName: string; mimeType: string; size: number; chars: number; truncated: boolean; text: string };
   options: PlanOptionsInput;
+  /** Model resolved from the workspace configuration when the plan was queued. */
+  model: string;
 }
 
 /** Stores the queued plan. Only a short preview of the text is kept, never the document. */
@@ -86,7 +91,7 @@ export const createQueuedPlan = async (input: QueuePlanInput): Promise<IAiPlan> 
         ...input.options,
         targetProjectId: input.options.targetProjectId ?? null,
       },
-      model: readAiConfig().model,
+      model: input.model,
     });
   } catch (error) {
     // The unique index lost a race with a simultaneous upload of the same person
@@ -129,11 +134,12 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
   if (!plan) return;
 
   try {
-    const ai = readAiConfig();
     const config = readPlanConfig();
-    const workspace = await Workspace.findById(plan.workspace).select('ai').lean();
+    const workspace = await Workspace.findById(plan.workspace).select('ai +ai.apiKeyEncrypted').lean();
     if (!workspace) throw new AiReviewError('The workspace no longer exists.', 'WORKSPACE_GONE');
-    if (workspace.ai?.enabled !== true || !ai.available) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
+    const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
+    if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
+    if (!ai.available) throw new AiReviewError('AI is no longer configured for this workspace.', 'AI_NOT_CONFIGURED');
 
     const messages = buildPlanMessages({
       document: document.text,
@@ -149,7 +155,11 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
       },
     });
 
-    const answer = await generateJson(modelPlanSchema, messages, { maxTokens: config.maxOutputTokens, timeoutMs: config.timeoutMs });
+    const answer = await generateJson(modelPlanSchema, messages, {
+      maxTokens: config.maxOutputTokens,
+      timeoutMs: config.timeoutMs,
+      config: ai,
+    });
 
     const { names, keys } = await usedProjectNames(plan.workspace);
     const content = finalizePlan(answer.output, {
