@@ -133,7 +133,12 @@ export const UploadStep = ({
             <Button type="button" variant="outline" size="sm" onClick={onRetrySettings} className="mt-2 h-10 rounded-lg sm:h-8">{t('notice.retry')}</Button>
           </Alert>
         ) : settings && !settings.available ? (
-          <Alert tone="warning" title={t('notice.unavailableTitle')}>{t('notice.unavailableBody')}</Alert>
+          <Alert tone="warning" title={t('notice.unavailableTitle')}>
+            {t('notice.unavailableBody')}{' '}
+            {canManageSettings
+              ? <Link to={`/${slug}/settings`} className="font-medium underline underline-offset-2">{t('notice.openSettings')}</Link>
+              : t('notice.askAdminSetup')}
+          </Alert>
         ) : settings && !settings.enabled ? (
           <Alert tone="warning" title={t('notice.offTitle')}>
             {t('notice.offBody')}{' '}

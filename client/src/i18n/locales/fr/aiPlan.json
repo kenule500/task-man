@@ -248,14 +248,14 @@
   },
   "notice": {
     "title": "Ce qu’il advient de votre document",
-    "body": "Le texte de votre document est envoyé à {{provider}} ({{model}}), le fournisseur d'IA configuré pour cette installation, pour construire le plan. Rien n'est envoyé avant que vous n'appuyiez sur Analyser, et seulement si un administrateur a activé l'IA pour cet espace de travail.",
+    "body": "Le texte de votre document est envoyé à {{provider}} ({{model}}), le fournisseur d'IA configuré pour cet espace de travail, pour construire le plan. Rien n'est envoyé tant que vous n'appuyez pas sur Analyser, et uniquement lorsqu'un propriétaire ou un administrateur a activé l'IA pour cet espace de travail.",
     "sent": "Envoyé au fournisseur : le texte du document et vos options. Les images ne sont pas lues.",
     "stored": "Conservé par TaskMan : le nom du fichier, sa taille, les 2 000 premiers caractères en aperçu et le plan, pendant {{days}} jours. Le document lui-même n’est jamais conservé.",
     "untrusted": "Les instructions écrites dans le document sont traitées comme du texte à planifier, pas comme des commandes.",
     "checking": "Vérification de la disponibilité de l’IA…",
     "retry": "Réessayer",
-    "unavailableTitle": "L’IA n’est pas configurée sur ce serveur",
-    "unavailableBody": "Un administrateur de cette installation de TaskMan doit d'abord configurer le fournisseur d'IA (AI_PROVIDER, AI_API_KEY, AI_BASE_URL et AI_MODEL sur le serveur).",
+    "unavailableTitle": "L'IA n'est pas configurée pour cet espace de travail",
+    "unavailableBody": "Un propriétaire ou un administrateur peut ajouter un fournisseur et une clé d'API dans les paramètres de l'espace de travail.",
     "offTitle": "L’IA est désactivée pour cet espace de travail",
     "offBody": "Rien ne quitte TaskMan tant qu’un propriétaire ou un administrateur ne l’a pas activée dans les paramètres de l’espace de travail.",
     "openSettings": "Ouvrir les paramètres de l’espace de travail",
@@ -265,7 +265,8 @@
     "on": "L’IA est activée pour cet espace de travail. {{used}} plans de projet utilisés sur {{limit}} aujourd’hui.",
     "providerFallback": "le fournisseur d'IA configuré",
     "modelFallback": "le modèle configuré",
-    "customProvider": "Point de terminaison personnalisé"
+    "customProvider": "Point de terminaison personnalisé",
+    "askAdminSetup": "Demandez à un propriétaire ou à un administrateur de la configurer."
   },
   "recent": {
     "title": "Reprendre là où vous en étiez",
@@ -321,10 +322,18 @@
       "TARGET_INVALID": "Ce projet n’est pas valide. Choisissez un autre projet.",
       "TARGET_NOT_FOUND": "Ce projet n’existe plus. Choisissez un autre projet.",
       "TARGET_UNAVAILABLE": "Ce projet n’est plus disponible. Choisissez un autre projet ou créez-en un nouveau.",
-      "TARGET_ARCHIVED": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau."
+      "TARGET_ARCHIVED": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau.",
+      "AI_NOT_CONFIGURED": "L'IA n'est pas configurée pour cet espace de travail. Demandez à un propriétaire ou à un administrateur de la configurer.",
+      "PROVIDER_UNKNOWN": "Le fournisseur d'IA de l'espace de travail n'est pas pris en charge. Demandez à un propriétaire ou à un administrateur d'en choisir un autre.",
+      "KEY_MISSING": "La clé d'IA de l'espace de travail est manquante. Demandez à un propriétaire ou à un administrateur de l'enregistrer.",
+      "KEY_UNREADABLE": "La clé d'IA de l'espace de travail ne peut pas être lue. Demandez à un propriétaire ou à un administrateur de la remplacer.",
+      "MODEL_MISSING": "Aucun modèle d'IA n'est configuré pour cet espace de travail.",
+      "BASE_URL_INVALID": "L'adresse du fournisseur d'IA de l'espace de travail n'est pas une URL HTTPS valide.",
+      "BASE_URL_PRIVATE": "L'adresse du fournisseur d'IA de l'espace de travail est privée ou réservée.",
+      "BASE_URL_UNRESOLVED": "Le nom d'hôte du fournisseur d'IA de l'espace de travail est introuvable."
     },
     "failure": {
-      "AI_AUTH": "Le fournisseur d’IA a refusé la clé du serveur. Demandez à un administrateur de vérifier la configuration.",
+      "AI_AUTH": "Le fournisseur d'IA a refusé la clé de l'espace de travail. Demandez à un propriétaire ou à un administrateur de la remplacer dans les paramètres.",
       "AI_RATE_LIMIT": "Le fournisseur d’IA limite les requêtes ou le compte n’a plus de quota. Réessayez plus tard.",
       "AI_BAD_REQUEST": "Le fournisseur d’IA a refusé la requête, probablement parce que le document est trop long. Essayez un document plus court.",
       "AI_UNAVAILABLE": "Le fournisseur d’IA rencontre des problèmes. Réessayez dans quelques minutes.",
@@ -334,7 +343,14 @@
       "AI_INVALID_OUTPUT": "L’IA n’a pas renvoyé de plan exploitable deux fois de suite. Réessayez ou utilisez un document plus court.",
       "AI_DISABLED": "L’IA a été désactivée avant le début de l’analyse.",
       "STALE": "L’analyse ne s’est pas terminée et a été arrêtée. Réessayez.",
-      "CANCELLED": "L’analyse a été annulée."
+      "CANCELLED": "L’analyse a été annulée.",
+      "AI_NOT_CONFIGURED": "L'IA n'est plus configurée pour cet espace de travail.",
+      "KEY_MISSING": "La clé d'IA de l'espace de travail est manquante.",
+      "KEY_UNREADABLE": "La clé d'IA de l'espace de travail ne peut pas être lue. Demandez à un propriétaire ou à un administrateur de la remplacer.",
+      "MODEL_MISSING": "Aucun modèle d'IA n'est configuré pour cet espace de travail.",
+      "BASE_URL_INVALID": "L'adresse du fournisseur d'IA de l'espace de travail n'est pas valide.",
+      "BASE_URL_PRIVATE": "L'adresse du fournisseur d'IA de l'espace de travail est privée ou réservée.",
+      "BASE_URL_UNRESOLVED": "Le nom d'hôte du fournisseur d'IA de l'espace de travail est introuvable."
     }
   }
 }

@@ -47,7 +47,7 @@
     "rerun": "Relancer",
     "starting": "Démarrage...",
     "runningShort": "Revue en cours",
-    "unavailable": "La revue de code par l'IA n'est pas configurée sur ce serveur. Un administrateur doit configurer le fournisseur d'IA.",
+    "unavailable": "La revue de code par l'IA n'est pas configurée pour cet espace de travail. Un propriétaire ou un administrateur peut la configurer dans les paramètres de l'espace de travail.",
     "disabled": "La revue de code par l'IA est désactivée pour cet espace de travail.",
     "disabledManage": "Activez-la dans les paramètres de l'espace de travail.",
     "openSettings": "Ouvrir les paramètres",
@@ -84,7 +84,8 @@
       "itemRunning": "En cours depuis le {{date}}",
       "show": "Afficher cette revue",
       "showing": "Affichée"
-    }
+    },
+    "unavailableManage": "Configurez l'IA dans les paramètres de l'espace de travail."
   },
   "result": {
     "title": "Résultat de la revue",
@@ -152,10 +153,10 @@
     "loadError": "Impossible de charger les paramètres de la revue de code par l'IA.",
     "retry": "Réessayer",
     "saveError": "Impossible d'enregistrer ce paramètre.",
-    "unavailable": "Aucun fournisseur d'IA utilisable n'est configuré sur ce serveur. Un administrateur doit vérifier AI_PROVIDER, AI_API_KEY, AI_BASE_URL et AI_MODEL.",
+    "unavailable": "Aucun fournisseur d'IA utilisable n'est configuré pour cet espace de travail. Un propriétaire ou un administrateur peut en ajouter un ci-dessous.",
     "notice": {
       "title": "Votre code est envoyé à un tiers",
-      "body": "Lorsque cette option est activée, les modifications des pull requests que vous faites relire (le diff) et le texte du ticket sont envoyés à {{provider}} ({{model}}), un sous-traitant externe, pour produire la revue. Rien n'est envoyé tant qu'elle est désactivée. Ne l'activez pas pour du code que vos accords interdisent de transmettre."
+      "body": "Lorsque cette option est active, les modifications des pull requests que vous révisez (le diff) et le texte du ticket sont envoyés à {{provider}} ({{model}}), un prestataire externe, pour produire la revue. Rien n'est envoyé tant que l'option est désactivée. Ne l'activez pas pour du code que vos accords n'autorisent pas à quitter l'organisation."
     },
     "enable": {
       "label": "Activer la revue de code par l'IA",
@@ -188,11 +189,91 @@
     "model": "Modèle : {{model}}",
     "providerFallback": "le fournisseur d'IA",
     "problems": {
-      "PROVIDER_UNKNOWN": "La valeur de AI_PROVIDER n'est pas reconnue. Utilisez qwen, deepseek, openai, opencode ou custom.",
-      "KEY_MISSING": "La variable AI_API_KEY est vide (ou DASHSCOPE_API_KEY pour une installation Qwen existante).",
-      "MODEL_MISSING": "La variable AI_MODEL est vide.",
-      "BASE_URL_INVALID": "AI_BASE_URL doit être une adresse HTTPS. HTTP n'est accepté que pour localhost avec un fournisseur custom."
+      "PROVIDER_UNKNOWN": "Le fournisseur enregistré n'est pas pris en charge. Choisissez-en un ci-dessous.",
+      "KEY_MISSING": "La clé d'API de l'espace de travail est manquante. Enregistrez-la ci-dessous.",
+      "MODEL_MISSING": "Choisissez un modèle.",
+      "BASE_URL_INVALID": "L'adresse doit être une URL HTTPS valide, sans identifiants, paramètres ni fragment.",
+      "AI_NOT_CONFIGURED": "Aucun fournisseur ni clé d'API n'est enregistré pour cet espace de travail.",
+      "KEY_UNREADABLE": "La clé enregistrée ne peut pas être lue (la clé de chiffrement du serveur a peut-être changé). Remplacez-la.",
+      "BASE_URL_PRIVATE": "L'adresse correspond à une adresse réseau privée ou réservée. Choisissez une adresse HTTPS publique.",
+      "BASE_URL_UNRESOLVED": "Le nom d'hôte de l'adresse n'a pas pu être résolu. Vérifiez l'adresse."
     },
-    "customProvider": "Point de terminaison personnalisé"
+    "customProvider": "Point de terminaison personnalisé",
+    "provider": {
+      "title": "Fournisseur d'IA",
+      "description": "Choisissez le fournisseur et la clé que cet espace de travail utilise. La clé est stockée chiffrée et n'est plus jamais affichée.",
+      "label": "Fournisseur",
+      "presets": {
+        "qwen": "Qwen",
+        "deepseek": "DeepSeek",
+        "openai": "OpenAI",
+        "opencode": "OpenCode Console",
+        "custom": "Point de terminaison personnalisé"
+      },
+      "model": "Modèle",
+      "modelHint": "Laissez vide pour utiliser le modèle par défaut du fournisseur ({{model}}).",
+      "modelCustomHint": "Obligatoire pour un point de terminaison personnalisé.",
+      "modelPlaceholder": "Nom du modèle",
+      "baseURL": "URL de base",
+      "baseURLHint": "HTTPS uniquement. Les adresses locales et privées sont refusées.",
+      "presetHint": "L'adresse vient du fournisseur choisi. Vous pouvez modifier le modèle.",
+      "key": "Clé d'API",
+      "keyHint": "En écriture seule. Laissez vide pour conserver la clé enregistrée.",
+      "keyKeep": "Une clé est déjà enregistrée. Laissez vide pour la conserver.",
+      "keyPlaceholder": "Collez la clé",
+      "showKey": "Afficher la clé",
+      "hideKey": "Masquer la clé",
+      "keySet": "Une clé est enregistrée (se terminant par {{hint}}).",
+      "keySetNoHint": "Une clé est enregistrée.",
+      "keyNotSet": "Aucune clé enregistrée.",
+      "save": "Enregistrer le fournisseur",
+      "saving": "Enregistrement...",
+      "test": "Tester la connexion",
+      "testing": "Test en cours...",
+      "testHelp": "Envoie un court message de test, sans contenu de l'espace de travail.",
+      "testSuccess": "La connexion fonctionne.",
+      "testFailure": "La connexion a échoué.",
+      "testSuccessShort": "réussi",
+      "testFailureShort": "échoué",
+      "lastTest": "Dernier test : {{status}} le {{date}}",
+      "neverTested": "Pas encore testé.",
+      "configuredBy": "Configuré par {{name}} le {{date}}.",
+      "configuredOn": "Configuré le {{date}}.",
+      "remove": "Supprimer la configuration",
+      "removeTitle": "Supprimer la configuration IA ?",
+      "removeBody": "La clé et le fournisseur sont supprimés et l'IA est désactivée pour cet espace de travail. Les revues et plans existants restent disponibles.",
+      "removeAction": "Supprimer",
+      "removing": "Suppression...",
+      "removed": "Configuration IA supprimée.",
+      "saved": "Fournisseur d'IA enregistré.",
+      "saveError": "Nous n'avons pas pu enregistrer le fournisseur d'IA.",
+      "testError": "Nous n'avons pas pu tester la connexion.",
+      "errors": {
+        "modelRequired": "Choisissez un modèle.",
+        "urlRequired": "Saisissez l'URL HTTPS du point de terminaison.",
+        "urlHttps": "L'URL doit commencer par https://.",
+        "urlCredentials": "L'URL ne doit pas contenir d'identifiants, de paramètres ni de fragment.",
+        "urlInvalid": "Saisissez une URL valide.",
+        "keyRequired": "Saisissez une clé d'API."
+      },
+      "testCodes": {
+        "OK": "La connexion fonctionne.",
+        "AI_AUTH": "Le fournisseur a refusé la clé. Vérifiez-la.",
+        "AI_RATE_LIMIT": "Le fournisseur limite les requêtes. Réessayez plus tard.",
+        "AI_BAD_REQUEST": "Le fournisseur a refusé la requête de test.",
+        "AI_UNAVAILABLE": "Le fournisseur rencontre des problèmes. Réessayez plus tard.",
+        "AI_TIMEOUT": "Le fournisseur a mis trop de temps à répondre.",
+        "AI_UNREACHABLE": "Le fournisseur est injoignable. Vérifiez l'URL.",
+        "AI_NOT_CONFIGURED": "La configuration est incomplète.",
+        "PROVIDER_UNKNOWN": "Fournisseur non pris en charge.",
+        "KEY_MISSING": "Clé manquante.",
+        "KEY_UNREADABLE": "La clé enregistrée est illisible. Remplacez-la.",
+        "MODEL_MISSING": "Modèle manquant.",
+        "BASE_URL_INVALID": "URL invalide.",
+        "BASE_URL_PRIVATE": "L'adresse est privée ou réservée.",
+        "BASE_URL_UNRESOLVED": "Le nom d'hôte est introuvable.",
+        "AI_TEST_RATE_LIMIT": "Trop de tests. Attendez une minute."
+      }
+    }
   }
 }

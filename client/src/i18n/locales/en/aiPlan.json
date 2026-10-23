@@ -248,14 +248,14 @@
   },
   "notice": {
     "title": "What happens to your document",
-    "body": "The text of your document is sent to {{provider}} ({{model}}), the AI provider configured for this installation, to build the plan. Nothing is sent until you press Analyze, and only when an administrator has turned AI on for this workspace.",
+    "body": "The text of your document is sent to {{provider}} ({{model}}), the AI provider configured for this workspace, to build the plan. Nothing is sent until you press Analyze, and only when an owner or admin has turned AI on for this workspace.",
     "sent": "Sent to the provider: the text of the document and your options. Pictures are not read.",
     "stored": "Kept by TaskMan: the file name, its size, the first 2,000 characters as a preview and the plan, for {{days}} days. The document itself is never stored.",
     "untrusted": "Instructions written inside the document are treated as text to plan, not as commands.",
     "checking": "Checking whether AI is available…",
     "retry": "Try again",
-    "unavailableTitle": "AI is not set up on this server",
-    "unavailableBody": "An administrator of this TaskMan installation has to configure the AI provider first (AI_PROVIDER, AI_API_KEY, AI_BASE_URL and AI_MODEL on the server).",
+    "unavailableTitle": "AI is not set up for this workspace",
+    "unavailableBody": "An owner or admin can add a provider and API key in the workspace settings.",
     "offTitle": "AI is turned off for this workspace",
     "offBody": "Nothing leaves TaskMan until an owner or admin turns it on in the workspace settings.",
     "openSettings": "Open workspace settings",
@@ -265,7 +265,8 @@
     "on": "AI is on for this workspace. {{used}} of {{limit}} project plans used today.",
     "providerFallback": "the configured AI provider",
     "modelFallback": "the configured model",
-    "customProvider": "Custom endpoint"
+    "customProvider": "Custom endpoint",
+    "askAdminSetup": "Ask an owner or admin to set it up."
   },
   "recent": {
     "title": "Continue where you left off",
@@ -321,10 +322,18 @@
       "TARGET_INVALID": "That project is not valid. Choose another project.",
       "TARGET_NOT_FOUND": "That project no longer exists. Choose another project.",
       "TARGET_UNAVAILABLE": "That project is no longer available. Choose another project or create a new one.",
-      "TARGET_ARCHIVED": "That project is archived. Choose another project or create a new one."
+      "TARGET_ARCHIVED": "That project is archived. Choose another project or create a new one.",
+      "AI_NOT_CONFIGURED": "AI is not configured for this workspace. Ask an owner or admin to set it up.",
+      "PROVIDER_UNKNOWN": "The workspace AI provider is not supported. Ask an owner or admin to choose another one.",
+      "KEY_MISSING": "The workspace AI key is missing. Ask an owner or admin to save it.",
+      "KEY_UNREADABLE": "The workspace AI key cannot be read. Ask an owner or admin to replace it.",
+      "MODEL_MISSING": "No AI model is configured for this workspace.",
+      "BASE_URL_INVALID": "The workspace AI endpoint is not a valid HTTPS URL.",
+      "BASE_URL_PRIVATE": "The workspace AI endpoint is a private or reserved address.",
+      "BASE_URL_UNRESOLVED": "The workspace AI endpoint host could not be found."
     },
     "failure": {
-      "AI_AUTH": "The AI provider rejected the server key. Ask an administrator to check the configuration.",
+      "AI_AUTH": "The AI provider rejected the workspace key. Ask an owner or admin to replace it in the workspace settings.",
       "AI_RATE_LIMIT": "The AI provider is limiting requests or the account has no quota left. Try again later.",
       "AI_BAD_REQUEST": "The AI provider refused the request, probably because the document is too long. Try a shorter document.",
       "AI_UNAVAILABLE": "The AI provider is having problems. Try again in a few minutes.",
@@ -334,7 +343,14 @@
       "AI_INVALID_OUTPUT": "The AI did not return a usable plan twice in a row. Try again, or use a shorter document.",
       "AI_DISABLED": "AI was turned off before the analysis started.",
       "STALE": "The analysis did not finish and was stopped. Try again.",
-      "CANCELLED": "The analysis was cancelled."
+      "CANCELLED": "The analysis was cancelled.",
+      "AI_NOT_CONFIGURED": "AI is no longer configured for this workspace.",
+      "KEY_MISSING": "The workspace AI key is missing.",
+      "KEY_UNREADABLE": "The workspace AI key cannot be read. Ask an owner or admin to replace it.",
+      "MODEL_MISSING": "No AI model is configured for this workspace.",
+      "BASE_URL_INVALID": "The workspace AI endpoint is not valid.",
+      "BASE_URL_PRIVATE": "The workspace AI endpoint is a private or reserved address.",
+      "BASE_URL_UNRESOLVED": "The workspace AI endpoint host could not be found."
     }
   }
 }

@@ -53,13 +53,36 @@ export interface AiReview {
 }
 
 export type AiProviderId = 'qwen' | 'deepseek' | 'openai' | 'opencode' | 'custom' | 'unknown';
-export type AiConfigProblem = 'PROVIDER_UNKNOWN' | 'KEY_MISSING' | 'MODEL_MISSING' | 'BASE_URL_INVALID';
+export type AiProviderChoice = Exclude<AiProviderId, 'unknown'>;
+export type AiConfigProblem =
+  | 'AI_NOT_CONFIGURED'
+  | 'PROVIDER_UNKNOWN'
+  | 'KEY_MISSING'
+  | 'KEY_UNREADABLE'
+  | 'MODEL_MISSING'
+  | 'BASE_URL_INVALID'
+  | 'BASE_URL_PRIVATE'
+  | 'BASE_URL_UNRESOLVED';
+
+/** Endpoint and key metadata. Only returned to members who hold settings:manage. */
+export interface AiProviderConfigView {
+  keySet: boolean;
+  /** Last four characters, for the "a key is saved" line. Never the key. */
+  keyHint: string | null;
+  /** The effective endpoint (a preset URL or the custom one). */
+  baseURL: string;
+  configuredAt: string | null;
+  configuredBy: { _id: string; name: string } | null;
+  lastTestedAt: string | null;
+  lastTestStatus: 'success' | 'failed' | null;
+  lastTestCode: string | null;
+}
 
 export interface AiSettings {
-  /** The server resolved a usable provider (key and endpoint). */
+  /** The workspace has a usable provider, endpoint, model and key. */
   available: boolean;
-  /** Provider configured for the whole installation. Older servers may omit it. */
-  provider?: { id: AiProviderId; label: string };
+  /** Provider configured for this workspace. Null/absent while unconfigured. */
+  provider?: { id: AiProviderId; label: string } | null;
   /** Why AI is unavailable, when the server can tell. */
   problem?: AiConfigProblem | null;
   /** The workspace opted in: only then does any code leave for the provider. */
@@ -72,6 +95,8 @@ export interface AiSettings {
   githubTokenSet: boolean;
   /** Project plans generated from uploaded documents have their own daily limit and size limits. */
   plan: { dailyLimit: number; usedToday: number; maxChars: number; maxBytes: number };
+  /** Manager-only metadata; absent for other members. */
+  config?: AiProviderConfigView;
 }
 
 export interface AiSettingsPatch {
@@ -79,4 +104,18 @@ export interface AiSettingsPatch {
   autoReview?: boolean;
   /** A token to save, or null to remove the saved one. */
   githubToken?: string | null;
+}
+
+/** Values of the provider form. An absent key keeps the saved one. */
+export interface AiProviderInput {
+  provider: AiProviderChoice;
+  apiKey?: string;
+  model?: string;
+  baseURL?: string;
+}
+
+export interface AiProviderTestResult {
+  ok: boolean;
+  code: string;
+  testedAt: string;
 }

@@ -5,6 +5,7 @@ import { Alert, IconTile, SectionHeader, Spinner, Surface, SwitchField, toast } 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatNumber } from '@/i18n/format';
+import AiProviderForm from './AiProviderForm';
 import { useAiSettings } from '../hooks/useAiSettings';
 import type { AiSettingsPatch } from '../types';
 
@@ -20,8 +21,8 @@ const TOKEN_PATTERN = /^[A-Za-z0-9_-]{20,255}$/;
 const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const { t } = useTranslation('ai');
   const tokenId = useId();
-  const { settings, loading, error, reload, update } = useAiSettings(workspaceSlug);
-  const providerLabel = settings?.provider
+  const { settings, loading, error, reload, update, saveProvider, removeProvider, testProvider } = useAiSettings(workspaceSlug);
+  const providerLabel = settings?.provider && settings.provider.id !== 'unknown'
     ? settings.provider.id === 'custom'
       ? t('settings.customProvider')
       : settings.provider.label
@@ -71,7 +72,7 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
           <IconTile size="sm" tone="neutral"><Bot /></IconTile>
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-slate-900">{providerLabel}</h3>
-            {settings && <p className="text-xs text-slate-600">{t('settings.model', { model: settings.model })}</p>}
+            {settings?.model && <p className="text-xs text-slate-600">{t('settings.model', { model: settings.model })}</p>}
           </div>
         </div>
 
@@ -84,6 +85,14 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
           <p role="status" className="flex items-center gap-2 text-sm text-slate-600"><Spinner decorative />{t('settings.loading')}</p>
         ) : (
           <div className="space-y-5">
+            <AiProviderForm
+              key={`${settings.provider?.id ?? 'none'}:${settings.model}:${settings.config?.baseURL ?? ''}:${settings.config?.keySet ? 'key' : 'nokey'}`}
+              settings={settings}
+              onSave={saveProvider}
+              onRemove={removeProvider}
+              onTest={testProvider}
+            />
+
             {!settings.available && (
               <Alert tone="warning">
                 <p>{t('settings.unavailable')}</p>
