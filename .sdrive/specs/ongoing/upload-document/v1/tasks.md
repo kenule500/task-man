@@ -366,11 +366,11 @@ Agent and are deliberately absent.
   modes and the Projects page at 320/375/768/1024/1280 px, keyboard, en/fr/ar and RTL. Do not
   author or run tests. _(NFR-018; AC-042)_
 
-  **Status:** Server and client typecheck, client lint, governance validation and a changed-file
-  secret scan pass. `pnpm --filter client build` writes `dist/` but the Node process exits
-  `3221226505` (`0xC0000409`) after the build in this environment; running Vite directly
-  (`node node_modules/vite/bin/vite.js build`) exits 0 with the same 3,783 modules and no compile
-  error. Browser checks at 1280 px: the Projects grid starts with "New project" then "Create with
+  **Status:** Server and client typecheck, client lint, client build, governance validation and a
+  changed-file secret scan pass. The client build needs
+  `NODE_OPTIONS=--max-old-space-size=3072` in this environment; with the default heap it runs out of
+  memory, but the build itself completes with 3,783 modules and no compile error. Browser checks at
+  1280 px: the Projects grid starts with "New project" then "Create with
   AI", the header has no creation buttons, searching hides both cards, and there is no horizontal
   overflow at 320/375/768/1024/1280 px. The project header shows "Add from document" with the
   correct href and hides it for the archived project. The project-scoped upload step shows
