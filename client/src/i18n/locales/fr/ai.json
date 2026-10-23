@@ -188,6 +188,7 @@
     },
     "model": "Modèle : {{model}}",
     "providerFallback": "le fournisseur d'IA",
+    "modelFallback": "le modèle par défaut",
     "problems": {
       "PROVIDER_UNKNOWN": "Le fournisseur enregistré n'est pas pris en charge. Choisissez-en un ci-dessous.",
       "KEY_MISSING": "La clé d'API de l'espace de travail est manquante. Enregistrez-la ci-dessous.",

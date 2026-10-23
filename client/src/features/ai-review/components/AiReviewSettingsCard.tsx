@@ -103,7 +103,7 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
             <Alert tone="warning" title={t('settings.notice.title')}>
               {t('settings.notice.body', {
                 provider: providerLabel,
-                model: settings.model,
+                model: settings.model || t('settings.modelFallback'),
               })}
             </Alert>
 

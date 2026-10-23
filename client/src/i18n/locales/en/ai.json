@@ -184,6 +184,7 @@
     },
     "model": "Model: {{model}}",
     "providerFallback": "AI provider",
+    "modelFallback": "the default model",
     "problems": {
       "PROVIDER_UNKNOWN": "The saved provider is not supported. Choose a provider below.",
       "KEY_MISSING": "The workspace API key is missing. Save it below.",

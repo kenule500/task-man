@@ -117,7 +117,7 @@ export const UploadStep = ({
         <p className="text-sm text-text-body">
           {t('notice.body', {
             provider: providerLabel,
-            model: settings?.model ?? t('notice.modelFallback'),
+            model: settings?.model || t('notice.modelFallback'),
           })}
         </p>
         <ul className="list-disc space-y-1 ps-5 text-sm text-text-body marker:text-text-faint">
