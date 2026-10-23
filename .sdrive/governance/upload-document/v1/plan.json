@@ -1,0 +1,1064 @@
+{
+  "feature": "upload-document",
+  "version": 1,
+  "architecture": {
+    "approach": "Make the destination a first-class property of the plan instead of an implicit consequence of creation. The upload endpoint resolves an optional targetProjectId against the caller's workspace (ObjectId, existence, non-archived), stores it on AiPlan.options, and returns a resolved summary in the detail response. The create endpoint accepts an optional { targetProjectId } body that overrides the stored value: absent uses the stored destination, null creates a new project, a string adds to that project. Both values are validated again before the plan is claimed. Creation is split into one shared record writer (sprints, epics, items, subtasks, criteria, reserved task numbers, batches) and two thin orchestrators: the new-project path also creates the project and records project.created, while the existing-project path skips project creation and name/key checks, uses the target's id and name, deduplicates generated sprint names against the target's existing names, and records ai.plan_created plus sprint.created. Both paths track every id they write and roll back only those records, so a pre-existing target is never deleted or modified. The client stores the destination in PlanUploadOptions, sends it with the upload, shows a destination banner on review, and lets the person switch targets before creation without regenerating; a confirmation dialog names the target and the exact counts. No new dependency is introduced: generation, extraction, validation, permissions and the security baseline are reused. This update also makes the installation's AI provider configurable. A pure resolver (server/src/utils/ai/providers.ts) maps AI_PROVIDER (qwen default, deepseek, openai, openrouter, custom) to a base URL and default model, applies AI_BASE_URL/AI_MODEL overrides and the legacy DASHSCOPE_* aliases, rejects unknown providers, missing keys/models and non-HTTPS endpoints (loopback excepted for keyless custom), and returns available plus a safe problem code. readAiConfig() delegates to it and keeps its existing contract plus provider and problem; provider.ts and both AI features use the single resolved configuration, so no route, schema or SDK changes are required. The settings response exposes the provider id/label and model only, never the key or base URL.\n\nP9 update: workspace-level BYOK replaces installation-level provider resolution. Workspace.ai stores the provider id, effective base URL and model, an AES-256-GCM ciphertext from secretBox bound to the workspace id (select:false), a last-four hint, the configuring user/timestamps and the last test result. A resolver applies only the installation daily/size limits and returns availability plus a safe problem code; AI_* and DASHSCOPE_* never supply provider credentials. Every queue/run path loads the workspace with +ai.apiKeyEncrypted and resolves on each request. Manual review, automatic review and document plans pass the same resolved config to provider.ts. GET /ai exposes availability/provider/model to tasks:read members and the non-secret config block only to settings:manage; PUT/DELETE /ai/provider and POST /ai/provider/test require settings:manage and reject API tokens. A custom endpoint passes an HTTPS-only URL guard and a DNS-pinned node:https fetch that does not follow redirects. No migration and no new dependency; AI stays off until a manager saves and explicitly enables it, and a first save resets any legacy enabled/autoReview flags to false.",
+    "components": [
+      {
+        "name": "server/src/models/aiPlanModel.ts",
+        "action": "modify",
+        "description": "Add options.targetProjectId (ObjectId ref Project, default null) to the interface and schema; keep the existing retention index, active-plan index and document-preview rules."
+      },
+      {
+        "name": "server/src/utils/ai/plan/target.ts",
+        "action": "create",
+        "description": "Layering for the destination: parse/validate ObjectId input, resolve a project inside the workspace and not archived, return a { _id, name, key, archived } summary, and throw AiQueueError with TARGET_INVALID / TARGET_NOT_FOUND / TARGET_ARCHIVED."
+      },
+      {
+        "name": "server/src/utils/ai/plan/sprints.ts",
+        "action": "create",
+        "description": "dedupeSprintName/dedupeSprintNames: case-insensitive suffixing (2), (3), ... against the target's existing sprint names while keeping the 60-character limit."
+      },
+      {
+        "name": "server/src/utils/ai/plan/create.ts",
+        "action": "modify",
+        "description": "Extract the shared record writer (sprints, drafts, batches, reserved numbers), branch between createProjectFromPlan and createIntoProjectFromPlan, track only the ids written by this request, and roll back per path."
+      },
+      {
+        "name": "server/src/controllers/aiPlanController.ts",
+        "action": "modify",
+        "description": "Load +ai.apiKeyEncrypted alongside the feature flags and pass workspace id/settings to the plan service; surface AI_NOT_CONFIGURED before upload work."
+      },
+      {
+        "name": "server/src/routes/aiPlanRoutes.ts",
+        "action": "modify",
+        "description": "Add the express-validator chain for the create body (targetProjectId optional or null) while keeping protect + projects:write + tasks:write."
+      },
+      {
+        "name": "server/src/utils/ai/plan/service.ts",
+        "action": "modify",
+        "description": "Resolve the workspace config for assertPlanFeatureOn/assertCanQueuePlan/createQueuedPlan/runPlan; store the resolved model and pass the config to generateJson. Keep AiPlan records and limits unchanged."
+      },
+      {
+        "name": "server/src/utils/ai/plan/prompt.ts",
+        "action": "modify",
+        "description": "When a target is set, tell the model the plan is added to the existing project and its project block is not applied, without changing the JSON shape or the fencing rules."
+      },
+      {
+        "name": "client/src/features/ai-plan/types.ts",
+        "action": "modify",
+        "description": "Add PlanTarget, PlanUploadOptions.destination/targetProjectId, PlanOptions.targetProjectId, AiPlan.targetProject and CreatedFromPlan.destination."
+      },
+      {
+        "name": "client/src/features/ai-plan/api.ts",
+        "action": "modify",
+        "description": "Send targetProjectId with the upload fields and accept an optional targetProjectId on create (undefined = stored destination, null = new project, string = target)."
+      },
+      {
+        "name": "client/src/features/ai-plan/lib/options.ts",
+        "action": "modify",
+        "description": "Default the destination to 'new' with targetProjectId null."
+      },
+      {
+        "name": "client/src/features/ai-plan/lib/destination.ts",
+        "action": "create",
+        "description": "Pure helpers: activeTargets (archived excluded), targetOf, targetProblem (missing/archived/invalid), targetLabel, and destination change state."
+      },
+      {
+        "name": "client/src/features/ai-plan/lib/plan.ts",
+        "action": "modify",
+        "description": "Let planProblems skip the generated project name/key when the destination is an existing project, so an ignored project block cannot block creation."
+      },
+      {
+        "name": "client/src/features/ai-plan/lib/errors.ts",
+        "action": "modify",
+        "description": "Map AI_NOT_CONFIGURED and the new safe config codes to readable French/English/Arabic copy without provider response bodies."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/ProjectPicker.tsx",
+        "action": "create",
+        "description": "Searchable, keyboard-operable project selector (name + key), empty state, loading state, listbox semantics and a filter input."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/DestinationPicker.tsx",
+        "action": "create",
+        "description": "Two radio cards (new default, existing) with the ProjectPicker revealed for existing; supports read-only/missing/archived states."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/UploadStep.tsx",
+        "action": "modify",
+        "description": "Use the workspace provider/model notice and the AI_NOT_CONFIGURED copy; keep the destination choice and upload flow unchanged when the workspace is unconfigured."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/PlanHeader.tsx",
+        "action": "modify",
+        "description": "Add a read-only target mode: show Adding to <name> (<key>) and suppress the project name/key/description/colour editors."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/ReviewStep.tsx",
+        "action": "modify",
+        "description": "Add the destination banner and change action, pass the read-only target to PlanHeader, use target-aware planProblems, and confirm adding to an existing project with counts."
+      },
+      {
+        "name": "client/src/features/ai-plan/hooks/useAiProjectPlan.ts",
+        "action": "modify",
+        "description": "Let create take an optional target override, keep the destination in PlanRequest for retry/regenerate, and expose the resolved target state."
+      },
+      {
+        "name": "client/src/pages/AiProjectPage.tsx",
+        "action": "modify",
+        "description": "Pass the workspace's projects, loading state and reload to the upload/review steps; create with the chosen target; toast created vs added; reload the project directory."
+      },
+      {
+        "name": "client/src/features/ai-plan/index.ts",
+        "action": "modify",
+        "description": "Remove the AiProjectCard export."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/aiPlan.json",
+        "action": "modify",
+        "description": "Remove the unused card keys and point the upload unavailable notice at the workspace administrator; keep all three locales aligned."
+      },
+      {
+        "name": "client/src/features/projects/context/ProjectsContext.ts",
+        "action": "reuse",
+        "description": "Existing useProjectDirectory supplies the workspace projects (including archived flag and sprints); no API or model change."
+      },
+      {
+        "name": "server/src/utils/ai/plan/schema.ts",
+        "action": "reuse",
+        "description": "Existing editedPlanSchema/finalizePlan/limits validate the plan on both creation paths; the project block is simply not applied for an existing target."
+      },
+      {
+        "name": "server/src/utils/ai/plan/extract.ts",
+        "action": "reuse",
+        "description": "Existing PDF/DOCX/TXT/Markdown extraction, size limits and DocumentError codes are unchanged."
+      },
+      {
+        "name": "server/src/utils/workflow.ts and taskNumbers.ts",
+        "action": "reuse",
+        "description": "Existing stageFor/workflowOf choose the starting stage and reserveTaskNumbers allocates task numbers for the target project."
+      },
+      {
+        "name": "server/src/utils/activity.ts",
+        "action": "reuse",
+        "description": "Existing ai.plan_created, project.created and sprint.created actions carry the activity entries; no new action type."
+      },
+      {
+        "name": "server/src/utils/ai/providers.ts",
+        "action": "modify",
+        "description": "Keep the qwen/deepseek/openai/opencode/custom presets and pure URL/model normalization, but remove environment credential resolution; exposed helpers resolve a selected workspace provider and model."
+      },
+      {
+        "name": "server/src/utils/ai/config.ts",
+        "action": "modify",
+        "description": "Split installation limits (dailyLimit, maxDiffChars) from provider resolution; readAiConfig no longer falls back to AI_*/DASHSCOPE_*."
+      },
+      {
+        "name": "server/src/utils/ai/provider.ts",
+        "action": "modify",
+        "description": "Accept a resolved workspace config on every call, build the client asynchronously with the pinned fetch, and add testAiConnection(config) that sends a minimal content-free chat request and returns a safe code."
+      },
+      {
+        "name": "server/src/controllers/aiReviewController.ts",
+        "action": "modify",
+        "description": "settingsView uses the workspace resolver, returns the manager-only keySet/hint/baseURL/timestamps/test block, and adds save/replace/remove/test handlers with audit entries and enable/auto-review guards."
+      },
+      {
+        "name": "client/src/features/ai-review/types.ts",
+        "action": "modify",
+        "description": "Add the manager config view (keySet, keyHint, baseURL, configuredAt/By, last test), provider save/test inputs/results, and the new problem codes; keep provider optional when unconfigured."
+      },
+      {
+        "name": "client/src/features/ai-review/components/AiReviewSettingsCard.tsx",
+        "action": "modify",
+        "description": "Render AiProviderForm above the notice/toggles, show the workspace provider/model/status, keep the GitHub token section, and disable enable/auto-review while no configuration is available."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/ai.json",
+        "action": "modify",
+        "description": "Add provider form labels/help/status/errors, replace installation-variable copy, add AI_NOT_CONFIGURED/KEY_UNREADABLE/BASE_URL_* messages, and keep all three locales aligned."
+      },
+      {
+        "name": "server/.env.example",
+        "action": "modify",
+        "description": "Mark AI_*/DASHSCOPE_* as legacy limits-only variables, state that workspace settings is the sole provider/key source, and list the supported presets without secrets."
+      },
+      {
+        "name": "server/src/config/env.ts",
+        "action": "reuse",
+        "description": "No change: AI settings stay optional and are resolved per request by the dedicated utils/ai config module, so no route or controller reads process.env and CON-206 separation is preserved."
+      },
+      {
+        "name": "openai SDK",
+        "action": "reuse",
+        "description": "Already installed; its OpenAI-compatible client serves every preset. No Anthropic/Gemini adapter is added in this version."
+      },
+      {
+        "name": "client/src/pages/ProjectsPage.tsx",
+        "action": "modify",
+        "description": "Pass New project and Create with AI to PageHeader; remove the dashed card imports and grid entries; change GRID to grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4; stack the action group below sm; keep empty/no-match/loading/error/archived branches."
+      },
+      {
+        "name": "client/src/features/projects/components/NewProjectCard.tsx",
+        "action": "delete",
+        "description": "Dashed creation card replaced by the header button; no other caller remains."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/AiProjectCard.tsx",
+        "action": "delete",
+        "description": "Dashed AI creation card replaced by the header button; no other caller remains."
+      },
+      {
+        "name": "client/src/features/projects/index.ts",
+        "action": "modify",
+        "description": "Remove the NewProjectCard export."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/projects.json",
+        "action": "modify",
+        "description": "Add page.createWithAi; remove the now-unused project.newCard key; keep all three languages aligned."
+      },
+      {
+        "name": "client/src/components/ds/primitives.tsx (PageHeader)",
+        "action": "reuse",
+        "description": "Already wraps actions responsively; no primitive change."
+      },
+      {
+        "name": "client/src/features/projects/components/ProjectFolderCard.tsx",
+        "action": "reuse",
+        "description": "Remains the only project card; no data or permission change."
+      },
+      {
+        "name": "server/src/models/workspaceModel.ts",
+        "action": "modify",
+        "description": "Extend ai with provider, baseURL, model, apiKeyEncrypted (select:false), keyHint, configuredAt/By, lastTestedAt/Status/Code; keep enabled/autoReview defaults false."
+      },
+      {
+        "name": "server/src/utils/ai/workspaceConfig.ts",
+        "action": "create",
+        "description": "Resolve Workspace.ai into {available, provider, model, baseURL, apiKey, keySet, keyHint, problem, limits}; decrypt with secretBox(context=workspace id), map missing provider to AI_NOT_CONFIGURED and an unreadable ciphertext to KEY_UNREADABLE."
+      },
+      {
+        "name": "server/src/utils/ai/urlGuard.ts",
+        "action": "create",
+        "description": "Validate custom endpoints: HTTPS only, no credentials/query/fragment, parse host/port, reject private/link-local/loopback/multicast/reserved/cloud-metadata IPv4 and IPv6 addresses after DNS resolution."
+      },
+      {
+        "name": "server/src/utils/ai/pinnedFetch.ts",
+        "action": "create",
+        "description": "Build an OpenAI-compatible fetch with node:https and a lookup pinned to the validated DNS address, original TLS servername, no redirects, AbortSignal/timeouts and a response-size cap."
+      },
+      {
+        "name": "server/src/routes/aiRoutes.ts",
+        "action": "modify",
+        "description": "Add PUT/DELETE /provider and POST /provider/test behind rejectApiToken + settings:manage, with a per-workspace/user test limiter; keep GET tasks:read and PATCH /ai for toggles/token."
+      },
+      {
+        "name": "server/src/utils/ai/reviewService.ts",
+        "action": "modify",
+        "description": "Resolve workspace config in queueReview and again in runReview; select +ai.apiKeyEncrypted, return AI_NOT_CONFIGURED before network work, store the resolved model, and pass the config to reviewWithModel. Auto review uses the same path."
+      },
+      {
+        "name": "server/src/controllers/githubWebhookController.ts",
+        "action": "modify",
+        "description": "Select +ai.apiKeyEncrypted with the auto-review flags and pass the stored ai subdocument and workspace id into queueAutoReview."
+      },
+      {
+        "name": "server/src/utils/ai/types.ts",
+        "action": "modify",
+        "description": "Add safe workspace-config problem codes (AI_NOT_CONFIGURED, KEY_UNREADABLE, BASE_URL_INVALID, BASE_URL_PRIVATE) used by the resolver and client."
+      },
+      {
+        "name": "client/src/features/ai-review/api.ts",
+        "action": "modify",
+        "description": "Add saveProvider (PUT), removeProvider (DELETE) and testProvider (POST) calls under the workspace AI settings URL."
+      },
+      {
+        "name": "client/src/features/ai-review/hooks/useAiSettings.ts",
+        "action": "modify",
+        "description": "Expose saveProvider, removeProvider and testProvider with loading/error handling and refresh the settings view after every successful action."
+      },
+      {
+        "name": "client/src/features/ai-review/components/AiProviderForm.tsx",
+        "action": "create",
+        "description": "Manager-only form: provider select, preset endpoint/model disclosure, custom HTTPS URL/model, write-only key with show/hide, save/replace/remove, test, key hint, configured-by/time, last-test status and safe errors."
+      },
+      {
+        "name": "client/src/features/ai-review/index.ts",
+        "action": "modify",
+        "description": "Export the provider form if the settings page or tests need it; keep the existing card export stable."
+      },
+      {
+        "name": "client/src/features/ai-review/components/AiReviewPanel.tsx",
+        "action": "modify",
+        "description": "Show the workspace AI_NOT_CONFIGURED/unavailable copy and the manage-settings path without exposing configuration details to non-managers."
+      },
+      {
+        "name": "client/src/components/ConfirmActionDialog.tsx",
+        "action": "reuse",
+        "description": "Confirm provider removal; no new dialog primitive."
+      },
+      {
+        "name": "client/src/pages/WorkspaceSettingsPage.tsx",
+        "action": "reuse",
+        "description": "Already mounts AiReviewSettingsCard only for canManage (settings:manage); no layout change needed."
+      },
+      {
+        "name": "server/src/config/permissions.ts",
+        "action": "reuse",
+        "description": "settings:manage remains the write authority; no new permission key."
+      },
+      {
+        "name": "server/src/models/activityModel.ts",
+        "action": "reuse",
+        "description": "Reuse ai.settings_updated for save/replace/remove/test audit entries; changes record provider/model/action, never the key or endpoint."
+      },
+      {
+        "name": "server/src/utils/secretBox.ts",
+        "action": "reuse",
+        "description": "Existing AES-256-GCM/HKDF helper; use String(workspace._id) as the context so ciphertext cannot move between workspaces."
+      },
+      {
+        "name": "client/src/features/ai-review/components/AiReviewSettingsCard.tsx",
+        "action": "modify",
+        "description": "Render a short description and a semantic capability list from settings.capabilities above the provider panel; rename the enable switch copy. Keep the provider panel, notice, token field, auto-review switch and manager-only mounting unchanged."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/ai.json",
+        "action": "modify",
+        "description": "settings.title becomes AI assistant; settings.description describes the shared provider and key; add settings.capabilities.codeReview and settings.capabilities.documentPlans; enable.label/description cover both features; loadError becomes AI settings. Keep the review-specific notice, auto and token copy."
+      },
+      {
+        "name": "client/src/components/ds",
+        "action": "reuse",
+        "description": "Surface, SectionHeader and SwitchField already provide the heading, spacing, labelled switch and description; the bullets are plain list items."
+      }
+    ],
+    "referencedRequirementIds": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-005",
+      "FR-006",
+      "FR-007",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "NFR-001",
+      "NFR-002",
+      "NFR-003",
+      "NFR-004",
+      "NFR-005",
+      "NFR-006",
+      "NFR-007",
+      "NFR-008",
+      "FR-013",
+      "FR-014",
+      "FR-015",
+      "FR-016",
+      "FR-017",
+      "NFR-009",
+      "NFR-010",
+      "NFR-011",
+      "FR-021",
+      "FR-022",
+      "FR-023",
+      "FR-024",
+      "FR-025",
+      "FR-026",
+      "FR-027",
+      "FR-028",
+      "FR-029",
+      "NFR-013",
+      "NFR-014",
+      "NFR-015",
+      "NFR-016",
+      "FR-030",
+      "NFR-017"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "AiPlan",
+        "action": "update",
+        "fields": [
+          {
+            "name": "options.targetProjectId",
+            "type": "ObjectId | null (ref Project; null means create a new project)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "options",
+            "type": "Existing projectName/projectKey/sprintLengthWeeks/startDate/teamSize/extraInstructions/language",
+            "action": "no_change"
+          },
+          {
+            "name": "projectId",
+            "type": "ObjectId | null (set to the new or existing project on success)",
+            "nullable": true,
+            "action": "no_change"
+          },
+          {
+            "name": "plan",
+            "type": "PlanContent (Mixed, zod-validated)",
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String 1..60",
+            "action": "no_change"
+          },
+          {
+            "name": "key",
+            "type": "String /^[A-Z0-9]{2,6}$/",
+            "action": "no_change"
+          },
+          {
+            "name": "archived",
+            "type": "Boolean (targets must be false)",
+            "action": "no_change"
+          },
+          {
+            "name": "description/color/icon/members",
+            "type": "Existing fields (never written on the existing-project path)",
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Sprint",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String (deduplicated against the target's existing names, <= 60)",
+            "action": "no_change"
+          },
+          {
+            "name": "startDate/endDate",
+            "type": "Date (from the plan's sprint windows)",
+            "action": "no_change"
+          },
+          {
+            "name": "status",
+            "type": "String ('planned')",
+            "action": "no_change"
+          },
+          {
+            "name": "project",
+            "type": "ObjectId (the new or existing target project)",
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "title/description",
+            "type": "String (plan limits)",
+            "action": "no_change"
+          },
+          {
+            "name": "type/priority/storyPoints/labels",
+            "type": "Existing task vocabulary",
+            "action": "no_change"
+          },
+          {
+            "name": "status/stage",
+            "type": "String (workspace starting stage)",
+            "action": "no_change"
+          },
+          {
+            "name": "project",
+            "type": "String (new or target project name)",
+            "action": "no_change"
+          },
+          {
+            "name": "sprint/epic/parent",
+            "type": "ObjectId | null",
+            "action": "no_change"
+          },
+          {
+            "name": "acceptanceCriteria",
+            "type": "[{ text }]",
+            "action": "no_change"
+          },
+          {
+            "name": "position/number",
+            "type": "Number (base position + reserved task numbers)",
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "action",
+            "type": "String ('ai.plan_created', 'project.created', 'sprint.created' already exist)",
+            "action": "no_change"
+          },
+          {
+            "name": "changes",
+            "type": "[{ field, to }] (target name and counts on ai.plan_created)",
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "update",
+        "fields": [
+          {
+            "name": "ai.provider",
+            "type": "String enum (qwen|deepseek|openai|opencode|custom)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.baseURL",
+            "type": "String (effective endpoint)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.model",
+            "type": "String (effective model)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.apiKeyEncrypted",
+            "type": "String (AES-256-GCM secretBox; select:false)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.keyHint",
+            "type": "String (last four characters)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.configuredAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.configuredBy",
+            "type": "ObjectId ref User",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.lastTestedAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.lastTestStatus",
+            "type": "String enum (success|failed)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.lastTestCode",
+            "type": "String (safe code)",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "ai.enabled",
+            "type": "Boolean (default false)",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "ai.autoReview",
+            "type": "Boolean (default false)",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      }
+    ],
+    "flowDescription": "Upload: validate the multipart file and options as today; if targetProjectId is present, validate it as an ObjectId, resolve it inside req.workspace._id, refuse a missing or archived project with TARGET_NOT_FOUND/TARGET_ARCHIVED, store the id in AiPlan.options and include the resolved target summary in the response. Generate: unchanged, except the prompt is told when the plan will be added to an existing project; the plan's project block remains but is not applied. Detail: resolve options.targetProjectId to { _id, name, key, archived } or null so a reload can render the banner and notice a deleted/archived target. Create: read the optional body override (absent = stored, null = new, string = target), resolve and validate it before claiming the plan, claim the plan atomically, validate the edited plan with editedPlanSchema/finalizePlan, then branch. New path: create Project, check name/key conflicts, write sprints and task drafts in batches with reserved numbers, record project.created, sprint.created and ai.plan_created, set plan.projectId, return destination 'new'. Existing path: skip Project creation and the name/key checks, load the target's sprint names, create the plan's sprints with deduplicated names, write the same task drafts with the target's id and name, leave every existing project/sprint/task field untouched, record sprint.created and ai.plan_created with the target, set plan.projectId to the target, return destination 'existing'. Both paths track the ids they create and delete only those on failure (plus the newly created project on the new path); the claim is released and the plan stays ready. No collection is added; the only schema change is one nullable reference on AiPlan.options. Provider configuration is not persisted: readAiConfig() resolves the provider, base URL, model, key and availability in memory on each request from AI_* (or the DASHSCOPE_* Qwen aliases), and both AI review and document plans use that one result. The settings endpoint exposes only the provider label, model and a safe problem code. P9: a settings:manage member opens Workspace Settings -> AI (the card is not mounted for other members), selects a preset or custom, enters or replaces the key, optionally overrides the model, saves and tests. The server validates, encrypts with secretBox bound to the workspace id, stores provider/model/baseURL/hint/configuredBy/At, clears last-test metadata on replacement, and returns the manager view without the key. A member then starts a review or uploads a document; the server loads ai.apiKeyEncrypted, resolves and decrypts on that request, returns AI_NOT_CONFIGURED before any provider call when unconfigured, and passes the same config to the OpenAI-compatible client built with a pinned HTTPS fetch. Removing clears the key/provider and disables enabled/autoReview atomically; a first save also sets both flags false so a legacy opt-in cannot silently resume; in-flight work keeps the model it started with and existing reviews/plans remain readable."
+  },
+  "apiContracts": [
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/ai/plans",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-001",
+        "FR-002",
+        "FR-003",
+        "FR-004",
+        "FR-005",
+        "FR-008",
+        "NFR-001",
+        "NFR-002",
+        "NFR-003",
+        "NFR-004",
+        "NFR-005",
+        "NFR-007",
+        "FR-024",
+        "FR-025"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/ai/plans/:id",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-004",
+        "FR-008",
+        "NFR-001"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/ai/plans/:id/create",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-007",
+        "FR-008",
+        "FR-009",
+        "FR-010",
+        "FR-011",
+        "NFR-001",
+        "NFR-002",
+        "NFR-008"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/ai/plans/:id",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-006",
+        "NFR-002"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/ai/plans/:id",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "NFR-004"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/projects",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-003",
+        "NFR-001"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/ai",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-016",
+        "NFR-009",
+        "FR-021",
+        "FR-022",
+        "FR-023",
+        "FR-025",
+        "FR-029",
+        "NFR-013",
+        "NFR-015"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/ai",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-022",
+        "FR-024",
+        "FR-027",
+        "NFR-016"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/api/workspaces/:slug/ai/provider",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-021",
+        "FR-022",
+        "FR-023",
+        "FR-026",
+        "NFR-013",
+        "NFR-016"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/ai/provider",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-022",
+        "FR-027",
+        "NFR-013"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/ai/provider/test",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-022",
+        "FR-028",
+        "FR-029",
+        "NFR-014"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/tasks/:taskId/ai-review",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-024",
+        "FR-025"
+      ]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "description": "The plan router keeps protect followed by requirePermission('projects:write') and the tasks:write check; resolveTargetProject always queries { _id, workspace: req.workspace._id }, so a project from another workspace answers TARGET_NOT_FOUND instead of leaking its existence. Creation re-validates the target under the same scope before claiming the plan."
+    },
+    {
+      "requirementId": "NFR-002",
+      "description": "targetProjectId is validated with express-validator and mongoose.isValidObjectId before it reaches Mongoose; the upload keeps multer's file/field/part limits and sanitizeFilename, and no user value is interpolated into a raw query. The create body is validated before the plan is claimed."
+    },
+    {
+      "requirementId": "NFR-003",
+      "description": "The document stays fenced by a random boundary and declared data-only in the system prompt; the target's name is requester-controlled input and is defanged before being added to the user prompt. AI output and document text are rendered as React text, with no dangerouslySetInnerHTML, and the prompt keeps the rule against echoing secrets."
+    },
+    {
+      "requirementId": "NFR-004",
+      "description": "The document text is never persisted. AiPlan keeps fileName, mimeType, size, chars, truncated and a 2,000-character preview; delete/cancel clears plan and preview, the existing TTL index removes rows after 30 days, and no document text, prompt or model output is written to logs or activity changes."
+    },
+    {
+      "requirementId": "NFR-005",
+      "description": "The new fields ride on the existing platform controls: helmet() in app.ts (CON-513), the API/auth rate limiters (CON-514), HTTPS/HSTS with trust proxy (CON-520) and config/env.ts validation (CON-519). CSRF remains not applicable (CON-518): authentication is a bearer header, not a cookie, and CORS is allow-listed."
+    },
+    {
+      "requirementId": "NFR-008",
+      "description": "The plan is claimed with a single findOneAndUpdate before any write. Both paths collect the ids they insert and delete only those on failure; the existing-project path never includes the target project or its pre-existing sprints/tasks in the rollback, and a failed create releases the claim so the plan stays ready."
+    },
+    {
+      "requirementId": "NFR-009",
+      "description": "The key is read only by the server config module, never returned by GET /ai, never written to logs or activity, and never bundled into the client. .env.example carries empty placeholders and .env stays ignored; a provider base URL must be HTTPS except a loopback custom endpoint, so the key cannot be sent in clear text."
+    },
+    {
+      "requirementId": "NFR-010",
+      "description": "Preset resolution is a pure module driven by a passed-in environment, so it can be unit tested without network access and cannot drift between the review and plan features; the existing zod validation and single repair retry remain the only path from model output to persisted records."
+    },
+    {
+      "requirementId": "NFR-009",
+      "description": "The OpenCode Console key is read only by the server config module, is required even for the free model, and is never returned by GET /ai, logged, put in activity or bundled into the client. AI_PROVIDER=openrouter is rejected before any network call with PROVIDER_UNKNOWN; the error names the accepted ids but never the key, base URL or model."
+    },
+    {
+      "requirementId": "NFR-012",
+      "description": "The Projects page action group is keyboard operable with visible focus, and the client permission gate is backed by the existing server authorization; hiding Create with AI is not authorization."
+    },
+    {
+      "requirementId": "NFR-013",
+      "description": "The workspace key is encrypted with secretBox (AES-256-GCM/HKDF) using String(workspace._id) as context, stored in ai.apiKeyEncrypted with select:false, replaced by overwrite and unset on removal. Responses expose only keySet and the last four characters; logs, activity, errors and client code never receive the key. Activity records the action, provider and model only, never the key or endpoint."
+    },
+    {
+      "requirementId": "NFR-014",
+      "description": "A custom endpoint must be HTTPS with no credentials, query or fragment. Before any key is sent, resolve every A/AAAA address and reject loopback, private, link-local, multicast, reserved and cloud-metadata ranges (IPv4, IPv6 and mapped addresses). Pin the chosen public address through the https lookup while keeping the original TLS servername; do not follow redirects; keep the SDK timeout and add a response-size cap. The key travels only in the provider Authorization header."
+    },
+    {
+      "requirementId": "NFR-015",
+      "description": "The provider form is mounted only for settings:manage. Every control has a programmatic label, errors use aria-describedby/aria-live, focus-visible is preserved, touch targets are at least 40 px below md, the layout has no horizontal scroll at 320 px, the key/URL fields stay LTR in RTL layouts, and configured/testing/success/failure states use text and icons in addition to colour in en/fr/ar."
+    },
+    {
+      "requirementId": "NFR-016",
+      "description": "No new package is added: the existing openai client, express-rate-limit, express-validator and secretBox are reused plus Node dns/promises, https and stream built-ins. AI_*/DASHSCOPE_* remain readable only for daily/size limits, so legacy deployments still boot. The schema fields are optional, so no migration or backfill runs and existing workspaces start unconfigured."
+    },
+    {
+      "requirementId": "NFR-013",
+      "description": "GET /ai is readable with tasks:read but returns the config block (baseURL, keySet, hint, configuredBy, last test) only when req.permissions includes settings:manage. PUT/DELETE /provider and POST /provider/test use rejectApiToken + settings:manage; a revoked permission returns 403 before the body is read or the workspace is changed."
+    },
+    {
+      "requirementId": "NFR-016",
+      "description": "queueReview/runReview, queueAutoReview and the plan queue/run paths resolve the workspace subdocument on every request and pass one config object into the provider. The resolved model is stored on the review/plan at queue time, so an in-flight operation keeps that model; a later provider or key change applies to the next request only."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-007",
+      "strategy": "Generation remains asynchronous: the upload answers 202 after queueing, the client polls about every 2 s, and the configured timeout/character budget and plan limits are unchanged. The destination adds no work to the model call."
+    },
+    {
+      "requirementId": "NFR-008",
+      "strategy": "Records are written in batches of 200 with task numbers reserved once; the existing-project path adds one query for the target's sprint names and one project lookup, not one per sprint or task."
+    },
+    {
+      "requirementId": "NFR-001",
+      "strategy": "Target validation is a single indexed lookup by _id plus workspace; the detail route resolves the target only when targetProjectId is set, and the list endpoint does not perform the extra lookup."
+    },
+    {
+      "requirementId": "NFR-010",
+      "strategy": "Resolution is an in-memory lookup per request with no database or network work. The provider call keeps the existing timeout, output-token and one-repair-retry bounds, so a slower or weaker model cannot extend a job beyond the NFR-007 limits."
+    },
+    {
+      "requirementId": "NFR-010",
+      "strategy": "Provider resolution stays an in-memory lookup per request; the opencode preset adds no database or network work before the model call."
+    },
+    {
+      "requirementId": "NFR-012",
+      "strategy": "The Projects page removes two cards from the active grid and adds one header button; it makes no new request, keeps the existing useProjects/useTasks data flow, and the responsive changes are CSS-only."
+    },
+    {
+      "requirementId": "NFR-014",
+      "strategy": "The DNS lookup and HTTPS connection are already required for any provider call; the pinned fetch adds no second request and does not follow redirects. Model calls are infrequent, so resolving once per request keeps the guard simple and avoids a DNS cache that could mask rebinding."
+    },
+    {
+      "requirementId": "NFR-016",
+      "strategy": "One workspace subdocument is loaded with the record the caller already needs; no extra collection, migration, index or background job is added. The existing daily limits and diff/document size bounds continue to cap work."
+    },
+    {
+      "requirementId": "NFR-013",
+      "strategy": "AES-256-GCM encryption/decryption is a small in-memory cost on save and on each model call; key hints and metadata are plain scalar fields."
+    },
+    {
+      "requirementId": "NFR-015",
+      "strategy": "The settings form is manager-only and has no polling; test is an explicit action. No additional client bundle dependency is introduced."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "helmet",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed and applied in server/src/app.ts; CON-513 is reused, no new package."
+    },
+    {
+      "name": "express-rate-limit",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing dependency; a dedicated per-workspace/user limiter protects POST /ai/provider/test."
+    },
+    {
+      "name": "express-validator",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing chains validate upload options; the new targetProjectId and create body use the same library."
+    },
+    {
+      "name": "multer",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing memory upload with file/field/part limits; no change to the file path."
+    },
+    {
+      "name": "mongoose",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing models and isValidObjectId; the only schema change is AiPlan.options.targetProjectId."
+    },
+    {
+      "name": "zod",
+      "type": "library",
+      "action": "no_change",
+      "notes": "editedPlanSchema/finalizePlan keep validating the plan on both creation paths."
+    },
+    {
+      "name": "unpdf and jszip",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing PDF/DOCX extraction; this version does not add OCR or new formats."
+    },
+    {
+      "name": "client/src/features/projects (useProjectDirectory)",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Supplies the workspace's projects and archived flags; the server validates the target again."
+    },
+    {
+      "name": "AI provider API",
+      "type": "service",
+      "action": "no_change",
+      "notes": "Same provider, key and model as the existing AI plan and review features."
+    },
+    {
+      "name": "openai",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed; the OpenAI-compatible client covers every preset. No new SDK or adapter."
+    },
+    {
+      "name": "Provider presets (AI_PROVIDER, AI_API_KEY, AI_BASE_URL, AI_MODEL)",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "One resolved configuration shared by AI review and document plans; legacy DASHSCOPE_* remains a Qwen alias. No package or schema change."
+    },
+    {
+      "name": "OpenCode Console API",
+      "type": "external",
+      "action": "add",
+      "notes": "OpenAI-compatible endpoint https://opencode.ai/inference/openai/v1; default model deepseek-v4.1-flash-free; free for a limited time and requires an OpenCode Console key. Configuration-only: no package or SDK change."
+    },
+    {
+      "name": "OpenRouter",
+      "type": "external",
+      "action": "remove",
+      "notes": "First-class preset removed; custom remains available for an OpenAI-compatible gateway, including OpenRouter if an administrator configures it explicitly."
+    },
+    {
+      "name": "openai",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed; reused unchanged for the opencode preset. No new SDK or adapter."
+    },
+    {
+      "name": "AI provider credentials (AI_PROVIDER, AI_API_KEY, AI_BASE_URL, AI_MODEL, DASHSCOPE_*)",
+      "type": "internal",
+      "action": "update",
+      "notes": "Legacy variables no longer supply workspace provider credentials or a fallback key; they remain bootable and only installation limits/size bounds are read. Workspace settings is the sole source."
+    },
+    {
+      "name": "secretBox",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Existing AES-256-GCM/HKDF helper; the workspace id is the context. No new crypto dependency."
+    },
+    {
+      "name": "Node built-ins (dns/promises, https, stream)",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Used by the URL guard and pinned fetch; no new package and no undici dependency."
+    },
+    {
+      "name": "react-i18next",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing translation runtime; the capability bullets and renamed copy are new keys in the same ai namespace, with no new package."
+    }
+  ],
+  "risks": [
+    {
+      "description": "The plan is added to the wrong project.",
+      "mitigation": "Destination is chosen explicitly at upload, named on the review banner, repeated in the action label, and confirmed with target name and counts before any write."
+    },
+    {
+      "description": "A failure mid-creation leaves partial sprints/tasks or a rollback deletes existing work.",
+      "mitigation": "Claim first, track only the ids written by this request, delete only those on failure, never include the target project or its records, and batch inserts."
+    },
+    {
+      "description": "The target becomes archived/deleted or the caller loses permission between upload and create.",
+      "mitigation": "Re-validate at create, return TARGET_ARCHIVED/TARGET_UNAVAILABLE/403, release the claim and leave the plan ready so another target can be chosen."
+    },
+    {
+      "description": "A generated sprint name collides with an existing one in the target.",
+      "mitigation": "Deduplicate case-insensitively with a numeric suffix while respecting the 60-character limit; existing sprints are untouched."
+    },
+    {
+      "description": "The ignored plan project block still fails client validation.",
+      "mitigation": "planProblems skips project name/key when the destination is existing, and the server does not run name/key conflict checks on that path."
+    },
+    {
+      "description": "A misconfigured preset makes the feature look broken or sends data to an unapproved vendor.",
+      "mitigation": "Resolve presets in one module, show the effective provider and model in settings, keep the API up with a readable unavailable reason, and document every value in .env.example."
+    },
+    {
+      "description": "A custom base URL leaks the key over plain HTTP or points at an internal service.",
+      "mitigation": "Accept only HTTPS, with a loopback-only exception for keyless local custom endpoints; never accept the URL from the client and never return it."
+    },
+    {
+      "description": "A provider with weaker JSON adherence or a smaller output limit degrades plans.",
+      "mitigation": "Keep zod validation and the single repair retry, keep output-token/timeout overrides, and document a recommended model per preset."
+    },
+    {
+      "description": "The OpenCode free model is promotional, rate-limited, retired or repriced, or does not support JSON mode or the current latency budget.",
+      "mitigation": "Pin deepseek-v4.1-flash-free but document AI_MODEL/AI_BASE_URL overrides; require a key; verify JSON-mode support and latency during verification; keep the existing repair retry/timeout; keep custom or another preset as a fallback; do not promise free availability."
+    },
+    {
+      "description": "Removing the OpenRouter preset removes the first-class Claude path.",
+      "mitigation": "Document that custom can target an OpenAI-compatible gateway for Claude if the administrator chooses; do not claim first-class support; keep the HTTPS/loopback validation."
+    },
+    {
+      "description": "An existing deployment still uses AI_PROVIDER=openrouter.",
+      "mitigation": "Resolve it to PROVIDER_UNKNOWN without a request; keep the API up; make the unavailable copy tell the operator to use opencode or custom."
+    },
+    {
+      "description": "The header actions or one-column grid regress narrow screens, or the deleted cards leave dead imports.",
+      "mitigation": "Use the explicit 1/2/3/4 grid and a stacked action group below sm; delete both components and their exports in the same change; run the browser matrix and typecheck/lint."
+    },
+    {
+      "description": "A free model retains or trains on TaskMan documents or code.",
+      "mitigation": "Document the operator responsibility; keep the zero-retention/no-training note for DeepSeek V4.1 Flash Free; keep AI opt-in per workspace."
+    },
+    {
+      "description": "A workspace administrator enters a custom endpoint that targets an internal service, cloud metadata or a redirect chain (SSRF).",
+      "mitigation": "Require HTTPS, reject credentials/query/fragment and private/reserved/metadata addresses, resolve and reject every DNS answer, bind the chosen address to the connection, disable redirects, rate-limit tests and reject HTTP entirely."
+    },
+    {
+      "description": "The workspace key leaks through a response, log, activity entry, error message, client bundle or database backup.",
+      "mitigation": "Encrypt with secretBox, keep the ciphertext select:false and server-only, return only keySet/last four, redact provider errors, never log request bodies or headers, and scan the changed files for secrets during verification."
+    },
+    {
+      "description": "The administrator who saved the key leaves the workspace, or the key is lost, so AI becomes unavailable.",
+      "mitigation": "Let any settings:manage member replace or remove the key; show the configuring user and last-test time; do not attempt key recovery; keep AI off until a new key is saved."
+    },
+    {
+      "description": "Different providers have different retention, training and residency terms, and members may not know which one processes their code or documents.",
+      "mitigation": "Name the provider and model in the settings card and upload notice, keep AI off by default, require an explicit admin save, and make the admin responsible for the provider terms."
+    },
+    {
+      "description": "Existing installations expect AI_* to keep working and are surprised when workspace AI is unconfigured after upgrade.",
+      "mitigation": "Keep the API bootable, mark the variables as legacy limits-only in .env.example and release notes, show an actionable AI_NOT_CONFIGURED state, and never copy a server key into a workspace without consent."
+    },
+    {
+      "description": "A future AI capability is added but the card still lists only two, so the label overpromises or under-describes.",
+      "mitigation": "FR-030 keeps the heading generic and EC-025 adds the capability as a bullet; the card stays the single home for AI features."
+    },
+    {
+      "description": "The three locales drift or one keeps the old review-only wording.",
+      "mitigation": "The same keys are changed in en/fr/ar in one task and the verification task reads all three."
+    },
+    {
+      "description": "The renamed switch implies it only controls reviews, so a manager turns off document plans by accident.",
+      "mitigation": "The switch description names both actions and verification checks the upload page reacts to the same flag."
+    }
+  ]
+}

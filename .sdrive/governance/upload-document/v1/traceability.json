@@ -1,0 +1,621 @@
+{
+  "feature": "upload-document",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": [
+        "AC-001"
+      ],
+      "planSection": "Architecture → Components (UploadStep); Flow 1",
+      "taskIds": [
+        "T4.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": [
+        "AC-002"
+      ],
+      "planSection": "Architecture → Components (UploadStep, options, api); Flow 1",
+      "taskIds": [
+        "T4.3",
+        "T4.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": [
+        "AC-003"
+      ],
+      "planSection": "Architecture → Components (DestinationPicker, ProjectPicker, target.ts)",
+      "taskIds": [
+        "T1.3",
+        "T3.2",
+        "T4.1",
+        "T4.2",
+        "T4.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": [
+        "AC-004"
+      ],
+      "planSection": "Architecture → Components (target.ts, api, destination.ts, useAiProjectPlan, ReviewStep); API GET detail",
+      "taskIds": [
+        "T1.1",
+        "T1.3",
+        "T1.4",
+        "T1.5",
+        "T3.1",
+        "T3.2",
+        "T3.3",
+        "T4.4",
+        "T5.1"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": [
+        "AC-006"
+      ],
+      "planSection": "Architecture → Components (service, prompt); Flow 2; Performance NFR-007",
+      "taskIds": [
+        "T3.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": [
+        "AC-005"
+      ],
+      "planSection": "Architecture → Components (PlanHeader, ReviewStep, plan.ts); Flow 3",
+      "taskIds": [
+        "T5.1",
+        "T5.2"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": [
+        "AC-007"
+      ],
+      "planSection": "Architecture → Components (create.ts); Flow 5; API POST create",
+      "taskIds": [
+        "T2.1",
+        "T2.5",
+        "T5.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": [
+        "AC-008"
+      ],
+      "planSection": "Architecture → Components (target.ts, controller, routes); Security NFR-001/NFR-002",
+      "taskIds": [
+        "T1.2",
+        "T1.3",
+        "T1.4",
+        "T1.5",
+        "T6.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": [
+        "AC-009"
+      ],
+      "planSection": "Architecture → Components (create.ts, sprints.ts); Flow 6; Data Model Sprint",
+      "taskIds": [
+        "T2.1",
+        "T2.2",
+        "T2.3",
+        "T2.5",
+        "T5.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": [
+        "AC-010"
+      ],
+      "planSection": "Architecture → Components (create.ts); Flow 7; Security NFR-008",
+      "taskIds": [
+        "T2.1",
+        "T2.4",
+        "T6.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": [
+        "AC-010"
+      ],
+      "planSection": "Architecture → Components (ReviewStep); UI/UX Create action",
+      "taskIds": [
+        "T5.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": [
+        "AC-011"
+      ],
+      "planSection": "Architecture → Components (i18n, DestinationPicker, ProjectPicker); Verification",
+      "taskIds": [
+        "T6.1",
+        "T6.2",
+        "T6.5"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": [
+        "AC-008",
+        "AC-010"
+      ],
+      "planSection": "Security NFR-001; Architecture → Components (target.ts, controller)",
+      "taskIds": [
+        "T1.2",
+        "T6.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": [
+        "AC-001",
+        "AC-008"
+      ],
+      "planSection": "Security NFR-002; Architecture → Components (target.ts, routes)",
+      "taskIds": [
+        "T1.2",
+        "T6.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": [
+        "AC-001",
+        "AC-012"
+      ],
+      "planSection": "Security NFR-003; Architecture → Components (prompt.ts)",
+      "taskIds": [
+        "T6.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": [
+        "AC-012"
+      ],
+      "planSection": "Security NFR-004; Data Model AiPlan; Architecture → Components (aiPlanModel)",
+      "taskIds": [
+        "T1.1",
+        "T6.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-005",
+      "acceptanceCriteriaIds": [
+        "AC-001",
+        "AC-008"
+      ],
+      "planSection": "Security NFR-005; Dependencies",
+      "taskIds": [
+        "T6.4"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-006",
+      "acceptanceCriteriaIds": [
+        "AC-011"
+      ],
+      "planSection": "Architecture → Components (DestinationPicker, ProjectPicker); Verification",
+      "taskIds": [
+        "T4.1",
+        "T4.2",
+        "T6.2",
+        "T6.5"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-007",
+      "acceptanceCriteriaIds": [
+        "AC-001",
+        "AC-006"
+      ],
+      "planSection": "Performance NFR-007; Architecture → Components (UploadStep)",
+      "taskIds": [
+        "T4.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-008",
+      "acceptanceCriteriaIds": [
+        "AC-007",
+        "AC-010"
+      ],
+      "planSection": "Security NFR-008; Flow 7; Architecture → Components (create.ts)",
+      "taskIds": [
+        "T2.1",
+        "T2.4",
+        "T6.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-013",
+      "acceptanceCriteriaIds": [
+        "AC-013"
+      ],
+      "planSection": "Provider Presets — Approach, Resolution order; Components (providers.ts, config.ts, provider.ts); Flow 1-3",
+      "taskIds": [
+        "T7.1",
+        "T7.2"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-014",
+      "acceptanceCriteriaIds": [
+        "AC-014"
+      ],
+      "planSection": "Provider Presets — Resolution order 3-5; Components (providers.ts, config.ts)",
+      "taskIds": [
+        "T7.1",
+        "T7.2"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-015",
+      "acceptanceCriteriaIds": [
+        "AC-013"
+      ],
+      "planSection": "Provider Presets — Resolution order 2-6; Security FR-015; Components (providers.ts)",
+      "taskIds": [
+        "T7.1",
+        "T7.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-016",
+      "acceptanceCriteriaIds": [
+        "AC-015"
+      ],
+      "planSection": "Provider Presets — Components (aiReviewController, settings card, UploadStep, i18n); Flow 4",
+      "taskIds": [
+        "T7.3",
+        "T7.4",
+        "T7.5"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-017",
+      "acceptanceCriteriaIds": [
+        "AC-013"
+      ],
+      "planSection": "Provider Presets — Flow 5; Performance",
+      "taskIds": [
+        "T7.2",
+        "T7.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-009",
+      "acceptanceCriteriaIds": [
+        "AC-014"
+      ],
+      "planSection": "Provider Presets — Security NFR-009; Components (config.ts, env.example)",
+      "taskIds": [
+        "T7.3",
+        "T7.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-010",
+      "acceptanceCriteriaIds": [
+        "AC-013"
+      ],
+      "planSection": "Provider Presets — Components (providers.ts, provider.ts); Security NFR-010",
+      "taskIds": [
+        "T7.1",
+        "T7.2"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-011",
+      "acceptanceCriteriaIds": [
+        "AC-015"
+      ],
+      "planSection": "Provider Presets — Components (settings card, UploadStep, i18n); Verification",
+      "taskIds": [
+        "T7.4",
+        "T7.5",
+        "T7.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-018",
+      "acceptanceCriteriaIds": [
+        "AC-019",
+        "AC-021"
+      ],
+      "planSection": "OpenCode preset and Projects page actions - Approach; Resolution order 1-2, 4-6; Components (providers.ts, .env.example, ai.json); Security; Verification",
+      "taskIds": [
+        "T8.1",
+        "T8.2",
+        "T8.3",
+        "T8.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-019",
+      "acceptanceCriteriaIds": [
+        "AC-020",
+        "AC-021"
+      ],
+      "planSection": "OpenCode preset and Projects page actions - Approach (removed preset); Resolution order 3-5; Components (providers.ts, ai-review/types.ts, ai.json, .env.example); Security; Verification",
+      "taskIds": [
+        "T8.1",
+        "T8.2",
+        "T8.3",
+        "T8.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-020",
+      "acceptanceCriteriaIds": [
+        "AC-016",
+        "AC-017",
+        "AC-018"
+      ],
+      "planSection": "OpenCode preset and Projects page actions - Approach; Components (ProjectsPage.tsx, deleted cards, indexes, projects.json); Flow 3-4; Verification",
+      "taskIds": [
+        "T8.4",
+        "T8.5",
+        "T8.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-012",
+      "acceptanceCriteriaIds": [
+        "AC-018"
+      ],
+      "planSection": "OpenCode preset and Projects page actions - Components (ProjectsPage.tsx); Flow 5; Performance; Verification",
+      "taskIds": [
+        "T8.5",
+        "T8.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-021",
+      "acceptanceCriteriaIds": [
+        "AC-022",
+        "AC-023"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Components (workspaceModel, workspaceConfig, aiReviewController); Data Model Workspace; API GET/PUT/DELETE provider",
+      "taskIds": [
+        "T9.1",
+        "T9.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-022",
+      "acceptanceCriteriaIds": [
+        "AC-022",
+        "AC-025"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Components (aiReviewController, aiRoutes, AiProviderForm); API GET/PUT/DELETE/test; Security NFR-013 (permissions)",
+      "taskIds": [
+        "T9.3",
+        "T9.6",
+        "T9.7"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-023",
+      "acceptanceCriteriaIds": [
+        "AC-022",
+        "AC-029"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Components (providers, urlGuard, AiProviderForm); API PUT/test",
+      "taskIds": [
+        "T9.2",
+        "T9.3",
+        "T9.6"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-024",
+      "acceptanceCriteriaIds": [
+        "AC-023",
+        "AC-027"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Flow 3-5; Components (reviewService, plan/service, aiPlanController, githubWebhookController)",
+      "taskIds": [
+        "T9.4",
+        "T9.5",
+        "T9.8"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-025",
+      "acceptanceCriteriaIds": [
+        "AC-023",
+        "AC-024"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Flow 3-6; Components (reviewService, plan/service); Security NFR-016 (per-request resolution)",
+      "taskIds": [
+        "T9.4",
+        "T9.5"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-026",
+      "acceptanceCriteriaIds": [
+        "AC-025"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Data Model Workspace; Components (workspaceConfig, secretBox); Security NFR-013",
+      "taskIds": [
+        "T9.1",
+        "T9.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-027",
+      "acceptanceCriteriaIds": [
+        "AC-026"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Flow 5; Components (aiReviewController, aiRoutes); API DELETE provider",
+      "taskIds": [
+        "T9.3",
+        "T9.5"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-028",
+      "acceptanceCriteriaIds": [
+        "AC-028",
+        "AC-029"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Components (urlGuard, pinnedFetch, provider); API POST test; Security NFR-014",
+      "taskIds": [
+        "T9.2",
+        "T9.3"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-029",
+      "acceptanceCriteriaIds": [
+        "AC-022",
+        "AC-030"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Components (AiProviderForm, AiReviewSettingsCard, ai.json); API GET/test",
+      "taskIds": [
+        "T9.3",
+        "T9.6",
+        "T9.7"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-013",
+      "acceptanceCriteriaIds": [
+        "AC-025"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Security NFR-013; Data Model Workspace; Components (secretBox, workspaceConfig)",
+      "taskIds": [
+        "T9.1",
+        "T9.3",
+        "T9.8"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-014",
+      "acceptanceCriteriaIds": [
+        "AC-028",
+        "AC-029"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Security NFR-014; Components (urlGuard, pinnedFetch, provider)",
+      "taskIds": [
+        "T9.2",
+        "T9.8"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-015",
+      "acceptanceCriteriaIds": [
+        "AC-030"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Security NFR-015; Components (AiProviderForm, i18n); Verification",
+      "taskIds": [
+        "T9.6",
+        "T9.7",
+        "T9.8"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-016",
+      "acceptanceCriteriaIds": [
+        "AC-023",
+        "AC-027"
+      ],
+      "planSection": "P9 - Workspace-level BYOK: Security NFR-016; Dependencies; Flow 6",
+      "taskIds": [
+        "T9.1",
+        "T9.3",
+        "T9.4",
+        "T9.5",
+        "T9.8"
+      ],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-030",
+      "acceptanceCriteriaIds": [
+        "AC-031",
+        "AC-032"
+      ],
+      "planSection": "Update (2026-10-23) → AI assistant card",
+      "taskIds": [
+        "T10.1",
+        "T10.2"
+      ],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-017",
+      "acceptanceCriteriaIds": [
+        "AC-033"
+      ],
+      "planSection": "Update (2026-10-23) → AI assistant card",
+      "taskIds": [
+        "T10.3"
+      ],
+      "status": "not_started"
+    }
+  ]
+}
