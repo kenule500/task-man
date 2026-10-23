@@ -109,6 +109,7 @@
     "deleted": "« {{name}} » supprimé",
     "deleteError": "Impossible de supprimer le projet.",
     "newProject": "Nouveau projet",
+    "newProjectCard": "Nouveau projet",
     "title": "Projets",
     "description": "Des dossiers pour vos sprints et vos tâches. Ouvrez-en un pour planifier des sprints et suivre l’avancement.",
     "loading": "Chargement des projets",
@@ -144,6 +145,7 @@
     "projects": "Projets",
     "archived": "Archivé",
     "openBoard": "Ouvrir le tableau",
+    "addFromDocument": "Ajouter depuis un document",
     "sprintSaved": "Sprint enregistré",
     "sprintCreated": "Sprint créé"
   },

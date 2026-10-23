@@ -118,6 +118,7 @@
     "deleted": "تم حذف \"{{name}}\"",
     "deleteError": "تعذّر حذف المشروع.",
     "newProject": "مشروع جديد",
+    "newProjectCard": "مشروع جديد",
     "title": "المشاريع",
     "description": "مجلدات لسبرينتاتك ومهامك. افتح مشروعًا لتخطيط السبرينتات وتتبع التقدم.",
     "loading": "جارٍ تحميل المشاريع",
@@ -156,6 +157,7 @@
     "projects": "المشاريع",
     "archived": "مؤرشف",
     "openBoard": "فتح اللوحة",
+    "addFromDocument": "إضافة من مستند",
     "sprintSaved": "تم حفظ السبرينت",
     "sprintCreated": "تم إنشاء السبرينت"
   },

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FolderKanban, FolderPlus, RefreshCw, Rocket, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ConfirmActionDialog from '@/components/ConfirmActionDialog';
@@ -8,11 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatNumber } from '@/i18n/format';
 import type { Project } from '@/features/projects';
 import { countCriteria, countSubtasks, planProblems, type PlanProblem } from '../lib/plan';
-import { destinationTarget, targetLabel, targetProblem } from '../lib/destination';
+import { targetLabel } from '../lib/destination';
 import { describeApiError } from '../lib/errors';
-import type { AiPlan, PlanApiError, PlanContent, PlanDestination, PlanItem } from '../types';
+import type { AiPlan, PlanApiError, PlanContent, PlanItem } from '../types';
 import type { PlanActions } from './actions';
-import { DestinationPicker } from './DestinationPicker';
 import { CriteriaPanel, SubtasksPanel, TasksPanel } from './ListPanels';
 import { NotesPanel } from './NotesPanel';
 import { PlanHeader } from './PlanHeader';
@@ -29,12 +28,8 @@ interface ReviewStepProps {
   createError: PlanApiError | null;
   /** The document is still held in this tab, so the plan can be generated again. */
   canRegenerate: boolean;
-  slug?: string;
-  projects?: Project[];
-  projectsLoading?: boolean;
-  destination?: PlanDestination;
-  targetProjectId?: string | null;
-  onDestinationChange?: (destination: PlanDestination, targetProjectId: string | null) => void;
+  /** The project the plan is added to; null creates a new project. */
+  target?: Project | null;
   onCreate: () => void;
   onRegenerate: () => void;
   onDiscard: () => void;
@@ -55,25 +50,14 @@ const problemText = (problem: PlanProblem, t: (key: string, options?: Record<str
 
 /** Step 3 (and 4 while the project is being created): look the generated project over, change it, then create it. */
 export const ReviewStep = ({
-  plan, draft, dirty, actions, creating, createError, canRegenerate, slug = '', projects = [], projectsLoading = false,
-  destination: destinationProp, targetProjectId: targetProjectIdProp, onDestinationChange = () => undefined,
+  plan, draft, dirty, actions, creating, createError, canRegenerate, target = null,
   onCreate, onRegenerate, onDiscard, onDismissError,
 }: ReviewStepProps) => {
   const { t } = useTranslation('aiPlan');
   const [tab, setTab] = useState<TabValue>('sprints');
   const [confirm, setConfirm] = useState<'regenerate' | 'discard' | 'add' | null>(null);
-  const [changingDestination, setChangingDestination] = useState(false);
-  const destinationPanelId = useId();
-  const targetProjectId = targetProjectIdProp ?? plan.options.targetProjectId ?? null;
-  const destination = destinationProp ?? (targetProjectId ? 'existing' : 'new');
-  const existing = destination === 'existing';
-  // Only the target stored on the plan has a server-resolved record; a newly picked one comes from the directory.
-  const storedTargetId = plan.options.targetProjectId ?? null;
-  const serverTarget = targetProjectId === storedTargetId ? plan.targetProject : undefined;
-  const target = destinationTarget(projects, targetProjectId, serverTarget);
-  const targetIssue = targetProblem(destination, targetProjectId, projects, serverTarget);
-  const targetIssueText = targetIssue ? t(`destination.problems.${targetIssue}`) : undefined;
-  const targetName = target?.name ?? t('review.unknownTarget');
+  const existing = Boolean(target);
+  const targetName = target ? targetLabel(target) : draft.project.name;
   const problems = useMemo(() => planProblems(draft, { existingProject: existing }), [draft, existing]);
   const subtasks = countSubtasks(draft);
   const criteria = countCriteria(draft);
@@ -123,7 +107,7 @@ export const ReviewStep = ({
       <Button
         type="button"
         onClick={() => (existing ? setConfirm('add') : onCreate())}
-        disabled={creating || problems.length > 0 || Boolean(targetIssue)}
+        disabled={creating || problems.length > 0}
         aria-busy={creating}
         className="h-11 gap-2 rounded-lg bg-primary text-white shadow-sm hover:bg-primary-hover sm:h-9"
       >
@@ -145,62 +129,29 @@ export const ReviewStep = ({
         </Banner>
       )}
 
-      {/* Where the plan goes: a new project or one the workspace already uses */}
+      {/* Where the plan goes: the project this page is scoped to, or a new one */}
       <Surface as="section" aria-label={t('review.destinationLabel')} padding="md" className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <div className="flex min-w-0 flex-1 items-start gap-3">
-            <IconTile tone={existing ? 'primary' : 'neutral'} size="md">
-              {existing ? <FolderKanban className="size-5" /> : <FolderPlus className="size-5" />}
-            </IconTile>
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-xs font-medium uppercase tracking-wide text-text-subtle">
-                {existing ? t('review.destinationExisting') : t('review.destinationNew')}
-              </p>
-              <p className="break-words text-base font-semibold text-text-strong">
-                {existing ? (target ? targetLabel(target) : t('review.unknownTarget')) : draft.project.name}
-              </p>
-              <p className="text-sm text-text-body">
-                {existing ? t('review.destinationExistingHint') : t('review.destinationNewHint')}
-              </p>
-            </div>
+        <div className="flex min-w-0 items-start gap-3">
+          <IconTile tone={existing ? 'primary' : 'neutral'} size="md">
+            {existing ? <FolderKanban className="size-5" /> : <FolderPlus className="size-5" />}
+          </IconTile>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-xs font-medium uppercase tracking-wide text-text-subtle">
+              {existing ? t('review.destinationExisting') : t('review.destinationNew')}
+            </p>
+            <p className="break-words text-base font-semibold text-text-strong">{targetName}</p>
+            <p className="text-sm text-text-body">
+              {existing ? t('review.destinationExistingHint') : t('review.destinationNewHint')}
+            </p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setChangingDestination(value => !value)}
-            aria-expanded={changingDestination}
-            aria-controls={changingDestination ? destinationPanelId : undefined}
-            disabled={creating}
-            className="h-11 shrink-0 gap-2 rounded-lg sm:h-9"
-          >
-            {changingDestination ? t('review.doneChanging') : t('review.changeDestination')}
-          </Button>
         </div>
-        {existing && targetIssueText && (
-          <p role="alert" className="text-sm font-medium text-danger-fg">{targetIssueText}</p>
-        )}
-        {changingDestination && (
-          <div id={destinationPanelId} className="border-t border-border pt-3">
-            <DestinationPicker
-              slug={slug}
-              destination={destination}
-              onDestinationChange={value => onDestinationChange(value, value === 'existing' ? targetProjectId : null)}
-              targetProjectId={targetProjectId}
-              onTargetChange={value => onDestinationChange('existing', value)}
-              projects={projects}
-              projectsLoading={projectsLoading}
-              serverTarget={serverTarget}
-              disabled={creating}
-            />
-          </div>
-        )}
       </Surface>
 
       <PlanHeader
         plan={draft}
         source={plan.source}
         actions={actions}
-        destination={destination}
+        destination={existing ? 'existing' : 'new'}
         target={target}
         nameProblem={nameTaken ? createError.message : undefined}
         keyProblem={keyTaken ? createError.message : undefined}

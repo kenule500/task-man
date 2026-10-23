@@ -10,7 +10,19 @@
     "created": "Projet « {{name}} » créé",
     "createdBody": "{{tasks}} tâches réparties en {{sprints}} sprints sont prêtes.",
     "added": "Plan ajouté à « {{name}} »",
-    "addedBody": "{{tasks}} tâches réparties en {{sprints}} sprints ont été ajoutées. Le travail existant du projet n’a pas été modifié."
+    "addedBody": "{{tasks}} tâches réparties en {{sprints}} sprints ont été ajoutées. Le travail existant du projet n’a pas été modifié.",
+    "projectTitle": "Ajouter un plan à {{name}}",
+    "projectDescription": "Importez un document d’exigences et laissez l’IA rédiger les sprints, tâches, sous-tâches et critères d’acceptation de ce projet. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit ajouté.",
+    "backToProject": "Retour au projet",
+    "loadingProject": "Chargement du projet",
+    "projectNotFoundTitle": "Projet introuvable",
+    "projectNotFoundBody": "Il a peut-être été supprimé, ou le lien est incorrect. Choisissez un projet dans la liste.",
+    "archivedTitle": "Ce projet est archivé",
+    "archivedBody": "Restaurez le projet avant d’y ajouter un plan.",
+    "mismatchTitle": "Ce plan appartient à un autre projet",
+    "mismatchBody": "Le plan de ce lien a été lancé pour un autre projet ou a déjà été créé : il ne peut pas être ajouté à {{target}}. Ouvrez-le depuis la page de création avec l’IA.",
+    "mismatchOpen": "Ouvrir le plan",
+    "mismatchBack": "Retour au projet"
   },
   "steps": {
     "upload": "Importer",
@@ -18,32 +30,9 @@
     "review": "Relire",
     "create": "Créer"
   },
-  "destination": {
-    "title": "Où doit aller le plan ?",
-    "hint": "Créez un nouveau projet ou ajoutez les sprints et les tâches à un projet que votre équipe utilise déjà.",
-    "new": {
-      "title": "Créer un nouveau projet",
-      "body": "L’IA propose le nom, la clé, la couleur et la description du projet."
-    },
-    "existing": {
-      "title": "Ajouter à un projet existant",
-      "body": "Seuls les sprints, tâches, sous-tâches et critères du plan sont ajoutés."
-    },
-    "projectLabel": "Projet",
-    "projectHint": "Recherchez par nom ou par clé.",
-    "projectPlaceholder": "Choisir un projet",
-    "noMatches": "Aucun projet ne correspond à cette recherche.",
-    "projectsLoading": "Chargement de vos projets…",
-    "noProjectsTitle": "Aucun projet actif pour le moment",
-    "noProjectsBody": "Créez d’abord un projet, puis revenez pour y ajouter ce plan.",
-    "selected": "Ajout à",
-    "change": "Modifier",
-    "createProject": "Aller aux projets",
-    "problems": {
-      "targetRequired": "Choisissez le projet auquel ajouter ce plan.",
-      "targetMissing": "Ce projet n’est plus disponible. Choisissez un autre projet ou créez-en un nouveau.",
-      "targetArchived": "Ce projet est archivé. Choisissez un autre projet ou créez-en un nouveau."
-    }
+  "card": {
+    "title": "Créer avec l’IA",
+    "hint": "Importez un document d’exigences et relisez le plan avant que quoi que ce soit ne soit créé."
   },
   "edit": {
     "hint": "Appuyez sur Entrée pour enregistrer ou sur Échap pour annuler.",
@@ -163,9 +152,6 @@
     "destinationExisting": "Projet existant",
     "destinationNewHint": "Un nouveau projet est créé avec uniquement ce plan.",
     "destinationExistingHint": "Le plan est ajouté à ce projet sans modifier ses réglages ni son travail existant.",
-    "unknownTarget": "Projet indisponible",
-    "changeDestination": "Changer de destination",
-    "doneChanging": "Terminé",
     "add_one": "Ajouter {{count}} élément à {{target}}",
     "add_other": "Ajouter {{count}} éléments à {{target}}",
     "addFailedTitle": "Le plan n’a pas été ajouté",
@@ -213,6 +199,8 @@
   "upload": {
     "cannotStart": "Nous n’avons pas pu lancer l’analyse",
     "openRunning": "L’ouvrir",
+    "addingTo": "Ajout à {{name}}",
+    "addingToHint": "Les sprints, tâches, sous-tâches et critères du plan sont ajoutés à ce projet. Ses réglages et son travail existant ne sont pas modifiés.",
     "documentTitle": "Document d’exigences",
     "dropTitle": "Déposez votre document ici ou choisissez un fichier",
     "dropHint": "PDF, Word (.docx), texte ou Markdown, jusqu’à {{size}}",
@@ -225,6 +213,7 @@
     },
     "optionsTitle": "Options",
     "optionsHint": "Tout est facultatif. L’IA choisit un nom, une clé et le nombre de sprints si vous laissez ces champs vides.",
+    "optionsHintExisting": "Tout est facultatif. L’IA planifie des sprints adaptés à ce projet et à votre équipe.",
     "projectName": "Nom du projet",
     "projectNameHint": "Laissez vide pour que l’IA le nomme.",
     "projectKey": "Clé du projet",
@@ -242,7 +231,6 @@
     "notes": "Consignes supplémentaires",
     "notesHint": "Par exemple « mobile d’abord » ou « ignorer l’espace d’administration ». {{count}} caractères sur {{max}}.",
     "needFile": "Choisissez un document pour continuer.",
-    "needTarget": "Choisissez le projet auquel ajouter ce plan.",
     "uploading": "Envoi en cours…",
     "submit": "Analyser le document"
   },

@@ -106,6 +106,7 @@
     "deleted": "\"{{name}}\" deleted",
     "deleteError": "Could not delete the project.",
     "newProject": "New project",
+    "newProjectCard": "New project",
     "title": "Projects",
     "description": "Folders for your sprints and tasks. Open one to plan sprints and track progress.",
     "loading": "Loading projects",
@@ -140,6 +141,7 @@
     "projects": "Projects",
     "archived": "Archived",
     "openBoard": "Open board",
+    "addFromDocument": "Add from document",
     "sprintSaved": "Sprint saved",
     "sprintCreated": "Sprint created"
   },

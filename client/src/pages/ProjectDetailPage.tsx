@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, FolderKanban, KanbanSquare, Pencil, Plus } from 'lucide-react';
+import { ChevronRight, FileUp, FolderKanban, KanbanSquare, Pencil, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, SkeletonDetail, Surface, Tag, toast } from '@/components/ds';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -107,6 +107,14 @@ const ProjectDetailPage = () => {
               <Link to={boardHref} className={buttonVariants({ variant: 'outline', className: 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9' })}>
                 <KanbanSquare className="size-4" aria-hidden /> {t('detail.openBoard')}
               </Link>
+              {canWrite && can('tasks:write') && !project.archived && (
+                <Link
+                  to={`/${workspaceSlug}/projects/${project._id}/plan`}
+                  className={buttonVariants({ variant: 'outline', className: 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9' })}
+                >
+                  <FileUp className="size-4" aria-hidden /> {t('detail.addFromDocument')}
+                </Link>
+              )}
               {canWrite && (
                 <Button
                   onClick={() => setSprintForm({ mode: 'create' })}

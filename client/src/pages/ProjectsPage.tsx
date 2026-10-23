@@ -11,10 +11,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { OptionSelect, useTasks } from '@/features/tasks';
 import {
-  PROJECT_SORT_OPTIONS, ProjectFolderCard, ProjectFormDialog, filterProjectEntries, sortProjectEntries,
+  PROJECT_SORT_OPTIONS, NewProjectCard, ProjectFolderCard, ProjectFormDialog, filterProjectEntries, sortProjectEntries,
   summarizeProject, useProjectDirectory, useProjects,
   type Project, type ProjectEntry, type ProjectSort,
 } from '@/features/projects';
+import { AiProjectCard } from '@/features/ai-plan';
 
 type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; project: Project };
 
@@ -141,7 +142,6 @@ const ProjectsPage = () => {
       <PageHeader
         title={t('page.title')}
         description={t('page.description')}
-        actions={pageActions}
       />
 
       {loading ? (
@@ -160,7 +160,7 @@ const ProjectsPage = () => {
                 description={canWrite
                   ? t('page.emptyWrite')
                   : t('page.emptyRead')}
-                action={newProjectButton}
+                action={pageActions}
               />
             </Surface>
           ) : (
@@ -200,6 +200,10 @@ const ProjectsPage = () => {
                 </Surface>
               ) : (
                 <ul aria-label={t('page.projectsList')} className={GRID}>
+                  {!searching && canWrite && (
+                    <NewProjectCard onClick={() => setForm({ mode: 'create' })} />
+                  )}
+                  {!searching && canCreateWithAi && <AiProjectCard workspaceSlug={workspaceSlug ?? ''} />}
                   {active.map(renderCard)}
                 </ul>
               )}

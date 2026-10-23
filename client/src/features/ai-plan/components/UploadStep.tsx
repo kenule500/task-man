@@ -1,8 +1,8 @@
 import { useId, useState, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, FileText, Lock, Sparkles, X } from 'lucide-react';
+import { FileUp, FileText, FolderKanban, Lock, Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Field, SegmentedControl, Surface } from '@/components/ds';
+import { Alert, Field, SegmentedControl, Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,10 +16,8 @@ import { ACCEPT_ATTRIBUTE, DEFAULT_MAX_BYTES, fileProblem, formatFileSize } from
 import { defaultOptions } from '../lib/options';
 import { cleanKey } from '../lib/plan';
 import { describeApiError } from '../lib/errors';
-import { targetProblem } from '../lib/destination';
 import type { AiPlan, PlanApiError, PlanLanguage, PlanUploadOptions } from '../types';
 import type { PlanRequest } from '../hooks/useAiProjectPlan';
-import { DestinationPicker } from './DestinationPicker';
 
 const LANGUAGE_OPTIONS = SUPPORTED_LANGUAGES.map(value => ({ value, label: LANGUAGE_NAMES[value] }));
 const WEEKS = [1, 2, 3, 4] as const;
@@ -33,9 +31,8 @@ interface UploadStepProps {
   onRetrySettings: () => void;
   /** The person can change workspace settings, so the notice can link to where AI is switched on. */
   canManageSettings: boolean;
-  /** The workspace's projects, for the "add to an existing project" choice. */
-  projects?: Project[];
-  projectsLoading?: boolean;
+  /** The project the plan is added to; null creates a new project. */
+  target?: Project | null;
   /** Document and options of an earlier attempt (after a failure or a cancel). */
   initial: PlanRequest | null;
   busy: boolean;
@@ -50,7 +47,7 @@ interface UploadStepProps {
 
 /** Step 1: pick the requirements document, set the options, and see what happens to the text before sending it. */
 export const UploadStep = ({
-  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, projects = [], projectsLoading = false, initial, busy, error, failure, recent,
+  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, target = null, initial, busy, error, failure, recent,
   onOpenRecent, onOpenActive, onStart,
 }: UploadStepProps) => {
   const { t } = useTranslation('aiPlan');
@@ -64,8 +61,6 @@ export const UploadStep = ({
   const [fileError, setFileError] = useState('');
   const [dragging, setDragging] = useState(false);
   const [options, setOptions] = useState<PlanUploadOptions>(initial?.options ?? defaultOptions());
-  const destination = options.destination ?? (options.targetProjectId ? 'existing' : 'new');
-  const targetProjectId = options.targetProjectId ?? null;
 
   const maxBytes = settings?.plan.maxBytes ?? DEFAULT_MAX_BYTES;
   const limitReached = settings ? settings.plan.usedToday >= settings.plan.dailyLimit : false;
@@ -91,12 +86,11 @@ export const UploadStep = ({
   };
 
   const dateInvalid = options.startDate !== '' && options.startDate < todayKey();
-  const targetIssue = targetProblem(destination, targetProjectId, projects);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (file && aiReady && !busy && !targetIssue) {
-      onStart(file, { ...options, destination, targetProjectId });
+    if (file && aiReady && !busy) {
+      onStart(file, { ...options, destination: target ? 'existing' : 'new', targetProjectId: target?._id ?? null });
     }
   };
 
@@ -157,19 +151,21 @@ export const UploadStep = ({
         ) : null}
       </Surface>
 
-      {/* ---- Where the plan goes */}
-      <Surface padding="md">
-        <DestinationPicker
-          slug={slug}
-          destination={destination}
-          onDestinationChange={value => change('destination', value)}
-          targetProjectId={targetProjectId}
-          onTargetChange={value => change('targetProjectId', value)}
-          projects={projects}
-          projectsLoading={projectsLoading}
-          disabled={busy}
-        />
-      </Surface>
+      {/* ---- The project this plan is added to (chosen on the project page) */}
+      {target && (
+        <Surface padding="md" className="flex items-start gap-3">
+          <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-info-bg text-info-fg">
+            <FolderKanban className="size-5" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-text-strong">{t('upload.addingTo', { name: target.name })}</h2>
+              <Tag tone="neutral"><span className="font-mono">{target.key}</span></Tag>
+            </div>
+            <p className="text-sm text-text-subtle">{t('upload.addingToHint')}</p>
+          </div>
+        </Surface>
+      )}
 
       {/* ---- The document */}
       <Surface padding="md" className="space-y-3">
@@ -221,9 +217,9 @@ export const UploadStep = ({
       {/* ---- Options */}
       <Surface padding="md" className="space-y-4">
         <h2 className="text-sm font-semibold text-text-strong">{t('upload.optionsTitle')}</h2>
-        <p className="text-sm text-text-subtle">{t('upload.optionsHint')}</p>
+        <p className="text-sm text-text-subtle">{target ? t('upload.optionsHintExisting') : t('upload.optionsHint')}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {destination === 'new' && (
+          {!target && (
             <>
               <Field label={t('upload.projectName')} htmlFor={`${inputId}-name`} hint={t('upload.projectNameHint')}>
                 <Input
@@ -327,14 +323,10 @@ export const UploadStep = ({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {!file
-          ? <p className="text-sm text-text-subtle sm:me-auto">{t('upload.needFile')}</p>
-          : targetIssue
-            ? <p role="alert" className="text-sm text-danger-fg sm:me-auto">{t('upload.needTarget')}</p>
-            : null}
+        {!file && <p className="text-sm text-text-subtle sm:me-auto">{t('upload.needFile')}</p>}
         <Button
           type="submit"
-          disabled={!file || !aiReady || busy || dateInvalid || Boolean(targetIssue)}
+          disabled={!file || !aiReady || busy || dateInvalid}
           aria-busy={busy}
           className="h-11 gap-2 rounded-lg bg-primary text-white shadow-sm hover:bg-primary-hover sm:h-9"
         >

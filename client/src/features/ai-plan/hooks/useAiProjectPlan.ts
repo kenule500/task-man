@@ -3,7 +3,7 @@ import i18n from '@/i18n';
 import { aiPlanApi } from '../api';
 import { readPlanError } from '../lib/file';
 import { tidyPlan } from '../lib/plan';
-import type { AiPlan, CreatedFromPlan, PlanApiError, PlanContent, PlanDestination, PlanUploadOptions } from '../types';
+import type { AiPlan, CreatedFromPlan, PlanApiError, PlanContent, PlanUploadOptions } from '../types';
 
 export type PlanPhase = 'upload' | 'analyzing' | 'review' | 'creating';
 
@@ -19,6 +19,8 @@ interface Settings {
   maxWaitMs?: number;
   /** Called with the plan id when one is started or loaded, and with null when it is gone (to keep the address in step). */
   onPlanId?: (id: string | null) => void;
+  /** The project the plan is added to; null (the default) creates a new project. */
+  targetProjectId?: string | null;
 }
 
 const MAX_POLL_FAILURES = 5;
@@ -28,7 +30,10 @@ const isRunning = (plan: AiPlan | null): boolean => plan?.status === 'queued' ||
  * The whole "project from a document" flow: upload, wait for the generation (polling), edit the plan, create the project.
  * The document itself is only kept in memory here (for "Regenerate"); the server never stores it.
  */
-export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxWaitMs = 8 * 60_000, onPlanId }: Settings = {}) => {
+export const useAiProjectPlan = (
+  slug: string | undefined,
+  { pollMs = 2000, maxWaitMs = 8 * 60_000, onPlanId, targetProjectId = null }: Settings = {},
+) => {
   const [plan, setPlan] = useState<AiPlan | null>(null);
   const [draft, setDraft] = useState<PlanContent | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -40,20 +45,11 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
   const [createError, setCreateError] = useState<PlanApiError | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const [request, setRequest] = useState<PlanRequest | null>(null);
-  const [destination, setDestination] = useState<PlanDestination>('new');
-  const [targetProjectId, setTargetProjectId] = useState<string | null>(null);
   const onPlanIdRef = useRef(onPlanId);
   useEffect(() => { onPlanIdRef.current = onPlanId; });
 
   const planId = plan?._id;
   const planStatus = plan?.status;
-
-  /** Takes the destination a plan was stored with, so a reload or a resume shows where it will land. */
-  const rememberDestination = useCallback((stored: { targetProjectId?: string | null } | undefined) => {
-    const id = stored?.targetProjectId ?? null;
-    setTargetProjectId(id);
-    setDestination(id ? 'existing' : 'new');
-  }, []);
 
   // ---- Polling while the server works
   useEffect(() => {
@@ -73,7 +69,6 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
           if (next.status !== planStatus) setPlan(next);
         } else {
           setPlan(next);
-          rememberDestination(next.options);
           if (next.status === 'ready') {
             setDraft(next.plan ?? null);
             setDirty(false);
@@ -108,7 +103,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [slug, planId, planStatus, pollMs, maxWaitMs, rememberDestination]);
+  }, [slug, planId, planStatus, pollMs, maxWaitMs]);
 
   const reset = useCallback(() => {
     setPlan(null);
@@ -116,22 +111,20 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     setDirty(false);
     setTimedOut(false);
     setCreateError(null);
-    setDestination('new');
-    setTargetProjectId(null);
     onPlanIdRef.current?.(null);
   }, []);
 
   /** Uploads the document; the generation continues on the server. */
   const start = useCallback(async (file: File, options: PlanUploadOptions): Promise<boolean> => {
     if (!slug) return false;
+    const target = targetProjectId ?? null;
+    const payload: PlanUploadOptions = { ...options, destination: target ? 'existing' : 'new', targetProjectId: target };
     setUploading(true);
     setError(null);
     setTimedOut(false);
-    setRequest({ file, options });
-    setDestination(options.destination ?? (options.targetProjectId ? 'existing' : 'new'));
-    setTargetProjectId(options.targetProjectId ?? null);
+    setRequest({ file, options: payload });
     try {
-      const queued = await aiPlanApi.upload(slug, file, options);
+      const queued = await aiPlanApi.upload(slug, file, payload);
       setPlan(queued);
       setDraft(null);
       setDirty(false);
@@ -144,7 +137,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     } finally {
       setUploading(false);
     }
-  }, [slug]);
+  }, [slug, targetProjectId]);
 
   /** Opens a plan by id (after a reload). Returns the project id when the plan was already turned into a project. */
   const resume = useCallback(async (id: string): Promise<string | null> => {
@@ -162,7 +155,6 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
       setPlan(found);
       setDraft(found.status === 'ready' ? found.plan ?? null : null);
       setDirty(false);
-      rememberDestination(found.options);
       onPlanIdRef.current?.(found._id);
       return null;
     } catch (err) {
@@ -173,17 +165,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     } finally {
       setLoading(false);
     }
-  }, [slug, rememberDestination]);
-
-  /** Changes where the ready plan goes; the next create sends this target without regenerating. */
-  const changeDestination = useCallback((next: PlanDestination, nextTargetId: string | null) => {
-    setCreateError(null);
-    setDestination(next);
-    setTargetProjectId(next === 'existing' ? nextTargetId : null);
-    setRequest(current => (current
-      ? { ...current, options: { ...current.options, destination: next, targetProjectId: next === 'existing' ? nextTargetId : null } }
-      : current));
-  }, []);
+  }, [slug]);
 
   /** Stops waiting and deletes the plan (a generation that is still running is cancelled on the server). */
   const discard = useCallback(async (): Promise<void> => {
@@ -220,7 +202,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     setDirty(true);
   }, []);
 
-  /** Saves the edits and creates the plan in the chosen destination. Returns null (with `createError` set) when refused. */
+  /** Saves the edits and creates the plan in the project this page is scoped to (or as a new project). */
   const create = useCallback(async (): Promise<CreatedFromPlan | null> => {
     if (!slug || !plan || !draft) return null;
     setCreating(true);
@@ -228,21 +210,14 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     try {
       const saved = tidyPlan(draft);
       await aiPlanApi.update(slug, plan._id, saved);
-      const storedTargetId = plan.options.targetProjectId ?? null;
-      const storedDestination: PlanDestination = storedTargetId ? 'existing' : 'new';
-      const unchanged = destination === storedDestination && targetProjectId === storedTargetId;
-      const override = destination === 'existing' ? targetProjectId : null;
-      const created = unchanged
-        ? await aiPlanApi.create(slug, plan._id)
-        : await aiPlanApi.create(slug, plan._id, override);
-      return created;
+      return await aiPlanApi.create(slug, plan._id, targetProjectId ?? null);
     } catch (err) {
       setCreateError(readPlanError(err, i18n.t('aiPlan:errors.createFailed')));
       return null;
     } finally {
       setCreating(false);
     }
-  }, [slug, plan, draft, destination, targetProjectId]);
+  }, [slug, plan, draft, targetProjectId]);
 
   const phase: PlanPhase = creating ? 'creating' : isRunning(plan) ? 'analyzing' : plan?.status === 'ready' && draft ? 'review' : 'upload';
 
@@ -259,15 +234,12 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     createError,
     timedOut,
     request,
-    destination,
-    targetProjectId,
     start,
     resume,
     discard,
     regenerate,
     edit,
     create,
-    changeDestination,
     clearError: () => setError(null),
     clearCreateError: () => setCreateError(null),
   };

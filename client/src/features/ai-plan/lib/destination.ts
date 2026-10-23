@@ -57,3 +57,7 @@ export const planTarget = (
   plan: Pick<AiPlan, 'options' | 'targetProject'>,
   projects: Project[],
 ): PlanTarget | null => destinationTarget(projects, plan.options.targetProjectId, plan.targetProject);
+
+/** True when a plan belongs to this project: it was stored for it and has not been turned into a project yet. */
+export const planBelongsToProject = (plan: Pick<AiPlan, 'status' | 'options'>, projectId: string): boolean =>
+  plan.status !== 'created' && plan.options.targetProjectId === projectId;

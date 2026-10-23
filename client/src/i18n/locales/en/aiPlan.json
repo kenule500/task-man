@@ -10,7 +10,19 @@
     "created": "Project “{{name}}” created",
     "createdBody": "{{tasks}} tasks in {{sprints}} sprints are ready.",
     "added": "Plan added to “{{name}}”",
-    "addedBody": "{{tasks}} tasks in {{sprints}} sprints were added. The project's existing work was not changed."
+    "addedBody": "{{tasks}} tasks in {{sprints}} sprints were added. The project's existing work was not changed.",
+    "projectTitle": "Add a plan to {{name}}",
+    "projectDescription": "Upload a requirements document and let AI draft sprints, tasks, subtasks and acceptance criteria for this project. You review and edit the plan before anything is added.",
+    "backToProject": "Back to the project",
+    "loadingProject": "Loading the project",
+    "projectNotFoundTitle": "Project not found",
+    "projectNotFoundBody": "It may have been deleted, or the link is wrong. Pick a project from the list.",
+    "archivedTitle": "This project is archived",
+    "archivedBody": "Restore the project before adding a plan to it.",
+    "mismatchTitle": "This plan belongs to another project",
+    "mismatchBody": "The plan in this link was started for another project or is already created, so it cannot be added to {{target}}. Open it from the create-with-AI page instead.",
+    "mismatchOpen": "Open the plan",
+    "mismatchBack": "Back to the project"
   },
   "steps": {
     "upload": "Upload",
@@ -18,32 +30,9 @@
     "review": "Review",
     "create": "Create"
   },
-  "destination": {
-    "title": "Where should the plan go?",
-    "hint": "Create a new project, or add the sprints and tasks to a project your team already uses.",
-    "new": {
-      "title": "Create a new project",
-      "body": "The AI proposes the project's name, key, colour and description."
-    },
-    "existing": {
-      "title": "Add to an existing project",
-      "body": "Only the plan's sprints, tasks, subtasks and criteria are added."
-    },
-    "projectLabel": "Project",
-    "projectHint": "Search by name or key.",
-    "projectPlaceholder": "Choose a project",
-    "noMatches": "No project matches that search.",
-    "projectsLoading": "Loading your projects…",
-    "noProjectsTitle": "No active projects yet",
-    "noProjectsBody": "Create a project first, then come back to add this plan to it.",
-    "selected": "Adding to",
-    "change": "Change",
-    "createProject": "Go to projects",
-    "problems": {
-      "targetRequired": "Choose the project this plan should be added to.",
-      "targetMissing": "That project is no longer available. Choose another project or create a new one.",
-      "targetArchived": "That project is archived. Choose another project or create a new one."
-    }
+  "card": {
+    "title": "Create with AI",
+    "hint": "Upload a requirements document and review the plan before anything is created."
   },
   "edit": {
     "hint": "Press Enter to save or Escape to cancel.",
@@ -163,9 +152,6 @@
     "destinationExisting": "Existing project",
     "destinationNewHint": "A new project is created with only this plan.",
     "destinationExistingHint": "The plan is added to this project without changing its settings or existing work.",
-    "unknownTarget": "Unavailable project",
-    "changeDestination": "Change destination",
-    "doneChanging": "Done",
     "add_one": "Add {{count}} item to {{target}}",
     "add_other": "Add {{count}} items to {{target}}",
     "addFailedTitle": "The plan was not added",
@@ -213,6 +199,8 @@
   "upload": {
     "cannotStart": "We could not start the analysis",
     "openRunning": "Open it",
+    "addingTo": "Adding to {{name}}",
+    "addingToHint": "The plan's sprints, tasks, subtasks and criteria are added to this project. Its settings and existing work are not changed.",
     "documentTitle": "Requirements document",
     "dropTitle": "Drop your document here, or choose a file",
     "dropHint": "PDF, Word (.docx), text or Markdown, up to {{size}}",
@@ -225,6 +213,7 @@
     },
     "optionsTitle": "Options",
     "optionsHint": "All optional. The AI chooses a name, a key and the number of sprints when you leave them empty.",
+    "optionsHintExisting": "All optional. The AI plans sprints that fit this project and your team.",
     "projectName": "Project name",
     "projectNameHint": "Leave empty to let the AI name it.",
     "projectKey": "Project key",
@@ -242,7 +231,6 @@
     "notes": "Extra instructions",
     "notesHint": "For example “mobile first” or “skip the admin area”. {{count}} of {{max}} characters.",
     "needFile": "Choose a document to continue.",
-    "needTarget": "Choose the project this plan should be added to.",
     "uploading": "Uploading…",
     "submit": "Analyze document"
   },
