@@ -147,10 +147,14 @@
     }
   },
   "settings": {
-    "title": "Revue de code par l'IA",
-    "description": "Un agent IA lit la pull request d'un ticket et indique si elle respecte les critères d'acceptation, avec des preuves et les problèmes de code détectés.",
+    "title": "Assistant IA",
+    "description": "Le fournisseur et la clé utilisés par toutes les fonctions d'IA de cet espace de travail.",
+    "capabilities": {
+      "codeReview": "Revue de code — lit une pull request et vérifie qu'elle respecte les critères d'acceptation.",
+      "documentPlans": "Projets à partir de documents — rédige des sprints, des tâches et des critères à partir d'un document d'exigences."
+    },
     "loading": "Chargement des paramètres IA...",
-    "loadError": "Impossible de charger les paramètres de la revue de code par l'IA.",
+    "loadError": "Impossible de charger les paramètres IA.",
     "retry": "Réessayer",
     "saveError": "Impossible d'enregistrer ce paramètre.",
     "unavailable": "Aucun fournisseur d'IA utilisable n'est configuré pour cet espace de travail. Un propriétaire ou un administrateur peut en ajouter un ci-dessous.",
@@ -159,8 +163,8 @@
       "body": "Lorsque cette option est active, les modifications des pull requests que vous révisez (le diff) et le texte du ticket sont envoyés à {{provider}} ({{model}}), un prestataire externe, pour produire la revue. Rien n'est envoyé tant que l'option est désactivée. Ne l'activez pas pour du code que vos accords n'autorisent pas à quitter l'organisation."
     },
     "enable": {
-      "label": "Activer la revue de code par l'IA",
-      "description": "Permet aux membres autorisés à modifier les tâches de lancer une revue depuis une tâche."
+      "label": "Activer les fonctions d'IA",
+      "description": "Permet aux membres autorisés à modifier les tâches de lancer une revue ou de créer un projet à partir d'un document."
     },
     "auto": {
       "label": "Relire automatiquement les nouveaux commits",

@@ -14,9 +14,10 @@ const OUTLINE_BTN = 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-7
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{20,255}$/;
 
 /**
- * Workspace settings card for the AI code review. Turning it on is the opt-in to send pull request code to
- * the configured AI provider, so the notice sits above the switch. The GitHub token field is write-only.
- * Only mount it for members who hold settings:manage (the API requires it to change anything).
+ * Workspace settings card for every AI feature (code review and document plans). Turning it on is the
+ * opt-in to send workspace content to the configured AI provider, so the notice sits above the switch.
+ * The GitHub token field is write-only. Only mount it for members who hold settings:manage (the API
+ * requires it to change anything).
  */
 const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const { t } = useTranslation('ai');
@@ -65,7 +66,11 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   return (
     <Surface as="section" aria-labelledby="ai-review-heading" className="sm:p-6">
       <SectionHeader className="mb-1" title={<span id="ai-review-heading">{t('settings.title')}</span>} />
-      <p className="mb-4 text-xs text-slate-600">{t('settings.description')}</p>
+      <p className="mb-2 text-xs text-slate-600">{t('settings.description')}</p>
+      <ul className="mb-4 list-disc space-y-1 ps-5 text-xs text-slate-600">
+        <li>{t('settings.capabilities.codeReview')}</li>
+        <li>{t('settings.capabilities.documentPlans')}</li>
+      </ul>
 
       <div className="rounded-xl border border-slate-200 p-4">
         <div className="mb-4 flex items-start gap-3">

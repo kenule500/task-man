@@ -143,10 +143,14 @@
     }
   },
   "settings": {
-    "title": "AI code review",
-    "description": "An AI agent reads a ticket's pull request and tells you whether it implements the acceptance criteria, with evidence and code issues.",
+    "title": "AI assistant",
+    "description": "The provider and key used by every AI feature in this workspace.",
+    "capabilities": {
+      "codeReview": "Code review — reads a pull request and checks it against the acceptance criteria.",
+      "documentPlans": "Projects from documents — drafts sprints, tasks and criteria from a requirements document."
+    },
     "loading": "Loading AI settings...",
-    "loadError": "We could not load the AI code review settings.",
+    "loadError": "We could not load the AI settings.",
     "retry": "Try again",
     "saveError": "We could not save this setting.",
     "unavailable": "No usable AI provider is configured for this workspace. An owner or admin can set one up below.",
@@ -155,8 +159,8 @@
       "body": "When this is on, the changes of the pull requests you review (the diff) and the ticket text are sent to {{provider}} ({{model}}), an outside processor, to produce the review. Nothing is sent while it is off. Do not turn it on for code that your agreements do not allow to leave."
     },
     "enable": {
-      "label": "Enable AI code review",
-      "description": "Lets members with edit permission run a review from a task."
+      "label": "Enable AI features",
+      "description": "Lets members with edit permission review a pull request or create a project from a document."
     },
     "auto": {
       "label": "Review new commits automatically",
