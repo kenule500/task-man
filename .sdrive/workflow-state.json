@@ -573,9 +573,9 @@
         {
           "id": "v1",
           "phase": "ongoing",
-          "currentStep": "specification",
+          "currentStep": "implementation",
           "gates": {
-            "specification": "pending",
+            "specification": "approved",
             "planning": "approved",
             "implementation": "in_progress",
             "review": "pending"
@@ -682,6 +682,18 @@
               "event": "/sdrive:update-propose added US-012, FR-030, NFR-017, AC-031..AC-033 and EC-025, plus P10 (T10.1-T10.3), so the Workspace Settings AI card is titled \"AI assistant\", lists its capabilities (pull-request code review; projects from documents) and labels the shared ai.enabled switch \"Enable AI features\". Copy-only change: no API, schema, permission or stored-settings change. The specification gate is reset to pending because new requirements invalidate the prior approval; the plan, tasks and traceability are already synced.",
               "by": "specification",
               "timestamp": "2026-10-23T16:40:29.036Z"
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-23T16:42:57.755Z"
+            },
+            {
+              "event": "P10 implemented on feature/upload-document (T10.1-T10.3): the Workspace Settings card is titled \"AI assistant\", explains that one provider and key power every AI feature, lists code review and projects from documents as bullets, and labels the shared switch \"Enable AI features\" in en/fr/ar. Copy-only change; no server, API, schema or permission change. Typecheck, lint, build and governance pass; headless Chrome checked 320-1280 px, keyboard, fr and ar RTL, and the upload page reacting to the same ai.enabled flag. The client settings test still asserts the old switch label and belongs to /sdrive:test.",
+              "by": "implementation",
+              "timestamp": "2026-10-23T17:12:58.026Z"
             }
           ]
         }

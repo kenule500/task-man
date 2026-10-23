@@ -800,7 +800,11 @@
             "AC-031",
             "AC-032"
           ],
-          "completed": false
+          "completed": true,
+          "verificationNotes": [
+            "The card renders the heading \"AI assistant\", the shared-provider description and two real list items (Code review; Projects from documents) in en/fr/ar.",
+            "The enable switch reads \"Enable AI features\" and describes both actions; the provider panel, notice, token field and auto-review switch are unchanged."
+          ]
         },
         {
           "id": "T10.2",
@@ -814,7 +818,12 @@
             "AC-031",
             "AC-032"
           ],
-          "completed": false
+          "completed": true,
+          "verificationNotes": [
+            "settings.loadError now reads \"AI settings\"; the review-only notice, auto-review and token copy stay review-specific because they describe that flow.",
+            "ai.enabled still gates both features: assertPlanFeatureOn and assertReviewFeatureOn read it, and the upload page showed the unconfigured notice, no alert when configured+enabled, and \"AI is turned off for this workspace\" when disabled.",
+            "No server, API, schema or permission file changed."
+          ]
         },
         {
           "id": "T10.3",
@@ -826,7 +835,13 @@
           "linkedAcceptanceCriteria": [
             "AC-033"
           ],
-          "completed": false
+          "completed": true,
+          "verificationNotes": [
+            "server/client typecheck, client lint, client build and node .sdrive/scripts/validate-governance.js pass; the changed-file secret scan found nothing.",
+            "Headless Chrome at 320/375/768/1024/1280 px: heading, description and both bullets render, no horizontal overflow (scrollWidth <= innerWidth at every width).",
+            "Keyboard Tab order stays inside the card controls; French is localised and Arabic renders RTL with the translated heading, bullets and switch.",
+            "Known follow-up for /sdrive:test: client/src/features/ai-review/__tests__/AiReviewSettingsCard.test.tsx still queries the old switch name \"Enable AI code review\". Tests were not edited or run here."
+          ]
         }
       ]
     }

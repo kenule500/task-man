@@ -314,20 +314,20 @@ Agent and are deliberately absent.
 
 ## P10 - AI assistant card copy
 
-- [ ] **T10.1 - Rename the card and add the capability bullets.** In
+- [x] **T10.1 - Rename the card and add the capability bullets.** In
   `AiReviewSettingsCard.tsx` render a short description and a semantic list of capabilities from
   `settings.capabilities`; in `client/src/i18n/locales/{en,fr,ar}/ai.json` set `settings.title` to
   "AI assistant", rewrite `settings.description`, add `settings.capabilities.codeReview` and
   `settings.capabilities.documentPlans`, and change `settings.enable.label`/`description` to cover
   both features. Keep the provider panel, notice, token field and auto-review switch unchanged.
   _(FR-030; AC-031, AC-032)_
-- [ ] **T10.2 - Align the remaining card copy and confirm the shared gate.** Change
+- [x] **T10.2 - Align the remaining card copy and confirm the shared gate.** Change
   `settings.loadError` to "AI settings", read the card end to end to confirm nothing claims the
   settings are review-only (the notice, auto-review and token copy stay review-specific because they
   describe that flow), and confirm `ai.enabled` still gates both `assertReviewFeatureOn` and
   `assertPlanFeatureOn` with no server, API, schema or permission change. _(FR-030; NFR-017;
   AC-031, AC-032)_
-- [ ] **T10.3 - Verify the card across widths, languages and input modes.** Run client typecheck,
+- [x] **T10.3 - Verify the card across widths, languages and input modes.** Run client typecheck,
   client lint, client build, `node .sdrive/scripts/validate-governance.js` and a changed-file
   secret scan. Check 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL in the configured and
   unconfigured states: heading, both bullets, switch label, no review-only wording, no horizontal
