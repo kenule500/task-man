@@ -925,3 +925,126 @@ The Test Agent will map AC-031..AC-033 during `/sdrive:test`. Expected coverage:
   and Arabic, the permission gate, and the unconfigured state.
 - Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL, confirming no
   review-only wording remains on the card.
+
+## Update (2026-10-23) — Document plans from a project page, and folder cards back on Projects
+
+> **Superseding note.** This update reverses the P8 placement decision for the Projects page and
+> narrows the new-project page. It supersedes FR-020, AC-016, AC-017 and EC-016 (which forbade the
+> dashed cards and required header buttons) and removes the destination choice from the
+> new-project page. US-013..US-015, FR-031..FR-033, NFR-018, AC-034..AC-042 and EC-026..EC-031 below
+> are authoritative. The plan API keeps its optional `targetProjectId`; the stored plan shape, the
+> create contract, the permission gates and the AI settings do not change.
+
+### User Stories (update)
+
+#### US-013 — Create a project from a document without choosing a destination
+
+**As a** member who can create projects and tasks  
+**I want** the document-to-project page to always create a new project  
+**So that** I do not answer a destination question when the work is new.
+
+**Acceptance Criteria**
+
+- **AC-034:** Given the create-with-AI page, when the upload step renders, then no destination
+  choice or existing-project picker is shown, the project name and key fields are always present,
+  and the AI notice, file picker, options and recent plans keep their current behaviour.
+- **AC-035:** Given a ready plan on that page, when the person creates it, then the create request
+  targets a new project, the toast says the project was created, and the browser opens it.
+
+#### US-014 — Add a document plan to the project I am looking at
+
+**As a** member who can create projects and tasks  
+**I want** to upload a requirements document from a project's page  
+**So that** the plan's sprints, tasks, subtasks and criteria are added to that project without
+creating a duplicate.
+
+**Acceptance Criteria**
+
+- **AC-036:** Given an active project, when a member with `projects:write` and `tasks:write` opens
+  the project page, then the header shows an "Add from document" action beside the existing actions;
+  the action is absent for a member missing either permission and for an archived project.
+- **AC-037:** Given that action, when it is activated, then the four-step wizard opens on a
+  project-scoped page; the upload step shows a read-only "Adding to <name> <key>" line where the
+  destination choice used to be, no project name/key fields are shown, and the review step names the
+  project and offers no way to change the destination.
+- **AC-038:** Given a reviewed plan on the project-scoped page, when the person creates it, then the
+  create request sends that project's id, the toast says the plan was added, the browser returns to
+  the project, and the project's existing sprints and tasks are unchanged.
+- **AC-039:** Given a project-scoped page opened with a plan id that was stored for another project
+  or was already created, when the page loads, then it does not add that plan to the current project:
+  it shows the plan's own destination and lets the person return to the project, and no write is
+  sent to the wrong project.
+
+#### US-015 — Start work from the Projects grid
+
+**As a** member who can create projects  
+**I want** the New project and Create with AI cards at the start of the project grid  
+**So that** starting a project is the first thing I see and the grid keeps its folder design.
+
+**Acceptance Criteria**
+
+- **AC-040:** Given at least one active project, when a member with `projects:write` opens Projects,
+  then the first items of the grid are the dashed "New project" card and, when the member also has
+  `tasks:write`, the dashed "Create with AI" card, followed by the project folders in the chosen
+  sort order; the header shows no duplicate creation buttons.
+- **AC-041:** Given a search query, then the action cards are hidden and only matching folders remain;
+  with no projects, the empty state offers both actions according to permission; archived projects
+  are listed without action cards.
+- **AC-042:** At 320, 375, 768, 1024 and 1280 px, the cards come first in DOM and visual order, keep
+  40 px touch targets and visible focus, cause no horizontal scroll, are translated in English,
+  French and Arabic, and work RTL; the AI card opens `/{workspaceSlug}/projects/new/ai`.
+
+### Functional Requirements (update)
+
+- **FR-031:** The create-from-document page MUST always create a new project. It MUST NOT render a
+  destination choice, the existing-project picker, or destination-change controls; the project name
+  and key fields MUST always be shown; the create request MUST target a new project.
+- **FR-032:** The project details page MUST offer "Add from document" to members holding both
+  `projects:write` and `tasks:write` when the project is active. The action MUST open a
+  project-scoped version of the same four-step wizard whose destination is fixed to that project:
+  no destination choice, no project name/key fields, the project named in the upload and review
+  steps, the create request carrying that project's id, and success returning to the project.
+- **FR-033:** The Projects page MUST render the dashed "New project" and "Create with AI" cards as
+  the first items of the active project grid, New project first, gated by `projects:write` and by
+  `projects:write` plus `tasks:write` respectively, and MUST NOT render duplicate creation buttons
+  in the page header. The cards MUST be hidden while a search query is active, MUST not appear in the
+  archived grid, and the zero-project empty state MUST offer both actions according to permission.
+
+### Non-Functional Requirements (update)
+
+- **NFR-018:** The new copy MUST exist in English, French and Arabic and MUST keep CON-305/CON-306:
+  keyboard operable, visible focus, programmatic labels, 40 px touch targets below `md`, no
+  horizontal scroll from 320 px, and RTL. The change MUST NOT add a dependency, alter the plan
+  upload/create API contract, stored plan shape, permission model or AI settings, and MUST NOT store
+  document text. The project-scoped route MUST apply the same permission gate as the create-with-AI
+  page and MUST NOT trust a plan id from another project.
+
+### Edge Cases & Error States (update)
+
+- **EC-026:** The project is archived or deleted while the project-scoped wizard is open. Expected:
+  create answers 404/409, the review step shows the target problem, the plan stays ready, and no
+  partial sprint or task is written.
+- **EC-027:** AI is unconfigured, turned off, or over the daily limit on the project page. Expected:
+  the same notice as the new-project page, Analyze is disabled, and no request is sent.
+- **EC-028:** A member loses `projects:write` or `tasks:write`, or opens the project-scoped URL
+  directly without them. Expected: the header action disappears and the page shows the no-access
+  state; no plan is started.
+- **EC-029:** The project-scoped route is opened with a `?plan=` id from another project or one that
+  was already created. Expected: the page does not add it to the current project; it shows the
+  plan's own destination and offers return/discard, and no cross-project write is sent.
+- **EC-030:** The Projects page has zero projects, only archived projects, a search with no matches,
+  or 320 px width with long names. Expected: both actions in the empty state, no cards in the
+  archived grid, cards hidden while searching, and no horizontal scroll.
+- **EC-031:** A member has `projects:write` but not `tasks:write`, or is read-only. Expected: they see
+  only the New project card/action, or no action cards at all, and the header stays free of
+  duplicate buttons.
+
+### Verification (update)
+
+The Test Agent will map AC-034..AC-042 during `/sdrive:test`. Expected coverage:
+
+- Component tests for the new-project page without a destination choice, the project-scoped wizard
+  (fixed target, no name/key fields, create payload), the project-page action's permission and
+  archived gates, and the two grid cards (order, permissions, search, empty state).
+- Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL, for both wizard
+  modes and the Projects page.

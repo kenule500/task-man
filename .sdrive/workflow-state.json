@@ -573,9 +573,9 @@
         {
           "id": "v1",
           "phase": "ongoing",
-          "currentStep": "implementation",
+          "currentStep": "specification",
           "gates": {
-            "specification": "approved",
+            "specification": "pending",
             "planning": "approved",
             "implementation": "in_progress",
             "review": "pending"
@@ -694,6 +694,11 @@
               "event": "P10 implemented on feature/upload-document (T10.1-T10.3): the Workspace Settings card is titled \"AI assistant\", explains that one provider and key power every AI feature, lists code review and projects from documents as bullets, and labels the shared switch \"Enable AI features\" in en/fr/ar. Copy-only change; no server, API, schema or permission change. Typecheck, lint, build and governance pass; headless Chrome checked 320-1280 px, keyboard, fr and ar RTL, and the upload page reacting to the same ai.enabled flag. The client settings test still asserts the old switch label and belongs to /sdrive:test.",
               "by": "implementation",
               "timestamp": "2026-10-23T17:12:58.026Z"
+            },
+            {
+              "event": "spec_updated",
+              "timestamp": "2026-10-23T21:47:39.140Z",
+              "summary": "P11 update: the create-with-AI page always creates a new project and no longer asks for a destination; the project page gains \"Add from document\", opening the same four-step wizard at /projects/:projectId/plan with the target fixed to that project; the dashed New project and Create with AI folder cards return as the first items of the Projects grid and replace the header buttons. Added US-013..US-015, FR-031..FR-033, NFR-018, AC-034..AC-042, EC-026..EC-031 and RISK-017..RISK-019. Supersedes FR-020, AC-016, AC-017 and EC-016. No server, API, schema or permission change; the specification gate was reset for re-approval."
             }
           ]
         }

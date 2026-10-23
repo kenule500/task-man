@@ -616,6 +616,68 @@
         "T10.3"
       ],
       "status": "complete"
+    },
+    {
+      "requirementId": "FR-031",
+      "acceptanceCriteriaIds": [
+        "AC-034",
+        "AC-035"
+      ],
+      "planSection": "Update (2026-10-23) → Document plans from a project page, and folder cards back on Projects",
+      "taskIds": [
+        "T11.1",
+        "T11.6"
+      ],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-032",
+      "acceptanceCriteriaIds": [
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039"
+      ],
+      "planSection": "Update (2026-10-23) → Document plans from a project page, and folder cards back on Projects",
+      "taskIds": [
+        "T11.2",
+        "T11.3",
+        "T11.4"
+      ],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-033",
+      "acceptanceCriteriaIds": [
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ],
+      "planSection": "Update (2026-10-23) → Document plans from a project page, and folder cards back on Projects",
+      "taskIds": [
+        "T11.5",
+        "T11.6"
+      ],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-018",
+      "acceptanceCriteriaIds": [
+        "AC-034",
+        "AC-035",
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039",
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ],
+      "planSection": "Update (2026-10-23) → Document plans from a project page, and folder cards back on Projects",
+      "taskIds": [
+        "T11.6"
+      ],
+      "status": "not_started"
     }
   ]
 }

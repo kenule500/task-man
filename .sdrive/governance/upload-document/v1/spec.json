@@ -267,6 +267,69 @@
           "text": "Given English, French or Arabic, when the card renders at 320, 375, 768, 1024 or 1280 px, then the heading, bullets and switch label are translated, the Arabic layout is RTL without horizontal overflow, and the keyboard focus order and accessible names are unchanged."
         }
       ]
+    },
+    {
+      "id": "US-013",
+      "title": "Create a project from a document without choosing a destination",
+      "role": "member who can create projects and tasks",
+      "want": "the document-to-project page to always create a new project",
+      "benefit": "I do not answer a destination question when the work is new",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-034",
+          "text": "Given the create-with-AI page, when the upload step renders, then no destination choice or existing-project picker is shown, the project name and key fields are always present, and the AI notice, file picker, options and recent plans keep their current behaviour."
+        },
+        {
+          "id": "AC-035",
+          "text": "Given a ready plan on that page, when the person creates it, then the create request targets a new project, the toast says the project was created, and the browser opens it."
+        }
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Add a document plan to the project I am looking at",
+      "role": "member who can create projects and tasks",
+      "want": "to upload a requirements document from a project's page",
+      "benefit": "the plan's sprints, tasks, subtasks and criteria are added to that project without creating a duplicate",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-036",
+          "text": "Given an active project, when a member with projects:write and tasks:write opens the project page, then the header shows an \"Add from document\" action beside the existing actions; the action is absent for a member missing either permission and for an archived project."
+        },
+        {
+          "id": "AC-037",
+          "text": "Given that action, when it is activated, then the four-step wizard opens on a project-scoped page; the upload step shows a read-only \"Adding to <name> <key>\" line where the destination choice used to be, no project name/key fields are shown, and the review step names the project and offers no way to change the destination."
+        },
+        {
+          "id": "AC-038",
+          "text": "Given a reviewed plan on the project-scoped page, when the person creates it, then the create request sends that project's id, the toast says the plan was added, the browser returns to the project, and the project's existing sprints and tasks are unchanged."
+        },
+        {
+          "id": "AC-039",
+          "text": "Given a project-scoped page opened with a plan id that was stored for another project or was already created, when the page loads, then it does not add that plan to the current project: it shows the plan's own destination and lets the person return to the project, and no write is sent to the wrong project."
+        }
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "Start work from the Projects grid",
+      "role": "member who can create projects",
+      "want": "the New project and Create with AI cards at the start of the project grid",
+      "benefit": "starting a project is the first thing I see and the grid keeps its folder design",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-040",
+          "text": "Given at least one active project, when a member with projects:write opens Projects, then the first items of the grid are the dashed \"New project\" card and, when the member also has tasks:write, the dashed \"Create with AI\" card, followed by the project folders in the chosen sort order; the header shows no duplicate creation buttons."
+        },
+        {
+          "id": "AC-041",
+          "text": "Given a search query, then the action cards are hidden and only matching folders remain; with no projects, the empty state offers both actions according to permission; archived projects are listed without action cards."
+        },
+        {
+          "id": "AC-042",
+          "text": "At 320, 375, 768, 1024 and 1280 px, the cards come first in DOM and visual order, keep 40 px touch targets and visible focus, cause no horizontal scroll, are translated in English, French and Arabic, and work RTL; the AI card opens /{workspaceSlug}/projects/new/ai."
+        }
+      ]
     }
   ],
   "functionalRequirements": [
@@ -491,6 +554,33 @@
         "AC-031",
         "AC-032"
       ]
+    },
+    {
+      "id": "FR-031",
+      "text": "The create-from-document page MUST always create a new project. It MUST NOT render a destination choice, the existing-project picker, or destination-change controls; the project name and key fields MUST always be shown; the create request MUST target a new project.",
+      "linkedAcceptanceCriteria": [
+        "AC-034",
+        "AC-035"
+      ]
+    },
+    {
+      "id": "FR-032",
+      "text": "The project details page MUST offer \"Add from document\" to members holding both projects:write and tasks:write when the project is active. The action MUST open a project-scoped version of the same four-step wizard whose destination is fixed to that project: no destination choice, no project name/key fields, the project named in the upload and review steps, the create request carrying that project's id, and success returning to the project.",
+      "linkedAcceptanceCriteria": [
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039"
+      ]
+    },
+    {
+      "id": "FR-033",
+      "text": "The Projects page MUST render the dashed \"New project\" and \"Create with AI\" cards as the first items of the active project grid, New project first, gated by projects:write and by projects:write plus tasks:write respectively, and MUST NOT render duplicate creation buttons in the page header. The cards MUST be hidden while a search query is active, MUST not appear in the archived grid, and the zero-project empty state MUST offer both actions according to permission.",
+      "linkedAcceptanceCriteria": [
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ]
     }
   ],
   "nonFunctionalRequirements": [
@@ -620,6 +710,21 @@
       "linkedAcceptanceCriteria": [
         "AC-033"
       ]
+    },
+    {
+      "id": "NFR-018",
+      "text": "The new copy MUST exist in English, French and Arabic and MUST keep CON-305/CON-306: keyboard operable, visible focus, programmatic labels, 40 px touch targets below md, no horizontal scroll from 320 px, and RTL. The change MUST NOT add a dependency, alter the plan upload/create API contract, stored plan shape, permission model or AI settings, and MUST NOT store document text. The project-scoped route MUST apply the same permission gate as the create-with-AI page and MUST NOT trust a plan id from another project.",
+      "linkedAcceptanceCriteria": [
+        "AC-034",
+        "AC-035",
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039",
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ]
     }
   ],
   "edgeCases": [
@@ -747,6 +852,36 @@
       "id": "EC-025",
       "description": "A new AI capability is added later and reuses the same provider.",
       "expectedBehavior": "It appears as an additional bullet in the same card; the \"AI assistant\" heading and the \"Enable AI features\" switch label stay unchanged, and no settings field or migration is added unless that capability needs its own toggle."
+    },
+    {
+      "id": "EC-026",
+      "description": "The project is archived or deleted while the project-scoped wizard is open.",
+      "expectedBehavior": "Create answers 404/409, the review step shows the target problem, the plan stays ready, and no partial sprint or task is written."
+    },
+    {
+      "id": "EC-027",
+      "description": "AI is unconfigured, turned off, or over the daily limit on the project page.",
+      "expectedBehavior": "The same notice as the new-project page, Analyze is disabled, and no request is sent."
+    },
+    {
+      "id": "EC-028",
+      "description": "A member loses projects:write or tasks:write, or opens the project-scoped URL directly without them.",
+      "expectedBehavior": "The header action disappears and the page shows the no-access state; no plan is started."
+    },
+    {
+      "id": "EC-029",
+      "description": "The project-scoped route is opened with a ?plan= id from another project or one that was already created.",
+      "expectedBehavior": "The page does not add it to the current project; it shows the plan's own destination and offers return/discard, and no cross-project write is sent."
+    },
+    {
+      "id": "EC-030",
+      "description": "The Projects page has zero projects, only archived projects, a search with no matches, or 320 px width with long names.",
+      "expectedBehavior": "Both actions in the empty state, no cards in the archived grid, cards hidden while searching, and no horizontal scroll."
+    },
+    {
+      "id": "EC-031",
+      "description": "A member has projects:write but not tasks:write, or is read-only.",
+      "expectedBehavior": "They see only the New project card/action, or no action cards at all, and the header stays free of duplicate buttons."
     }
   ],
   "dependencies": [
@@ -906,6 +1041,21 @@
       "id": "RISK-016",
       "description": "Existing installations expect AI_* to keep working and are surprised when workspace AI is unconfigured after upgrade.",
       "mitigation": "Keep the API bootable, mark the variables as legacy in .env.example and release notes, show an actionable AI_NOT_CONFIGURED state, and do not copy a server key into workspaces without consent."
+    },
+    {
+      "id": "RISK-017",
+      "description": "Members who used \"Create with AI\" to add to an existing project lose the only entry point they know and create duplicate projects.",
+      "mitigation": "The project page carries \"Add from document\" for the same plan flow, the AI card hint says it creates a new project, and both entry points are covered by browser checks."
+    },
+    {
+      "id": "RISK-018",
+      "description": "A project-scoped plan resumed from a stale or shared address adds work to the wrong project.",
+      "mitigation": "The route fixes the target per project, the create request sends that project id, and a plan whose stored target differs is refused (EC-029)."
+    },
+    {
+      "id": "RISK-019",
+      "description": "Two action cards before the folders push real projects below the fold on small screens and break the grid scan order.",
+      "mitigation": "Cards are compact, share the folder grid, are hidden while searching, and the grid keeps one column on phones."
     }
   ]
 }

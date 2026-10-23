@@ -653,3 +653,111 @@ but the scan stays in the gate). Then check the card at 320/375/768/1024/1280 px
 and en/fr/ar RTL, configured and unconfigured: the heading, both bullets and the switch label, no
 review-only wording, no horizontal overflow, and the upload page still reacting to the same
 `ai.enabled` flag. Server typecheck is unchanged because no server file changes.
+
+## Update - Project-scoped document plans and folder creation cards (2026-10-23)
+
+### Components (P11 update)
+
+- `client/src/pages/AiProjectPage.tsx` (modify): accept a project-scoped mode when the route
+  supplies `:projectId`. Resolve the project from `useProjectDirectory()`; while the directory
+  loads show `SkeletonDetail`, and show the existing no-access or not-found surface when the member
+  lacks `projects:write`/`tasks:write` or the project is gone. In project mode the header reads
+  "Add a plan to {project}", the back link returns to the project, and the plan target is fixed.
+  Keep the `?plan=` resume behaviour, but validate the plan's stored target before resuming.
+- `client/src/App.tsx` (modify): add `/:workspaceSlug/projects/:projectId/plan` behind
+  `projects:write`, lazy-loading the same `AiProjectPage` chunk. React Router ranks the static
+  `plan` segment above `:projectId`, so the detail route is unchanged.
+- `client/src/features/ai-plan/hooks/useAiProjectPlan.ts` (modify): take a fixed
+  `targetProjectId: string | null` instead of owning destination state. Remove `destination`,
+  `targetProjectId` state, `rememberDestination` and `changeDestination`. `start` merges the fixed
+  target into the upload payload (`destination`/`targetProjectId`); `create` always sends the
+  override (`null` for a new project, the id for a project) so a resumed plan can never inherit a
+  stale stored target.
+- `client/src/features/ai-plan/components/UploadStep.tsx` (modify): delete the "Where the plan
+  goes" `Surface` and the `DestinationPicker` import. Add a `target?: Project | null` prop: when
+  set, render a read-only "Adding to {name} {key}" line; when absent, always render the project
+  name and key fields. Drop `projects`, `projectsLoading`, `destination`, `targetProjectId`,
+  `targetProblem`, `upload.needTarget` and the target guard on submit.
+- `client/src/features/ai-plan/components/ReviewStep.tsx` (modify): keep the destination summary
+  but make it read-only - "New project: {draft.project.name}" or "Adding to: {target.name} {key}"
+  - with no Change button, picker or `DestinationPicker`. Choose the add/create copy and
+  confirmation from the fixed target. Keep the plan tabs, problems, regenerate and discard
+  behaviour.
+- `client/src/features/ai-plan/lib/destination.ts` (modify): add `planBelongsToProject(plan,
+  projectId)`, a pure helper that returns true only when a plan is not already created and its
+  stored `targetProjectId` matches; reuse `targetLabel`. Keep the existing helpers that still have
+  a caller.
+- `client/src/features/ai-plan/components/DestinationPicker.tsx` and `ProjectPicker.tsx` (delete):
+  no page offers a destination choice any more; their pure helpers stay. `/sdrive:test` removes or
+  rewrites the matching tests.
+- `client/src/pages/ProjectDetailPage.tsx` (modify): add an "Add from document" outline action to
+  the header for members with `projects:write` and `tasks:write` when the project is not archived;
+  it links to `/{workspaceSlug}/projects/{id}/plan` with a `FileUp`/`Sparkles` icon. Keep Edit,
+  Project chat, Open board and New sprint in their order.
+- `client/src/pages/ProjectsPage.tsx` (modify): remove the header `New project` / `Create with AI`
+  buttons; render `NewProjectCard` then `AiProjectCard` as the first `<li>` items of the active
+  grid when the query is empty; keep the empty state but give it both actions; keep the no-match
+  state, archived grid, search and sort unchanged.
+- `client/src/features/projects/components/NewProjectCard.tsx` (create): restore the dashed folder
+  card that opens `ProjectFormDialog`; reuse `t('projects:page.newProjectCard')`.
+- `client/src/features/ai-plan/components/AiProjectCard.tsx` (create): restore the dashed info
+  folder link to `/{workspaceSlug}/projects/new/ai`; reuse `t('aiPlan:card.title')` and
+  `t('aiPlan:card.hint')`.
+- `client/src/i18n/locales/{en,fr,ar}/aiPlan.json` (modify): add `card.title`/`card.hint`,
+  `page.projectTitle`/`page.projectDescription`/`page.backToProject`, `upload.addingTo`/
+  `upload.addingToHint`, and the read-only review labels; remove the now-unused `destination.*`
+  block and `upload.needTarget` once no component reads them.
+- `client/src/i18n/locales/{en,fr,ar}/projects.json` (modify): add `page.newProjectCard` and
+  `detail.addFromDocument`; keep `page.createWithAi` for the empty-state action and the AI card
+  hint if it is reused.
+
+### Flow (P11 update)
+
+The new-project page (`/projects/new/ai`) is unchanged except that it no longer asks where the
+plan goes: every plan started there creates a new project. The project page adds a second entry to
+the same wizard at `/projects/:projectId/plan`, where the target is the route's project: the
+upload payload carries `targetProjectId`, the create call sends it, and success returns to the
+project. Resuming a `?plan=` id in project mode first reads the plan and checks its stored target;
+a plan for another project (or one already created) is not shown as this project's plan and offers
+the generic plan page or a return to the project instead.
+
+### Data & API (P11 update)
+
+No schema, migration or endpoint change: the plan upload already accepts an optional
+`targetProjectId` and the create endpoint already accepts an optional override. The change is
+client routing and UI only; the stored plan shape and the daily limits are untouched.
+
+### Security (P11 update)
+
+The project-scoped route keeps the `projects:write` guard and the page's `tasks:write` check, so a
+member cannot start or create a plan for a project they could not edit. The create call is still
+authorized against the workspace and the target is validated server-side (exists, active), so a
+forged project id fails. No document text is stored; the file stays in memory.
+
+### Performance (P11 update)
+
+No new network call on the happy path: the project page reuses the directory it already loads,
+and the project-scoped wizard adds only the plan read when resuming a `?plan=` id. The grid gains
+two static cards, so no extra request; the existing lazy chunk is reused for the new route.
+
+### Dependencies & Risks (P11 update)
+
+- No new dependency: the cards reuse plain markup, `react-router-dom`, `react-i18next` and the
+  existing `Button`; the wizard reuses the existing components and API client.
+
+| Risk | Mitigation |
+| --- | --- |
+| Members who used "Create with AI" to add to an existing project lose the entry point they know and create duplicates. | The project header carries "Add from document" and the AI card hint says it creates a new project; both are checked in the browser. |
+| A stale `?plan=` link adds work to the wrong project. | `planBelongsToProject` refuses a mismatched or created plan before it is shown (EC-029). |
+| Two action cards push projects below the fold on phones. | Cards share the folder grid, stay compact, and are hidden while searching. |
+
+### Verification (P11 update)
+
+Gate 2 is followed by implementation and then the Test Agent; this plan does not author tests.
+Before the implementation gate run server/client typecheck, client lint, client build,
+`node .sdrive/scripts/validate-governance.js` and a changed-file secret scan. Then check, in a
+browser, the new-project page (no destination choice, name/key always present), the project page
+button (permission and archived gates), the project-scoped wizard (read-only target, create into
+the project, return to the project), the mismatch guard, and the Projects grid (cards first, hidden
+while searching, both actions in the empty state). Repeat at 320/375/768/1024/1280 px, keyboard
+only, en/fr/ar and RTL.

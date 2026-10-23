@@ -333,6 +333,81 @@
         "name": "client/src/components/ds",
         "action": "reuse",
         "description": "Surface, SectionHeader and SwitchField already provide the heading, spacing, labelled switch and description; the bullets are plain list items."
+      },
+      {
+        "name": "client/src/pages/AiProjectPage.tsx",
+        "action": "modify",
+        "description": "Add a project-scoped mode driven by :projectId: resolve the project from the directory, title and back link for the project, fixed plan target, loading/not-found/no-access states, and a guard before resuming a plan stored for another project."
+      },
+      {
+        "name": "client/src/App.tsx",
+        "action": "modify",
+        "description": "Add /:workspaceSlug/projects/:projectId/plan behind projects:write, lazy-loading the existing AiProjectPage chunk."
+      },
+      {
+        "name": "client/src/features/ai-plan/hooks/useAiProjectPlan.ts",
+        "action": "modify",
+        "description": "Replace destination state with a fixed targetProjectId; start merges the target into the upload payload and create always sends the override (null for a new project, the id for a project)."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/UploadStep.tsx",
+        "action": "modify",
+        "description": "Remove the destination picker and target guard; add a read-only \"Adding to\" line in project mode and always show the name/key fields in new-project mode."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/ReviewStep.tsx",
+        "action": "modify",
+        "description": "Make the destination summary read-only, choose add/create copy and confirmation from the fixed target, and drop the change-destination panel."
+      },
+      {
+        "name": "client/src/features/ai-plan/lib/destination.ts",
+        "action": "modify",
+        "description": "Add planBelongsToProject(plan, projectId) so a resumed plan cannot be shown or created for another project."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/DestinationPicker.tsx",
+        "action": "delete",
+        "description": "No page offers a destination choice; the pure target helpers stay. Matching tests move to /sdrive:test."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/ProjectPicker.tsx",
+        "action": "delete",
+        "description": "Only DestinationPicker used it; the project-scoped route supplies the target."
+      },
+      {
+        "name": "client/src/pages/ProjectDetailPage.tsx",
+        "action": "modify",
+        "description": "Add the \"Add from document\" header action for projects:write + tasks:write on an active project, linking to the project-scoped wizard."
+      },
+      {
+        "name": "client/src/pages/ProjectsPage.tsx",
+        "action": "modify",
+        "description": "Remove the header creation buttons, render NewProjectCard then AiProjectCard as the first grid items when not searching, and give the empty state both actions."
+      },
+      {
+        "name": "client/src/features/projects/components/NewProjectCard.tsx",
+        "action": "create",
+        "description": "Restore the dashed folder card that opens ProjectFormDialog."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/AiProjectCard.tsx",
+        "action": "create",
+        "description": "Restore the dashed info folder link to the create-with-AI page."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/aiPlan.json",
+        "action": "modify",
+        "description": "Add card, project-mode, read-only target and empty-state copy; remove the unused destination block and needTarget once no component reads them."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/projects.json",
+        "action": "modify",
+        "description": "Add the new-project card label and the project header action label."
+      },
+      {
+        "name": "client/src/components/ui/button.tsx",
+        "action": "reuse",
+        "description": "The restored cards and the header action reuse the existing Button and link styles."
       }
     ],
     "referencedRequirementIds": [
@@ -378,7 +453,11 @@
       "NFR-015",
       "NFR-016",
       "FR-030",
-      "NFR-017"
+      "NFR-017",
+      "FR-031",
+      "FR-032",
+      "FR-033",
+      "NFR-018"
     ]
   },
   "dataModel": {
@@ -821,6 +900,10 @@
     {
       "requirementId": "NFR-016",
       "description": "queueReview/runReview, queueAutoReview and the plan queue/run paths resolve the workspace subdocument on every request and pass one config object into the provider. The resolved model is stored on the review/plan at queue time, so an in-flight operation keeps that model; a later provider or key change applies to the next request only."
+    },
+    {
+      "requirementId": "NFR-018",
+      "description": "The project-scoped route keeps the projects:write guard and the page checks tasks:write, so a member cannot start or create a plan for a project they cannot edit. The create call still authorizes against the workspace and validates the target server-side; a forged project id fails. No document text is stored."
     }
   ],
   "performanceConsiderations": [
@@ -863,6 +946,10 @@
     {
       "requirementId": "NFR-015",
       "strategy": "The settings form is manager-only and has no polling; test is an explicit action. No additional client bundle dependency is introduced."
+    },
+    {
+      "requirementId": "NFR-018",
+      "strategy": "No extra request on the happy path: the project page reuses the directory it already loads and the wizard adds only the plan read when resuming a ?plan= id. The grid gains two static cards, and the new route reuses the existing lazy chunk."
     }
   ],
   "dependencies": [
@@ -973,6 +1060,18 @@
       "type": "library",
       "action": "no_change",
       "notes": "Existing translation runtime; the capability bullets and renamed copy are new keys in the same ai namespace, with no new package."
+    },
+    {
+      "name": "react-router-dom",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing router; the project-scoped route reuses the installed version and the same lazy chunk."
+    },
+    {
+      "name": "lucide-react",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Existing icon set; the cards and header action reuse FileUp/Sparkles/Plus."
     }
   ],
   "risks": [
@@ -1059,6 +1158,18 @@
     {
       "description": "The renamed switch implies it only controls reviews, so a manager turns off document plans by accident.",
       "mitigation": "The switch description names both actions and verification checks the upload page reacts to the same flag."
+    },
+    {
+      "description": "Members who used \"Create with AI\" to add to an existing project lose the entry point they know and create duplicate projects.",
+      "mitigation": "The project header carries \"Add from document\" for the same plan flow, the AI card hint says it creates a new project, and both entry points are checked in the browser."
+    },
+    {
+      "description": "A project-scoped plan resumed from a stale or shared address adds work to the wrong project.",
+      "mitigation": "The route fixes the target per project, create sends that project id, and planBelongsToProject refuses a mismatched or created plan before it is shown."
+    },
+    {
+      "description": "Two action cards before the folders push real projects below the fold on phones and break the grid scan order.",
+      "mitigation": "Cards share the folder grid, stay compact, and are hidden while searching; the grid keeps one column on phones."
     }
   ]
 }

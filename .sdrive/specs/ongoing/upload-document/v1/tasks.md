@@ -333,3 +333,35 @@ Agent and are deliberately absent.
   unconfigured states: heading, both bullets, switch label, no review-only wording, no horizontal
   overflow, and the upload page still reacting to the same switch. Do not author or run tests.
   _(NFR-017; AC-033)_
+
+## P11 - Project-scoped document plans and folder creation cards
+
+- [ ] **T11.1 - Remove the destination choice from the new-project flow.** Replace the destination
+  state and picker with a fixed destination: the create-with-AI page always creates a new project,
+  the name/key fields always render, the review banner reads "New project: <name>", and create
+  sends an explicit null override. Remove the `DestinationPicker` usage and the `needTarget` guard
+  without touching the API. _(FR-031; AC-034, AC-035)_
+- [ ] **T11.2 - Add the project-scoped route and page mode.** Add
+  `/:workspaceSlug/projects/:projectId/plan` behind `projects:write` and teach `AiProjectPage` a
+  project-scoped mode: resolve the project from the directory, show loading/not-found/no-access
+  states, title "Add a plan to {project}", back link to the project, and a fixed target. Add
+  `planBelongsToProject` and refuse a `?plan=` id stored for another project or already created,
+  offering the generic plan page or a return to the project. _(FR-032; AC-037, AC-039)_
+- [ ] **T11.3 - Add "Add from document" to the project header.** Add the outline action to
+  `ProjectDetailPage` for members with `projects:write` and `tasks:write` when the project is
+  active, linking to the project-scoped wizard; keep Edit, Project chat, Open board and New sprint
+  in order and keep the mobile stacking. _(FR-032; AC-036)_
+- [ ] **T11.4 - Scope the wizard copy and create payload to the project.** In project mode render
+  the read-only "Adding to <name> <key>" line, hide the name/key fields, make the review
+  destination read-only, use the add/create copy and confirmation, send `targetProjectId` on
+  create, and return to the project on success. _(FR-032; AC-037, AC-038)_
+- [ ] **T11.5 - Restore the folder creation cards at the start of the grid.** Restore
+  `NewProjectCard` and `AiProjectCard`, render them as the first items of the active grid when the
+  query is empty, remove the header creation buttons, give the zero-project empty state both
+  actions, and keep archived, no-match and search behaviour. _(FR-033; AC-040, AC-041)_
+- [ ] **T11.6 - Localise, clean up and verify both modes.** Add en/fr/ar copy for the cards,
+  project mode and read-only target; remove the unused destination copy and picker files; run
+  server/client typecheck, client lint, client build,
+  `node .sdrive/scripts/validate-governance.js` and a changed-file secret scan; verify both wizard
+  modes and the Projects page at 320/375/768/1024/1280 px, keyboard, en/fr/ar and RTL. Do not
+  author or run tests. _(NFR-018; AC-042)_
