@@ -109,6 +109,7 @@
     "deleted": "« {{name}} » supprimé",
     "deleteError": "Impossible de supprimer le projet.",
     "newProject": "Nouveau projet",
+    "projectActions": "Actions du projet",
     "newProjectCard": "Nouveau projet",
     "title": "Projets",
     "description": "Des dossiers pour vos sprints et vos tâches. Ouvrez-en un pour planifier des sprints et suivre l’avancement.",

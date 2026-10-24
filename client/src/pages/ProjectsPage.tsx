@@ -131,7 +131,11 @@ const ProjectsPage = () => {
   ) : undefined;
 
   const pageActions = (newProjectButton || aiProjectButton) ? (
-    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+    <div
+      role="group"
+      aria-label={t('page.projectActions')}
+      className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"
+    >
       {newProjectButton}
       {aiProjectButton}
     </div>
@@ -142,6 +146,7 @@ const ProjectsPage = () => {
       <PageHeader
         title={t('page.title')}
         description={t('page.description')}
+        actions={projects.length > 0 ? pageActions : undefined}
       />
 
       {loading ? (

@@ -106,6 +106,7 @@
     "deleted": "\"{{name}}\" deleted",
     "deleteError": "Could not delete the project.",
     "newProject": "New project",
+    "projectActions": "Project actions",
     "newProjectCard": "New project",
     "title": "Projects",
     "description": "Folders for your sprints and tasks. Open one to plan sprints and track progress.",
