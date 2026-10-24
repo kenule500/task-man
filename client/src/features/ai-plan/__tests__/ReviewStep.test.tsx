@@ -61,7 +61,7 @@ const titleButton = (title: string) => screen.getByRole('button', { name: new Re
 afterEach(() => { toast.clear(); });
 
 describe('ReviewStep', () => {
-  it('shows the generated project like the mock: header, tabs with counts, sprints with dates, goals and tasks', () => {
+  it('AC-005: shows the generated project like the mock: header, tabs with counts, sprints with dates, goals and tasks', () => {
     render(<Harness />);
     const header = screen.getByRole('region', { name: 'Generated project' });
     expect(within(header).getByRole('heading', { name: /Online Bookshop/ })).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('ReviewStep', () => {
     expect(banner).toHaveTextContent('the middle was left out');
   });
 
-  it('creates the project with the button, and not while it is already being created', async () => {
+  it('AC-007/AC-010: creates the project with the button, and not while it is already being created', async () => {
     const user = userEvent.setup();
     const onCreate = jest.fn();
     const { rerender } = render(<Harness onCreate={onCreate} />);
@@ -223,7 +223,7 @@ describe('ReviewStep', () => {
     expect(screen.getAllByRole('button', { name: 'Creating the project…' })[0]).toBeDisabled();
   });
 
-  it('offers the free name or key when the server says it is taken', async () => {
+  it('AC-007: offers the free name or key when the server says it is taken', async () => {
     const user = userEvent.setup();
     const drafts: PlanContent[] = [];
     render(<Harness
@@ -241,7 +241,7 @@ describe('ReviewStep', () => {
     expect(screen.getByText(/Nothing was changed/)).toBeInTheDocument();
   });
 
-  it('asks before regenerating or discarding edited work, and not when nothing changed', async () => {
+  it('AC-006: asks before regenerating or discarding edited work, and not when nothing changed', async () => {
     const user = userEvent.setup();
     const onRegenerate = jest.fn();
     const onDiscard = jest.fn();
@@ -264,7 +264,7 @@ describe('ReviewStep', () => {
     expect(screen.getAllByRole('button', { name: 'Regenerate' })[0]).toBeDisabled();
   });
 
-  it('blocks creation when a subtask has no title', async () => {
+  it('AC-005: blocks creation when a subtask has no title', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('tab', { name: 'Subtasks 2' }));

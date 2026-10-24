@@ -6,6 +6,7 @@ import { tasksApi } from '@/features/tasks/api';
 import { makeTask } from '@/features/tasks/__tests__/fixtures';
 import { projectsApi } from '@/features/projects/api';
 import { makeProject, makeSprint } from '@/features/projects/__tests__/fixtures';
+import i18n from '@/i18n';
 import ProjectsPage from '../ProjectsPage';
 
 jest.setTimeout(30000);
@@ -42,11 +43,20 @@ const renderPage = () =>
     <MemoryRouter initialEntries={['/demo/projects']}>
       <Routes>
         <Route path="/:workspaceSlug/projects" element={<ProjectsPage />} />
+        <Route path="/:workspaceSlug/projects/new/ai" element={<p>AI project page</p>} />
       </Routes>
     </MemoryRouter>,
   );
 
 const WRITER = ['projects:read', 'projects:write', 'projects:delete'];
+
+const pageHeader = async (name = 'Projects') => {
+  const heading = await screen.findByRole('heading', { level: 1, name });
+  return heading.closest('header') as HTMLElement;
+};
+
+const headerActions = async () => within(await pageHeader()).getByRole('group', { name: 'Project actions' });
+const activeGrid = () => screen.getByRole('list', { name: 'Projects' });
 
 beforeEach(() => {
   granted = WRITER;
@@ -59,8 +69,12 @@ beforeEach(() => {
   ]);
 });
 
+afterEach(async () => {
+  await i18n.changeLanguage('en');
+});
+
 describe('ProjectsPage', () => {
-  it('shows one folder link per project with counts, progress and the active sprint', async () => {
+  it('AC-040/AC-041/AC-042: shows one folder link per project with counts, progress and the active sprint', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Projects' })).toBeInTheDocument();
@@ -89,7 +103,7 @@ describe('ProjectsPage', () => {
     expect(within(card).getByRole('button', { name: 'Actions for Website' })).toBeInTheDocument();
   });
 
-  it('keeps archived projects in a collapsed section', async () => {
+  it('AC-041: keeps archived projects in a collapsed section', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
 
@@ -102,7 +116,7 @@ describe('ProjectsPage', () => {
     expect(screen.getByRole('link', { name: 'Legacy portal' })).toBeInTheDocument();
   });
 
-  it('filters by name or key and offers to clear an empty search', async () => {
+  it('AC-041: filters by name or key and offers to clear an empty search', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
     const search = screen.getByRole('searchbox', { name: 'Search projects' });
@@ -188,7 +202,7 @@ describe('ProjectsPage', () => {
     expect(await within(dialog).findByText('A project with this name already exists')).toBeInTheDocument();
   });
 
-  it('hides write actions from read-only members', async () => {
+  it('AC-040/AC-043: hides write actions from read-only members', async () => {
     granted = ['projects:read'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -200,20 +214,20 @@ describe('ProjectsPage', () => {
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
   });
 
-  it('offers "Create with AI" to people who can write both projects and tasks', async () => {
+  it('AC-040/AC-043: offers "Create with AI" to people who can write both projects and tasks', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     const link = await screen.findByRole('link', { name: /Create with AI/ });
     expect(link).toHaveAttribute('href', '/demo/projects/new/ai');
   });
 
-  it('keeps "Create with AI" away from people who cannot create tasks', async () => {
+  it('AC-040/AC-043: keeps "Create with AI" away from people who cannot create tasks', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
     expect(screen.queryByRole('link', { name: /Create with AI/ })).not.toBeInTheDocument();
   });
 
-  it('explains an empty workspace and offers the first project', async () => {
+  it('AC-042/AC-045: explains an empty workspace and offers the first project', async () => {
     projects.list.mockResolvedValue([]);
     renderPage();
 
@@ -225,5 +239,157 @@ describe('ProjectsPage', () => {
     projects.list.mockRejectedValue(new Error('boom'));
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load projects');
+  });
+
+  it('AC-043: shows the header actions and opens the create-project dialog', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    const actions = await headerActions();
+    expect(within(actions).getByRole('button', { name: 'New project' })).toBeInTheDocument();
+    expect(within(actions).getByRole('button', { name: 'Create with AI' })).toBeInTheDocument();
+
+    await userEvent.click(within(actions).getByRole('button', { name: 'New project' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('AC-043: opens the create-with-AI page from the header', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    await userEvent.click(within(await headerActions()).getByRole('button', { name: 'Create with AI' }));
+    expect(await screen.findByText('AI project page')).toBeInTheDocument();
+  });
+
+  it('AC-043: keeps the dashed cards as the first items of the active grid', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    const grid = activeGrid();
+    const [newCard, aiCard] = Array.from(grid.children);
+    expect(within(newCard as HTMLElement).getByRole('button', { name: 'New project' })).toBeInTheDocument();
+    expect(within(aiCard as HTMLElement).getByRole('link', { name: /Create with AI/ }))
+      .toHaveAttribute('href', '/demo/projects/new/ai');
+    expect(within(grid).getAllByRole('listitem')[0]).toBe(newCard);
+  });
+
+  it('AC-043: shows New project but not Create with AI without tasks:write', async () => {
+    granted = [...WRITER];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    const actions = await headerActions();
+    expect(within(actions).getByRole('button', { name: 'New project' })).toBeInTheDocument();
+    expect(within(actions).queryByRole('button', { name: 'Create with AI' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Create with AI/ })).not.toBeInTheDocument();
+  });
+
+  it('AC-043: shows no header actions to members without projects:write', async () => {
+    granted = ['projects:read'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    expect(within(await pageHeader()).queryByRole('group', { name: 'Project actions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
+  });
+
+  it('AC-044: keeps header actions through search and archived views while hiding the cards', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Archived/ }));
+    const archived = screen.getByRole('list', { name: 'Archived projects' });
+    expect(within(archived).queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
+    expect(within(archived).queryByRole('link', { name: /Create with AI/ })).not.toBeInTheDocument();
+    expect(await headerActions()).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search projects' }), 'app');
+    const active = activeGrid();
+    expect(within(active).queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
+    expect(within(active).queryByRole('link', { name: /Create with AI/ })).not.toBeInTheDocument();
+    expect(await headerActions()).toBeInTheDocument();
+  });
+
+  it('AC-044: keeps the header actions when the sort changes', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Sort projects' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Progress' }));
+    expect(await headerActions()).toBeInTheDocument();
+  });
+
+  it('AC-045: does not repeat the empty-state actions in the header', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    projects.list.mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByText('No projects yet')).toBeInTheDocument();
+    expect(within(await pageHeader()).queryByRole('group', { name: 'Project actions' })).not.toBeInTheDocument();
+    const actions = screen.getByRole('group', { name: 'Project actions' });
+    expect(within(actions).getByRole('button', { name: 'New project' })).toBeInTheDocument();
+    expect(within(actions).getByRole('button', { name: 'Create with AI' })).toBeInTheDocument();
+  });
+
+  it('AC-045: gives the empty state only the actions allowed by permission', async () => {
+    granted = [...WRITER];
+    projects.list.mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByText('No projects yet')).toBeInTheDocument();
+    const actions = screen.getByRole('group', { name: 'Project actions' });
+    expect(within(actions).getByRole('button', { name: 'New project' })).toBeInTheDocument();
+    expect(within(actions).queryByRole('button', { name: 'Create with AI' })).not.toBeInTheDocument();
+  });
+
+  it('AC-045: hides every creation action from read-only members', async () => {
+    granted = ['projects:read'];
+    projects.list.mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByText('No projects yet')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Project actions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
+  });
+
+  it('AC-046: groups the header actions, stacks them below sm and keeps 40px targets', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    const header = await pageHeader();
+    expect(header.className).toContain('flex-col');
+    expect(header.className).toContain('sm:flex-row');
+
+    const actions = within(header).getByRole('group', { name: 'Project actions' });
+    expect(actions.className).toContain('w-full');
+    expect(actions.className).toContain('sm:w-auto');
+    expect(actions.className).toContain('flex-col');
+    expect(actions.className).toContain('sm:flex-row');
+    for (const button of within(actions).getAllByRole('button')) {
+      expect(button.className).toContain('h-10');
+    }
+  });
+
+  it('AC-046: translates the header actions and works RTL', async () => {
+    granted = [...WRITER, 'tasks:write'];
+    await i18n.changeLanguage('fr');
+    renderPage();
+    await screen.findByRole('link', { name: 'Website' });
+
+    const frActions = within(await pageHeader('Projets')).getByRole('group', { name: 'Actions du projet' });
+    expect(within(frActions).getByRole('button', { name: 'Nouveau projet' })).toBeInTheDocument();
+    expect(within(frActions).getByRole('button', { name: 'Créer avec l’IA' })).toBeInTheDocument();
+
+    await i18n.changeLanguage('ar');
+    const arActions = within(await pageHeader('المشاريع')).getByRole('group', { name: 'إجراءات المشروع' });
+    expect(within(arActions).getByRole('button', { name: 'مشروع جديد' })).toBeInTheDocument();
+    expect(within(arActions).getByRole('button', { name: 'إنشاء بالذكاء الاصطناعي' })).toBeInTheDocument();
+    expect(document.documentElement.dir).toBe('rtl');
   });
 });

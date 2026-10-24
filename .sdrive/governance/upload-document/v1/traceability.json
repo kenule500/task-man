@@ -11,6 +11,9 @@
       "taskIds": [
         "T4.3"
       ],
+      "testIds": [
+        "TEST-001"
+      ],
       "status": "complete"
     },
     {
@@ -22,6 +25,9 @@
       "taskIds": [
         "T4.3",
         "T4.4"
+      ],
+      "testIds": [
+        "TEST-002"
       ],
       "status": "complete"
     },
@@ -57,6 +63,9 @@
         "T4.4",
         "T5.1"
       ],
+      "testIds": [
+        "TEST-004"
+      ],
       "status": "complete"
     },
     {
@@ -67,6 +76,9 @@
       "planSection": "Architecture → Components (service, prompt); Flow 2; Performance NFR-007",
       "taskIds": [
         "T3.3"
+      ],
+      "testIds": [
+        "TEST-006"
       ],
       "status": "complete"
     },
@@ -80,6 +92,9 @@
         "T5.1",
         "T5.2"
       ],
+      "testIds": [
+        "TEST-005"
+      ],
       "status": "complete"
     },
     {
@@ -92,6 +107,9 @@
         "T2.1",
         "T2.5",
         "T5.4"
+      ],
+      "testIds": [
+        "TEST-007"
       ],
       "status": "complete"
     },
@@ -136,6 +154,9 @@
         "T2.4",
         "T6.3"
       ],
+      "testIds": [
+        "TEST-010"
+      ],
       "status": "complete"
     },
     {
@@ -146,6 +167,9 @@
       "planSection": "Architecture → Components (ReviewStep); UI/UX Create action",
       "taskIds": [
         "T5.3"
+      ],
+      "testIds": [
+        "TEST-010"
       ],
       "status": "complete"
     },
@@ -173,6 +197,9 @@
         "T1.2",
         "T6.3"
       ],
+      "testIds": [
+        "TEST-010"
+      ],
       "status": "complete"
     },
     {
@@ -186,6 +213,9 @@
         "T1.2",
         "T6.3"
       ],
+      "testIds": [
+        "TEST-001"
+      ],
       "status": "complete"
     },
     {
@@ -197,6 +227,10 @@
       "planSection": "Security NFR-003; Architecture → Components (prompt.ts)",
       "taskIds": [
         "T6.4"
+      ],
+      "testIds": [
+        "TEST-001",
+        "TEST-012"
       ],
       "status": "complete"
     },
@@ -210,6 +244,9 @@
         "T1.1",
         "T6.4"
       ],
+      "testIds": [
+        "TEST-012"
+      ],
       "status": "complete"
     },
     {
@@ -221,6 +258,9 @@
       "planSection": "Security NFR-005; Dependencies",
       "taskIds": [
         "T6.4"
+      ],
+      "testIds": [
+        "TEST-001"
       ],
       "status": "complete"
     },
@@ -248,6 +288,10 @@
       "taskIds": [
         "T4.3"
       ],
+      "testIds": [
+        "TEST-001",
+        "TEST-006"
+      ],
       "status": "complete"
     },
     {
@@ -261,6 +305,10 @@
         "T2.1",
         "T2.4",
         "T6.3"
+      ],
+      "testIds": [
+        "TEST-007",
+        "TEST-010"
       ],
       "status": "complete"
     },
@@ -285,6 +333,9 @@
       "taskIds": [
         "T7.1",
         "T7.2"
+      ],
+      "testIds": [
+        "TEST-014"
       ],
       "status": "complete"
     },
@@ -311,6 +362,9 @@
         "T7.4",
         "T7.5"
       ],
+      "testIds": [
+        "TEST-015"
+      ],
       "status": "complete"
     },
     {
@@ -334,6 +388,9 @@
       "taskIds": [
         "T7.3",
         "T7.6"
+      ],
+      "testIds": [
+        "TEST-014"
       ],
       "status": "complete"
     },
@@ -360,6 +417,9 @@
         "T7.5",
         "T7.6"
       ],
+      "testIds": [
+        "TEST-015"
+      ],
       "status": "complete"
     },
     {
@@ -375,6 +435,9 @@
         "T8.3",
         "T8.6"
       ],
+      "testIds": [
+        "TEST-021"
+      ],
       "status": "complete"
     },
     {
@@ -389,6 +452,9 @@
         "T8.2",
         "T8.3",
         "T8.6"
+      ],
+      "testIds": [
+        "TEST-021"
       ],
       "status": "complete"
     },
@@ -430,6 +496,9 @@
         "T9.1",
         "T9.3"
       ],
+      "testIds": [
+        "TEST-023"
+      ],
       "status": "complete"
     },
     {
@@ -443,6 +512,9 @@
         "T9.3",
         "T9.6",
         "T9.7"
+      ],
+      "testIds": [
+        "TEST-025"
       ],
       "status": "complete"
     },
@@ -472,6 +544,10 @@
         "T9.5",
         "T9.8"
       ],
+      "testIds": [
+        "TEST-023",
+        "TEST-027"
+      ],
       "status": "complete"
     },
     {
@@ -485,6 +561,10 @@
         "T9.4",
         "T9.5"
       ],
+      "testIds": [
+        "TEST-023",
+        "TEST-024"
+      ],
       "status": "complete"
     },
     {
@@ -496,6 +576,9 @@
       "taskIds": [
         "T9.1",
         "T9.3"
+      ],
+      "testIds": [
+        "TEST-025"
       ],
       "status": "complete"
     },
@@ -536,6 +619,9 @@
         "T9.6",
         "T9.7"
       ],
+      "testIds": [
+        "TEST-030"
+      ],
       "status": "complete"
     },
     {
@@ -548,6 +634,9 @@
         "T9.1",
         "T9.3",
         "T9.8"
+      ],
+      "testIds": [
+        "TEST-025"
       ],
       "status": "complete"
     },
@@ -575,6 +664,9 @@
         "T9.7",
         "T9.8"
       ],
+      "testIds": [
+        "TEST-030"
+      ],
       "status": "complete"
     },
     {
@@ -591,6 +683,10 @@
         "T9.5",
         "T9.8"
       ],
+      "testIds": [
+        "TEST-023",
+        "TEST-027"
+      ],
       "status": "complete"
     },
     {
@@ -604,6 +700,10 @@
         "T10.1",
         "T10.2"
       ],
+      "testIds": [
+        "TEST-031",
+        "TEST-032"
+      ],
       "status": "complete"
     },
     {
@@ -614,6 +714,9 @@
       "planSection": "Update (2026-10-23) → AI assistant card",
       "taskIds": [
         "T10.3"
+      ],
+      "testIds": [
+        "TEST-033"
       ],
       "status": "complete"
     },
@@ -627,6 +730,10 @@
       "taskIds": [
         "T11.1",
         "T11.6"
+      ],
+      "testIds": [
+        "TEST-034",
+        "TEST-035"
       ],
       "status": "complete"
     },
@@ -658,6 +765,11 @@
         "T11.5",
         "T11.6"
       ],
+      "testIds": [
+        "TEST-040",
+        "TEST-041",
+        "TEST-042"
+      ],
       "status": "complete"
     },
     {
@@ -677,6 +789,13 @@
       "taskIds": [
         "T11.6"
       ],
+      "testIds": [
+        "TEST-034",
+        "TEST-035",
+        "TEST-040",
+        "TEST-041",
+        "TEST-042"
+      ],
       "status": "complete"
     },
     {
@@ -692,6 +811,12 @@
         "T12.1",
         "T12.2"
       ],
+      "testIds": [
+        "TEST-043",
+        "TEST-044",
+        "TEST-045",
+        "TEST-046"
+      ],
       "status": "complete"
     },
     {
@@ -703,6 +828,9 @@
       "taskIds": [
         "T12.1",
         "T12.2"
+      ],
+      "testIds": [
+        "TEST-046"
       ],
       "status": "complete"
     }
