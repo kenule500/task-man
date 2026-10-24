@@ -20,20 +20,15 @@ const clientFrom = (steps: (() => unknown)[]) => {
   });
   return { client: { chat: { completions: { create } } } as unknown as ChatClient, create };
 };
-const fast = { sleep: jest.fn(async () => undefined) };
+// Tests use a fake client, so the workspace model is passed explicitly instead of loading a workspace.
+const fast = { sleep: jest.fn(async () => undefined), model: 'qwen-test' };
 
 beforeEach(() => {
-  process.env.DASHSCOPE_API_KEY = 'sk-test';
-  process.env.DASHSCOPE_MODEL = 'qwen-test';
   fast.sleep.mockClear();
-});
-afterAll(() => {
-  delete process.env.DASHSCOPE_API_KEY;
-  delete process.env.DASHSCOPE_MODEL;
 });
 
 describe('reviewWithModel', () => {
-  it('asks for JSON mode with the configured model and returns the validated answer and token usage', async () => {
+  it('AC-023: asks for JSON mode with the configured model and returns the validated answer and token usage', async () => {
     const { client, create } = clientFrom([() => reply(good)]);
     const result = await reviewWithModel(input, { client, ...fast });
     expect(result.output.verdict).toBe('match');
@@ -45,7 +40,7 @@ describe('reviewWithModel', () => {
     expect(options).toMatchObject({ timeout: 120_000, maxRetries: 0 });
   });
 
-  it('retries 429 and 5xx twice, then gives up with a safe message', async () => {
+  it('AC-024: retries 429 and 5xx twice, then gives up with a safe message', async () => {
     const { client, create } = clientFrom([() => { throw httpError(429); }, () => { throw httpError(503); }, () => { throw httpError(500); }]);
     const error = await reviewWithModel(input, { client, ...fast }).catch((e: unknown) => e);
     expect(create).toHaveBeenCalledTimes(3);
@@ -54,14 +49,14 @@ describe('reviewWithModel', () => {
     expect((error as Error).message).not.toContain('sk-leak');
   });
 
-  it('succeeds when a retry works', async () => {
+  it('AC-024: succeeds when a retry works', async () => {
     const { client, create } = clientFrom([() => { throw httpError(502); }, () => reply(good)]);
     const result = await reviewWithModel(input, { client, ...fast });
     expect(result.output.summary).toBe('s');
     expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it('does not retry other client errors', async () => {
+  it('AC-024: does not retry other client errors', async () => {
     const { client, create } = clientFrom([() => { throw httpError(401); }]);
     await expect(reviewWithModel(input, { client, ...fast })).rejects.toMatchObject({ code: 'AI_AUTH' });
     expect(create).toHaveBeenCalledTimes(1);
@@ -77,31 +72,30 @@ describe('reviewWithModel', () => {
     expect(secondMessages.at(-2)?.role).toBe('assistant');
   });
 
-  it('fails after one repair attempt when the answer is still invalid', async () => {
+  it('AC-024: fails after one repair attempt when the answer is still invalid', async () => {
     const { client, create } = clientFrom([() => reply('nope'), () => reply('still nope')]);
     await expect(reviewWithModel(input, { client, ...fast })).rejects.toMatchObject({ code: 'AI_INVALID_OUTPUT' });
     expect(create).toHaveBeenCalledTimes(2);
   });
 
-  it('fails on an empty answer', async () => {
+  it('AC-024: fails on an empty answer', async () => {
     const { client } = clientFrom([() => reply(null)]);
     await expect(reviewWithModel(input, { client, ...fast })).rejects.toMatchObject({ code: 'AI_EMPTY' });
   });
 
-  it('refuses to run without an API key', async () => {
-    delete process.env.DASHSCOPE_API_KEY;
-    await expect(reviewWithModel(input)).rejects.toMatchObject({ code: 'AI_DISABLED' });
+  it('AC-023/AC-027: refuses to run without a workspace configuration', async () => {
+    await expect(reviewWithModel(input)).rejects.toMatchObject({ code: 'AI_NOT_CONFIGURED' });
   });
 });
 
 describe('provider error helpers', () => {
-  it('retries only 429 and 5xx', () => {
+  it('AC-024: retries only 429 and 5xx', () => {
     expect([429, 500, 502, 503].every(status => isRetryable(httpError(status)))).toBe(true);
     expect([400, 401, 403, 404].some(status => isRetryable(httpError(status)))).toBe(false);
     expect(isRetryable(new Error('boom'))).toBe(false);
   });
 
-  it('describes errors without leaking provider text', () => {
+  it('AC-024/AC-025: describes errors without leaking provider text', () => {
     for (const status of [400, 401, 429, 500]) expect(describeProviderError(httpError(status)).message).not.toContain('sk-leak');
     expect(describeProviderError(Object.assign(new Error('x'), { name: 'APIConnectionTimeoutError' })).code).toBe('AI_TIMEOUT');
   });

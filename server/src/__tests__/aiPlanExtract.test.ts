@@ -18,7 +18,7 @@ describe('detectKind', () => {
     expect(detectKind('notes.txt', Buffer.from('plain'))).toBe('text');
   });
 
-  it('refuses a mismatch, an unknown extension and old .doc files with 415', () => {
+  it('AC-001: refuses a mismatch, an unknown extension and old .doc files with 415', () => {
     for (const [name, bytes] of [
       ['fake.pdf', Buffer.from('hello world')], ['fake.docx', Buffer.from('%PDF-1.4')], ['image.png', Buffer.from([0x89, 0x50, 0x4e, 0x47])],
       ['noextension', Buffer.from('text')], ['old.doc', Buffer.from([0xd0, 0xcf, 0x11, 0xe0])], ['.txt', Buffer.from('hidden file named txt')],
@@ -110,7 +110,7 @@ describe('shortenForModel', () => {
     expect(shortenForModel('short text', 100)).toEqual({ text: 'short text', truncated: false, omittedChars: 0 });
   });
 
-  it('keeps the beginning and the headings of what was left out, within the budget, and says it was cut', () => {
+  it('AC-006/AC-012: keeps the beginning and the headings of what was left out, within the budget, and says it was cut', () => {
     const result = shortenForModel(document, 20_000);
     expect(result.truncated).toBe(true);
     expect(result.text.length).toBeLessThanOrEqual(20_000);
@@ -132,7 +132,7 @@ describe('shortenForModel', () => {
     expect(findHeadings('# Goals\nplain sentence here.\n2.1 Login\nTHE SCOPE\nok\nChapter 3 Payments')).toEqual(['# Goals', '2.1 Login', 'THE SCOPE', 'Chapter 3 Payments']);
   });
 
-  it('previews the first characters', () => {
+  it('AC-012: previews the first characters', () => {
     expect(previewOf('abc', 10)).toBe('abc');
     expect(previewOf('abcdefghij', 5)).toBe('abcd…');
   });

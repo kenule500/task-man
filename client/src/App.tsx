@@ -187,6 +187,16 @@ function App() {
                 }
               />
 
+              {/* Add a plan from a document to an existing project: requires projects:write (the page also checks tasks:write) */}
+              <Route
+                path="/:workspaceSlug/projects/:projectId/plan"
+                element={
+                  <PermissionRoute permission="projects:write">
+                    <Lazy><AiProjectPage /></Lazy>
+                  </PermissionRoute>
+                }
+              />
+
               {/* Project detail (sprints, backlog, overview): requires projects:read */}
               <Route
                 path="/:workspaceSlug/projects/:projectId"

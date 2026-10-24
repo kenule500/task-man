@@ -4,6 +4,7 @@ export { aiPlanApi } from './api';
 export { useAiProjectPlan, type PlanPhase, type PlanRequest } from './hooks/useAiProjectPlan';
 export { useRecentPlans } from './hooks/useRecentPlans';
 export * from './lib/plan';
+export * from './lib/destination';
 export { fileProblem, formatFileSize, nextMondayKey, readPlanError } from './lib/file';
 export { describeApiError, describeFailure } from './lib/errors';
 export { planActions, type PlanActions } from './components/actions';

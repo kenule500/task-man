@@ -11,12 +11,16 @@ export const uploadFields = (options: PlanUploadOptions): [string, string][] => 
     ['language', options.language],
   ];
   const optional: [string, string][] = [
-    ['projectName', options.projectName.trim()],
-    ['projectKey', options.projectKey.trim()],
     ['startDate', options.startDate.trim()],
     ['teamSize', options.teamSize.trim()],
     ['extraInstructions', options.extraInstructions.trim()],
   ];
+  const destination = options.destination ?? (options.targetProjectId ? 'existing' : 'new');
+  if (destination === 'new') {
+    optional.unshift(['projectName', options.projectName.trim()], ['projectKey', options.projectKey.trim()]);
+  } else if (options.targetProjectId) {
+    optional.push(['targetProjectId', options.targetProjectId]);
+  }
   return [...fields, ...optional.filter(([, value]) => value !== '')];
 };
 
@@ -49,9 +53,10 @@ export const aiPlanApi = {
     const { data } = await api.patch(`${plansUrl(slug)}/${part(id)}`, { plan });
     return data;
   },
-  /** Creates the project, sprints, epics, tasks, subtasks and criteria in one go. */
-  create: async (slug: string, id: string): Promise<CreatedFromPlan> => {
-    const { data } = await api.post(`${plansUrl(slug)}/${part(id)}/create`);
+  /** Creates the project, or adds the plan to an existing one; omitting the target uses the destination stored at upload. */
+  create: async (slug: string, id: string, targetProjectId?: string | null): Promise<CreatedFromPlan> => {
+    const body = targetProjectId === undefined ? undefined : { targetProjectId };
+    const { data } = await api.post(`${plansUrl(slug)}/${part(id)}/create`, body);
     return data;
   },
   /** Deletes the plan; one that is still generating is cancelled. */

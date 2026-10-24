@@ -71,7 +71,7 @@ afterEach(() => {
 });
 
 describe('AiProjectPage', () => {
-  it('walks from the upload to the new project: analyze, review, create, open', async () => {
+  it('AC-034/AC-035: walks from the upload to the new project: analyze, review, create, open', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockResolvedValue(queued());
     plans.get.mockResolvedValueOnce(makeAiPlan({ status: 'running', plan: null, counts: null })).mockResolvedValue(makeAiPlan());
@@ -116,13 +116,13 @@ describe('AiProjectPage', () => {
     expect(plans.update).toHaveBeenCalledTimes(1);
     expect(plans.update.mock.calls[0][1]).toBe('plan-1');
     expect(plans.update.mock.calls[0][2].items.map(item => item.title)).toContain('Gift vouchers');
-    expect(plans.create).toHaveBeenCalledWith('demo', 'plan-1');
+    expect(plans.create).toHaveBeenCalledWith('demo', 'plan-1', null);
     expect(plans.update.mock.invocationCallOrder[0]).toBeLessThan(plans.create.mock.invocationCallOrder[0]);
     expect(screen.getByTestId('where')).toHaveTextContent('/demo/projects/p-new');
     expect(await screen.findByText('Project “Online Bookshop” created')).toBeInTheDocument();
   });
 
-  it('goes back to the upload with the reason when the generation fails, keeping the document', async () => {
+  it('AC-002/AC-006: goes back to the upload with the reason when the generation fails, keeping the document', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockResolvedValue(queued());
     plans.get.mockResolvedValue(makeAiPlan({ status: 'failed', plan: null, counts: null, errorCode: 'AI_RATE_LIMIT', error: 'raw' }));
@@ -136,7 +136,7 @@ describe('AiProjectPage', () => {
     expect(screen.getByRole('button', { name: 'Analyze document' })).toBeEnabled();
   });
 
-  it('generates the plan again from the document still held in the tab, deleting the old plan first', async () => {
+  it('AC-006: generates the plan again from the document still held in the tab, deleting the old plan first', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockResolvedValueOnce(queued()).mockResolvedValueOnce({ ...queued(), _id: 'plan-2' });
     plans.get.mockImplementation(async (_slug, id) => makeAiPlan({ _id: id }));
@@ -162,7 +162,7 @@ describe('AiProjectPage', () => {
     expect(screen.queryByText('The AI is building your project')).not.toBeInTheDocument();
   });
 
-  it('cancels a generation that is running and returns to the upload', async () => {
+  it('AC-006: cancels a generation that is running and returns to the upload', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockResolvedValue(queued());
     plans.get.mockResolvedValue(makeAiPlan({ status: 'running', plan: null, counts: null }));
@@ -175,7 +175,7 @@ describe('AiProjectPage', () => {
     expect(screen.getByTestId('where')).not.toHaveTextContent('plan=');
   });
 
-  it('picks a plan up again from the address after a reload', async () => {
+  it('AC-004: picks a plan up again from the address after a reload', async () => {
     plans.get.mockResolvedValue(makeAiPlan());
     renderPage('/demo/projects/new/ai?plan=plan-1');
     expect(await screen.findByRole('region', { name: 'Generated project' })).toBeInTheDocument();
@@ -184,7 +184,7 @@ describe('AiProjectPage', () => {
     expect(screen.getAllByRole('button', { name: 'Regenerate' })[0]).toBeDisabled();
   });
 
-  it('opens the project when the plan in the address was already created', async () => {
+  it('AC-004: opens the project when the plan in the address was already created', async () => {
     plans.get.mockResolvedValue(makeAiPlan({ status: 'created', projectId: 'p-done' }));
     renderPage('/demo/projects/new/ai?plan=plan-1');
     expect(await screen.findByRole('heading', { name: 'Project page' })).toBeInTheDocument();
@@ -198,7 +198,7 @@ describe('AiProjectPage', () => {
     expect(screen.getByRole('button', { name: 'Analyze document' })).toBeDisabled();
   });
 
-  it('asks for another name when the project name is taken, and creates after the fix', async () => {
+  it('AC-007: asks for another name when the project name is taken, and creates after the fix', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.get.mockResolvedValue(makeAiPlan({ plan: makePlan() }));
     plans.update.mockImplementation(async (_slug, _id, plan) => makeAiPlan({ plan }));
@@ -218,7 +218,7 @@ describe('AiProjectPage', () => {
     expect(plans.create).toHaveBeenCalledTimes(2);
   });
 
-  it('does not offer the page to people who cannot create both projects and tasks', async () => {
+  it('AC-034/AC-035: does not offer the page to people who cannot create both projects and tasks', async () => {
     granted = ['projects:read', 'projects:write', 'tasks:read'];
     renderPage();
     expect(await screen.findByText('You cannot create projects with AI')).toBeInTheDocument();

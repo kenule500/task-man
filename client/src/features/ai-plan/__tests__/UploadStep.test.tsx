@@ -52,15 +52,15 @@ const dropzone = () => screen.getByLabelText(/Drop your document here/);
 const analyze = () => screen.getByRole('button', { name: /Analyze document|Uploading/ });
 
 describe('UploadStep', () => {
-  it('tells what is sent, where, and what is kept before anything is uploaded', () => {
+  it('AC-006/AC-012: tells what is sent, where, and what is kept before anything is uploaded', () => {
     setup();
     const notice = screen.getByRole('heading', { name: 'What happens to your document' }).closest('div') as HTMLElement;
-    expect(within(notice).getByText(/sent to Alibaba Cloud Model Studio/)).toBeInTheDocument();
+    expect(within(notice).getByText(/sent to the configured AI provider \(qwen-max\)/)).toBeInTheDocument();
     expect(within(notice).getByText(/never stored/)).toBeInTheDocument();
     expect(within(notice).getByText(/AI is on for this workspace\. 2 of 20 project plans used today\./)).toBeInTheDocument();
   });
 
-  it('starts only when a document is chosen, and sends the file with the options', async () => {
+  it('AC-001/AC-002: starts only when a document is chosen, and sends the file with the options', async () => {
     const user = userEvent.setup();
     const { onStart } = setup();
     expect(analyze()).toBeDisabled();
@@ -89,7 +89,7 @@ describe('UploadStep', () => {
     expect(options.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('lets the person remove the chosen file', async () => {
+  it('AC-001: lets the person remove the chosen file', async () => {
     const user = userEvent.setup();
     setup();
     await user.upload(dropzone(), pdf());
@@ -98,7 +98,7 @@ describe('UploadStep', () => {
     expect(analyze()).toBeDisabled();
   });
 
-  it('refuses files it can already tell are wrong, with the reason', async () => {
+  it('AC-001: refuses files it can already tell are wrong, with the reason', async () => {
     const user = userEvent.setup({ applyAccept: false });
     const { onStart } = setup();
     await user.upload(dropzone(), pdf('photo.png'));
@@ -130,10 +130,10 @@ describe('UploadStep', () => {
 
   it('says so when the server has no AI key', () => {
     setup({ settings: settings({ available: false }) });
-    expect(screen.getByText('AI is not set up on this server')).toBeInTheDocument();
+    expect(screen.getByText('AI is not set up for this workspace')).toBeInTheDocument();
   });
 
-  it('blocks the upload at the daily limit', async () => {
+  it('AC-001: blocks the upload at the daily limit', async () => {
     const user = userEvent.setup();
     setup({ settings: settings({ plan: { dailyLimit: 20, usedToday: 20, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 } }) });
     expect(screen.getByText('Daily limit reached')).toBeInTheDocument();
@@ -149,7 +149,7 @@ describe('UploadStep', () => {
     expect(onRetrySettings).toHaveBeenCalled();
   });
 
-  it('shows a refused upload in the interface language and offers to open the plan already running', async () => {
+  it('AC-002/AC-006: shows a refused upload in the interface language and offers to open the plan already running', async () => {
     const user = userEvent.setup();
     const { onOpenActive } = setup({ error: { status: 409, code: 'PLAN_IN_PROGRESS', message: 'raw english', suggestion: '' } });
     const alert = screen.getByRole('alert');
@@ -158,12 +158,12 @@ describe('UploadStep', () => {
     expect(onOpenActive).toHaveBeenCalled();
   });
 
-  it('shows why the last generation failed', () => {
+  it('AC-006: shows why the last generation failed', () => {
     setup({ failure: 'The AI provider is limiting requests. Try again later.' });
     expect(screen.getByRole('alert')).toHaveTextContent('The AI provider is limiting requests');
   });
 
-  it('offers to continue a recent plan', async () => {
+  it('AC-006: offers to continue a recent plan', async () => {
     const user = userEvent.setup();
     const recent = makeAiPlan({ _id: 'plan-9', source: { fileName: 'old-spec.docx', mimeType: 'x', size: 1, chars: 1, truncated: false } });
     const { onOpenRecent } = setup({ recent: [recent] });

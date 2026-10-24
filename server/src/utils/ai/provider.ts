@@ -1,18 +1,21 @@
 import OpenAI from 'openai';
 import type { z } from 'zod';
-import { readAiConfig } from './config.js';
+import { createPinnedFetch } from './pinnedFetch.js';
 import { buildMessages, buildRepairMessages, type ChatMessage } from './prompt.js';
 import { parseJsonWith, parseModelOutput } from './schema.js';
 import { AiReviewError, type ReviewModelInput, type ReviewModelResult } from './types.js';
+import { UnsafeEndpointError } from './urlGuard.js';
+import type { WorkspaceAiConfig } from './workspaceConfig.js';
 
-// The only place that talks to the model. Today that is Alibaba Cloud Model Studio (DashScope) through its
-// OpenAI-compatible endpoint; callers use `reviewWithModel`, which tests replace with a fake.
+// The only place that talks to the model. Credentials and endpoint come from the workspace's
+// BYOK configuration; the OpenAI-compatible client is always wrapped in a pinned-address fetch.
 
 export const REQUEST_TIMEOUT_MS = 120_000;
 export const MAX_HTTP_RETRIES = 2;
 /** Stop starting new attempts after this long, so the whole review fits in the function's time limit. */
 const TOTAL_BUDGET_MS = 240_000;
 const MAX_OUTPUT_TOKENS = 4096;
+const TEST_TIMEOUT_MS = 20_000;
 
 /** Per-call limits: the review keeps the defaults, a generated plan needs a longer answer and more time. */
 interface CallLimits {
@@ -29,9 +32,9 @@ export interface ChatClient {
         params: {
           model: string;
           messages: ChatMessage[];
-          response_format: { type: 'json_object' };
-          temperature: number;
-          max_tokens: number;
+          response_format?: { type: 'json_object' };
+          temperature?: number;
+          max_tokens?: number;
         },
         options: { timeout: number; maxRetries: number },
       ): Promise<{
@@ -45,15 +48,38 @@ export interface ChatClient {
 
 export interface ProviderOptions {
   client?: ChatClient;
+  /** The workspace configuration; required in production. `client` is only for tests. */
+  config?: WorkspaceAiConfig;
+  /** Model override for a test client; production uses the resolved workspace model. */
+  model?: string;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-export const createClient = (): ChatClient => {
-  const config = readAiConfig();
-  return new OpenAI({ apiKey: config.apiKey, baseURL: config.baseURL, timeout: REQUEST_TIMEOUT_MS, maxRetries: 0 }) as unknown as ChatClient;
+const unavailable = (config?: WorkspaceAiConfig): AiReviewError => new AiReviewError(
+  'The AI features are not configured for this workspace. An owner or admin can set them up in the workspace settings.',
+  config?.problem ?? 'AI_NOT_CONFIGURED',
+);
+
+/** Builds the OpenAI-compatible client, pinning the validated public address for every request. */
+export const createClient = async (config: WorkspaceAiConfig): Promise<ChatClient> => {
+  if (!config.available) throw unavailable(config);
+  let pinnedFetch: typeof fetch;
+  try {
+    pinnedFetch = await createPinnedFetch(config.baseURL);
+  } catch (error) {
+    if (error instanceof UnsafeEndpointError) throw new AiReviewError(error.message, error.code);
+    throw new AiReviewError('The AI endpoint could not be resolved. Ask an owner or admin to check it.', 'AI_UNREACHABLE');
+  }
+  return new OpenAI({
+    apiKey: config.apiKey,
+    baseURL: config.baseURL,
+    timeout: REQUEST_TIMEOUT_MS,
+    maxRetries: 0,
+    fetch: pinnedFetch,
+  }) as unknown as ChatClient;
 };
 
 const statusOf = (error: unknown): number | undefined => {
@@ -70,14 +96,37 @@ export const isRetryable = (error: unknown): boolean => {
 /** A message safe to show people: it never carries the provider's response body or the key. */
 export const describeProviderError = (error: unknown): AiReviewError => {
   if (error instanceof AiReviewError) return error;
+  if (error instanceof UnsafeEndpointError) return new AiReviewError(error.message, error.code);
   const status = statusOf(error);
   const name = (error as { name?: string } | null)?.name ?? '';
-  if (status === 401 || status === 403) return new AiReviewError('The AI provider rejected the server API key. Ask an administrator to check DASHSCOPE_API_KEY.', 'AI_AUTH');
+  if (status === 401 || status === 403) return new AiReviewError('The workspace AI key was rejected. An owner or admin can replace it in the workspace settings.', 'AI_AUTH');
   if (status === 429) return new AiReviewError('The AI provider is rate limiting requests or the account has no quota left. Try again later.', 'AI_RATE_LIMIT');
-  if (status === 400) return new AiReviewError('The AI provider refused the request (the pull request may be too large for the model). Try a model with a larger context.', 'AI_BAD_REQUEST');
+  if (status === 400) return new AiReviewError('The AI provider refused the request (the content may be too large for the model). Try a model with a larger context.', 'AI_BAD_REQUEST');
   if (status !== undefined && status >= 500) return new AiReviewError('The AI provider is having problems. Try again in a few minutes.', 'AI_UNAVAILABLE');
   if (/timeout|abort/i.test(name)) return new AiReviewError('The AI provider took too long to answer. Try again.', 'AI_TIMEOUT');
   return new AiReviewError('The AI provider could not be reached. Try again later.', 'AI_UNREACHABLE');
+};
+
+export interface AiTestResult {
+  ok: boolean;
+  code: string;
+}
+
+/** Sends one tiny message (no workspace content) and reports a safe result code. */
+export const testAiConnection = async (config: WorkspaceAiConfig): Promise<AiTestResult> => {
+  if (!config.available) return { ok: false, code: config.problem ?? 'AI_NOT_CONFIGURED' };
+  try {
+    const client = await createClient(config);
+    await client.chat.completions.create({
+      model: config.model,
+      messages: [{ role: 'user', content: 'Reply with OK.' }],
+      temperature: 0,
+      max_tokens: 2,
+    }, { timeout: TEST_TIMEOUT_MS, maxRetries: 0 });
+    return { ok: true, code: 'OK' };
+  } catch (error) {
+    return { ok: false, code: describeProviderError(error).code };
+  }
 };
 
 interface Completion {
@@ -123,35 +172,38 @@ const complete = async (
   }
 };
 
+const modelOf = (options: ProviderOptions): string => options.config?.model || options.model || '';
+
 /**
  * Asks the model for the review and returns its validated answer (see schema.ts for the rules applied afterwards).
  * The answer is validated with zod; when it does not match, the model gets the validation error once and tries again.
  * Throws `AiReviewError` (safe message) when no valid answer could be obtained.
  */
 export const reviewWithModel = async (input: ReviewModelInput, options: ProviderOptions = {}): Promise<ReviewModelResult> => {
-  const config = readAiConfig();
-  if (!config.available && !options.client) throw new AiReviewError('The AI code review is not configured on this server.', 'AI_DISABLED');
+  if (!options.config?.available && !options.client) throw unavailable(options.config);
 
-  const client = options.client ?? createClient();
+  const client = options.client ?? await createClient(options.config!);
+  const model = modelOf(options);
+  if (!model) throw new AiReviewError('The workspace AI model is missing. An owner or admin can set it in the workspace settings.', 'MODEL_MISSING');
   const runtime = { sleep: options.sleep ?? defaultSleep, now: options.now ?? Date.now };
   const started = runtime.now();
   const usage = { inputTokens: 0, outputTokens: 0 };
 
   const messages = buildMessages(input);
-  let completion = await complete(client, config.model, messages, started, runtime);
+  let completion = await complete(client, model, messages, started, runtime);
   usage.inputTokens += completion.inputTokens;
   usage.outputTokens += completion.outputTokens;
 
   let parsed = parseModelOutput(completion.content);
   if (!parsed.ok) {
-    completion = await complete(client, config.model, buildRepairMessages(messages, completion.content, parsed.problem), started, runtime);
+    completion = await complete(client, model, buildRepairMessages(messages, completion.content, parsed.problem), started, runtime);
     usage.inputTokens += completion.inputTokens;
     usage.outputTokens += completion.outputTokens;
     parsed = parseModelOutput(completion.content);
   }
   if (!parsed.ok) throw new AiReviewError('The AI provider did not return a usable review twice in a row. Try again.', 'AI_INVALID_OUTPUT');
 
-  return { output: parsed.output, model: config.model, usage };
+  return { output: parsed.output, model, usage };
 };
 
 // ----------------------------------------------------------------
@@ -183,10 +235,11 @@ export const generateJson = async <S extends z.ZodType>(
   messages: ChatMessage[],
   options: GenerateOptions = {},
 ): Promise<GenerateResult<z.output<S>>> => {
-  const config = readAiConfig();
-  if (!config.available && !options.client) throw new AiReviewError('The AI features are not configured on this server.', 'AI_DISABLED');
+  if (!options.config?.available && !options.client) throw unavailable(options.config);
 
-  const client = options.client ?? createClient();
+  const client = options.client ?? await createClient(options.config!);
+  const model = modelOf(options);
+  if (!model) throw new AiReviewError('The workspace AI model is missing. An owner or admin can set it in the workspace settings.', 'MODEL_MISSING');
   const runtime = { sleep: options.sleep ?? defaultSleep, now: options.now ?? Date.now };
   const started = runtime.now();
   const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
@@ -195,7 +248,7 @@ export const generateJson = async <S extends z.ZodType>(
   const usage = { inputTokens: 0, outputTokens: 0 };
 
   // A retry after a transport error may only start when a whole request still fits
-  let completion = await complete(client, config.model, messages, started, runtime, limits, Math.max(0, hardLimitMs - timeoutMs));
+  let completion = await complete(client, model, messages, started, runtime, limits, Math.max(0, hardLimitMs - timeoutMs));
   usage.inputTokens += completion.inputTokens;
   usage.outputTokens += completion.outputTokens;
 
@@ -205,7 +258,7 @@ export const generateJson = async <S extends z.ZodType>(
     if (remaining > 30_000) {
       const problem = completion.finishReason === 'length' ? CUT_OFF_HINT : parsed.problem;
       const repairLimits: CallLimits = { ...limits, timeoutMs: Math.min(timeoutMs, remaining - 5000) };
-      completion = await complete(client, config.model, buildRepairMessages(messages, completion.content, problem), started, runtime, repairLimits, 0);
+      completion = await complete(client, model, buildRepairMessages(messages, completion.content, problem), started, runtime, repairLimits, 0);
       usage.inputTokens += completion.inputTokens;
       usage.outputTokens += completion.outputTokens;
       parsed = parseJsonWith(schema, completion.content);
@@ -213,5 +266,5 @@ export const generateJson = async <S extends z.ZodType>(
   }
   if (!parsed.ok) throw new AiReviewError('The AI provider did not return a usable answer twice in a row. Try again, or use a shorter document.', 'AI_INVALID_OUTPUT');
 
-  return { output: parsed.output, model: config.model, usage };
+  return { output: parsed.output, model, usage };
 };

@@ -9,7 +9,7 @@ import {
 const KEY = 'k'.repeat(40);
 
 describe('secretBox (AES-256-GCM)', () => {
-  it('round-trips a secret and never stores it in the clear', () => {
+  it('AC-025: round-trips a secret and never stores it in the clear', () => {
     const box = encryptSecret('JBSWY3DPEHPK3PXP', 'user-1', KEY);
     expect(box).toMatch(/^v1\.[\w-]+\.[\w-]+\.[\w-]+$/);
     expect(box).not.toContain('JBSWY3DPEHPK3PXP');
@@ -20,7 +20,7 @@ describe('secretBox (AES-256-GCM)', () => {
     expect(encryptSecret('same', 'ctx', KEY)).not.toBe(encryptSecret('same', 'ctx', KEY));
   });
 
-  it('fails for another key, another context or a modified value', () => {
+  it('AC-025: fails for another key, another context or a modified value', () => {
     const box = encryptSecret('secret', 'user-1', KEY);
     expect(() => decryptSecret(box, 'user-1', 'x'.repeat(40))).toThrow();
     expect(() => decryptSecret(box, 'user-2', KEY)).toThrow();

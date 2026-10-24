@@ -1,23 +1,27 @@
 import { shouldAutoReview } from '../utils/ai/autoReview.js';
-import { DEFAULT_BASE_URL, readAiConfig } from '../utils/ai/config.js';
+import { DEFAULT_BASE_URL, DEFAULT_MODEL, readAiConfig } from '../utils/ai/config.js';
 import { parsePrUrl } from '../utils/ai/githubPr.js';
 
 describe('readAiConfig', () => {
-  it('is unavailable without a key and uses the documented defaults', () => {
+  it('AC-023/AC-027: is unavailable without a key and uses the documented defaults', () => {
     expect(readAiConfig({})).toMatchObject({ available: false, baseURL: DEFAULT_BASE_URL, model: 'qwen-plus', dailyLimit: 50, maxDiffChars: 120_000 });
   });
 
-  it('reads the DashScope variables', () => {
+  it('AC-014/AC-027: keeps legacy DashScope provider variables out of workspace AI and reads only limits', () => {
     const config = readAiConfig({
       DASHSCOPE_API_KEY: ' sk-1 ', DASHSCOPE_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1/',
-      DASHSCOPE_MODEL: 'qwen3-coder-plus', AI_REVIEW_DAILY_LIMIT: '7', AI_REVIEW_MAX_DIFF_CHARS: '50000',
+      DASHSCOPE_MODEL: 'qwen3-coder-plus', AI_PROVIDER: 'deepseek', AI_API_KEY: 'sk-2',
+      AI_BASE_URL: 'https://api.deepseek.com/v1', AI_MODEL: 'deepseek-chat',
+      AI_REVIEW_DAILY_LIMIT: '7', AI_REVIEW_MAX_DIFF_CHARS: '50000',
     });
     expect(config).toEqual({
-      available: true, apiKey: 'sk-1', baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen3-coder-plus', dailyLimit: 7, maxDiffChars: 50_000,
+      available: false, apiKey: '', baseURL: DEFAULT_BASE_URL, model: DEFAULT_MODEL,
+      provider: { id: 'unknown', label: 'Not configured' }, problem: 'AI_NOT_CONFIGURED',
+      dailyLimit: 7, maxDiffChars: 50_000,
     });
   });
 
-  it('ignores a plain-http base URL and bad numbers', () => {
+  it('AC-027: ignores a plain-http base URL and bad numbers', () => {
     const config = readAiConfig({ DASHSCOPE_API_KEY: 'k', DASHSCOPE_BASE_URL: 'http://evil.example/v1', AI_REVIEW_DAILY_LIMIT: '-3' });
     expect(config.baseURL).toBe(DEFAULT_BASE_URL);
     expect(config.dailyLimit).toBe(50);

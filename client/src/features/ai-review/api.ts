@@ -1,5 +1,5 @@
 import api from '@/utils/api';
-import type { AiReview, AiSettings, AiSettingsPatch } from './types';
+import type { AiProviderInput, AiProviderTestResult, AiReview, AiSettings, AiSettingsPatch } from './types';
 
 const part = (value: string) => encodeURIComponent(value);
 const settingsUrl = (slug: string) => `/workspaces/${part(slug)}/ai`;
@@ -13,6 +13,18 @@ export const aiReviewApi = {
   },
   updateSettings: async (slug: string, patch: AiSettingsPatch): Promise<AiSettings> => {
     const { data } = await api.patch(settingsUrl(slug), patch);
+    return data;
+  },
+  saveProvider: async (slug: string, input: AiProviderInput): Promise<AiSettings> => {
+    const { data } = await api.put(`${settingsUrl(slug)}/provider`, input);
+    return data;
+  },
+  removeProvider: async (slug: string): Promise<AiSettings> => {
+    const { data } = await api.delete(`${settingsUrl(slug)}/provider`);
+    return data;
+  },
+  testProvider: async (slug: string, input?: AiProviderInput): Promise<AiProviderTestResult> => {
+    const { data } = await api.post(`${settingsUrl(slug)}/provider/test`, input ?? {});
     return data;
   },
   /** Queues a review of the task's linked pull request (or of `prUrl`); the work continues on the server. */
