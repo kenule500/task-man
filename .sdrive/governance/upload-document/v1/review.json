@@ -1,0 +1,248 @@
+{
+  "feature": "upload-document",
+  "version": "v1",
+  "status": "FAIL",
+  "commit": "5c9f94c0fbec69d03c2924dcf40c039bf053153b",
+  "base": "main",
+  "branch": "feature/upload-document",
+  "reviewedBy": "kenule500",
+  "reviewedAt": "2026-10-24T13:48:05.757Z",
+  "coverage": 61,
+  "criteria": [
+    {
+      "id": "spec-convergence",
+      "status": "fail",
+      "detail": "The project-scoped document flow exists, but 18 ACs are unverified, the CI integration tests for AC-008/AC-009 fail, and AC-018 is marked N/A without an explicit superseding clause in spec.md. The implementation cannot be certified against every acceptance criterion."
+    },
+    {
+      "id": "task-completion",
+      "status": "pass",
+      "detail": "All 57 tasks in tasks.json are completed: true and every item in tasks.md is checked."
+    },
+    {
+      "id": "traceability",
+      "status": "fail",
+      "detail": "traceability.json claims 36/46 ACs have test IDs (78.3%), but only 28/46 are verified (61%). The overstated ACs are AC-008, AC-019, AC-020, AC-022, AC-036, AC-037, AC-038 and AC-039."
+    },
+    {
+      "id": "coverage",
+      "status": "fail",
+      "detail": "28/46 = 61%; required 100%. Untested: AC-003, AC-008, AC-009, AC-011, AC-013, AC-016, AC-017, AC-018, AC-019, AC-020, AC-022, AC-026, AC-028, AC-029, AC-036, AC-037, AC-038, AC-039. Eleven remain unverified even after excluding the seven explicitly superseded ACs."
+    },
+    {
+      "id": "test-report",
+      "status": "pass",
+      "detail": "The test report exists, reports 143/143 targeted tests, and is newer than spec.md and plan.md. A report is not a substitute for test-evidence.json."
+    },
+    {
+      "id": "test-evidence",
+      "status": "fail",
+      "detail": "test-evidence.json is missing. No exit code, zero-failure summary, positive total, or commit === HEAD can be confirmed."
+    },
+    {
+      "id": "change-scope",
+      "status": "warn",
+      "detail": "75 files changed (+12640/-517); 18 commits ahead of main and 0 behind; no other-feature commits observed. One unplanned source file: client/src/features/ai-review/lib/providers.ts. Several P11/P12 plan actions are stale. 61 working-tree entries are pre-existing untracked framework paths."
+    },
+    {
+      "id": "test-quality",
+      "status": "fail",
+      "detail": "No .only, xit or skipped tests found. All 28 linked TEST-### IDs are absent from the codebase (0/28 literal matches), and only 74/234 it/test declarations in the feature suites carry an AC ID (CON-405)."
+    },
+    {
+      "id": "code-quality",
+      "status": "pass",
+      "detail": "Server typecheck, client typecheck, client lint and client build pass locally. CodeQL still reports one warning at aiReviewController.ts:258."
+    },
+    {
+      "id": "security",
+      "status": "fail",
+      "detail": "5 high and 4 moderate dependency advisories; 2 high CodeQL alerts in changed code; one token-shaped test fixture. No real secret found in the diff."
+    },
+    {
+      "id": "testing",
+      "status": "fail",
+      "detail": "Local unit suites pass (server 679/679, client 1911/1911), but CI is red: 61 server integration failures and 1 client failure on HEAD. Integration tests cannot run locally without MongoDB."
+    },
+    {
+      "id": "documentation",
+      "status": "warn",
+      "detail": "server/.env.example documents the new variables and the plan records no migration for optional schema fields, but there is no README or CHANGELOG update for a user-facing feature."
+    },
+    {
+      "id": "nfr-evidence",
+      "status": "not_verified",
+      "detail": "Responsive, keyboard and RTL coverage appears in tests and implementation history, but there is no separate accessibility/performance report and no /sdrive:performance artifact."
+    },
+    {
+      "id": "definition-of-done",
+      "status": "fail",
+      "detail": "Test evidence, 100% coverage, green CI, dependency audit, CodeQL and sdrive verify are all unmet."
+    },
+    {
+      "id": "spec-to-code-verification",
+      "status": "fail",
+      "detail": "sdrive verify upload-document is fail at 28 matched / 127 missing / 2 renamed / 188 extra. Most findings fit CON-614 scanner gaps, but stale plan actions and the unplanned source file are outside a clean exception."
+    },
+    {
+      "id": "ci",
+      "status": "fail",
+      "detail": "CI run 40097265178 is failure on HEAD 5c9f94c: Server 61 integration failures, Client 1 failure, Dependency audit 5 high/4 moderate, CodeQL check 3 new alerts."
+    },
+    {
+      "id": "permission",
+      "status": "pass",
+      "detail": "check-permission allows kenule500 (admin). The separate sdrive check doctor still fails on framework permission rules for mcp:sync and knowledge:fetch."
+    },
+    {
+      "id": "reviewer-independence",
+      "status": "warn",
+      "detail": "No feature assignee is recorded. The branch was authored by kenule500, the same human recorded as reviewer, so independent review is not established. No PASS is being written."
+    }
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "issue": "test-evidence.json is missing, so the review cannot be bound to a passing test run at HEAD. Commit 5c9f94c claims to record evidence but the file was never added.",
+      "location": ".sdrive/governance/upload-document/v1/test-evidence.json",
+      "fixRequired": true
+    },
+    {
+      "severity": "high",
+      "issue": "Coverage is 61% (28/46); 18 ACs have no verified test, and 11 remain unverified even after excluding explicitly superseded ACs.",
+      "location": ".sdrive/reports/tests/test-report-upload-document-v1-2026-10-24.md",
+      "fixRequired": true,
+      "acIds": [
+        "AC-003",
+        "AC-008",
+        "AC-009",
+        "AC-011",
+        "AC-013",
+        "AC-016",
+        "AC-017",
+        "AC-018",
+        "AC-019",
+        "AC-020",
+        "AC-022",
+        "AC-026",
+        "AC-028",
+        "AC-029",
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039"
+      ]
+    },
+    {
+      "severity": "high",
+      "issue": "CI server integration suite is red: aiPlan.test.ts and aiReview.test.ts, 61 failed / 671 passed, including 503 AI_NOT_CONFIGURED and a TypeError reading _id on undefined.",
+      "location": "server/src/__integration__/aiPlan.test.ts; server/src/__integration__/aiReview.test.ts; https://github.com/kenule500/task-man/actions/runs/40097265178/job/120882018393",
+      "fixRequired": true,
+      "acIds": [
+        "AC-008",
+        "AC-009"
+      ]
+    },
+    {
+      "severity": "high",
+      "issue": "CI client suite is red on an unrelated boardFeatures test (1 failed / 1910 passed). The release gate still requires a green HEAD.",
+      "location": "client/src/features/tasks/__tests__/boardFeatures.test.tsx; https://github.com/kenule500/task-man/actions/runs/40097265178/job/120882018564",
+      "fixRequired": true
+    },
+    {
+      "severity": "high",
+      "issue": "Dependency audit fails with 5 high and 4 moderate advisories. High: follow-redirects (2), zod, body-parser, multer. No dependency diff, but CON-409 is unmet.",
+      "location": "pnpm audit --prod --audit-level high; https://github.com/kenule500/task-man/actions/runs/40097265178/job/120882018481",
+      "fixRequired": true
+    },
+    {
+      "severity": "high",
+      "issue": "CodeQL reports two high-severity alerts in changed code: a database query built from user-controlled sources and a polynomial regular expression used on uncontrolled data.",
+      "location": "server/src/utils/ai/plan/target.ts:27; server/src/utils/ai/providers.ts:75; https://github.com/kenule500/task-man/runs/120882471209",
+      "fixRequired": true,
+      "acIds": [
+        "AC-008",
+        "AC-029"
+      ]
+    },
+    {
+      "severity": "high",
+      "issue": "Traceability overstates coverage: 36/46 ACs have test IDs, but only 28/46 are verified.",
+      "location": ".sdrive/governance/upload-document/v1/traceability.json",
+      "fixRequired": true,
+      "acIds": [
+        "AC-008",
+        "AC-019",
+        "AC-020",
+        "AC-022",
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039"
+      ]
+    },
+    {
+      "severity": "medium",
+      "issue": "Every linked TEST-### ID is synthetic: 0/28 appear literally in the codebase. The test report's note that they are AC-scoped evidence IDs does not satisfy the Test Existence Rule.",
+      "location": ".sdrive/governance/upload-document/v1/traceability.json; .sdrive/reports/tests/test-report-upload-document-v1-2026-10-24.md",
+      "fixRequired": true
+    },
+    {
+      "severity": "medium",
+      "issue": "Only 74/234 test names in the feature suites carry an AC ID; CON-405 requires every test name to include the AC it covers.",
+      "location": "Feature test suites including UploadStep.test.tsx, aiPlanExtract.test.ts and aiPlan.test.ts",
+      "fixRequired": true
+    },
+    {
+      "severity": "medium",
+      "issue": "sdrive verify remains fail at 28 matched / 127 missing / 2 renamed / 188 extra. CON-614 covers most paths, but stale P11/P12 plan actions and the unplanned client provider table are outside a clean exception.",
+      "location": ".sdrive/governance/upload-document/v1/verification.json",
+      "fixRequired": true
+    },
+    {
+      "severity": "medium",
+      "issue": "sdrive check fails on missing permission rules for mcp:sync and knowledge:fetch; five adapter paths are unverified and installed framework files are 0.1.44 while the CLI is 0.1.46.",
+      "location": ".sdrive/config.json and installed framework",
+      "fixRequired": true
+    },
+    {
+      "severity": "medium",
+      "issue": "The new client/src/features/ai-review/lib/providers.ts duplicates the server preset table and is not in plan.json.",
+      "location": "client/src/features/ai-review/lib/providers.ts",
+      "fixRequired": true
+    },
+    {
+      "severity": "medium",
+      "issue": "AC-018 is marked N/A in the test report, but spec.md does not explicitly supersede it; either add a test or record a spec note.",
+      "location": ".sdrive/reports/tests/test-report-upload-document-v1-2026-10-24.md; .sdrive/specs/ongoing/upload-document/v1/spec.md",
+      "fixRequired": true,
+      "acIds": [
+        "AC-018"
+      ]
+    },
+    {
+      "severity": "low",
+      "issue": "A GitHub-token-shaped dummy (ghp_...) is committed in a test fixture; it is not a real secret but will keep tripping secret scanners.",
+      "location": "client/src/features/ai-review/__tests__/AiReviewSettingsCard.test.tsx:14",
+      "fixRequired": false
+    },
+    {
+      "severity": "low",
+      "issue": "CodeQL warning: the initial keyHint value is always overwritten.",
+      "location": "server/src/controllers/aiReviewController.ts:258",
+      "fixRequired": false
+    },
+    {
+      "severity": "low",
+      "issue": "No README or CHANGELOG update for the user-facing document-plan and workspace-AI settings flows.",
+      "location": "README.md",
+      "fixRequired": false
+    }
+  ],
+  "evidence": {
+    "testEvidence": ".sdrive/governance/upload-document/v1/test-evidence.json",
+    "testReport": ".sdrive/reports/tests/test-report-upload-document-v1-2026-10-24.md",
+    "verification": ".sdrive/governance/upload-document/v1/verification.json",
+    "audit": ".sdrive/audit-log.json"
+  }
+}
