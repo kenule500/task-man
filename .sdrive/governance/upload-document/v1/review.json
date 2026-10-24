@@ -42,7 +42,7 @@
     {
       "id": "change-scope",
       "status": "warn",
-      "detail": "75 files changed (+12640/-517); 18 commits ahead of main and 0 behind; no other-feature commits observed. One unplanned source file: client/src/features/ai-review/lib/providers.ts. Several P11/P12 plan actions are stale. 61 working-tree entries are pre-existing untracked framework paths."
+      "detail": "75 files changed (+12640/-517); 18 commits ahead of main and 0 behind; no other-feature commits observed. One unplanned source file: client/src/features/ai-review/lib/providers.ts. Several P11/P12 plan actions are stale. 60 working-tree entries are pre-existing untracked files (59 SpecDrive framework paths and .github/copilot-instructions.md)."
     },
     {
       "id": "test-quality",
