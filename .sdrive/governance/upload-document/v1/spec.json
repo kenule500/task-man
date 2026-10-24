@@ -330,6 +330,31 @@
           "text": "At 320, 375, 768, 1024 and 1280 px, the cards come first in DOM and visual order, keep 40 px touch targets and visible focus, cause no horizontal scroll, are translated in English, French and Arabic, and work RTL; the AI card opens /{workspaceSlug}/projects/new/ai."
         }
       ]
+    },
+    {
+      "id": "US-016",
+      "title": "Reach project creation from the Projects header",
+      "role": "member who can create projects",
+      "want": "the New project and Create with AI actions in the Projects page header as well as in the grid",
+      "benefit": "the actions stay available while I search or browse archived projects and I can start work from the page's main action area",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-043",
+          "text": "Given at least one project in the workspace, when a member with projects:write opens Projects, then the page header shows a \"New project\" action and, when the member also has tasks:write, a \"Create with AI\" action; activating \"New project\" opens the existing create-project dialog, activating \"Create with AI\" opens /{workspaceSlug}/projects/new/ai, and the dashed \"New project\" and \"Create with AI\" cards remain the first items of the active grid. A member without projects:write sees neither header action, and a member with projects:write but not tasks:write sees only \"New project\"."
+        },
+        {
+          "id": "AC-044",
+          "text": "Given a search query, a changed sort, archived projects shown or hidden, or a long project grid, when the page renders, then the header actions remain visible and follow the same permission gates; the cards remain hidden while searching and absent from the archived grid."
+        },
+        {
+          "id": "AC-045",
+          "text": "Given zero projects, when the empty state renders, then the header does not repeat the empty state's actions; the empty state keeps offering \"New project\" and, with tasks:write, \"Create with AI\" according to permission."
+        },
+        {
+          "id": "AC-046",
+          "text": "At 320, 375, 768, 1024 and 1280 px, the header actions stack below sm, keep 40 px touch targets and visible focus, do not overlap the title or description, cause no horizontal scroll, are translated in English, French and Arabic, and work RTL; the action group has an accessible name so it is distinguishable from the grid cards."
+        }
+      ]
     }
   ],
   "functionalRequirements": [
@@ -581,6 +606,16 @@
         "AC-041",
         "AC-042"
       ]
+    },
+    {
+      "id": "FR-034",
+      "text": "The Projects page MUST render \"New project\" in the page header for members with projects:write and \"Create with AI\" in the page header for members with both projects:write and tasks:write, in addition to the dashed cards. This requirement supersedes only the clause in FR-033 that forbids duplicate header creation buttons; the cards, their order, their search/archived visibility and the zero-project empty state MUST keep their existing behaviour. The header actions MUST remain available across search, sort and archived states, MUST be disabled only while loading or when the workspace slug is unavailable, and \"Create with AI\" MUST open /{workspaceSlug}/projects/new/ai.",
+      "linkedAcceptanceCriteria": [
+        "AC-043",
+        "AC-044",
+        "AC-045",
+        "AC-046"
+      ]
     }
   ],
   "nonFunctionalRequirements": [
@@ -724,6 +759,13 @@
         "AC-040",
         "AC-041",
         "AC-042"
+      ]
+    },
+    {
+      "id": "NFR-019",
+      "text": "The restored header actions MUST meet CON-305/CON-306: keyboard operable, visible focus, programmatic labels, an accessible group name, 40 px touch targets below md, no horizontal scroll from 320 px, English/French/Arabic and RTL. The change MUST NOT add a dependency, alter the cards' existing order or visibility, the create-project dialog, the AI route, the permission model, or any API or schema.",
+      "linkedAcceptanceCriteria": [
+        "AC-046"
       ]
     }
   ],
@@ -882,6 +924,11 @@
       "id": "EC-031",
       "description": "A member has projects:write but not tasks:write, or is read-only.",
       "expectedBehavior": "They see only the New project card/action, or no action cards at all, and the header stays free of duplicate buttons."
+    },
+    {
+      "id": "EC-032",
+      "description": "The Projects page has a search query, only archived projects, zero projects, or 320 px width with long names.",
+      "expectedBehavior": "The header actions remain available when at least one project exists and permission allows; with zero projects, the empty state owns the actions and the header does not duplicate them; the cards stay hidden while searching and absent from the archived grid; no horizontal scroll."
     }
   ],
   "dependencies": [
@@ -1056,6 +1103,11 @@
       "id": "RISK-019",
       "description": "Two action cards before the folders push real projects below the fold on small screens and break the grid scan order.",
       "mitigation": "Cards are compact, share the folder grid, are hidden while searching, and the grid keeps one column on phones."
+    },
+    {
+      "id": "RISK-020",
+      "description": "Restoring the header buttons beside the folder cards creates two entry points for the same action and can clutter the header or confuse assistive technology.",
+      "mitigation": "The header actions are permission-gated, grouped under an accessible name, compact and stacked below sm; the cards keep their order; the zero-project empty state owns the actions; browser checks cover both entry points and narrow widths."
     }
   ]
 }

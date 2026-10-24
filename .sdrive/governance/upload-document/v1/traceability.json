@@ -678,6 +678,33 @@
         "T11.6"
       ],
       "status": "complete"
+    },
+    {
+      "requirementId": "FR-034",
+      "acceptanceCriteriaIds": [
+        "AC-043",
+        "AC-044",
+        "AC-045",
+        "AC-046"
+      ],
+      "planSection": "Update - Projects header creation actions (2026-10-24)",
+      "taskIds": [
+        "T12.1",
+        "T12.2"
+      ],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-019",
+      "acceptanceCriteriaIds": [
+        "AC-046"
+      ],
+      "planSection": "Update - Projects header creation actions (2026-10-24)",
+      "taskIds": [
+        "T12.1",
+        "T12.2"
+      ],
+      "status": "not_started"
     }
   ]
 }

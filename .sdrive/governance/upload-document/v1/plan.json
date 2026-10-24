@@ -408,6 +408,31 @@
         "name": "client/src/components/ui/button.tsx",
         "action": "reuse",
         "description": "The restored cards and the header action reuse the existing Button and link styles."
+      },
+      {
+        "name": "client/src/pages/ProjectsPage.tsx",
+        "action": "modify",
+        "description": "Pass the existing pageActions group to PageHeader when at least one project exists; keep the zero-project empty-state actions, permission gates, card order, search hiding, archived grid, sort and loading/error behaviour; add a labelled group so it is distinguishable from the cards."
+      },
+      {
+        "name": "client/src/i18n/locales/{en,fr,ar}/projects.json",
+        "action": "modify",
+        "description": "Add page.projectActions for the accessible header group label; reuse page.newProject and page.createWithAi for the visible button labels."
+      },
+      {
+        "name": "client/src/components/ds",
+        "action": "reuse",
+        "description": "PageHeader already renders an actions slot that stacks below sm; Button and the existing icons are reused."
+      },
+      {
+        "name": "client/src/features/projects/components/NewProjectCard.tsx",
+        "action": "reuse",
+        "description": "No change; the dashed New project card remains the first item of the active grid."
+      },
+      {
+        "name": "client/src/features/ai-plan/components/AiProjectCard.tsx",
+        "action": "reuse",
+        "description": "No change; the dashed Create with AI card remains the second item of the active grid when permitted."
       }
     ],
     "referencedRequirementIds": [
@@ -457,7 +482,9 @@
       "FR-031",
       "FR-032",
       "FR-033",
-      "NFR-018"
+      "NFR-018",
+      "FR-034",
+      "NFR-019"
     ]
   },
   "dataModel": {
@@ -950,6 +977,10 @@
     {
       "requirementId": "NFR-018",
       "strategy": "No extra request on the happy path: the project page reuses the directory it already loads and the wizard adds only the plan read when resuming a ?plan= id. The grid gains two static cards, and the new route reuses the existing lazy chunk."
+    },
+    {
+      "requirementId": "NFR-019",
+      "strategy": "No new request or bundle chunk: the header reuses the pageActions group, PageHeader and the existing buttons; no data is fetched and no dependency is added."
     }
   ],
   "dependencies": [
@@ -1170,6 +1201,10 @@
     {
       "description": "Two action cards before the folders push real projects below the fold on phones and break the grid scan order.",
       "mitigation": "Cards share the folder grid, stay compact, and are hidden while searching; the grid keeps one column on phones."
+    },
+    {
+      "description": "Restoring the header buttons beside the folder cards creates two entry points for the same action and can clutter the header or confuse assistive technology.",
+      "mitigation": "The header group is permission-gated, labelled, compact and stacks below sm; the zero-project empty state owns the actions; browser checks cover both entry points and narrow widths."
     }
   ]
 }

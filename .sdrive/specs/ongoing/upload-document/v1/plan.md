@@ -761,3 +761,66 @@ button (permission and archived gates), the project-scoped wizard (read-only tar
 the project, return to the project), the mismatch guard, and the Projects grid (cards first, hidden
 while searching, both actions in the empty state). Repeat at 320/375/768/1024/1280 px, keyboard
 only, en/fr/ar and RTL.
+
+## Update - Projects header creation actions (2026-10-24)
+
+### Components (P12 update)
+
+- `client/src/pages/ProjectsPage.tsx` (modify): reuse the existing `pageActions` group and pass it
+  to `PageHeader` as `actions` when the workspace has at least one project. Keep the zero-project
+  `EmptyState` actions as the only entry in that state, so the page never renders two copies of the
+  same buttons. Keep `canWrite`/`canCreateWithAi`, the card order, search hiding, the archived grid,
+  sort and loading/error behaviour. Wrap the group in a labelled `role="group"` so it is
+  distinguishable from the grid cards.
+- `client/src/i18n/locales/{en,fr,ar}/projects.json` (modify): add `page.projectActions` as the
+  accessible group label; reuse `page.newProject` and `page.createWithAi` for the visible button
+  labels.
+- `client/src/components/ds` (reuse): `PageHeader` already renders an `actions` slot that stacks
+  below `sm`; `Button` and the existing icons are reused.
+- `client/src/features/projects/components/NewProjectCard.tsx` and
+  `client/src/features/ai-plan/components/AiProjectCard.tsx` (reuse): no change; they remain the
+  first items of the active grid.
+
+### Flow (P12 update)
+
+The Projects page keeps its current grid and empty-state flow. With at least one project, the
+header renders the same two permission-gated actions that already exist in `pageActions`, while
+the dashed cards stay first in the active grid. Searching still hides the cards but leaves the
+header actions available; archived projects still have no cards; with zero projects the empty
+state remains the only action area, so the page does not show duplicate buttons.
+
+### Data & API (P12 update)
+
+No schema, migration, endpoint or permission change. The actions reuse the existing
+`ProjectFormDialog` and `/projects/new/ai` route.
+
+### Security (P12 update)
+
+The existing `projects:write` and `tasks:write` checks remain the only gates. Read-only members
+see no header actions; a member with `projects:write` but not `tasks:write` sees only "New
+project". No new input, secret or data flow is introduced.
+
+### Performance (P12 update)
+
+No new request: the header reuses the buttons and state the page already owns. No new dependency
+or bundle chunk; `PageHeader` is already imported.
+
+### Dependencies & Risks (P12 update)
+
+- No new dependency.
+
+| Risk | Mitigation |
+| --- | --- |
+| Duplicate entry points clutter the header or confuse assistive technology. | The header group is labelled and compact; the zero-project state keeps a single action area; browser checks cover both entry points. |
+| Header actions disappear or duplicate in search, archived or empty states. | The header actions are rendered from the page-level permission state, not from the filtered grid; the empty state owns the actions only when there are no projects. |
+
+### Verification (P12 update)
+
+Gate 2 is followed by implementation and then the Test Agent; this plan does not author tests.
+Before the implementation gate run client typecheck, client lint, client build,
+`node .sdrive/scripts/validate-governance.js` and a changed-file secret scan. Then check in a
+browser at 320/375/768/1024/1280 px, keyboard only, en/fr/ar RTL: the header and the cards both
+offer the actions; a member without `projects:write` sees neither; a member with `projects:write`
+but not `tasks:write` sees only "New project"; searching hides the cards but not the header;
+archived projects have no cards; zero projects shows the empty-state actions without a duplicate
+header group; the create dialog and the AI route open.

@@ -3,7 +3,7 @@ title: Upload a document and turn it into a project plan with AI
 status: ongoing
 version: v1
 created: 2026-10-20
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
 # Upload a document and turn it into a project plan with AI
@@ -1048,3 +1048,77 @@ The Test Agent will map AC-034..AC-042 during `/sdrive:test`. Expected coverage:
   archived gates, and the two grid cards (order, permissions, search, empty state).
 - Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL, for both wizard
   modes and the Projects page.
+
+## Update (2026-10-24) - Projects header creation actions
+
+> **Superseding note.** This update restores the page-header creation actions that P11 removed.
+> It supersedes only the "no duplicate creation buttons in the page header" clause in FR-033,
+> the matching clause in AC-040, and the "header stays free of duplicate buttons" clauses in
+> EC-030 and EC-031. The folder cards, their order and their search/archived visibility, the
+> zero-project empty state, the create-project dialog, the AI route and every permission gate
+> remain unchanged. FR-033 and the existing rows stay in place for history; US-016, FR-034,
+> NFR-019, AC-043..AC-046 and EC-032 below are authoritative for the header actions.
+
+### User Stories (update)
+
+#### US-016 - Reach project creation from the Projects header
+
+**As a** member who can create projects\
+**I want** the New project and Create with AI actions in the Projects page header as well as in the grid\
+**So that** the actions stay available while I search or browse archived projects and I can start work from the page's main action area.
+
+**Acceptance Criteria**
+
+- **AC-043:** Given at least one project in the workspace, when a member with `projects:write`
+  opens Projects, then the page header shows a "New project" action and, when the member also has
+  `tasks:write`, a "Create with AI" action; activating "New project" opens the existing
+  create-project dialog, activating "Create with AI" opens `/{workspaceSlug}/projects/new/ai`, and
+  the dashed "New project" and "Create with AI" cards remain the first items of the active grid.
+  A member without `projects:write` sees neither header action, and a member with `projects:write`
+  but not `tasks:write` sees only "New project".
+- **AC-044:** Given a search query, a changed sort, archived projects shown or hidden, or a long
+  project grid, when the page renders, then the header actions remain visible and follow the same
+  permission gates; the cards remain hidden while searching and absent from the archived grid.
+- **AC-045:** Given zero projects, when the empty state renders, then the header does not repeat the
+  empty state's actions; the empty state keeps offering "New project" and, with `tasks:write`,
+  "Create with AI" according to permission.
+- **AC-046:** At 320, 375, 768, 1024 and 1280 px, the header actions stack below `sm`, keep 40 px
+  touch targets and visible focus, do not overlap the title or description, cause no horizontal
+  scroll, are translated in English, French and Arabic, and work RTL; the action group has an
+  accessible name so it is distinguishable from the grid cards.
+
+### Functional Requirements (update)
+
+- **FR-034:** The Projects page MUST render "New project" in the page header for members with
+  `projects:write` and "Create with AI" in the page header for members with both `projects:write`
+  and `tasks:write`, in addition to the dashed cards. This requirement supersedes only the clause
+  in FR-033 that forbids duplicate header creation buttons; the cards, their order, their
+  search/archived visibility and the zero-project empty state MUST keep their existing behaviour.
+  The header actions MUST remain available across search, sort and archived states, MUST be
+  disabled only while loading or when the workspace slug is unavailable, and "Create with AI" MUST
+  open `/{workspaceSlug}/projects/new/ai`.
+
+### Non-Functional Requirements (update)
+
+- **NFR-019:** The restored header actions MUST meet CON-305/CON-306: keyboard operable, visible
+  focus, programmatic labels, an accessible group name, 40 px touch targets below `md`, no
+  horizontal scroll from 320 px, English/French/Arabic and RTL. The change MUST NOT add a
+  dependency, alter the cards' existing order or visibility, the create-project dialog, the AI
+  route, the permission model, or any API or schema.
+
+### Edge Cases & Error States (update)
+
+- **EC-032:** The Projects page has a search query, only archived projects, zero projects, or 320 px
+  width with long names. Expected: the header actions remain available when at least one project
+  exists and permission allows; with zero projects, the empty state owns the actions and the
+  header does not duplicate them; the cards stay hidden while searching and absent from the
+  archived grid; no horizontal scroll.
+
+### Verification (update)
+
+The Test Agent will map AC-043..AC-046 during `/sdrive:test`. Expected coverage:
+
+- Component tests for the header actions' permission gates, the create dialog and AI route, the
+  cards remaining first in the grid, and the zero-project empty state not duplicating the actions.
+- Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL, confirming the
+  header actions and the cards both work and that search, archived and empty states stay correct.
