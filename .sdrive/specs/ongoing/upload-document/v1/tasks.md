@@ -388,16 +388,30 @@ Agent and are deliberately absent.
 
 ## P12 - Projects header creation actions
 
-- [ ] **T12.1 - Restore the Projects header creation actions.** In `ProjectsPage.tsx`, pass the
+- [x] **T12.1 - Restore the Projects header creation actions.** In `ProjectsPage.tsx`, pass the
   existing permission-gated `pageActions` group to `PageHeader` when the workspace has at least one
   project; keep the zero-project empty state as the only action area in that state; add an
   accessible group label (`page.projectActions` in en/fr/ar); keep the dashed cards first, search
   hiding, archived grid, sort, loading and error behaviour unchanged. Do not change the server,
   API, schema or permission model. _(FR-034; NFR-019; AC-043, AC-044, AC-045, AC-046)_
-- [ ] **T12.2 - Verify the header actions across states and widths.** Run client typecheck, client
+- [x] **T12.2 - Verify the header actions across states and widths.** Run client typecheck, client
   lint, client build, `node .sdrive/scripts/validate-governance.js` and a changed-file secret scan.
   Check 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL: header and cards both offer the
   actions; read-only sees neither; `projects:write` without `tasks:write` sees only "New project";
   searching hides the cards but not the header; archived projects have no cards; zero projects shows
   the empty-state actions without a duplicate header group; the create dialog and AI route open. Do
   not author or run tests. _(FR-034; NFR-019; AC-043, AC-044, AC-045, AC-046)_
+
+  **Status:** Client typecheck, lint, build (3,783 modules; `NODE_OPTIONS=--max-old-space-size=3072`),
+  server typecheck, governance validation and a changed-file secret scan pass. At 1280 px the header
+  shows "New project" and "Create with AI" under the `Project actions` group label while the active
+  grid still starts with the two dashed cards; searching "P11D" hides both cards but keeps both
+  header actions; the archived grid has no cards and the header actions remain; a zero-project
+  workspace shows only the empty-state actions with no header group; Viewer sees neither; a custom
+  `projects:write` + `tasks:read` role sees only "New project"; Enter on the header action opens the
+  create dialog and the AI route; 320/375/768/1024/1280 px have no horizontal overflow; French shows
+  "Actions du projet" and Arabic renders RTL with "إجراءات المشروع". `node .sdrive/scripts/verify.js
+  upload-document` still reports FAIL for the known CON-614 scanner gaps (28 matched, 127 missing,
+  2 renamed, 188 extra); it scans only server/api, does not resolve client paths, treats absolute
+  endpoints as different from router-relative ones, and does not detect Mongoose entities/fields.
+  Tests were not authored, edited or run; `/sdrive:test` owns them.

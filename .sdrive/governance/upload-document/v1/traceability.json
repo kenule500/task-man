@@ -692,7 +692,7 @@
         "T12.1",
         "T12.2"
       ],
-      "status": "not_started"
+      "status": "complete"
     },
     {
       "requirementId": "NFR-019",
@@ -704,7 +704,7 @@
         "T12.1",
         "T12.2"
       ],
-      "status": "not_started"
+      "status": "complete"
     }
   ]
 }

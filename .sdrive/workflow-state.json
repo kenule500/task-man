@@ -573,9 +573,9 @@
         {
           "id": "v1",
           "phase": "ongoing",
-          "currentStep": "specification",
+          "currentStep": "implementation",
           "gates": {
-            "specification": "pending",
+            "specification": "approved",
             "planning": "approved",
             "implementation": "in_progress",
             "review": "pending"
@@ -716,6 +716,15 @@
               "event": "spec_updated",
               "timestamp": "2026-10-24T11:10:50.758Z",
               "summary": "P12 update: the Projects page header restores the New project and Create with AI actions alongside the dashed folder cards. New project requires projects:write; Create with AI requires projects:write plus tasks:write. The header actions stay available across search, sort and archived states, while the cards remain first in the active grid, hidden while searching and absent from the archived grid; the zero-project empty state keeps the only action area so the header does not duplicate it. Added US-016, FR-034, NFR-019, AC-043..AC-046, EC-032 and RISK-020; added P12 tasks T12.1-T12.2. Supersedes only the no-header-buttons clauses in FR-033, AC-040, EC-030 and EC-031. No server, API, schema or permission change; the specification gate was reset for re-approval. Gate 1 and Gate 2 approved by the user."
+            },
+            {
+              "event": "specification_approved",
+              "timestamp": "2026-10-24T11:15:09.499Z"
+            },
+            {
+              "event": "P12 implemented on feature/upload-document (T12.1-T12.2): the Projects header shows the permission-gated New project and Create with AI actions alongside the dashed folder cards while at least one project exists; the zero-project empty state remains the only action area. The header actions stay available across search, sort, archived, loading and error states, the cards remain first in the active grid, are hidden while searching and absent from the archived grid. New project requires projects:write; Create with AI requires projects:write plus tasks:write; read-only members see neither. Added an accessible page.projectActions group label in en/fr/ar. No server, API, schema or permission change. Gates: client typecheck, lint and build (3,783 modules; NODE_OPTIONS=--max-old-space-size=3072), server typecheck, governance validation and a changed-file secret scan pass. Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL show both header actions and both cards first, cards hidden while searching but header retained, no archived cards, no duplicate action group in the zero-project state, Viewer sees neither, and a custom projects:write + tasks:read role sees only New project; Enter opens the create dialog and the AI route; no horizontal overflow. sdrive verify upload-document still reports FAIL (28 matched, 127 missing, 2 renamed, 188 extra) for the known CON-614 scanner gaps. Tests were not authored, edited or run; /sdrive:test owns them.",
+              "by": "implementation",
+              "timestamp": "2026-10-24T12:26:58.397Z"
             }
           ]
         }

@@ -951,7 +951,7 @@
             "AC-045",
             "AC-046"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T12.2",
@@ -967,7 +967,7 @@
             "AC-045",
             "AC-046"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     }

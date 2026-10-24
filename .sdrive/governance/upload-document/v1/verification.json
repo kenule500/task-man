@@ -1,10 +1,10 @@
 {
   "feature": "upload-document",
   "status": "fail",
-  "checkedAt": "2026-10-23T22:14:00.762Z",
+  "checkedAt": "2026-10-24T12:25:17.792Z",
   "summary": {
     "matched": 28,
-    "missing": 122,
+    "missing": 127,
     "renamed": 2,
     "extra": 188
   },
@@ -437,6 +437,31 @@
       {
         "type": "component",
         "name": "client/src/components/ui/button.tsx",
+        "action": "reuse"
+      },
+      {
+        "type": "component",
+        "name": "client/src/pages/ProjectsPage.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/i18n/locales/{en,fr,ar}/projects.json",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/components/ds",
+        "action": "reuse"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/projects/components/NewProjectCard.tsx",
+        "action": "reuse"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components/AiProjectCard.tsx",
         "action": "reuse"
       },
       {
