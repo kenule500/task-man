@@ -72,7 +72,12 @@ export const isAiProviderId = (value: string): value is AiProviderId =>
  * exception. The DNS/IP checks live in `urlGuard.ts`.
  */
 export const normalizeBaseURL = (value: string): string | null => {
-  const raw = value.trim().replace(/\/+$/, '');
+  // Trailing slashes are dropped with a linear scan: `/\/+$/` on administrator-supplied text is a
+  // polynomial regex on uncontrolled data (CodeQL js/polynomial-redos).
+  const trimmed = value.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed.charCodeAt(end - 1) === 47) end -= 1;
+  const raw = trimmed.slice(0, end);
   if (!raw) return null;
   try {
     const url = new URL(raw);

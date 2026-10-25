@@ -24,7 +24,11 @@ const asObjectId = (value: unknown): Id => {
 
 /** Reads a project of the workspace, archived or not; `null` when it does not exist there. */
 export const findTargetProject = async (workspaceId: Id, projectId: Id): Promise<PlanTarget | null> => {
-  const project = await Project.findOne({ _id: projectId, workspace: workspaceId }).select('name key archived').lean();
+  // Both sides are ObjectIds before they reach the query, so a crafted string can never become a
+  // query operator (CodeQL js/sql-injection on `{ _id: <user input> }`).
+  const project = await Project.findOne({ _id: asObjectId(projectId), workspace: asObjectId(workspaceId) })
+    .select('name key archived')
+    .lean();
   if (!project) return null;
   return {
     _id: String(project._id),
