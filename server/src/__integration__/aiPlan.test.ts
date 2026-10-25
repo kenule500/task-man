@@ -751,8 +751,8 @@ describe('adding a plan to an existing project', () => {
   let originalSprint: Json;
   let originalTask: Json;
 
-  const newProject = async (name: string, key: string, where = slug) => {
-    const res = await http().post(`/api/workspaces/${where}/projects`).set(withAuth(team.owner)).send({ name, key });
+  const newProject = async (name: string, key: string, where = slug, owner = team.owner) => {
+    const res = await http().post(`/api/workspaces/${where}/projects`).set(withAuth(owner)).send({ name, key });
     expect(res.status).toBe(201);
     return res.body as Json;
   };
@@ -774,7 +774,7 @@ describe('adding a plan to an existing project', () => {
     expect(invalid.status).toBe(400);
     expect(invalid.body.code).toBe('TARGET_INVALID');
 
-    const foreignProject = await newProject('Someone Else', 'ELSE', other.workspace.slug);
+    const foreignProject = await newProject('Someone Else', 'ELSE', other.workspace.slug, other.owner);
     const foreign = await upload(team.owner, { fields: { targetProjectId: foreignProject._id } });
     expect(foreign.status).toBe(404);
     expect(foreign.body.code).toBe('TARGET_NOT_FOUND');
@@ -808,7 +808,7 @@ describe('adding a plan to an existing project', () => {
   it('TEST-009 AC-009: writes only the plan records: the project, its sprint and its task stay untouched', async () => {
     const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: target._id } })).body._id);
     const edited = structuredClone(plan.plan) as Json;
-    edited.project = { name: 'Ignored Name', key: 'IGN', description: 'Ignored', color: 'red' };
+    edited.project = { ...(edited.project as Json), name: 'Ignored Name', key: 'IGN', description: 'Ignored', color: 'red' };
     expect((await patchPlan(team.owner, plan._id, edited)).status).toBe(200);
 
     const before = await projectView(target._id);
@@ -879,7 +879,7 @@ describe('adding a plan to an existing project', () => {
   it('answers TARGET_UNAVAILABLE when the target disappears after the upload', async () => {
     const gone = await newProject('Gone Soon', 'GONE');
     const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: gone._id } })).body._id);
-    expect((await http().delete(`${projectsUrl()}/${gone._id}`).set(withAuth(team.owner))).status).toBe(204);
+    expect((await http().delete(`${projectsUrl()}/${gone._id}`).set(withAuth(team.owner))).status).toBe(200);
 
     const refused = await createPlan(team.owner, plan._id);
     expect(refused.status).toBe(409);

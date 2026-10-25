@@ -121,6 +121,13 @@ const runAndWait = async (user: TestUser, body: Record<string, unknown> = {}, ta
   return waitForReview(user, queued.body._id, taskId);
 };
 
+/** Makes a suite independent of the AI switches and provider left on by earlier suites. */
+const ensureReviewEnabled = async () => {
+  const current = await settings(team.owner);
+  if (!current.body.available) expect((await configure(team.owner)).status).toBe(200);
+  expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
+};
+
 const deliver = (event: string, payload: unknown) => {
   const body = JSON.stringify(payload);
   return http()
@@ -225,6 +232,7 @@ describe('AI settings', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       available: true, enabled: false, autoReview: false, model: 'qwen-plus', dailyLimit: 50, usedToday: 0, githubTokenSet: false,
+      provider: { id: 'qwen', label: 'Qwen' }, problem: null,
       plan: { dailyLimit: 20, usedToday: 0, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 },
     });
     expect(JSON.stringify(res.body)).not.toContain('sk-test');
@@ -283,7 +291,7 @@ describe('AI settings', () => {
       await http().get(`/api/workspaces/${slug}/activity`).set(bearer(team.owner.token)),
     ];
     for (const body of bodies) expect(JSON.stringify(body.body)).not.toContain(GITHUB_TOKEN);
-    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'usedToday']);
+    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'problem', 'provider', 'usedToday']);
   });
 
   it('clears the token with null and audits every change without the token', async () => {
@@ -518,6 +526,8 @@ describe('running a review: success', () => {
   let modelInput: any;
   let githubSeen: { url: string; authorization: string | null }[] = [];
 
+  beforeEach(ensureReviewEnabled);
+
   it('queues with 202, runs after the response and stores the result', async () => {
     holdProvider();
     const queued = await run(team.developer);
@@ -529,7 +539,15 @@ describe('running a review: success', () => {
     });
     expect(queued.body.criteria).toBeUndefined();
 
-    // While it runs, a second request for the same task is refused
+    // While it runs, a second request for the same task is refused. The worker may not have
+    // claimed the queued review yet, so wait until it is queued/running rather than racing it.
+    let started = false;
+    for (let attempt = 0; attempt < 100 && !started; attempt += 1) {
+      const list = await http().get(listUrl()).set(bearer(team.developer.token));
+      started = (list.body as { status: string }[]).some(review => review.status === 'queued' || review.status === 'running');
+      if (!started) await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    expect(started).toBe(true);
     const conflict = await run(team.developer);
     expect(conflict.status).toBe(409);
     expect(conflict.body.code).toBe('REVIEW_IN_PROGRESS');
@@ -654,6 +672,8 @@ describe('running a review: success', () => {
 
 // ================================================================
 describe('running a review: partial reviews and failures', () => {
+  beforeEach(ensureReviewEnabled);
+
   it('flags a partial review, lists what was left out and never reports match', async () => {
     process.env.AI_REVIEW_MAX_DIFF_CHARS = '5000';
     pullFiles = [
@@ -750,6 +770,8 @@ describe('running a review: partial reviews and failures', () => {
 
 // ================================================================
 describe('auto review from the GitHub webhook', () => {
+  beforeEach(ensureReviewEnabled);
+
   const waitForCount = async (count: number) => {
     for (let attempt = 0; attempt < 100; attempt += 1) {
       const reviews = await mongoose.connection.collection('aireviews').find({ task: new mongoose.Types.ObjectId(webTask._id), 'pr.headSha': 'sha-auto' }).toArray();
