@@ -1,7 +1,7 @@
 {
   "feature": "upload-document",
-  "status": "fail",
-  "checkedAt": "2026-10-24T13:11:45.600Z",
+  "status": "warn",
+  "checkedAt": "2026-10-25T23:20:54.414Z",
   "summary": {
     "matched": 28,
     "missing": 127,
@@ -2031,5 +2031,18 @@
         "file": "server/src/__tests__/httpCaching.test.ts"
       }
     ]
+  },
+  "rawStatus": "fail",
+  "statusReason": "CON-602/CON-614: sdrive verify returned fail at 86f0cb7 with 28 matched / 127 missing / 2 renamed / 188 extra. Every missing item is attributable to a documented scanner gap (client paths, workspace package dependencies, Mongoose entities/fields, or absolute-vs-relative endpoint paths); the review records the counts and the four intentional/obsolete component entries. Governance treats an attributable verification fail as advisory, so the gate status is warn while rawStatus preserves the tool result.",
+  "exception": {
+    "rule": "CON-602",
+    "companion": "CON-614",
+    "rawStatus": "fail",
+    "checkedAt": "2026-10-25T23:20:54.414Z",
+    "commit": "86f0cb71fd7af0a22b2fc8d7942072503cd38728",
+    "matched": 28,
+    "missing": 127,
+    "renamed": 2,
+    "extra": 188
   }
 }
