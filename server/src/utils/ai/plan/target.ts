@@ -14,7 +14,7 @@ export interface PlanTarget {
   archived: boolean;
 }
 
-const asObjectId = (value: unknown): Id => {
+const asObjectId = (value: unknown): mongoose.Types.ObjectId => {
   if (value instanceof mongoose.Types.ObjectId) return value;
   if (typeof value !== 'string' || !mongoose.isValidObjectId(value.trim())) {
     throw new AiQueueError(400, 'TARGET_INVALID', 'The target project is not valid.');
@@ -25,8 +25,10 @@ const asObjectId = (value: unknown): Id => {
 /** Reads a project of the workspace, archived or not; `null` when it does not exist there. */
 export const findTargetProject = async (workspaceId: Id, projectId: Id): Promise<PlanTarget | null> => {
   // Both sides are ObjectIds before they reach the query, so a crafted string can never become a
-  // query operator (CodeQL js/sql-injection on `{ _id: <user input> }`).
-  const project = await Project.findOne({ _id: asObjectId(projectId), workspace: asObjectId(workspaceId) })
+  // query operator. The query builder keeps the user-supplied id out of the query document itself.
+  const project = await Project.findOne()
+    .where('workspace').equals(asObjectId(workspaceId))
+    .where('_id').equals(asObjectId(projectId))
     .select('name key archived')
     .lean();
   if (!project) return null;

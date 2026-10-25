@@ -255,7 +255,7 @@ const providerCandidate = async (
   const storedBaseURL = normalizeBaseURL(String(stored?.ai?.baseURL ?? ''));
   const sameDestination = stored?.ai?.provider === provider && storedBaseURL === baseURL;
   let apiKeyEncrypted = sameDestination ? String(stored?.ai?.apiKeyEncrypted ?? '') : '';
-  let keyHint = sameDestination ? String(stored?.ai?.keyHint ?? '') : '';
+  let keyHint: string;
   if (suppliedKey) {
     // Bound to the workspace id, so a ciphertext copied to another workspace cannot be decrypted.
     apiKeyEncrypted = encryptSecret(suppliedKey, String(workspaceId));
