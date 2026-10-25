@@ -16,7 +16,7 @@ describe('secretBox (AES-256-GCM)', () => {
     expect(decryptSecret(box, 'user-1', KEY)).toBe('JBSWY3DPEHPK3PXP');
   });
 
-  it('uses a fresh IV, so the same secret encrypts differently each time', () => {
+  it('AC-025: uses a fresh IV, so the same secret encrypts differently each time', () => {
     expect(encryptSecret('same', 'ctx', KEY)).not.toBe(encryptSecret('same', 'ctx', KEY));
   });
 
@@ -30,13 +30,13 @@ describe('secretBox (AES-256-GCM)', () => {
     expect(() => decryptSecret('not-a-box', 'user-1', KEY)).toThrow();
   });
 
-  it('derives a 32 byte key that depends on the key material', () => {
+  it('AC-025: derives a 32 byte key that depends on the key material', () => {
     expect(deriveKey(KEY)).toHaveLength(32);
     expect(deriveKey(KEY).equals(deriveKey(KEY))).toBe(true);
     expect(deriveKey(KEY).equals(deriveKey(`${KEY}!`))).toBe(false);
   });
 
-  it('prefers TWO_FACTOR_KEY and falls back to JWT_SECRET', () => {
+  it('AC-025: prefers TWO_FACTOR_KEY and falls back to JWT_SECRET', () => {
     const saved = { two: process.env.TWO_FACTOR_KEY, jwt: process.env.JWT_SECRET };
     try {
       process.env.JWT_SECRET = 'jwt-secret-for-the-test-aaaaaaaaaaaaaaaa';

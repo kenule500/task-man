@@ -190,7 +190,7 @@ beforeEach(() => {
 
 // ================================================================
 describe('acceptance criteria on tasks', () => {
-  it('are stored in order with ids and shown in the task activity', async () => {
+  it('AC-023: are stored in order with ids and shown in the task activity', async () => {
     const task = await createTask(team.owner, slug, { title: 'With criteria', acceptanceCriteria: [{ text: '  First  ' }, { text: 'Second' }] });
     expect(task.acceptanceCriteria.map((item: { text: string }) => item.text)).toEqual(['First', 'Second']);
     expect(task.acceptanceCriteria[0]._id).toMatch(/^[a-f0-9]{24}$/);
@@ -211,7 +211,7 @@ describe('acceptance criteria on tasks', () => {
     expect(cleared.body.acceptanceCriteria).toEqual([]);
   });
 
-  it('are validated: text 1..300, at most 30, plain objects', async () => {
+  it('AC-023: are validated: text 1..300, at most 30, plain objects', async () => {
     const bad = async (acceptanceCriteria: unknown) =>
       (await http().post(tasksUrl(slug)).set(bearer(team.owner.token)).send({ title: 'x', deadline: '2030-01-01', acceptanceCriteria })).status;
     expect(await bad([{ text: '' }])).toBe(400);
@@ -227,7 +227,7 @@ describe('acceptance criteria on tasks', () => {
 
 // ================================================================
 describe('AI settings', () => {
-  it('shows availability to anyone who can read tasks, and never a key or token', async () => {
+  it('AC-025: shows availability to anyone who can read tasks, and never a key or token', async () => {
     const res = await settings(team.viewer);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -240,7 +240,7 @@ describe('AI settings', () => {
     expect((await settings(outsider)).status).toBeGreaterThanOrEqual(403);
   });
 
-  it('reports the feature as unavailable when the workspace has no saved provider', async () => {
+  it('AC-023: reports the feature as unavailable when the workspace has no saved provider', async () => {
     expect((await unconfigure(team.owner)).status).toBe(200);
     expect((await settings(team.owner)).body).toMatchObject({ available: false, enabled: false, problem: 'AI_NOT_CONFIGURED' });
     // Saving again starts from consent off, which the next tests rely on.
@@ -248,7 +248,7 @@ describe('AI settings', () => {
     expect((await settings(team.owner)).body).toMatchObject({ available: true, enabled: false, model: 'qwen-plus' });
   });
 
-  it('can only be changed with settings:manage, never through an API token', async () => {
+  it('AC-022: can only be changed with settings:manage, never through an API token', async () => {
     for (const user of [team.viewer, team.developer]) {
       expect((await patchSettings(user, { enabled: true })).status).toBe(403);
     }
@@ -261,7 +261,7 @@ describe('AI settings', () => {
     expect((await settings(team.owner)).body.enabled).toBe(false);
   });
 
-  it('validates the body', async () => {
+  it('AC-022: validates the body', async () => {
     expect((await patchSettings(team.owner, {})).status).toBe(400);
     expect((await patchSettings(team.owner, { enabled: 'yes' })).status).toBe(400);
     expect((await patchSettings(team.owner, { autoReview: 1 })).status).toBe(400);
@@ -270,7 +270,7 @@ describe('AI settings', () => {
     expect((await patchSettings(team.owner, { githubToken: 42 })).status).toBe(400);
   });
 
-  it('stores the GitHub token encrypted, bound to the workspace, and never returns it', async () => {
+  it('AC-025: stores the GitHub token encrypted, bound to the workspace, and never returns it', async () => {
     const res = await patchSettings(team.owner, { githubToken: GITHUB_TOKEN });
     expect(res.status).toBe(200);
     expect(res.body.githubTokenSet).toBe(true);
@@ -294,7 +294,7 @@ describe('AI settings', () => {
     expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'problem', 'provider', 'usedToday']);
   });
 
-  it('clears the token with null and audits every change without the token', async () => {
+  it('AC-026: clears the token with null and audits every change without the token', async () => {
     expect((await patchSettings(team.owner, { githubToken: null })).body.githubTokenSet).toBe(false);
     const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
     expect(stored?.integrations?.github?.accessTokenEncrypted).toBeUndefined();
@@ -473,7 +473,7 @@ describe('workspace AI provider (BYOK)', () => {
 
 // ================================================================
 describe('running a review: refusals', () => {
-  it('answers 503 AI_DISABLED until the workspace opts in', async () => {
+  it('AC-023: answers 503 AI_DISABLED until the workspace opts in', async () => {
     const res = await run(team.developer);
     expect(res.status).toBe(503);
     expect(res.body.code).toBe('AI_DISABLED');
@@ -482,7 +482,7 @@ describe('running a review: refusals', () => {
     expect(await reviewCount(webTask._id)).toBe(0);
   });
 
-  it('answers 503 AI_NOT_CONFIGURED when the workspace has no saved provider, even when it opted in', async () => {
+  it('AC-023: answers 503 AI_NOT_CONFIGURED when the workspace has no saved provider, even when it opted in', async () => {
     expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
     expect((await unconfigure(team.owner)).status).toBe(200);
     const res = await run(team.developer);
@@ -494,7 +494,7 @@ describe('running a review: refusals', () => {
     expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
   });
 
-  it('needs tasks:write to start and tasks:read to look', async () => {
+  it('AC-023: needs tasks:write to start and tasks:read to look', async () => {
     expect((await run(team.viewer)).status).toBe(403);
     expect((await http().post(runUrl()).send({})).status).toBe(401);
     expect((await run(outsider)).status).toBeGreaterThanOrEqual(403);
@@ -502,7 +502,7 @@ describe('running a review: refusals', () => {
     expect((await http().get(listUrl()).set(bearer(outsider.token))).status).toBeGreaterThanOrEqual(403);
   });
 
-  it('refuses a task with no linked pull request, a bad address and an unknown task', async () => {
+  it('AC-024: refuses a task with no linked pull request, a bad address and an unknown task', async () => {
     const none = await run(team.developer, {}, plainTask._id);
     expect(none.status).toBe(400);
     expect(none.body.code).toBe('NO_PULL_REQUEST');
@@ -528,7 +528,7 @@ describe('running a review: success', () => {
 
   beforeEach(ensureReviewEnabled);
 
-  it('queues with 202, runs after the response and stores the result', async () => {
+  it('AC-023: queues with 202, runs after the response and stores the result', async () => {
     holdProvider();
     const queued = await run(team.developer);
     expect(queued.status).toBe(202);
@@ -561,7 +561,7 @@ describe('running a review: success', () => {
     expect(completed.status).toBe('completed');
   });
 
-  it('keeps the ticket wording, the evidence, the counts, the model and the tokens', () => {
+  it('AC-023: keeps the ticket wording, the evidence, the counts, the model and the tokens', () => {
     expect(completed).toMatchObject({
       verdict: 'match', model: 'qwen-test', truncated: false, omittedFiles: [], error: '',
       counts: { met: 2, partial: 0, missing: 0, issues: 1 },
@@ -574,7 +574,7 @@ describe('running a review: success', () => {
     expect(completed.issues![0]).toMatchObject({ severity: 'low', file: 'src/login.ts' });
   });
 
-  it('sent the model the ticket, the pull request and its diff, nothing else', () => {
+  it('AC-023: sent the model the ticket, the pull request and its diff, nothing else', () => {
     const input = modelInput;
     expect(input.ticket).toMatchObject({ key: 'WEB-' + webTask.number, title: 'Build the login', criteriaSource: 'explicit' });
     expect(input.ticket.criteria).toEqual(['A user can sign in with email and password', 'A wrong password shows an error message']);
@@ -586,7 +586,7 @@ describe('running a review: success', () => {
     expect(serialized).not.toContain(plainTask._id);
   });
 
-  it('read GitHub with the saved token because the repository is linked to the workspace', () => {
+  it('AC-023: read GitHub with the saved token because the repository is linked to the workspace', () => {
     expect(githubSeen.length).toBeGreaterThanOrEqual(2);
     expect(githubSeen.every(call => call.authorization === `Bearer ${GITHUB_TOKEN}`)).toBe(true);
     expect(githubSeen.map(call => call.url)).toEqual(expect.arrayContaining([
@@ -595,7 +595,7 @@ describe('running a review: success', () => {
     ]));
   });
 
-  it('records the activity and tells the person who asked', async () => {
+  it('AC-023: records the activity and tells the person who asked', async () => {
     const activity = await http().get(`${tasksUrl(slug)}/${webTask._id}/activity`).set(bearer(team.owner.token));
     const entry = activity.body.items.find((item: { action: string }) => item.action === 'ai.review_completed');
     expect(entry).toBeDefined();
@@ -609,7 +609,7 @@ describe('running a review: success', () => {
     expect(ownerInbox.body.items.some((item: { type: string }) => item.type === 'ai.review_completed')).toBe(false);
   });
 
-  it('lists the history without the long parts and counts the review in the daily usage', async () => {
+  it('AC-023: lists the history without the long parts and counts the review in the daily usage', async () => {
     const list = await http().get(listUrl()).set(bearer(team.viewer.token));
     expect(list.status).toBe(200);
     expect(list.body).toHaveLength(1);
@@ -619,7 +619,7 @@ describe('running a review: success', () => {
     expect((await settings(team.owner)).body.usedToday).toBe(1);
   });
 
-  it('never lets a model that says match override the rules', async () => {
+  it('AC-023: never lets a model that says match override the rules', async () => {
     provider.mockImplementationOnce(async () => answer({
       verdict: 'match',
       criteria: [
@@ -638,7 +638,7 @@ describe('running a review: success', () => {
     expect((await runAndWait(team.developer)).verdict).toBe('partial');
   });
 
-  it('uses the description and checklist when there are no explicit criteria, and says so', async () => {
+  it('AC-023: uses the description and checklist when there are no explicit criteria, and says so', async () => {
     await http().patch(`${tasksUrl(slug)}/${webTask._id}`).set(bearer(team.owner.token))
       .send({ acceptanceCriteria: [], checklist: [{ text: 'Login form exists' }, { text: 'Error on wrong password' }] });
     provider.mockImplementationOnce(async () => answer({ criteria: [{ index: 1, status: 'met', evidence: [{ file: 'src/login.ts', note: 'ok' }] }, { index: 2, status: 'missing', evidence: [], explanation: '' }] }));
@@ -653,7 +653,7 @@ describe('running a review: success', () => {
     });
   });
 
-  it('is invisible to other workspaces and to other tasks', async () => {
+  it('AC-023: is invisible to other workspaces and to other tasks', async () => {
     const list = await http().get(listUrl()).set(bearer(team.owner.token));
     const id = list.body[0]._id;
     // The same ids through another workspace's slug, with another workspace's owner
@@ -674,7 +674,7 @@ describe('running a review: success', () => {
 describe('running a review: partial reviews and failures', () => {
   beforeEach(ensureReviewEnabled);
 
-  it('flags a partial review, lists what was left out and never reports match', async () => {
+  it('AC-024: flags a partial review, lists what was left out and never reports match', async () => {
     process.env.AI_REVIEW_MAX_DIFF_CHARS = '5000';
     pullFiles = [
       { filename: 'src/a.ts', patch: '+'.repeat(2000) },
@@ -695,7 +695,7 @@ describe('running a review: partial reviews and failures', () => {
     expect(input.manifest).toHaveLength(4);
   });
 
-  it('reports a GitHub failure on the review without calling the model or using quota', async () => {
+  it('AC-024: reports a GitHub failure on the review without calling the model or using quota', async () => {
     const before = (await settings(team.owner)).body.usedToday;
     githubStatus = 404;
     const review = await runAndWait(team.developer);
@@ -707,7 +707,7 @@ describe('running a review: partial reviews and failures', () => {
     expect((await settings(team.owner)).body.usedToday).toBe(before);
   });
 
-  it('reports a provider failure as a safe message', async () => {
+  it('AC-024: reports a provider failure as a safe message', async () => {
     const { AiReviewError } = jest.requireActual('../utils/ai/types.js') as typeof import('../utils/ai/types.js');
     provider.mockImplementationOnce(async () => { throw new AiReviewError('The AI provider is having problems. Try again in a few minutes.', 'AI_UNAVAILABLE'); });
     const failed = await runAndWait(team.developer);
@@ -721,7 +721,7 @@ describe('running a review: partial reviews and failures', () => {
     expect(unexpected.error).not.toContain('ECONNREFUSED');
   });
 
-  it('does not send the saved GitHub token for a repository none of the workspace tasks link to', async () => {
+  it('AC-025: does not send the saved GitHub token for a repository none of the workspace tasks link to', async () => {
     githubStatus = 404;
     const review = await runAndWait(team.developer, { prUrl: 'https://github.com/someone/private-repo/pull/3' });
     expect(review.status).toBe('failed');
@@ -731,14 +731,14 @@ describe('running a review: partial reviews and failures', () => {
     expect(review.error).toMatch(/save a GitHub token/);
   });
 
-  it('can review a pull request given by address when the repository is linked', async () => {
+  it('AC-024: can review a pull request given by address when the repository is linked', async () => {
     const review = await runAndWait(team.developer, { prUrl: 'https://github.com/acme/app/pull/8' });
     expect(review.status).toBe('completed');
     expect(review.pr.number).toBe(8);
     expect(githubCalls.every(call => call.authorization === `Bearer ${GITHUB_TOKEN}`)).toBe(true);
   });
 
-  it('stops at the daily limit with a clear message', async () => {
+  it('AC-024: stops at the daily limit with a clear message', async () => {
     const used = (await settings(team.owner)).body.usedToday;
     process.env.AI_REVIEW_DAILY_LIMIT = String(used);
     const res = await run(team.developer);
@@ -752,7 +752,7 @@ describe('running a review: partial reviews and failures', () => {
     expect((await waitForReview(team.developer, again.body._id)).status).toBe('completed');
   });
 
-  it('keeps only the latest 10 reviews in the history', async () => {
+  it('AC-023: keeps only the latest 10 reviews in the history', async () => {
     for (let index = 0; index < 11; index += 1) {
       await mongoose.connection.collection('aireviews').insertOne({
         workspace: new mongoose.Types.ObjectId(team.workspace.id), task: new mongoose.Types.ObjectId(plainTask._id),
@@ -781,14 +781,14 @@ describe('auto review from the GitHub webhook', () => {
     return mongoose.connection.collection('aireviews').find({ task: new mongoose.Types.ObjectId(webTask._id), 'pr.headSha': 'sha-auto' }).toArray();
   };
 
-  it('does nothing while auto review is off', async () => {
+  it('AC-026: does nothing while auto review is off', async () => {
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('synchronize', 7, webTask.number, 'sha-auto'));
     await new Promise(resolve => setTimeout(resolve, 200));
     expect(await reviewCount(webTask._id)).toBe(before);
   });
 
-  it('queues one review per head commit for a linked pull request', async () => {
+  it('AC-023: queues one review per head commit for a linked pull request', async () => {
     await new Promise(resolve => setTimeout(resolve, 100));
     expect((await patchSettings(team.owner, { autoReview: true })).body.autoReview).toBe(true);
     pullHeadSha = 'sha-auto';
@@ -805,7 +805,7 @@ describe('auto review from the GitHub webhook', () => {
     expect(await waitForCount(1)).toHaveLength(1);
   });
 
-  it('skips drafts, closed and edited events', async () => {
+  it('AC-023: skips drafts, closed and edited events', async () => {
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('opened', 7, webTask.number, 'sha-draft', { draft: true }));
     await deliver('pull_request', prPayload('edited', 7, webTask.number, 'sha-edit'));
@@ -814,7 +814,7 @@ describe('auto review from the GitHub webhook', () => {
     expect(await reviewCount(webTask._id)).toBe(before);
   });
 
-  it('does nothing when the workspace opted out of AI review', async () => {
+  it('AC-026: does nothing when the workspace opted out of AI review', async () => {
     await patchSettings(team.owner, { enabled: false });
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('synchronize', 7, webTask.number, 'sha-off'));
@@ -827,7 +827,7 @@ describe('auto review from the GitHub webhook', () => {
 
 // ================================================================
 describe('simultaneous requests', () => {
-  it('starts only one review when two requests for the same task arrive together', async () => {
+  it('AC-023: starts only one review when two requests for the same task arrive together', async () => {
     await patchSettings(team.owner, { enabled: true });
     holdProvider();
     const [first, second] = await Promise.all([run(team.developer), run(team.developer)]);

@@ -89,7 +89,7 @@ describe('ReviewStep', () => {
     expect(screen.getByRole('region', { name: 'Assumptions and risks' })).toHaveTextContent('Payment provider approval takes weeks');
   });
 
-  it('edits a title in place: Enter saves, Escape cancels, an empty title is refused', async () => {
+  it('AC-005: edits a title in place: Enter saves, Escape cancels, an empty title is refused', async () => {
     const user = userEvent.setup();
     const drafts: PlanContent[] = [];
     render(<Harness onDraft={draft => drafts.push(draft)} />);
@@ -111,7 +111,7 @@ describe('ReviewStep', () => {
     expect(titleButton('Gift cards')).toBeInTheDocument();
   });
 
-  it('renames the project and edits its key, flagging an invalid one', async () => {
+  it('AC-005: renames the project and edits its key, flagging an invalid one', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('button', { name: /^Online Bookshop \(edit project name\)$/ }));
@@ -128,7 +128,7 @@ describe('ReviewStep', () => {
     expect(screen.getAllByRole('button', { name: /^Create project/ })[0]).toBeDisabled();
   });
 
-  it('deletes a task and puts it back with Undo', async () => {
+  it('AC-005: deletes a task and puts it back with Undo', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(within(sprint('Sprint 2')).getByRole('button', { name: 'Delete Pay by card' }));
@@ -139,7 +139,7 @@ describe('ReviewStep', () => {
     expect(within(sprint('Sprint 2')).getByText('Pay by card')).toBeInTheDocument();
   });
 
-  it('adds a task to a sprint', async () => {
+  it('AC-005: adds a task to a sprint', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(within(sprint('Sprint 2')).getByRole('button', { name: 'Add a task to Sprint 2' }));
@@ -147,7 +147,7 @@ describe('ReviewStep', () => {
     expect(screen.getByRole('tab', { name: 'Tasks 4' })).toBeInTheDocument();
   });
 
-  it('moves a task to another sprint from the Tasks tab', async () => {
+  it('AC-005: moves a task to another sprint from the Tasks tab', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('tab', { name: 'Tasks 3' }));
@@ -158,7 +158,7 @@ describe('ReviewStep', () => {
     expect(within(sprint('Backlog')).queryByText('Gift cards')).not.toBeInTheDocument();
   });
 
-  it('changes the points and the priority of a task', async () => {
+  it('AC-005: changes the points and the priority of a task', async () => {
     const user = userEvent.setup();
     const drafts: PlanContent[] = [];
     render(<Harness onDraft={draft => drafts.push(draft)} />);
@@ -170,7 +170,7 @@ describe('ReviewStep', () => {
     expect(drafts.at(-1)?.items[1].priority).toBe('low');
   });
 
-  it('unfolds a task to edit its criteria and subtasks', async () => {
+  it('AC-005: unfolds a task to edit its criteria and subtasks', async () => {
     const user = userEvent.setup();
     const drafts: PlanContent[] = [];
     render(<Harness onDraft={draft => drafts.push(draft)} />);
@@ -192,7 +192,7 @@ describe('ReviewStep', () => {
     expect(drafts.at(-1)?.items[0].subtasks.at(-1)?.title).toBe('New subtask');
   });
 
-  it('lists subtasks and acceptance criteria by task, and warns about tasks without criteria', async () => {
+  it('AC-005: lists subtasks and acceptance criteria by task, and warns about tasks without criteria', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('tab', { name: 'Subtasks 2' }));
@@ -206,7 +206,7 @@ describe('ReviewStep', () => {
     expect(within(criteria).getByDisplayValue('Given a basket, when the card is accepted, then an order is created')).toBeInTheDocument();
   });
 
-  it('says when only part of the document was analysed', () => {
+  it('AC-012: says when only part of the document was analysed', () => {
     render(<Harness plan={makeAiPlan({ source: { fileName: 'huge.pdf', mimeType: 'application/pdf', size: 4_000_000, chars: 250_000, truncated: true } })} />);
     const banner = screen.getByText('Only part of the document was analysed').closest('[role="status"]') as HTMLElement;
     expect(banner).toHaveTextContent('250,000 characters');
@@ -235,7 +235,7 @@ describe('ReviewStep', () => {
     expect(drafts.at(-1)?.project.name).toBe('Online Bookshop (2)');
   });
 
-  it('shows other refusals with their message', () => {
+  it('AC-007: shows other refusals with their message', () => {
     render(<Harness createError={{ status: 500, code: '', message: 'We could not create the project. Nothing was changed. Try again.', suggestion: '' }} />);
     expect(screen.getByText('The project was not created')).toBeInTheDocument();
     expect(screen.getByText(/Nothing was changed/)).toBeInTheDocument();
@@ -259,7 +259,7 @@ describe('ReviewStep', () => {
     expect(onDiscard).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Regenerate when the document is no longer in this tab', () => {
+  it('AC-006: disables Regenerate when the document is no longer in this tab', () => {
     render(<Harness canRegenerate={false} />);
     expect(screen.getAllByRole('button', { name: 'Regenerate' })[0]).toBeDisabled();
   });

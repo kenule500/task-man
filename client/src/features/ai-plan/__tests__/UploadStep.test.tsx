@@ -113,7 +113,7 @@ describe('UploadStep', () => {
     expect(onStart).not.toHaveBeenCalled();
   });
 
-  it('explains that AI is off and where to turn it on, and does not allow the upload', async () => {
+  it('AC-015: explains that AI is off and where to turn it on, and does not allow the upload', async () => {
     const user = userEvent.setup();
     setup({ settings: settings({ enabled: false }) });
     expect(screen.getByText('AI is turned off for this workspace')).toBeInTheDocument();
@@ -122,13 +122,13 @@ describe('UploadStep', () => {
     expect(analyze()).toBeDisabled();
   });
 
-  it('asks people who cannot manage settings to ask an admin', () => {
+  it('AC-015: asks people who cannot manage settings to ask an admin', () => {
     setup({ settings: settings({ enabled: false }), canManageSettings: false });
     expect(screen.queryByRole('link', { name: 'Open workspace settings' })).not.toBeInTheDocument();
     expect(screen.getByText(/Ask an owner or admin to turn it on/)).toBeInTheDocument();
   });
 
-  it('says so when the server has no AI key', () => {
+  it('AC-015: says so when the server has no AI key', () => {
     setup({ settings: settings({ available: false }) });
     expect(screen.getByText('AI is not set up for this workspace')).toBeInTheDocument();
   });
@@ -141,7 +141,7 @@ describe('UploadStep', () => {
     expect(analyze()).toBeDisabled();
   });
 
-  it('shows the settings check while it runs and a retry when it fails', async () => {
+  it('AC-015: shows the settings check while it runs and a retry when it fails', async () => {
     const user = userEvent.setup();
     const { onRetrySettings } = setup({ settings: null, settingsError: 'We could not load the AI settings.' });
     expect(screen.getByText('We could not load the AI settings.')).toBeInTheDocument();

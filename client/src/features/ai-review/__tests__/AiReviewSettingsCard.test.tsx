@@ -79,7 +79,7 @@ describe('AiReviewSettingsCard', () => {
     expect(api.updateSettings).not.toHaveBeenCalled();
   });
 
-  it('removes a saved token', async () => {
+  it('AC-025: removes a saved token', async () => {
     api.getSettings.mockResolvedValue(settings({ githubTokenSet: true }));
     api.updateSettings.mockResolvedValue(settings({ githubTokenSet: false }));
     render(<AiReviewSettingsCard workspaceSlug="acme" />);

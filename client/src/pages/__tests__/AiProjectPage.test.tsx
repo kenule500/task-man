@@ -197,7 +197,7 @@ describe('AiProjectPage', () => {
     expect(await screen.findByRole('region', { name: 'Generated project' }, { timeout: 10000 })).toBeInTheDocument();
   });
 
-  it('shows a refused upload without leaving the first step', async () => {
+  it('AC-006: shows a refused upload without leaving the first step', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockRejectedValue({ response: { status: 503, data: { code: 'AI_DISABLED', message: 'raw' } } });
     renderPage();
@@ -235,7 +235,7 @@ describe('AiProjectPage', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('/demo/projects/p-done');
   });
 
-  it('says so when the plan in the address no longer exists', async () => {
+  it('AC-039: says so when the plan in the address no longer exists', async () => {
     plans.get.mockRejectedValue({ response: { status: 404, data: { message: 'Plan not found' } } });
     renderPage('/demo/projects/new/ai?plan=gone');
     expect(await screen.findByText(/This plan no longer exists/)).toBeInTheDocument();
@@ -346,7 +346,7 @@ describe('AiProjectPage', () => {
     expect(plans.remove).not.toHaveBeenCalled();
   });
 
-  it('refuses an archived project before the wizard starts', async () => {
+  it('AC-036: refuses an archived project before the wizard starts', async () => {
     directory.projects = [website, makeProject({ _id: 'p-archived', name: 'Old site', key: 'OLD', archived: true })];
     renderPage('/demo/projects/p-archived/plan');
 

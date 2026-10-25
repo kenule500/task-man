@@ -62,7 +62,7 @@ describe('reviewWithModel', () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
-  it('sends the validation error back once and accepts the corrected answer; usage adds up', async () => {
+  it('AC-024: sends the validation error back once and accepts the corrected answer; usage adds up', async () => {
     const { client, create } = clientFrom([() => reply('{"verdict":"great"}'), () => reply(good)]);
     const result = await reviewWithModel(input, { client, ...fast });
     expect(result.output.verdict).toBe('match');

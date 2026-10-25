@@ -69,14 +69,14 @@ describe('workspace provider presets', () => {
 });
 
 describe('parsePrUrl', () => {
-  it('accepts exactly https://github.com/<owner>/<repo>/pull/<n>', () => {
+  it('AC-024: accepts exactly https://github.com/<owner>/<repo>/pull/<n>', () => {
     expect(parsePrUrl('https://github.com/acme/app/pull/12')).toEqual({
       owner: 'acme', repo: 'app', number: 12, fullName: 'acme/app', url: 'https://github.com/acme/app/pull/12',
     });
     expect(parsePrUrl('  https://github.com/a-b/c.d_e/pull/1  ')?.fullName).toBe('a-b/c.d_e');
   });
 
-  it('rejects everything else', () => {
+  it('AC-024: rejects everything else', () => {
     for (const bad of [
       'http://github.com/acme/app/pull/12', 'https://github.com.evil.com/acme/app/pull/12', 'https://evil.com/github.com/acme/app/pull/12',
       'https://github.com/acme/app/pull/12/files', 'https://github.com/acme/app/pull/12?x=1', 'https://github.com/acme/app/pull/12#c',
@@ -90,11 +90,11 @@ describe('parsePrUrl', () => {
 describe('shouldAutoReview', () => {
   const payload = (action: string, pr: Record<string, unknown> = {}) => ({ action, pull_request: { state: 'open', draft: false, ...pr } });
 
-  it('reviews opened, synchronize and ready_for_review pull requests', () => {
+  it('AC-023: reviews opened, synchronize and ready_for_review pull requests', () => {
     for (const action of ['opened', 'synchronize', 'ready_for_review']) expect(shouldAutoReview('pull_request', payload(action))).toBe(true);
   });
 
-  it('skips other actions, drafts, closed pull requests and other events', () => {
+  it('AC-023: skips other actions, drafts, closed pull requests and other events', () => {
     for (const action of ['edited', 'closed', 'reopened', 'converted_to_draft']) expect(shouldAutoReview('pull_request', payload(action))).toBe(false);
     expect(shouldAutoReview('pull_request', payload('opened', { draft: true }))).toBe(false);
     expect(shouldAutoReview('pull_request', payload('synchronize', { state: 'closed' }))).toBe(false);
