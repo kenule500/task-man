@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {
-  bearer, createTeam, http, joinAs, registerUser, startApp, stopApp, tasksUrl, unknownId, type TestUser,
+  bearer, createTask, createTeam, http, joinAs, registerUser, startApp, stopApp, tasksUrl, unknownId, type TestUser,
 } from './harness.js';
 import Task from '../models/taskModel.js';
 import { generateJson } from '../utils/ai/provider.js';
@@ -109,6 +109,11 @@ const generate = async (user: TestUser, options: UploadOptions = {}): Promise<Js
 const rawPlanDocument = (id: string) => mongoose.connection.collection('aiplans').findOne({ _id: new mongoose.Types.ObjectId(id) });
 const settings = (user: TestUser) => http().get(aiUrl()).set(withAuth(user));
 const enable = (user: TestUser, where = slug, enabled = true) => http().patch(aiUrl(where)).set(withAuth(user)).send({ enabled });
+// AI is workspace BYOK now: a provider and key must be saved before the feature can be switched on.
+const configure = (user: TestUser, where = slug, body: Json = { provider: 'qwen', apiKey: 'sk-test-never-logged' }) =>
+  http().put(`${aiUrl(where)}/provider`).set(withAuth(user)).send(body);
+const unconfigure = (user: TestUser, where = slug) =>
+  http().delete(`${aiUrl(where)}/provider`).set(withAuth(user));
 const patchPlan = (user: TestUser, id: string, plan: Json) => http().patch(`${plansUrl()}/${id}`).set(withAuth(user)).send({ plan });
 const createPlan = (user: TestUser, id: string, where = slug) => http().post(`${plansUrl(where)}/${id}/create`).set(withAuth(user));
 
@@ -117,8 +122,6 @@ const audit = async () =>
     { action: string; summary: string; changes: { field: string; to?: string }[] }[];
 
 beforeAll(async () => {
-  process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
-  delete process.env.DASHSCOPE_MODEL;
   // The default is 20 a day; this file generates far more plans than that, so the limit gets its own test
   process.env.AI_PLAN_DAILY_LIMIT = BIG_LIMIT;
   delete process.env.AI_PLAN_MAX_CHARS;
@@ -130,11 +133,11 @@ beforeAll(async () => {
   scrum = await registerUser('Sam Scrum');
   slug = team.workspace.slug;
   await joinAs(team.workspace, team.owner, scrum, 'Scrum Master');
+  expect((await configure(team.owner)).status).toBe(200);
   expect((await enable(team.owner)).status).toBe(200);
 });
 
 afterAll(() => {
-  delete process.env.DASHSCOPE_API_KEY;
   delete process.env.AI_PLAN_DAILY_LIMIT;
   delete process.env.AI_PLAN_MAX_CHARS;
   delete process.env.AI_PLAN_MAX_MB;
@@ -160,13 +163,15 @@ describe('AI is opt-in', () => {
     await enable(team.owner, slug, true);
   });
 
-  it('answers 503 AI_DISABLED when the server has no key', async () => {
-    delete process.env.DASHSCOPE_API_KEY;
+  it('answers 503 AI_DISABLED when the workspace has no saved provider', async () => {
+    await unconfigure(team.owner);
     const res = await upload(team.owner);
-    process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
     expect(res.status).toBe(503);
     expect(res.body.code).toBe('AI_DISABLED');
     expect(provider).not.toHaveBeenCalled();
+    // Saving a provider again starts from consent off, so the switch is turned back on explicitly.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await enable(team.owner)).status).toBe(200);
   });
 
   it('another workspace stays off when this one turns AI on', async () => {
@@ -736,6 +741,172 @@ describe('creating the project', () => {
     const visible = (await http().get(`/api/workspaces/${slug}/projects`).set(withAuth(team.developer))).body as Json[];
     expect(visible.some(project => project.name === 'Scrum master project')).toBe(true);
     expect((await http().get(`/api/workspaces/${other.workspace.slug}/projects`).set(withAuth(other.owner))).body.some((project: Json) => project.name === 'Scrum master project')).toBe(false);
+  });
+});
+
+// ================================================================
+describe('adding a plan to an existing project', () => {
+  const projectsUrl = () => `/api/workspaces/${slug}/projects`;
+  let target: Json;
+  let originalSprint: Json;
+  let originalTask: Json;
+
+  const newProject = async (name: string, key: string, where = slug) => {
+    const res = await http().post(`/api/workspaces/${where}/projects`).set(withAuth(team.owner)).send({ name, key });
+    expect(res.status).toBe(201);
+    return res.body as Json;
+  };
+
+  const projectView = async (id: string) =>
+    ((await http().get(projectsUrl()).set(withAuth(team.owner))).body as Json[]).find(project => project._id === id) as Json;
+
+  beforeAll(async () => {
+    target = await newProject('Existing Ship', 'SHIP');
+    const sprint = await http().post(`${projectsUrl()}/${target._id}/sprints`).set(withAuth(team.owner))
+      .send({ name: 'Sprint 1', goal: 'Already planned', startDate: '2032-05-03', endDate: '2032-05-14' });
+    expect(sprint.status).toBe(201);
+    originalSprint = sprint.body;
+    originalTask = await createTask(team.owner, slug, { title: 'Already here', project: 'Existing Ship' });
+  });
+
+  it('validates the target when the document is uploaded: invalid, foreign and archived are refused', async () => {
+    const invalid = await upload(team.owner, { fields: { targetProjectId: 'not-an-id' } });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.code).toBe('TARGET_INVALID');
+
+    const foreignProject = await newProject('Someone Else', 'ELSE', other.workspace.slug);
+    const foreign = await upload(team.owner, { fields: { targetProjectId: foreignProject._id } });
+    expect(foreign.status).toBe(404);
+    expect(foreign.body.code).toBe('TARGET_NOT_FOUND');
+
+    const archivedProject = await newProject('Old Ship', 'OLD');
+    expect((await http().patch(`${projectsUrl()}/${archivedProject._id}`).set(withAuth(team.owner)).send({ archived: true })).status).toBe(200);
+    const archived = await upload(team.owner, { fields: { targetProjectId: archivedProject._id } });
+    expect(archived.status).toBe(409);
+    expect(archived.body.code).toBe('TARGET_ARCHIVED');
+
+    // Nothing was written for any refusal
+    const refusedTargets = [foreignProject._id, archivedProject._id].map((id: string) => new mongoose.Types.ObjectId(id));
+    expect(await mongoose.connection.collection('aiplans').countDocuments({ 'options.targetProjectId': { $in: refusedTargets } })).toBe(0);
+  });
+
+  it('stores the destination on the plan and returns the resolved target', async () => {
+    const queued = await upload(team.owner, { fields: { targetProjectId: target._id } });
+    expect(queued.status).toBe(202);
+    expect(queued.body).toMatchObject({
+      options: { targetProjectId: target._id },
+      targetProject: { _id: target._id, name: 'Existing Ship', key: 'SHIP', archived: false },
+    });
+
+    const plan = await waitForPlan(team.owner, queued.body._id);
+    expect(plan.status).toBe('ready');
+    expect(plan.targetProject).toEqual({ _id: target._id, name: 'Existing Ship', key: 'SHIP', archived: false });
+    expect(plan.options.targetProjectId).toBe(target._id);
+    expect(provider).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes only the plan records: the project, its sprint and its task stay untouched', async () => {
+    const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: target._id } })).body._id);
+    const edited = structuredClone(plan.plan) as Json;
+    edited.project = { name: 'Ignored Name', key: 'IGN', description: 'Ignored', color: 'red' };
+    expect((await patchPlan(team.owner, plan._id, edited)).status).toBe(200);
+
+    const before = await projectView(target._id);
+    const beforeTasks = ((await http().get(tasksUrl(slug)).set(withAuth(team.owner))).body as Json[])
+      .filter(task => task.project === 'Existing Ship');
+    const sprintEntriesBefore = (await audit())
+      .filter(entry => entry.action === 'sprint.created' && entry.summary.endsWith('· Existing Ship')).length;
+
+    const res = await createPlan(team.owner, plan._id);
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      destination: 'existing',
+      project: { _id: target._id, name: 'Existing Ship', key: 'SHIP' },
+      counts: { sprints: 2, epics: 1, items: 3, subtasks: 2, tasks: 6, criteria: 6 },
+    });
+
+    const after = await projectView(target._id);
+    // The plan's project block is ignored and nothing about the target changes
+    expect(after).toMatchObject({
+      name: before.name, key: before.key, description: before.description, color: before.color, icon: before.icon, archived: before.archived,
+    });
+    expect(after.sprints.map((sprint: Json) => sprint._id)).toContain(originalSprint._id);
+    const keptSprint = after.sprints.find((sprint: Json) => sprint._id === originalSprint._id) as Json;
+    expect(keptSprint).toMatchObject({ name: 'Sprint 1', goal: 'Already planned' });
+    // Generated sprint names are deduplicated against the target's own
+    expect(after.sprints.map((sprint: Json) => sprint.name).sort()).toEqual(['Sprint 1', 'Sprint 1 (2)', 'Sprint 2']);
+
+    const afterTasks = ((await http().get(tasksUrl(slug)).set(withAuth(team.owner))).body as Json[])
+      .filter(task => task.project === 'Existing Ship');
+    expect(afterTasks).toHaveLength(beforeTasks.length + 6);
+    const keptTask = afterTasks.find(task => task._id === originalTask._id) as Json;
+    expect(keptTask.title).toBe('Already here');
+    // New tasks carry the target's name and the workspace's starting stage
+    const added = afterTasks.filter(task => task._id !== originalTask._id);
+    expect(added.every(task => task.project === 'Existing Ship' && task.status === 'pending')).toBe(true);
+
+    const stored = (await getPlan(team.owner, plan._id)).body;
+    expect(stored).toMatchObject({ status: 'created', projectId: target._id });
+    expect(stored.plan.project.name).toBe('Ignored Name');
+
+    const entries = await audit();
+    const summary = entries.find(entry => entry.action === 'ai.plan_created' && entry.summary === 'Existing Ship');
+    expect(summary?.changes).toEqual(expect.arrayContaining([
+      { field: 'destination', to: 'existing' },
+      { field: 'target', to: 'Existing Ship' },
+      { field: 'tasks', to: '6' },
+    ]));
+    expect(entries.filter(entry => entry.action === 'sprint.created' && entry.summary.endsWith('· Existing Ship'))).toHaveLength(sprintEntriesBefore + 2);
+  });
+
+  it('refuses a target archived after the upload and keeps the plan ready for another destination', async () => {
+    const late = await newProject('Late Archive', 'LATE');
+    const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: late._id } })).body._id);
+    expect((await http().patch(`${projectsUrl()}/${late._id}`).set(withAuth(team.owner)).send({ archived: true })).status).toBe(200);
+
+    const refused = await createPlan(team.owner, plan._id);
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('TARGET_ARCHIVED');
+    const stillReady = (await getPlan(team.owner, plan._id)).body;
+    expect(stillReady).toMatchObject({ status: 'ready', projectId: null });
+    expect(await mongoose.connection.collection('sprints').countDocuments({ project: new mongoose.Types.ObjectId(late._id) })).toBe(0);
+
+    // The plan is reusable once the target is available again
+    expect((await http().patch(`${projectsUrl()}/${late._id}`).set(withAuth(team.owner)).send({ archived: false })).status).toBe(200);
+    expect((await createPlan(team.owner, plan._id)).status).toBe(201);
+  });
+
+  it('answers TARGET_UNAVAILABLE when the target disappears after the upload', async () => {
+    const gone = await newProject('Gone Soon', 'GONE');
+    const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: gone._id } })).body._id);
+    expect((await http().delete(`${projectsUrl()}/${gone._id}`).set(withAuth(team.owner))).status).toBe(204);
+
+    const refused = await createPlan(team.owner, plan._id);
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('TARGET_UNAVAILABLE');
+    expect((await getPlan(team.owner, plan._id)).body.status).toBe('ready');
+  });
+
+  it('rolls back only the records it wrote, never the target or its own sprint and task', async () => {
+    const rollbackTarget = await newProject('Rollback Target', 'RBT');
+    const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: rollbackTarget._id } })).body._id);
+    const count = (filter: Json) => mongoose.connection.collection('tasks').countDocuments(filter);
+    const sprintCount = () => mongoose.connection.collection('sprints').countDocuments({ project: new mongoose.Types.ObjectId(rollbackTarget._id) });
+    const before = { sprints: await sprintCount(), tasks: await count({ project: 'Rollback Target' }) };
+
+    const spy = jest.spyOn(Task, 'insertMany').mockRejectedValueOnce(new Error('disk full'));
+    const failed = await createPlan(team.owner, plan._id);
+    spy.mockRestore();
+    expect(failed.status).toBe(500);
+
+    expect((await getPlan(team.owner, plan._id)).body).toMatchObject({ status: 'ready', projectId: null });
+    expect(await projectView(rollbackTarget._id)).toBeDefined();
+    expect({ sprints: await sprintCount(), tasks: await count({ project: 'Rollback Target' }) }).toEqual(before);
+
+    const retry = await createPlan(team.owner, plan._id);
+    expect(retry.status).toBe(201);
+    expect(retry.body.destination).toBe('existing');
+    expect(retry.body.counts.tasks).toBe(6);
   });
 });
 

@@ -4,15 +4,20 @@ import {
 } from './harness.js';
 import { signBody } from '../utils/githubEvents.js';
 import { decryptSecret } from '../utils/secretBox.js';
-import { reviewWithModel } from '../utils/ai/provider.js';
+import { reviewWithModel, testAiConnection } from '../utils/ai/provider.js';
 
 // The model provider is replaced: no request ever leaves for Alibaba Cloud. GitHub is replaced with a fetch spy.
-jest.mock('../utils/ai/provider.js', () => ({ __esModule: true, reviewWithModel: jest.fn() }));
+jest.mock('../utils/ai/provider.js', () => ({
+  __esModule: true,
+  reviewWithModel: jest.fn(),
+  testAiConnection: jest.fn(),
+}));
 
 beforeAll(startApp);
 afterAll(stopApp);
 
 const provider = reviewWithModel as unknown as jest.Mock;
+const testConnection = testAiConnection as unknown as jest.Mock;
 const GITHUB_TOKEN = 'ghp_abcdefghijklmnopqrstuvwxyz0123456789';
 
 let team: Awaited<ReturnType<typeof createTeam>>;
@@ -24,6 +29,7 @@ let webTask: { _id: string; number: number };
 let plainTask: { _id: string; number: number };
 
 const aiUrl = () => `/api/workspaces/${slug}/ai`;
+const plansUrl = () => `/api/workspaces/${slug}/ai/plans`;
 const runUrl = (id = webTask._id, workspaceSlug = slug) => `${tasksUrl(workspaceSlug)}/${id}/ai-review`;
 const listUrl = (id = webTask._id, workspaceSlug = slug) => `${tasksUrl(workspaceSlug)}/${id}/ai-reviews`;
 const run = (user: TestUser, body: Record<string, unknown> = {}, id = webTask._id) =>
@@ -31,6 +37,11 @@ const run = (user: TestUser, body: Record<string, unknown> = {}, id = webTask._i
 const settings = (user: TestUser) => http().get(aiUrl()).set(bearer(user.token));
 const patchSettings = (user: TestUser | { token: string }, body: Record<string, unknown>) =>
   http().patch(aiUrl()).set(bearer(user.token)).send(body);
+// AI is workspace BYOK: the provider and key live on the workspace, not in AI_*/DASHSCOPE_* environment variables.
+const configure = (user: TestUser, body: Record<string, unknown> = { provider: 'qwen', apiKey: 'sk-test-never-logged' }) =>
+  http().put(`${aiUrl()}/provider`).set(bearer(user.token)).send(body);
+const unconfigure = (user: TestUser) =>
+  http().delete(`${aiUrl()}/provider`).set(bearer(user.token));
 
 // ----------------------------------------------------------------
 // GitHub fake
@@ -133,8 +144,6 @@ const reviewCount = async (taskId: string) =>
   mongoose.connection.collection('aireviews').countDocuments({ task: new mongoose.Types.ObjectId(taskId) });
 
 beforeAll(async () => {
-  process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
-  delete process.env.DASHSCOPE_MODEL;
   delete process.env.AI_REVIEW_DAILY_LIMIT;
   delete process.env.AI_REVIEW_MAX_DIFF_CHARS;
   jest.spyOn(global, 'fetch').mockImplementation(fakeGithub as typeof fetch);
@@ -143,6 +152,7 @@ beforeAll(async () => {
   other = await createTeam();
   outsider = await registerUser('Nina Notmember');
   slug = team.workspace.slug;
+  expect((await configure(team.owner)).status).toBe(200);
 
   const project = await http().post(`/api/workspaces/${slug}/projects`).set(bearer(team.owner.token)).send({ name: 'Web Site', key: 'WEB' });
   if (project.status !== 201) throw new Error(`project failed: ${project.status}`);
@@ -158,7 +168,6 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  delete process.env.DASHSCOPE_API_KEY;
   jest.restoreAllMocks();
 });
 
@@ -223,10 +232,12 @@ describe('AI settings', () => {
     expect((await settings(outsider)).status).toBeGreaterThanOrEqual(403);
   });
 
-  it('reports the feature as unavailable when the server has no API key', async () => {
-    delete process.env.DASHSCOPE_API_KEY;
-    expect((await settings(team.owner)).body.available).toBe(false);
-    process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
+  it('reports the feature as unavailable when the workspace has no saved provider', async () => {
+    expect((await unconfigure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: false, enabled: false, problem: 'AI_NOT_CONFIGURED' });
+    // Saving again starts from consent off, which the next tests rely on.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: true, enabled: false, model: 'qwen-plus' });
   });
 
   it('can only be changed with settings:manage, never through an API token', async () => {
@@ -291,6 +302,168 @@ describe('AI settings', () => {
 });
 
 // ================================================================
+describe('workspace AI provider (BYOK)', () => {
+  it('AC-022: saves a preset with its endpoint and model, and never returns the key', async () => {
+    const res = await configure(team.owner, { provider: 'deepseek', apiKey: 'sk-owner-secret-9876' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      available: true, enabled: false, autoReview: false, problem: null,
+      provider: { id: 'deepseek', label: 'DeepSeek' }, model: 'deepseek-chat',
+      config: { keySet: true, keyHint: '9876', baseURL: 'https://api.deepseek.com/v1' },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('sk-owner-secret');
+
+    // Only settings:manage may read the metadata or change the provider; everyone else can see availability
+    const read = await settings(team.viewer);
+    expect(read.status).toBe(200);
+    expect(read.body).toMatchObject({ available: true });
+    expect(read.body.config).toBeUndefined();
+    expect((await configure(team.viewer, { provider: 'openai', apiKey: 'sk-viewer-secret' })).status).toBe(403);
+
+    const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
+    const box = stored?.ai?.apiKeyEncrypted as string;
+    expect(box).toMatch(/^v1\./);
+    expect(box).not.toContain('sk-owner-secret');
+    expect(decryptSecret(box, String(stored?._id))).toBe('sk-owner-secret-9876');
+    expect(() => decryptSecret(box, 'another-workspace')).toThrow();
+  });
+
+  it('AC-022: keeps the saved key when none is entered, replaces it when one is, and accepts a model override', async () => {
+    const kept = await configure(team.owner, { provider: 'deepseek' });
+    expect(kept.status).toBe(200);
+    expect(kept.body.config.keyHint).toBe('9876');
+
+    const replaced = await configure(team.owner, { provider: 'deepseek', apiKey: 'sk-replaced-4321', model: 'deepseek-reasoner' });
+    expect(replaced.body).toMatchObject({ model: 'deepseek-reasoner', config: { keySet: true, keyHint: '4321' } });
+
+    expect((await configure(team.owner, { provider: 'nope', apiKey: 'x' })).status).toBe(400);
+    expect((await configure(team.owner, { provider: 'custom', apiKey: 'sk-custom' })).status).toBe(400);
+  });
+
+  it('AC-029: a custom endpoint must be HTTPS, credential-free, query-free and public', async () => {
+    const attempt = (baseURL: string) => configure(team.owner, { provider: 'custom', baseURL, apiKey: 'sk-custom', model: 'm' });
+
+    for (const baseURL of [
+      'http://api.example.com/v1',
+      'https://user:pw@api.example.com/v1',
+      'https://api.example.com/v1?token=1',
+      'https://api.example.com/v1#fragment',
+    ]) {
+      const refused = await attempt(baseURL);
+      expect(refused.status).toBe(400);
+      expect(refused.body.code).toBe('BASE_URL_INVALID');
+    }
+
+    for (const host of ['127.0.0.1', '10.1.2.3', '172.16.5.4', '192.168.1.10', '169.254.169.254', '100.64.0.1', '[::1]', '[fd00::1]']) {
+      const refused = await attempt(`https://${host}/v1`);
+      expect(refused.status).toBe(400);
+      expect(refused.body.code).toBe('BASE_URL_PRIVATE');
+    }
+
+    // Every refusal happened before the stored configuration changed, so the key was never sent anywhere
+    expect((await settings(team.owner)).body).toMatchObject({ provider: { id: 'deepseek' }, model: 'deepseek-reasoner' });
+  });
+
+  it('AC-028: tests the connection with the saved configuration, records the result and time, and sends no workspace content', async () => {
+    testConnection.mockResolvedValueOnce({ ok: true, code: 'OK' });
+    const passed = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token)).send({});
+    expect(passed.status).toBe(200);
+    expect(passed.body).toMatchObject({ ok: true, code: 'OK' });
+    expect(passed.body.testedAt).toEqual(expect.any(String));
+
+    const config = testConnection.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(config).toMatchObject({
+      available: true, provider: { id: 'deepseek' }, model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1',
+    });
+    expect(Object.keys(config).sort()).toEqual(['apiKey', 'available', 'baseURL', 'keyHint', 'keySet', 'limits', 'model', 'problem', 'provider']);
+    expect(JSON.stringify(config)).not.toMatch(/workspace|ticket|document|prompt/i);
+    expect((await settings(team.owner)).body.config).toMatchObject({ lastTestStatus: 'success', lastTestCode: 'OK', lastTestedAt: expect.any(String) });
+
+    testConnection.mockResolvedValueOnce({ ok: false, code: 'AI_UNAVAILABLE' });
+    const failed = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token)).send({});
+    expect(failed.body).toMatchObject({ ok: false, code: 'AI_UNAVAILABLE' });
+    expect((await settings(team.owner)).body.config).toMatchObject({ lastTestStatus: 'failed', lastTestCode: 'AI_UNAVAILABLE' });
+
+    // Unsaved values can be tested without replacing what is stored
+    testConnection.mockResolvedValueOnce({ ok: true, code: 'OK' });
+    const entered = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token))
+      .send({ provider: 'openai', apiKey: 'sk-unsaved-0000' });
+    expect(entered.body).toMatchObject({ ok: true, code: 'OK' });
+    expect(testConnection.mock.calls.at(-1)?.[0]).toMatchObject({ provider: { id: 'openai' }, model: 'gpt-4o-mini' });
+    expect((await settings(team.owner)).body).toMatchObject({ provider: { id: 'deepseek' }, config: { keyHint: '4321' } });
+  });
+
+  it('AC-028: rate-limits connection tests per member and workspace', async () => {
+    expect((await http().put(`/api/workspaces/${other.workspace.slug}/ai/provider`).set(bearer(other.owner.token))
+      .send({ provider: 'qwen', apiKey: 'sk-other-0000' })).status).toBe(200);
+    testConnection.mockResolvedValue({ ok: true, code: 'OK' });
+    const url = `/api/workspaces/${other.workspace.slug}/ai/provider/test`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      expect((await http().post(url).set(bearer(other.owner.token)).send({})).status).toBe(200);
+    }
+    const limited = await http().post(url).set(bearer(other.owner.token)).send({});
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe('AI_TEST_RATE_LIMIT');
+  });
+
+  it('AC-026: removing the configuration clears the key and provider, turns AI and automatic review off, and keeps history readable', async () => {
+    expect((await patchSettings(team.owner, { enabled: true, autoReview: true })).body).toMatchObject({ enabled: true, autoReview: true });
+
+    // History written earlier stays readable after the provider is gone
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const reviewId = new mongoose.Types.ObjectId();
+    await mongoose.connection.collection('aireviews').insertOne({
+      _id: reviewId,
+      workspace: new mongoose.Types.ObjectId(team.workspace.id), task: new mongoose.Types.ObjectId(plainTask._id),
+      pr: { repo: 'a/b', number: 42, url: 'https://github.com/a/b/pull/42', title: '', headSha: 'old' },
+      status: 'completed', verdict: 'match', summary: '', criteria: [], issues: [], counts: { met: 0, partial: 0, missing: 0, issues: 0 },
+      truncated: false, omittedFiles: [], model: 'm', usage: { inputTokens: 0, outputTokens: 0 }, error: '', requestedBy: null,
+      createdAt: yesterday, updatedAt: yesterday,
+    });
+    const planId = new mongoose.Types.ObjectId();
+    await mongoose.connection.collection('aiplans').insertOne({
+      _id: planId,
+      workspace: new mongoose.Types.ObjectId(team.workspace.id), createdBy: new mongoose.Types.ObjectId(team.owner.id),
+      status: 'ready', model: 'm', active: false, creating: false, deletedAt: null, plan: null,
+      source: { fileName: 'old.txt', mimeType: 'text/plain', size: 3, chars: 3, truncated: false, preview: '' },
+      options: {
+        projectName: 'Old plan', projectKey: 'OLD', sprintLengthWeeks: 2, startDate: '2032-05-03', teamSize: 3,
+        language: 'en', notes: '', targetProjectId: null,
+      },
+      createdAt: yesterday, updatedAt: yesterday,
+    });
+
+    const removed = await unconfigure(team.owner);
+    expect(removed.status).toBe(200);
+    expect(removed.body).toMatchObject({
+      available: false, enabled: false, autoReview: false, provider: null, problem: 'AI_NOT_CONFIGURED',
+      config: { keySet: false, keyHint: null },
+    });
+
+    const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
+    expect(stored?.ai?.apiKeyEncrypted).toBeUndefined();
+    expect(stored?.ai?.provider).toBeUndefined();
+    expect(stored?.ai?.baseURL).toBeUndefined();
+    expect(stored?.ai?.model).toBeUndefined();
+
+    expect((await http().get(`${listUrl(plainTask._id)}/${reviewId}`).set(bearer(team.owner.token))).status).toBe(200);
+    expect((await http().get(`${plansUrl()}/${planId}`).set(bearer(team.owner.token))).status).toBe(200);
+
+    const log = await http().get(`/api/workspaces/${slug}/activity?area=ai`).set(bearer(team.owner.token));
+    const entry = (log.body.items as { action: string; changes: { field: string; from?: string; to?: string }[] }[])
+      .find(item => item.action === 'ai.settings_updated' && item.changes.some(change => change.field === 'provider' && change.to === 'none'));
+    expect(entry).toBeDefined();
+    expect(entry?.changes).toEqual(expect.arrayContaining([{ field: 'apiKey', from: 'set', to: 'cleared' }]));
+    expect(JSON.stringify(log.body)).not.toContain('sk-replaced');
+    expect(JSON.stringify(log.body)).not.toContain('https://api.deepseek.com');
+
+    // Restore for the rest of the suite. A first configuration always starts with consent off.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: true, enabled: false, autoReview: false });
+  });
+});
+
+// ================================================================
 describe('running a review: refusals', () => {
   it('answers 503 AI_DISABLED until the workspace opts in', async () => {
     const res = await run(team.developer);
@@ -301,13 +474,16 @@ describe('running a review: refusals', () => {
     expect(await reviewCount(webTask._id)).toBe(0);
   });
 
-  it('answers 503 AI_DISABLED when the server has no API key, even when the workspace opted in', async () => {
+  it('answers 503 AI_DISABLED when the workspace has no saved provider, even when it opted in', async () => {
     expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
-    delete process.env.DASHSCOPE_API_KEY;
+    expect((await unconfigure(team.owner)).status).toBe(200);
     const res = await run(team.developer);
-    process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
     expect(res.status).toBe(503);
     expect(res.body.code).toBe('AI_DISABLED');
+    expect(provider).not.toHaveBeenCalled();
+    // Restore for the rest of the suite: saving a provider resets consent, so turn it back on.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
   });
 
   it('needs tasks:write to start and tasks:read to look', async () => {

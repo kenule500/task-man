@@ -232,7 +232,8 @@ describe('BoardView WIP limits', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: /Set WIP limits/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Set WIP limits' });
     expect(within(dialog).getByLabelText('Pending')).toHaveValue('8');
-    expect(within(dialog).getByLabelText('In Progress')).toHaveFocus();
+    // Base UI moves focus into the dialog after it mounts, which can land after findByRole resolves.
+    await waitFor(() => expect(within(dialog).getByLabelText('In Progress')).toHaveFocus());
 
     await userEvent.type(within(dialog).getByLabelText('In Progress'), '3');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Save limits' }));
