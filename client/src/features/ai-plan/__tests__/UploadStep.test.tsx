@@ -60,7 +60,7 @@ describe('UploadStep', () => {
     expect(within(notice).getByText(/AI is on for this workspace\. 2 of 20 project plans used today\./)).toBeInTheDocument();
   });
 
-  it('AC-001/AC-002: starts only when a document is chosen, and sends the file with the options', async () => {
+  it('TEST-002 AC-001/AC-002: starts only when a document is chosen, and sends the file with the options', async () => {
     const user = userEvent.setup();
     const { onStart } = setup();
     expect(analyze()).toBeDisabled();
@@ -98,7 +98,7 @@ describe('UploadStep', () => {
     expect(analyze()).toBeDisabled();
   });
 
-  it('AC-001: refuses files it can already tell are wrong, with the reason', async () => {
+  it('TEST-001 AC-001: refuses files it can already tell are wrong, with the reason', async () => {
     const user = userEvent.setup({ applyAccept: false });
     const { onStart } = setup();
     await user.upload(dropzone(), pdf('photo.png'));

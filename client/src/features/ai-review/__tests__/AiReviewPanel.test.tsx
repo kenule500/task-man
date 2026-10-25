@@ -90,7 +90,7 @@ describe('AiReviewPanel', () => {
     expect(button).toHaveAccessibleDescription(/not configured for this workspace/);
   });
 
-  it('AC-032: is disabled with an explanation when the workspace has not opted in', async () => {
+  it('TEST-032 AC-032: is disabled with an explanation when the workspace has not opted in', async () => {
     api.getSettings.mockResolvedValue(settings({ enabled: false }));
     renderPanel();
     const button = await runButton();
@@ -98,7 +98,7 @@ describe('AiReviewPanel', () => {
     expect(await screen.findByText(/turned off for this workspace/)).toBeInTheDocument();
   });
 
-  it('AC-032/AC-033: is disabled for people who cannot edit tasks, but they still see earlier results', async () => {
+  it('TEST-033 AC-032/AC-033: is disabled for people who cannot edit tasks, but they still see earlier results', async () => {
     api.list.mockResolvedValue([review()]);
     renderPanel({ canWrite: false });
     expect(await screen.findByTestId('review-result')).toBeInTheDocument();

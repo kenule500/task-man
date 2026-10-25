@@ -17,7 +17,7 @@ beforeEach(() => {
 });
 
 describe('normalizeBaseURL (AC-029)', () => {
-  it('accepts an HTTPS URL and drops trailing slashes', () => {
+  it('TEST-029 AC-029: accepts an HTTPS URL and drops trailing slashes', () => {
     expect(normalizeBaseURL('  https://api.example.com/v1///  ')).toBe('https://api.example.com/v1');
     expect(normalizeBaseURL('https://api.example.com')).toBe('https://api.example.com');
   });

@@ -14,7 +14,7 @@ const api = aiReviewApi as jest.Mocked<typeof aiReviewApi>;
 const TOKEN = 'ghp_abcdefghijklmnopqrstuvwxyz0123456789';
 
 describe('AiReviewSettingsCard', () => {
-  it('AC-015/AC-021/AC-031/AC-033: tells people their code goes to a third party before they can switch it on', async () => {
+  it('TEST-015 AC-015/AC-021/AC-031/AC-033: tells people their code goes to a third party before they can switch it on', async () => {
     api.getSettings.mockResolvedValue(settings({ enabled: false }));
     render(<AiReviewSettingsCard workspaceSlug="acme" />);
     expect(await screen.findByText('Your code is sent to a third party')).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe('AiReviewSettingsCard', () => {
     expect(screen.getByRole('switch', { name: 'Review new commits automatically' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('AC-031/AC-032: turns the feature on and then auto review', async () => {
+  it('TEST-031 AC-031/AC-032: turns the feature on and then auto review', async () => {
     api.getSettings.mockResolvedValue(settings({ enabled: false }));
     api.updateSettings.mockResolvedValueOnce(settings({ enabled: true })).mockResolvedValueOnce(settings({ enabled: true, autoReview: true }));
     render(<AiReviewSettingsCard workspaceSlug="acme" />);
@@ -45,7 +45,7 @@ describe('AiReviewSettingsCard', () => {
     expect(screen.getByRole('switch', { name: 'Enable AI features' })).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('AC-015/AC-021/AC-031: shows usage and the model', async () => {
+  it('TEST-021 AC-015/AC-021/AC-031: shows usage and the model', async () => {
     api.getSettings.mockResolvedValue(settings({ usedToday: 12, dailyLimit: 50 }));
     render(<AiReviewSettingsCard workspaceSlug="acme" />);
     expect(await screen.findByText('12 of 50 reviews')).toBeInTheDocument();

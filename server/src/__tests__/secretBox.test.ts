@@ -9,7 +9,7 @@ import {
 const KEY = 'k'.repeat(40);
 
 describe('secretBox (AES-256-GCM)', () => {
-  it('AC-025: round-trips a secret and never stores it in the clear', () => {
+  it('TEST-025 AC-025: round-trips a secret and never stores it in the clear', () => {
     const box = encryptSecret('JBSWY3DPEHPK3PXP', 'user-1', KEY);
     expect(box).toMatch(/^v1\.[\w-]+\.[\w-]+\.[\w-]+$/);
     expect(box).not.toContain('JBSWY3DPEHPK3PXP');

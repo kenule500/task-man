@@ -163,21 +163,21 @@ describe('AI is opt-in', () => {
     await enable(team.owner, slug, true);
   });
 
-  it('answers 503 AI_DISABLED when the workspace has no saved provider', async () => {
+  it('answers 503 AI_NOT_CONFIGURED when the workspace has no saved provider', async () => {
     await unconfigure(team.owner);
     const res = await upload(team.owner);
     expect(res.status).toBe(503);
-    expect(res.body.code).toBe('AI_DISABLED');
+    expect(res.body.code).toBe('AI_NOT_CONFIGURED');
     expect(provider).not.toHaveBeenCalled();
     // Saving a provider again starts from consent off, so the switch is turned back on explicitly.
     expect((await configure(team.owner)).status).toBe(200);
     expect((await enable(team.owner)).status).toBe(200);
   });
 
-  it('another workspace stays off when this one turns AI on', async () => {
+  it('another workspace stays unconfigured when this one turns AI on', async () => {
     const res = await upload(other.owner, { where: other.workspace.slug });
     expect(res.status).toBe(503);
-    expect(res.body.code).toBe('AI_DISABLED');
+    expect(res.body.code).toBe('AI_NOT_CONFIGURED');
   });
 
   it('shows the plan limits with the AI settings', async () => {
@@ -769,7 +769,7 @@ describe('adding a plan to an existing project', () => {
     originalTask = await createTask(team.owner, slug, { title: 'Already here', project: 'Existing Ship' });
   });
 
-  it('validates the target when the document is uploaded: invalid, foreign and archived are refused', async () => {
+  it('TEST-008 AC-008: validates the target when the document is uploaded: invalid, foreign and archived are refused', async () => {
     const invalid = await upload(team.owner, { fields: { targetProjectId: 'not-an-id' } });
     expect(invalid.status).toBe(400);
     expect(invalid.body.code).toBe('TARGET_INVALID');
@@ -805,7 +805,7 @@ describe('adding a plan to an existing project', () => {
     expect(provider).toHaveBeenCalledTimes(1);
   });
 
-  it('writes only the plan records: the project, its sprint and its task stay untouched', async () => {
+  it('TEST-009 AC-009: writes only the plan records: the project, its sprint and its task stay untouched', async () => {
     const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: target._id } })).body._id);
     const edited = structuredClone(plan.plan) as Json;
     edited.project = { name: 'Ignored Name', key: 'IGN', description: 'Ignored', color: 'red' };
@@ -887,7 +887,7 @@ describe('adding a plan to an existing project', () => {
     expect((await getPlan(team.owner, plan._id)).body.status).toBe('ready');
   });
 
-  it('rolls back only the records it wrote, never the target or its own sprint and task', async () => {
+  it('TEST-010 AC-010: rolls back only the records it wrote, never the target or its own sprint and task', async () => {
     const rollbackTarget = await newProject('Rollback Target', 'RBT');
     const plan = await waitForPlan(team.owner, (await upload(team.owner, { fields: { targetProjectId: rollbackTarget._id } })).body._id);
     const count = (filter: Json) => mongoose.connection.collection('tasks').countDocuments(filter);

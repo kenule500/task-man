@@ -74,7 +74,7 @@ afterEach(async () => {
 });
 
 describe('ProjectsPage', () => {
-  it('AC-040/AC-041/AC-042: shows one folder link per project with counts, progress and the active sprint', async () => {
+  it('TEST-040/TEST-042 AC-040/AC-041/AC-042: shows one folder link per project with counts, progress and the active sprint', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Projects' })).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('ProjectsPage', () => {
     expect(screen.getByRole('link', { name: 'Legacy portal' })).toBeInTheDocument();
   });
 
-  it('AC-041: filters by name or key and offers to clear an empty search', async () => {
+  it('TEST-041 AC-041: filters by name or key and offers to clear an empty search', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
     const search = screen.getByRole('searchbox', { name: 'Search projects' });
@@ -241,7 +241,7 @@ describe('ProjectsPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load projects');
   });
 
-  it('AC-043: shows the header actions and opens the create-project dialog', async () => {
+  it('TEST-043 AC-043: shows the header actions and opens the create-project dialog', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -263,7 +263,7 @@ describe('ProjectsPage', () => {
     expect(await screen.findByText('AI project page')).toBeInTheDocument();
   });
 
-  it('AC-043: keeps the dashed cards as the first items of the active grid', async () => {
+  it('TEST-016 AC-016 (superseded by AC-040/AC-043): the dashed creation cards are back at the start of the grid', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -296,7 +296,7 @@ describe('ProjectsPage', () => {
     expect(screen.queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
   });
 
-  it('AC-044: keeps header actions through search and archived views while hiding the cards', async () => {
+  it('TEST-017 AC-017 (superseded by AC-041/AC-044): keeps header actions through search and archived views while hiding the cards', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -314,7 +314,7 @@ describe('ProjectsPage', () => {
     expect(await headerActions()).toBeInTheDocument();
   });
 
-  it('AC-044: keeps the header actions when the sort changes', async () => {
+  it('TEST-044 AC-044: keeps the header actions when the sort changes', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -324,7 +324,7 @@ describe('ProjectsPage', () => {
     expect(await headerActions()).toBeInTheDocument();
   });
 
-  it('AC-045: does not repeat the empty-state actions in the header', async () => {
+  it('TEST-045 AC-045: does not repeat the empty-state actions in the header', async () => {
     granted = [...WRITER, 'tasks:write'];
     projects.list.mockResolvedValue([]);
     renderPage();
@@ -357,7 +357,7 @@ describe('ProjectsPage', () => {
     expect(screen.queryByRole('button', { name: 'New project' })).not.toBeInTheDocument();
   });
 
-  it('AC-046: groups the header actions, stacks them below sm and keeps 40px targets', async () => {
+  it('TEST-018 AC-018 (superseded by AC-042/AC-046): groups the header actions, stacks them below sm and keeps 40px targets', async () => {
     granted = [...WRITER, 'tasks:write'];
     renderPage();
     await screen.findByRole('link', { name: 'Website' });
@@ -376,7 +376,7 @@ describe('ProjectsPage', () => {
     }
   });
 
-  it('AC-046: translates the header actions and works RTL', async () => {
+  it('TEST-046 AC-046: translates the header actions and works RTL', async () => {
     granted = [...WRITER, 'tasks:write'];
     await i18n.changeLanguage('fr');
     renderPage();

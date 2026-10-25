@@ -61,7 +61,7 @@ const titleButton = (title: string) => screen.getByRole('button', { name: new Re
 afterEach(() => { toast.clear(); });
 
 describe('ReviewStep', () => {
-  it('AC-005: shows the generated project like the mock: header, tabs with counts, sprints with dates, goals and tasks', () => {
+  it('TEST-005 AC-005: shows the generated project like the mock: header, tabs with counts, sprints with dates, goals and tasks', () => {
     render(<Harness />);
     const header = screen.getByRole('region', { name: 'Generated project' });
     expect(within(header).getByRole('heading', { name: /Online Bookshop/ })).toBeInTheDocument();
@@ -223,7 +223,7 @@ describe('ReviewStep', () => {
     expect(screen.getAllByRole('button', { name: 'Creating the project…' })[0]).toBeDisabled();
   });
 
-  it('AC-007: offers the free name or key when the server says it is taken', async () => {
+  it('TEST-007 AC-007: offers the free name or key when the server says it is taken', async () => {
     const user = userEvent.setup();
     const drafts: PlanContent[] = [];
     render(<Harness

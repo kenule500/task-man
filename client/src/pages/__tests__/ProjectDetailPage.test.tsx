@@ -299,7 +299,7 @@ describe('ProjectDetailPage', () => {
     expect(screen.getAllByRole('button', { name: 'New sprint' }).length).toBeGreaterThan(0);
   });
 
-  it('AC-036: offers "Add from document" to members who can write projects and tasks', async () => {
+  it('TEST-036 AC-036: offers "Add from document" to members who can write projects and tasks', async () => {
     renderPage();
 
     const action = await screen.findByRole('link', { name: 'Add from document' });

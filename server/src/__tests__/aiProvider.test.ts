@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 describe('reviewWithModel', () => {
-  it('AC-023: asks for JSON mode with the configured model and returns the validated answer and token usage', async () => {
+  it('TEST-023 AC-023: asks for JSON mode with the configured model and returns the validated answer and token usage', async () => {
     const { client, create } = clientFrom([() => reply(good)]);
     const result = await reviewWithModel(input, { client, ...fast });
     expect(result.output.verdict).toBe('match');
@@ -40,7 +40,7 @@ describe('reviewWithModel', () => {
     expect(options).toMatchObject({ timeout: 120_000, maxRetries: 0 });
   });
 
-  it('AC-024: retries 429 and 5xx twice, then gives up with a safe message', async () => {
+  it('TEST-024 AC-024: retries 429 and 5xx twice, then gives up with a safe message', async () => {
     const { client, create } = clientFrom([() => { throw httpError(429); }, () => { throw httpError(503); }, () => { throw httpError(500); }]);
     const error = await reviewWithModel(input, { client, ...fast }).catch((e: unknown) => e);
     expect(create).toHaveBeenCalledTimes(3);

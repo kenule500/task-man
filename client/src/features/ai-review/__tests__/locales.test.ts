@@ -20,7 +20,7 @@ const flat = (tree: Tree, prefix = ''): Record<string, string> =>
 describe('ai translations', () => {
   const base = [...new Set(paths(en as Tree))].sort();
 
-  it.each([['fr', fr], ['ar', ar]] as const)('AC-030: %s has every key of English and no extra', (_name, tree) => {
+  it.each([['fr', fr], ['ar', ar]] as const)('TEST-030 AC-030: %s has every key of English and no extra', (_name, tree) => {
     expect([...new Set(paths(tree as Tree))].sort()).toEqual(base);
   });
 

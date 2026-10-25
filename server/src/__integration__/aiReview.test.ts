@@ -303,7 +303,7 @@ describe('AI settings', () => {
 
 // ================================================================
 describe('workspace AI provider (BYOK)', () => {
-  it('AC-022: saves a preset with its endpoint and model, and never returns the key', async () => {
+  it('TEST-022 AC-022: saves a preset with its endpoint and model, and never returns the key', async () => {
     const res = await configure(team.owner, { provider: 'deepseek', apiKey: 'sk-owner-secret-9876' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -364,7 +364,7 @@ describe('workspace AI provider (BYOK)', () => {
     expect((await settings(team.owner)).body).toMatchObject({ provider: { id: 'deepseek' }, model: 'deepseek-reasoner' });
   });
 
-  it('AC-028: tests the connection with the saved configuration, records the result and time, and sends no workspace content', async () => {
+  it('TEST-028 AC-028: tests the connection with the saved configuration, records the result and time, and sends no workspace content', async () => {
     testConnection.mockResolvedValueOnce({ ok: true, code: 'OK' });
     const passed = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token)).send({});
     expect(passed.status).toBe(200);
@@ -406,7 +406,7 @@ describe('workspace AI provider (BYOK)', () => {
     expect(limited.body.code).toBe('AI_TEST_RATE_LIMIT');
   });
 
-  it('AC-026: removing the configuration clears the key and provider, turns AI and automatic review off, and keeps history readable', async () => {
+  it('TEST-026 AC-026: removing the configuration clears the key and provider, turns AI and automatic review off, and keeps history readable', async () => {
     expect((await patchSettings(team.owner, { enabled: true, autoReview: true })).body).toMatchObject({ enabled: true, autoReview: true });
 
     // History written earlier stays readable after the provider is gone
@@ -474,12 +474,12 @@ describe('running a review: refusals', () => {
     expect(await reviewCount(webTask._id)).toBe(0);
   });
 
-  it('answers 503 AI_DISABLED when the workspace has no saved provider, even when it opted in', async () => {
+  it('answers 503 AI_NOT_CONFIGURED when the workspace has no saved provider, even when it opted in', async () => {
     expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
     expect((await unconfigure(team.owner)).status).toBe(200);
     const res = await run(team.developer);
     expect(res.status).toBe(503);
-    expect(res.body.code).toBe('AI_DISABLED');
+    expect(res.body.code).toBe('AI_NOT_CONFIGURED');
     expect(provider).not.toHaveBeenCalled();
     // Restore for the rest of the suite: saving a provider resets consent, so turn it back on.
     expect((await configure(team.owner)).status).toBe(200);

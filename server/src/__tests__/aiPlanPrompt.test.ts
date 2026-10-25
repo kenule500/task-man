@@ -12,7 +12,7 @@ const input = (overrides: Partial<PlanPromptInput> = {}, options: Partial<PlanPr
 const BOUNDARY = 'DATA-0123456789abcdef';
 
 describe('plan prompt', () => {
-  it('AC-012: fences the document with the boundary and declares it untrusted data', () => {
+  it('TEST-012 AC-012: fences the document with the boundary and declares it untrusted data', () => {
     const [system, user] = buildPlanMessages(input(), BOUNDARY);
     expect(system.role).toBe('system');
     expect(system.content).toContain(`<<<BEGIN ${BOUNDARY}`);
