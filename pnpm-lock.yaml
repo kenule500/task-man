@@ -203,8 +203,8 @@ importers:
         specifier: ^3.10.2
         version: 3.10.2
       mongoose:
-        specifier: ^9.10.2
-        version: 9.10.2
+        specifier: ^9.11.3
+        version: 9.11.3
       multer:
         specifier: ^2.5.0
         version: 2.5.0
@@ -3784,8 +3784,8 @@ packages:
   jws@4.0.1:
     resolution: {integrity: sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==}
 
-  kareem@3.4.0:
-    resolution: {integrity: sha512-JAKhnR4S027v/8949QXNInRskgETCg9rFUMi1VjhGbjX+XltCAAEFcXykkSocNkom1kc66EMJfjWvhj87BDQKg==}
+  kareem@3.4.1:
+    resolution: {integrity: sha512-UlgCAFNAdk/HLSsbfkmbH8pJqpEN52Ek8RG53Ys1i3Q3gbCQruSrWpplZlgIGyDHX/LNoLW97ei3OG43s7UhUA==}
     engines: {node: '>=18.0.0'}
 
   keyv@5.6.0:
@@ -4264,8 +4264,35 @@ packages:
       socks:
         optional: true
 
-  mongoose@9.10.2:
-    resolution: {integrity: sha512-oFcFL3dsX5tDzMwBD+GGoDqKIj6RNG3bu3oqlvcUIgPulHP14/6N7c07j3s0XgbrlT7U/lbiXOD89hmPtEXnfQ==}
+  mongodb@7.7.0:
+    resolution: {integrity: sha512-XG1xXEqyouAV8GCb3PuRaujofeXKpAJAPvXYWZgHl6Dz4QHSJ1nRLl0+GpqaLTwKvC0RFE9truOur34RNFY1nw==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      '@aws-sdk/credential-providers': ^3.806.0
+      '@mongodb-js/zstd': ^7.0.0
+      gcp-metadata: ^7.0.1
+      kerberos: ^7.0.0
+      mongodb-client-encryption: ^7.2.0
+      snappy: ^7.3.2
+      socks: ^2.8.6
+    peerDependenciesMeta:
+      '@aws-sdk/credential-providers':
+        optional: true
+      '@mongodb-js/zstd':
+        optional: true
+      gcp-metadata:
+        optional: true
+      kerberos:
+        optional: true
+      mongodb-client-encryption:
+        optional: true
+      snappy:
+        optional: true
+      socks:
+        optional: true
+
+  mongoose@9.11.3:
+    resolution: {integrity: sha512-U6HaDL0A738IHlYiWf5mE4V5G6DPRmcSPh+YDSma8AKCHS+HbugwN4b6EcDSnooSHnrd27K35bKd639j3d079A==}
     engines: {node: '>=20.19.0'}
 
   motion-dom@14.0.0:
@@ -6493,7 +6520,7 @@ snapshots:
       '@jest/test-result': 30.5.2
       '@jest/transform': 30.5.2(supports-color@8.1.1)
       '@jest/types': 30.5.1
-      '@types/node': 24.13.6
+      '@types/node': 26.6.4
       ansi-escapes: 4.3.2
       chalk: 4.1.2
       ci-info: 4.4.0
@@ -6501,7 +6528,7 @@ snapshots:
       fast-json-stable-stringify: 2.1.0
       graceful-fs: 4.2.11
       jest-changed-files: 30.5.1
-      jest-config: 30.5.2(@types/node@24.13.6)(supports-color@8.1.1)
+      jest-config: 30.5.2(@types/node@26.6.4)(supports-color@8.1.1)
       jest-haste-map: 30.5.1
       jest-message-util: 30.5.1
       jest-regex-util: 30.5.0
@@ -9402,7 +9429,7 @@ snapshots:
       jwa: 2.0.1
       safe-buffer: 5.2.1
 
-  kareem@3.4.0: {}
+  kareem@3.4.1: {}
 
   keyv@5.6.0:
     dependencies:
@@ -9986,11 +10013,17 @@ snapshots:
       bson: 7.3.3
       mongodb-connection-string-url: 7.0.2
 
-  mongoose@9.10.2:
+  mongodb@7.7.0:
+    dependencies:
+      '@mongodb-js/saslprep': 1.5.4
+      bson: 7.3.3
+      mongodb-connection-string-url: 7.0.2
+
+  mongoose@9.11.3:
     dependencies:
       '@standard-schema/spec': 1.1.0
-      kareem: 3.4.0
-      mongodb: 7.6.0
+      kareem: 3.4.1
+      mongodb: 7.7.0
       mpath: 0.9.0
       mquery: 6.0.0
       ms: 2.1.3
