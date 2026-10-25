@@ -299,6 +299,30 @@ describe('ProjectDetailPage', () => {
     expect(screen.getAllByRole('button', { name: 'New sprint' }).length).toBeGreaterThan(0);
   });
 
+  it('TEST-036 AC-036: offers "Add from document" to members who can write projects and tasks', async () => {
+    renderPage();
+
+    const action = await screen.findByRole('link', { name: 'Add from document' });
+    expect(action).toHaveAttribute('href', '/demo/projects/p1/plan');
+    // Beside the existing actions
+    expect(screen.getByRole('link', { name: /open board/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New sprint' })).toBeInTheDocument();
+  });
+
+  it('AC-036: hides "Add from document" without tasks:write and on an archived project', async () => {
+    granted = ['projects:read', 'projects:write', 'tasks:read'];
+    const { unmount } = renderPage();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Website' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add from document' })).not.toBeInTheDocument();
+    unmount();
+
+    granted = ['projects:read', 'projects:write', 'tasks:read', 'tasks:write'];
+    projectsMock.list.mockResolvedValue([{ ...project, archived: true }]);
+    renderPage();
+    expect(await screen.findByText('Archived')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add from document' })).not.toBeInTheDocument();
+  });
+
   it('says when the project does not exist', async () => {
     renderPage('/demo/projects/missing');
     expect(await screen.findByRole('heading', { name: 'Project not found' })).toBeInTheDocument();

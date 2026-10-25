@@ -19,6 +19,8 @@ interface Settings {
   maxWaitMs?: number;
   /** Called with the plan id when one is started or loaded, and with null when it is gone (to keep the address in step). */
   onPlanId?: (id: string | null) => void;
+  /** The project the plan is added to; null (the default) creates a new project. */
+  targetProjectId?: string | null;
 }
 
 const MAX_POLL_FAILURES = 5;
@@ -28,7 +30,10 @@ const isRunning = (plan: AiPlan | null): boolean => plan?.status === 'queued' ||
  * The whole "project from a document" flow: upload, wait for the generation (polling), edit the plan, create the project.
  * The document itself is only kept in memory here (for "Regenerate"); the server never stores it.
  */
-export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxWaitMs = 8 * 60_000, onPlanId }: Settings = {}) => {
+export const useAiProjectPlan = (
+  slug: string | undefined,
+  { pollMs = 2000, maxWaitMs = 8 * 60_000, onPlanId, targetProjectId = null }: Settings = {},
+) => {
   const [plan, setPlan] = useState<AiPlan | null>(null);
   const [draft, setDraft] = useState<PlanContent | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -112,12 +117,14 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
   /** Uploads the document; the generation continues on the server. */
   const start = useCallback(async (file: File, options: PlanUploadOptions): Promise<boolean> => {
     if (!slug) return false;
+    const target = targetProjectId ?? null;
+    const payload: PlanUploadOptions = { ...options, destination: target ? 'existing' : 'new', targetProjectId: target };
     setUploading(true);
     setError(null);
     setTimedOut(false);
-    setRequest({ file, options });
+    setRequest({ file, options: payload });
     try {
-      const queued = await aiPlanApi.upload(slug, file, options);
+      const queued = await aiPlanApi.upload(slug, file, payload);
       setPlan(queued);
       setDraft(null);
       setDirty(false);
@@ -130,7 +137,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     } finally {
       setUploading(false);
     }
-  }, [slug]);
+  }, [slug, targetProjectId]);
 
   /** Opens a plan by id (after a reload). Returns the project id when the plan was already turned into a project. */
   const resume = useCallback(async (id: string): Promise<string | null> => {
@@ -195,7 +202,7 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     setDirty(true);
   }, []);
 
-  /** Saves the edits and creates the project. Returns null (with `createError` set) when something is refused. */
+  /** Saves the edits and creates the plan in the project this page is scoped to (or as a new project). */
   const create = useCallback(async (): Promise<CreatedFromPlan | null> => {
     if (!slug || !plan || !draft) return null;
     setCreating(true);
@@ -203,15 +210,14 @@ export const useAiProjectPlan = (slug: string | undefined, { pollMs = 2000, maxW
     try {
       const saved = tidyPlan(draft);
       await aiPlanApi.update(slug, plan._id, saved);
-      const created = await aiPlanApi.create(slug, plan._id);
-      return created;
+      return await aiPlanApi.create(slug, plan._id, targetProjectId ?? null);
     } catch (err) {
       setCreateError(readPlanError(err, i18n.t('aiPlan:errors.createFailed')));
       return null;
     } finally {
       setCreating(false);
     }
-  }, [slug, plan, draft]);
+  }, [slug, plan, draft, targetProjectId]);
 
   const phase: PlanPhase = creating ? 'creating' : isRunning(plan) ? 'analyzing' : plan?.status === 'ready' && draft ? 'review' : 'upload';
 

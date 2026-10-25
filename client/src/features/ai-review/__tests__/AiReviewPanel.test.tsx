@@ -43,13 +43,13 @@ beforeEach(() => {
 });
 
 describe('AiReviewPanel', () => {
-  it('renders nothing without a workspace', () => {
+  it('AC-023: renders nothing without a workspace', () => {
     const { container } = renderPanel({ slug: '' });
     expect(container).toBeEmptyDOMElement();
     expect(api.getSettings).not.toHaveBeenCalled();
   });
 
-  it('starts with the linked pull request and then shows the progress', async () => {
+  it('AC-023: starts with the linked pull request and then shows the progress', async () => {
     api.run.mockResolvedValue(review({ _id: 'r9', status: 'queued', createdAt: new Date().toISOString(), verdict: null, summary: '', criteria: undefined, issues: undefined }));
     renderPanel();
     expect(await screen.findByText('No review has been run for this task yet.')).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('AiReviewPanel', () => {
     expect(screen.getByRole('button', { name: /Review in progress/ })).toBeDisabled();
   });
 
-  it('polls until the review is done, then shows the result with its details', async () => {
+  it('AC-023: polls until the review is done, then shows the result with its details', async () => {
     api.run.mockResolvedValue(review({ _id: 'r9', status: 'queued', createdAt: new Date().toISOString(), verdict: null, summary: '', criteria: undefined, issues: undefined }));
     api.list
       .mockResolvedValueOnce([])
@@ -74,23 +74,23 @@ describe('AiReviewPanel', () => {
     expect(screen.getByRole('button', { name: /Run again/ })).toBeEnabled();
   });
 
-  it('shows the error of a failed review', async () => {
+  it('AC-024: shows the error of a failed review', async () => {
     api.list.mockResolvedValue([review({ _id: 'r2', status: 'failed', verdict: null, summary: '', error: 'GitHub did not find this pull request.' })]);
     renderPanel();
     expect(await screen.findByText('The review could not be completed')).toBeInTheDocument();
     expect(screen.getByText('GitHub did not find this pull request.')).toBeInTheDocument();
   });
 
-  it('is disabled with an explanation when the server has no key', async () => {
+  it('AC-024: is disabled with an explanation when the server has no key', async () => {
     api.getSettings.mockResolvedValue(settings({ available: false, enabled: false }));
     renderPanel();
     const button = await runButton();
     await waitFor(() => expect(button).toBeDisabled());
-    expect(await screen.findByText(/not set up on this server/)).toBeInTheDocument();
-    expect(button).toHaveAccessibleDescription(/not set up on this server/);
+    expect(await screen.findByText(/not configured for this workspace/)).toBeInTheDocument();
+    expect(button).toHaveAccessibleDescription(/not configured for this workspace/);
   });
 
-  it('is disabled with an explanation when the workspace has not opted in', async () => {
+  it('TEST-032 AC-032: is disabled with an explanation when the workspace has not opted in', async () => {
     api.getSettings.mockResolvedValue(settings({ enabled: false }));
     renderPanel();
     const button = await runButton();
@@ -98,7 +98,7 @@ describe('AiReviewPanel', () => {
     expect(await screen.findByText(/turned off for this workspace/)).toBeInTheDocument();
   });
 
-  it('is disabled for people who cannot edit tasks, but they still see earlier results', async () => {
+  it('TEST-033 AC-032/AC-033: is disabled for people who cannot edit tasks, but they still see earlier results', async () => {
     api.list.mockResolvedValue([review()]);
     renderPanel({ canWrite: false });
     expect(await screen.findByTestId('review-result')).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe('AiReviewPanel', () => {
     expect(screen.getByText('You need permission to edit tasks to run a review.')).toBeInTheDocument();
   });
 
-  it('asks for a pull request address when none is linked, and validates it', async () => {
+  it('AC-024: asks for a pull request address when none is linked, and validates it', async () => {
     api.run.mockResolvedValue(review({ _id: 'r9', status: 'queued', createdAt: new Date().toISOString(), verdict: null, summary: '' }));
     renderPanel({ links: [] });
     const input = await screen.findByLabelText('Pull request address');
@@ -126,7 +126,7 @@ describe('AiReviewPanel', () => {
     expect(api.run).toHaveBeenCalledWith('acme', 'task-1', 'https://github.com/acme/app/pull/9');
   });
 
-  it('shows a refusal from the server next to the button', async () => {
+  it('AC-024: shows a refusal from the server next to the button', async () => {
     api.run.mockRejectedValue({ response: { status: 429, data: { message: 'This workspace has used its 50 AI reviews for today.' } } });
     renderPanel();
     await userEvent.click(await runButton());
@@ -134,7 +134,7 @@ describe('AiReviewPanel', () => {
     expect(screen.getByRole('button', { name: /Run AI review/ })).toBeEnabled();
   });
 
-  it('lists the previous runs and switches between them', async () => {
+  it('AC-023: lists the previous runs and switches between them', async () => {
     api.list.mockResolvedValue([
       review({ _id: 'new', verdict: 'match', summary: 'Newest summary.' }),
       review({ _id: 'old', verdict: 'mismatch', createdAt: '2026-10-15T10:00:00.000Z', completedAt: '2026-10-15T10:01:00.000Z' }),
@@ -152,7 +152,7 @@ describe('AiReviewPanel', () => {
     expect(await screen.findByText('Older summary.')).toBeInTheDocument();
   });
 
-  it('can retry when the reviews do not load', async () => {
+  it('AC-024: can retry when the reviews do not load', async () => {
     api.list.mockRejectedValueOnce({ request: {} }).mockResolvedValue([]);
     renderPanel();
     expect(await screen.findByText(/could not reach the server/i)).toBeInTheDocument();

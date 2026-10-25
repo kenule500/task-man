@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { AI_PROVIDER_IDS, type AiProviderId } from '../utils/ai/providers.js';
 import { MAX_STAGE_KEY, MAX_STAGE_NAME, MAX_STAGE_WIP, MAX_STAGES, STAGE_COLORS, type WorkflowStage } from '../utils/workflow.js';
 import { TASK_STATUSES } from './taskModel.js';
 
@@ -37,8 +38,24 @@ export interface IWorkspace extends Document {
       accessTokenEncrypted?: string;
     };
   };
-  // AI code review (Alibaba Cloud Model Studio). Code only leaves for the provider once the workspace opts in.
-  ai?: { enabled?: boolean; autoReview?: boolean };
+  // Workspace BYOK for the AI code review and the document plan. Code only leaves for the provider once the workspace opts in.
+  ai?: {
+    enabled?: boolean;
+    autoReview?: boolean;
+    provider?: AiProviderId;
+    /** Only the custom preset uses it; presets supply their endpoint. */
+    baseURL?: string;
+    model?: string;
+    /** AES-256-GCM ciphertext bound to the workspace id. Never selected by default. */
+    apiKeyEncrypted?: string;
+    /** Last four characters of the key, for display only. */
+    keyHint?: string;
+    configuredAt?: Date;
+    configuredBy?: mongoose.Types.ObjectId;
+    lastTestedAt?: Date;
+    lastTestStatus?: 'success' | 'failed';
+    lastTestCode?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,6 +120,16 @@ const workspaceSchema: Schema = new Schema(
     ai: {
       enabled: { type: Boolean, default: false },
       autoReview: { type: Boolean, default: false },
+      provider: { type: String, enum: AI_PROVIDER_IDS },
+      baseURL: { type: String, trim: true, maxlength: 2048 },
+      model: { type: String, trim: true, maxlength: 120 },
+      apiKeyEncrypted: { type: String, select: false },
+      keyHint: { type: String, maxlength: 8 },
+      configuredAt: { type: Date },
+      configuredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      lastTestedAt: { type: Date },
+      lastTestStatus: { type: String, enum: ['success', 'failed'] },
+      lastTestCode: { type: String, maxlength: 40 },
     },
   },
   { timestamps: true }

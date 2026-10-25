@@ -1,0 +1,975 @@
+{
+  "feature": "upload-document",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Destination contract and server validation",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Extend the plan model and queued-plan options",
+          "description": "Add options.targetProjectId (ObjectId ref Project, default null) to server/src/models/aiPlanModel.ts and to PlanOptionsInput/createQueuedPlan in server/src/utils/ai/plan/service.ts. Keep the retention and active-plan indexes unchanged.",
+          "linkedRequirements": [
+            "FR-004",
+            "NFR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Resolve and validate a target project",
+          "description": "Create server/src/utils/ai/plan/target.ts: parse an ObjectId, query { _id, workspace }, refuse a missing or archived project, return { _id, name, key, archived }, and throw AiQueueError with TARGET_INVALID (400), TARGET_NOT_FOUND (404) or TARGET_ARCHIVED (409).",
+          "linkedRequirements": [
+            "FR-008",
+            "NFR-001",
+            "NFR-002"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Accept and store the destination at upload",
+          "description": "Add the optional targetProjectId validator to validateUploadPlan, resolve the target in uploadPlan before queueing, store it in options, include the resolved summary in the upload response, and make the generated project name/key optional when a target is set.",
+          "linkedRequirements": [
+            "FR-003",
+            "FR-004",
+            "FR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-003",
+            "AC-004",
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Return the resolved target in plan detail",
+          "description": "In server/src/controllers/aiPlanController.ts, resolve options.targetProjectId for getPlan and return targetProject (null when the project no longer exists); keep the list response free of the extra lookup.",
+          "linkedRequirements": [
+            "FR-004",
+            "FR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Validate the create override and route",
+          "description": "Add a validateCreateFromPlan chain in server/src/routes/aiPlanRoutes.ts and controller logic for absent (stored destination), null (new project) and string (target), resolving and validating before the plan is claimed.",
+          "linkedRequirements": [
+            "FR-004",
+            "FR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004",
+            "AC-008"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Create into an existing project",
+      "dependencies": [
+        "P1"
+      ],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Extract the shared plan record writer",
+          "description": "Refactor server/src/utils/ai/plan/create.ts so both paths share sprint creation, task draft building, reserved task numbers and batch inserts, returning the created ids and counts. Keep new-project behaviour unchanged.",
+          "linkedRequirements": [
+            "FR-007",
+            "FR-009",
+            "FR-010",
+            "NFR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007",
+            "AC-009"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Deduplicate sprint names",
+          "description": "Create server/src/utils/ai/plan/sprints.ts with case-insensitive suffixing ((2), (3), ...) against the target's existing sprint names within the 60-character limit; query those names once.",
+          "linkedRequirements": [
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-009"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Implement the existing-project creation path",
+          "description": "In create.ts, branch on the resolved target: skip project creation and name/key conflict checks, ignore the plan's project block, write sprints/epics/tasks/subtasks/criteria into the target, set plan.projectId to the target, and return the target with destination 'existing'.",
+          "linkedRequirements": [
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-009"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Roll back only this request's records",
+          "description": "Track the ids inserted by each path; on failure delete only those records (and only the newly created project on the new path). Never include the target project or its pre-existing sprints/tasks. Release the claim and leave the plan ready.",
+          "linkedRequirements": [
+            "FR-010",
+            "NFR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007",
+            "AC-010"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Record activity and the destination",
+          "description": "Add sprint.created per new sprint and ai.plan_created with the target name and counts on the existing path; keep project.created only on the new path; return destination in both responses.",
+          "linkedRequirements": [
+            "FR-007",
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007",
+            "AC-009"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Client data flow",
+      "dependencies": [
+        "P1"
+      ],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Extend client types and API",
+          "description": "Add PlanTarget, PlanUploadOptions.destination/targetProjectId, PlanOptions.targetProjectId, AiPlan.targetProject and CreatedFromPlan.destination; send the upload field and the create override from client/src/features/ai-plan/api.ts.",
+          "linkedRequirements": [
+            "FR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Add destination helpers and defaults",
+          "description": "Set destination 'new' and targetProjectId null in defaultOptions, and create client/src/features/ai-plan/lib/destination.ts with activeTargets (archived excluded), targetOf, targetProblem and targetLabel.",
+          "linkedRequirements": [
+            "FR-003",
+            "FR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-003",
+            "AC-004"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Extend the plan flow hook",
+          "description": "Let create take an optional target override, keep the destination in PlanRequest for retry/regenerate, and expose the current target state from useAiProjectPlan.",
+          "linkedRequirements": [
+            "FR-004",
+            "FR-005"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004",
+            "AC-006"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Upload destination UI",
+      "dependencies": [
+        "P3"
+      ],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Build the searchable project picker",
+          "description": "Create client/src/features/ai-plan/components/ProjectPicker.tsx: a labelled filter input plus a listbox of non-archived projects showing name and key, with loading, empty and no-match states, keyboard operation and focus-visible styling.",
+          "linkedRequirements": [
+            "FR-003",
+            "NFR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-003",
+            "AC-011"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Build the destination picker",
+          "description": "Create client/src/features/ai-plan/components/DestinationPicker.tsx: two labelled radio cards (new project selected by default, add to existing), revealing the picker for the existing option and keeping the new-project path available when there are no targets.",
+          "linkedRequirements": [
+            "FR-003",
+            "NFR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-003",
+            "AC-011"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Integrate the destination into the upload step",
+          "description": "Add the fieldset above the document card in UploadStep.tsx, hide project name/key for an existing target, require a selected target, keep the planning fields, and send the destination in the upload. Keep the file chip, size, remove action and disabled states.",
+          "linkedRequirements": [
+            "FR-001",
+            "FR-002",
+            "FR-003",
+            "NFR-007"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001",
+            "AC-002",
+            "AC-003"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Keep the destination across retry and regenerate",
+          "description": "Ensure the selected destination and target survive a failed upload, retry and regenerate, and are restored when a plan is resumed.",
+          "linkedRequirements": [
+            "FR-002",
+            "FR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002",
+            "AC-004"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P5",
+      "name": "Review and create UI",
+      "dependencies": [
+        "P2",
+        "P4"
+      ],
+      "tasks": [
+        {
+          "id": "T5.1",
+          "title": "Show and change the destination on review",
+          "description": "Add the destination banner (new project / adding to name and key) and an inline change action to ReviewStep.tsx; handle a target that was archived or deleted and offer another target or a new project.",
+          "linkedRequirements": [
+            "FR-004",
+            "FR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004",
+            "AC-005"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.2",
+          "title": "Make the project header read-only for existing targets",
+          "description": "In PlanHeader.tsx, replace the project name/key/description/colour editors with the target summary; make planProblems skip the generated project fields for an existing target.",
+          "linkedRequirements": [
+            "FR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-005"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.3",
+          "title": "Confirm adding to an existing project",
+          "description": "Label the primary action with the target and item count and open a confirmation dialog naming the target and the sprint/task/subtask/criteria counts; cancelling writes nothing. Reuse the create claim so a double submit cannot write twice.",
+          "linkedRequirements": [
+            "FR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-010"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.4",
+          "title": "Wire the page, toasts and directory reload",
+          "description": "Pass projects, loading and reload from AiProjectPage.tsx; create with the chosen target; show created versus added copy; reload the project directory after success.",
+          "linkedRequirements": [
+            "FR-007",
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007",
+            "AC-009"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P6",
+      "name": "Copy, accessibility and security verification",
+      "dependencies": [
+        "P5"
+      ],
+      "tasks": [
+        {
+          "id": "T6.1",
+          "title": "Add English, French and Arabic copy",
+          "description": "Add the destination, selector, banner, change, confirmation, added-toast and target-error strings to client/src/i18n/locales/{en,fr,ar}/aiPlan.json; no hard-coded user-facing text.",
+          "linkedRequirements": [
+            "FR-012"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-011"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T6.2",
+          "title": "Keyboard, RTL and touch-target pass",
+          "description": "Tab/arrow/Enter/Escape through the fieldset and picker, visible focus, programmatic labels, announced errors, logical direction utilities and at least 40px targets below md (44px for disclosure and menu rows).",
+          "linkedRequirements": [
+            "FR-012",
+            "NFR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-011"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T6.3",
+          "title": "Verify authentication, authorization and injection controls",
+          "description": "CON-511/CON-512: protect plus projects:write/tasks:write on every route; every target lookup scoped to req.workspace._id; foreign targets answer as missing. CON-515/CON-516: the upload field and create body are validated; targetProjectId is an ObjectId before Mongoose; no raw query interpolation.",
+          "linkedRequirements": [
+            "NFR-001",
+            "NFR-002",
+            "NFR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008",
+            "AC-010"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T6.4",
+          "title": "Verify platform, prompt-injection and retention controls",
+          "description": "CON-513/CON-514/CON-519/CON-520 are reused; CON-518 is recorded as not applicable (header auth, no cookies). Confirm prompt fencing, text-only rendering, no secrets in logs or activity, preview cleared on delete/cancel and the 30-day expiry.",
+          "linkedRequirements": [
+            "NFR-003",
+            "NFR-004",
+            "NFR-005"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-012"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T6.5",
+          "title": "Run typecheck, lint, governance and browser checks",
+          "description": "Run pnpm --filter server typecheck, pnpm --filter client typecheck, pnpm --filter client lint and node .sdrive/scripts/validate-governance.js; then the browser check at 320/375/768/1024 px, keyboard only, en/fr/ar, covering empty, loading and error states. Do not run or author tests.",
+          "linkedRequirements": [
+            "FR-012",
+            "NFR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-011"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "server/client typecheck, client lint and the governance validator pass (2026-10-23).",
+            "Headless Chrome over CDP at 320/375/768/1024/1280: the settings AI card and the Projects page render with no horizontal overflow.",
+            "Keyboard only: Tab reaches every AI card control in order (provider combobox, model, API key, show key, save, test).",
+            "en/fr/ar: the French card is fully localised; Arabic sets dir=rtl with no overflow; the Arabic card body was captured in its loading state before the API rate limiter paused the run.",
+            "Empty, loading and error states observed: Projects empty/loading/error/no-match/archived and the AI card loading plus error-with-retry."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "P7",
+      "name": "Install-level AI provider presets",
+      "dependencies": [
+        "P6"
+      ],
+      "tasks": [
+        {
+          "id": "T7.1",
+          "title": "Create the preset resolver",
+          "description": "Add server/src/utils/ai/providers.ts with qwen (default), deepseek, openai, openrouter and custom presets; labels, default base URL and model; AI_* precedence over DASHSCOPE_*; HTTPS with a loopback exception for keyless custom; key/model requirements; and PROVIDER_UNKNOWN/KEY_MISSING/MODEL_MISSING/BASE_URL_INVALID problems. Keep it pure and driven by a passed-in environment.",
+          "linkedRequirements": [
+            "FR-013",
+            "FR-014",
+            "FR-015",
+            "NFR-010"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-013",
+            "AC-014"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.2",
+          "title": "Resolve and use the provider in both AI features",
+          "description": "Make readAiConfig() delegate to the resolver and return provider/problem, then build the OpenAI client from the resolved key and base URL and call the resolved model; use a placeholder key only for a keyless custom endpoint. Validation, the single repair retry and the timeout/token limits must not change.",
+          "linkedRequirements": [
+            "FR-013",
+            "FR-017",
+            "NFR-010"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-013"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.3",
+          "title": "Expose the provider in the AI settings response",
+          "description": "Extend settingsView in aiReviewController.ts with provider { id, label } and the optional problem, without returning the key or base URL.",
+          "linkedRequirements": [
+            "FR-016",
+            "NFR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-015"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.4",
+          "title": "Show the provider in workspace settings",
+          "description": "Add the provider/problem fields to AiSettings, replace the hard-coded heading in AiReviewSettingsCard.tsx with the resolved label, and make the unavailable copy name the variables an administrator must set.",
+          "linkedRequirements": [
+            "FR-016",
+            "NFR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-015"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.5",
+          "title": "Name the provider on the upload step",
+          "description": "Interpolate the resolved label into the document notice in UploadStep.tsx, keep a neutral fallback while settings load or are unavailable, and update the ai and aiPlan copy in English, French and Arabic with matching keys.",
+          "linkedRequirements": [
+            "FR-016",
+            "NFR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-015"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.6",
+          "title": "Document the variables and verify the change",
+          "description": "Rewrite the AI section of server/.env.example around AI_PROVIDER, AI_API_KEY, AI_BASE_URL and AI_MODEL, list the preset defaults and the legacy DASHSCOPE_* alias, then run server/client typecheck, client lint and node .sdrive/scripts/validate-governance.js, plus browser checks at 320/375/768/1024 px, keyboard only, en/fr/ar, including unavailable and legacy-config states. Do not run or author tests.",
+          "linkedRequirements": [
+            "FR-013",
+            "FR-015",
+            "NFR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-013",
+            "AC-015"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "The documentation part is superseded by T9.8: P9 removed AI_PROVIDER/AI_API_KEY/AI_BASE_URL/AI_MODEL and the DASHSCOPE_* alias, and server/.env.example now states that workspace settings are the only provider/key source.",
+            "server/client typecheck, client lint and governance pass.",
+            "Browser checks of the AI settings card and the upload page at 320/375/768/1024/1280 px, keyboard only and en/fr/ar are recorded under T6.5 and T9.8; a legacy environment-config state no longer exists to exercise."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "P8",
+      "name": "OpenCode preset and Projects page actions",
+      "dependencies": [
+        "P7"
+      ],
+      "tasks": [
+        {
+          "id": "T8.1",
+          "title": "Replace the OpenRouter preset with OpenCode",
+          "description": "In server/src/utils/ai/providers.ts, remove the openrouter entry and add opencode with the label \"OpenCode Console\", base URL https://opencode.ai/inference/openai/v1, default model deepseek-v4.1-flash-free, and requiresKey true. Update AI_PROVIDER_IDS to qwen, deepseek, openai, opencode, custom; keep the resolver pure, keep AI_* overrides, and keep PROVIDER_UNKNOWN for openrouter and any other old value. Do not change the route or the OpenAI client.",
+          "linkedRequirements": [
+            "FR-018",
+            "FR-019",
+            "NFR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-019",
+            "AC-020"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.2",
+          "title": "Update the client provider type and accepted-provider copy",
+          "description": "Replace openrouter with opencode in AiProviderId (client/src/features/ai-review/types.ts) and update settings.problems.PROVIDER_UNKNOWN in client/src/i18n/locales/{en,fr,ar}/ai.json to list qwen, deepseek, openai, opencode, custom. Keep the {{provider}} notice copy working and keep all three locales aligned.",
+          "linkedRequirements": [
+            "FR-018",
+            "FR-019",
+            "NFR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-020",
+            "AC-021"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.3",
+          "title": "Document the OpenCode preset and remove OpenRouter references",
+          "description": "In server/.env.example, list qwen (default), deepseek, openai, opencode, custom; add the OpenCode Console base URL and default model; remove the OpenRouter line; note that the free model still requires an OpenCode Console key and is promotional. Keep placeholders only and no secrets.",
+          "linkedRequirements": [
+            "FR-018",
+            "FR-019",
+            "NFR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-020",
+            "AC-021"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.4",
+          "title": "Move Projects page creation actions into the header",
+          "description": "In client/src/pages/ProjectsPage.tsx, pass a responsive action group to PageHeader containing the primary \"New project\" button and a secondary \"Create with AI\" button with the Sparkles icon. Show the AI action only when canCreateWithAi (projects:write + tasks:write) and navigate to /{workspaceSlug}/projects/new/ai. Remove the NewProjectCard/AiProjectCard imports and grid entries; delete both components; remove their exports from features/projects/index.ts and features/ai-plan/index.ts. Add projects.page.createWithAi and remove the unused project.newCard and aiPlan.card keys in all three locales. Keep the empty, no-match, loading, error and archived branches working.",
+          "linkedRequirements": [
+            "FR-020"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-016",
+            "AC-017"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.5",
+          "title": "Make the Projects page responsive and accessible",
+          "description": "Change the shared grid to grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4, stack the header action group below sm and row-align it from sm, and keep the search/sort controls stacked below sm. Verify no horizontal scroll at 320/360 px, visible focus and keyboard order, at least 40 px touch targets below md, and correct en/fr/ar and RTL rendering.",
+          "linkedRequirements": [
+            "NFR-012"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-018"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.6",
+          "title": "Verify the update",
+          "description": "After T8.1-T8.5, run server/client typecheck, client lint, client build and node .sdrive/scripts/validate-governance.js. Then exercise the Projects page at 320/360/768/1024/1280 px with keyboard only and en/fr/ar copy across empty, loading, error, no-match and archived states; exercise the AI settings/upload surfaces with opencode, a missing key, an unknown openrouter value and a custom fallback. Confirm no key or base URL appears in responses, logs or the client bundle. If an OpenCode Console key is available, generate one plan to confirm JSON-mode support and latency; otherwise record the unverified behavior in the PR. Do not run or author tests.",
+          "linkedRequirements": [
+            "FR-018",
+            "FR-019",
+            "FR-020",
+            "NFR-012"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-016",
+            "AC-017",
+            "AC-018",
+            "AC-019",
+            "AC-020",
+            "AC-021"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "server/client typecheck, client lint, client build and governance pass.",
+            "Projects page at 320/360/768/1024/1280 px: list, empty, loading, error, no-match and archived states, no horizontal overflow (headless Chrome).",
+            "Providers via API: the opencode preset saves with its base URL and default model, its test rejects a dummy key with AI_AUTH, an unknown \"openrouter\" value is rejected with 400, and a custom HTTPS endpoint (api.openai.com) saves, replaces and removes.",
+            "The client build contains no API key and no encrypted-key field name; settings responses return only keySet and a last-4 hint, never the key.",
+            "Unverified: a real OpenCode Console key (JSON mode and latency) was not available, so that path is recorded as unverified in the task notes."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "P9",
+      "name": "Workspace-level BYOK and dashboard setup",
+      "dependencies": [
+        "P7",
+        "P8"
+      ],
+      "tasks": [
+        {
+          "id": "T9.1",
+          "title": "Add the workspace AI schema and resolver",
+          "description": "Extend Workspace.ai with provider, baseURL, model, apiKeyEncrypted (select:false), keyHint, configuredAt/By and lastTestedAt/Status/Code. Add workspaceConfig.ts to validate the stored fields, decrypt with secretBox(context=String(workspaceId)), apply only the installation limits, and return available/provider/model/baseURL/apiKey/keySet/keyHint/problem. Split config.ts into limits and remove the AI_*/DASHSCOPE_* provider fallback. Missing provider is AI_NOT_CONFIGURED; an unreadable ciphertext is KEY_UNREADABLE. No migration and no key is copied.",
+          "linkedRequirements": [
+            "FR-021",
+            "FR-026",
+            "NFR-013",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-025",
+            "AC-027"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.2",
+          "title": "Add the HTTPS URL guard and pinned provider fetch",
+          "description": "Add urlGuard.ts: accept only HTTPS, reject credentials/query/fragment, parse host/port, and reject loopback/private/link-local/multicast/reserved/cloud-metadata IPv4, IPv6 and mapped addresses after resolving every DNS answer. Add pinnedFetch.ts using node:https with a lookup pinned to the validated address and the original TLS servername, no redirects, AbortSignal/timeouts and a response-size cap. Add testAiConnection(config) in provider.ts with a minimal content-free chat request and safe result codes.",
+          "linkedRequirements": [
+            "FR-023",
+            "FR-028",
+            "NFR-014"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-028",
+            "AC-029"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.3",
+          "title": "Add the workspace provider settings API",
+          "description": "GET /ai resolves Workspace.ai and returns availability/provider/model/problem; only settings:manage receives config {keySet, keyHint, baseURL, configuredAt, configuredBy, lastTestedAt, lastTestStatus, lastTestCode}. Add PUT /ai/provider (save/replace), DELETE /ai/provider (atomic clear + enabled/autoReview false) and POST /ai/provider/test (saved or transient, 5/min per workspace+user). Validate provider/model/key length/custom URL; require a key on first save or provider change, blank keeps the existing key; encrypt with secretBox(workspaceId), store hint/configuredBy/At, clear last-test metadata on replacement. Record ai.settings_updated with action/provider/model/key set/replaced/cleared and no endpoint/key. Enforce enabled only when available and autoReview only when enabled, and set both false on a first save so a legacy opt-in cannot silently resume. Never return or log the key.",
+          "linkedRequirements": [
+            "FR-021",
+            "FR-022",
+            "FR-023",
+            "FR-027",
+            "FR-028",
+            "FR-029",
+            "NFR-013",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-025",
+            "AC-026",
+            "AC-028",
+            "AC-029"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.4",
+          "title": "Wire AI code review to the workspace configuration",
+          "description": "queueReview accepts the workspace ai subdocument, resolves the config and returns AI_NOT_CONFIGURED before any provider request, uses the workspace daily limit and stores config.model. runReview selects +ai.apiKeyEncrypted, re-resolves, checks enabled/available, and passes config to reviewWithModel. queueAutoReview uses the same path; the GitHub webhook selects +ai.apiKeyEncrypted and passes workspace.ai and the workspace id. In-flight reviews keep the stored model; removal makes the next request AI_NOT_CONFIGURED.",
+          "linkedRequirements": [
+            "FR-024",
+            "FR-025",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-023",
+            "AC-024",
+            "AC-027"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.5",
+          "title": "Wire document plans and the settings view to the same configuration",
+          "description": "assertPlanFeatureOn/assertCanQueuePlan resolve the workspace config; createQueuedPlan stores its model; runPlan selects +ai.apiKeyEncrypted, re-resolves, checks enabled/available and passes config to generateJson. aiPlanController loads the key with the flags and passes workspace id/settings. settingsView uses the same resolver for availability/provider/model. No env fallback, no record rewrite, existing AiPlan/AiReview data stays readable.",
+          "linkedRequirements": [
+            "FR-024",
+            "FR-025",
+            "FR-027",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-023",
+            "AC-024",
+            "AC-026",
+            "AC-027"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.6",
+          "title": "Add the client provider form and settings data flow",
+          "description": "Extend ai-review types with the manager config view, provider save/test inputs/results and the new problem codes. Add saveProvider/removeProvider/testProvider to api.ts and useAiSettings. Create AiProviderForm.tsx with provider select, preset endpoint/model disclosure, custom HTTPS URL/model, write-only key plus show/hide, save/replace/remove with confirmation, test, key hint, configured-by/time, last-test status and safe errors. Mount it in AiReviewSettingsCard above the notice; keep the card manager-only. Reuse ds primitives and ConfirmActionDialog; no new UI library.",
+          "linkedRequirements": [
+            "FR-022",
+            "FR-029",
+            "NFR-015"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-030"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.7",
+          "title": "Update copy, states and accessibility",
+          "description": "Update en/fr/ar ai.json and aiPlan.json with the provider form, status, error and AI_NOT_CONFIGURED/KEY_UNREADABLE/BASE_URL_* copy; remove the installation-variable wording. Wire AiReviewPanel, UploadStep and the plan error helper to the workspace copy. Ensure programmatic labels, aria-describedby/aria-live errors, visible focus, 40 px targets below md, no 320 px overflow, LTR key/URL fields in RTL, and states distinguishable by text/icon as well as colour. Never prefill a saved key; discard the unsaved value on 403.",
+          "linkedRequirements": [
+            "FR-029",
+            "NFR-015"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-023",
+            "AC-030"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.8",
+          "title": "Document and verify the workspace BYOK update",
+          "description": "Mark AI_*/DASHSCOPE_* as legacy limits-only in server/.env.example and state that workspace settings is the sole provider/key source. Run server/client typecheck, client lint, client build, governance validation and a changed-file secret scan. Exercise 320/360/768/1024/1280 px, keyboard only, en/fr/ar and RTL: unconfigured, preset save/replace/remove, valid custom HTTPS, rejected HTTP/private/metadata/redirect, test success/failure/rate limit, missing key, permission revoked, and AI_NOT_CONFIGURED in the review panel and upload. Confirm no key in responses, logs or the client bundle. Do not author or run tests; record MongoDB/API-key blockers.",
+          "linkedRequirements": [
+            "FR-024",
+            "FR-028",
+            "NFR-013",
+            "NFR-014",
+            "NFR-015",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-023",
+            "AC-024",
+            "AC-025",
+            "AC-026",
+            "AC-027",
+            "AC-028",
+            "AC-029",
+            "AC-030"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "server/client typecheck, client lint, client build and governance pass; a scan of the changed files and the client bundle found no secret.",
+            "API: unconfigured state, qwen save (keySet + hint), test rejects a dummy key with AI_AUTH, the rate limiter returns AI_TEST_RATE_LIMIT, private/HTTP/metadata endpoints are rejected with 400, an unchanged provider+endpoint keeps the key, re-pointing a custom endpoint without a key is rejected, and remove clears the config back to AI_NOT_CONFIGURED.",
+            "UI (headless Chrome): AI card at 320/375/768/1024/1280 without overflow, keyboard order, French localised, Arabic RTL, error with retry, and the upload page shows the unconfigured notice.",
+            "Fixed during verification: a Mongoose 9 projection collision made every GET /ai return 500 (bf27583), and the AI notices rendered empty parentheses when no model was set (9f5f545).",
+            "Unverified: a real provider test success, redirect refusal end-to-end, the permission-revoked view and the task review panel AI_NOT_CONFIGURED (the throwaway workspace has no PR-linked task)."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "P10",
+      "name": "AI assistant card copy",
+      "dependencies": [
+        "P9"
+      ],
+      "tasks": [
+        {
+          "id": "T10.1",
+          "title": "Rename the card and add the capability bullets",
+          "description": "In AiReviewSettingsCard.tsx render a short description and a semantic list of capabilities from settings.capabilities; in client/src/i18n/locales/{en,fr,ar}/ai.json set settings.title to AI assistant, rewrite settings.description, add settings.capabilities.codeReview and settings.capabilities.documentPlans, and change settings.enable.label/description to cover both features. Keep the provider panel, notice, token field and auto-review switch unchanged.",
+          "linkedRequirements": [
+            "FR-030"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-031",
+            "AC-032"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "The card renders the heading \"AI assistant\", the shared-provider description and two real list items (Code review; Projects from documents) in en/fr/ar.",
+            "The enable switch reads \"Enable AI features\" and describes both actions; the provider panel, notice, token field and auto-review switch are unchanged."
+          ]
+        },
+        {
+          "id": "T10.2",
+          "title": "Align the remaining card copy and confirm the shared gate",
+          "description": "Change settings.loadError to AI settings, read the card end to end to confirm nothing claims the settings are review-only (the notice, auto-review and token copy stay review-specific because they describe that flow), and confirm ai.enabled still gates both assertReviewFeatureOn and assertPlanFeatureOn with no server, API, schema or permission change.",
+          "linkedRequirements": [
+            "FR-030",
+            "NFR-017"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-031",
+            "AC-032"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "settings.loadError now reads \"AI settings\"; the review-only notice, auto-review and token copy stay review-specific because they describe that flow.",
+            "ai.enabled still gates both features: assertPlanFeatureOn and assertReviewFeatureOn read it, and the upload page showed the unconfigured notice, no alert when configured+enabled, and \"AI is turned off for this workspace\" when disabled.",
+            "No server, API, schema or permission file changed."
+          ]
+        },
+        {
+          "id": "T10.3",
+          "title": "Verify the card across widths, languages and input modes",
+          "description": "Run client typecheck, client lint, client build, node .sdrive/scripts/validate-governance.js and a changed-file secret scan. Check 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL in the configured and unconfigured states: heading, both bullets, switch label, no review-only wording, no horizontal overflow, and the upload page still reacting to the same switch. Do not author or run tests.",
+          "linkedRequirements": [
+            "NFR-017"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-033"
+          ],
+          "completed": true,
+          "verificationNotes": [
+            "server/client typecheck, client lint, client build and node .sdrive/scripts/validate-governance.js pass; the changed-file secret scan found nothing.",
+            "Headless Chrome at 320/375/768/1024/1280 px: heading, description and both bullets render, no horizontal overflow (scrollWidth <= innerWidth at every width).",
+            "Keyboard Tab order stays inside the card controls; French is localised and Arabic renders RTL with the translated heading, bullets and switch.",
+            "Known follow-up for /sdrive:test: client/src/features/ai-review/__tests__/AiReviewSettingsCard.test.tsx still queries the old switch name \"Enable AI code review\". Tests were not edited or run here."
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "P11",
+      "name": "Project-scoped document plans and folder creation cards",
+      "dependencies": [
+        "P10"
+      ],
+      "tasks": [
+        {
+          "id": "T11.1",
+          "title": "Remove the destination choice from the new-project flow",
+          "description": "Replace the destination state and picker with a fixed destination: the create-with-AI page always creates a new project, the name/key fields always render, the review banner reads \"New project: <name>\", and create sends an explicit null override. Remove the DestinationPicker usage and the needTarget guard without touching the API.",
+          "linkedRequirements": [
+            "FR-031"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-034",
+            "AC-035"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.2",
+          "title": "Add the project-scoped route and page mode",
+          "description": "Add /:workspaceSlug/projects/:projectId/plan behind projects:write and teach AiProjectPage a project-scoped mode: resolve the project from the directory, show loading/not-found/no-access states, title \"Add a plan to {project}\", back link to the project, and a fixed target. Add planBelongsToProject and refuse a ?plan= id stored for another project or already created, offering the generic plan page or a return to the project.",
+          "linkedRequirements": [
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-037",
+            "AC-039"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.3",
+          "title": "Add \"Add from document\" to the project header",
+          "description": "Add the outline action to ProjectDetailPage for members with projects:write and tasks:write when the project is active, linking to the project-scoped wizard; keep Edit, Project chat, Open board and New sprint in order and keep the mobile stacking.",
+          "linkedRequirements": [
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-036"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.4",
+          "title": "Scope the wizard copy and create payload to the project",
+          "description": "In project mode render the read-only \"Adding to <name> <key>\" line, hide the name/key fields, make the review destination read-only, use the add/create copy and confirmation, send targetProjectId on create, and return to the project on success.",
+          "linkedRequirements": [
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-037",
+            "AC-038"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.5",
+          "title": "Restore the folder creation cards at the start of the grid",
+          "description": "Restore NewProjectCard and AiProjectCard, render them as the first items of the active grid when the query is empty, remove the header creation buttons, give the zero-project empty state both actions, and keep archived, no-match and search behaviour.",
+          "linkedRequirements": [
+            "FR-033"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-040",
+            "AC-041"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.6",
+          "title": "Localise, clean up and verify both modes",
+          "description": "Add en/fr/ar copy for the cards, project mode and read-only target; remove the unused destination copy and picker files; run server/client typecheck, client lint, client build, governance and a changed-file secret scan; verify both wizard modes and the Projects page at 320/375/768/1024/1280 px, keyboard, en/fr/ar and RTL. Do not author or run tests.",
+          "linkedRequirements": [
+            "NFR-018"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-042"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P12",
+      "name": "Projects header creation actions",
+      "dependencies": [
+        "P11"
+      ],
+      "tasks": [
+        {
+          "id": "T12.1",
+          "title": "Restore the Projects header creation actions",
+          "description": "In ProjectsPage.tsx, pass the existing permission-gated pageActions group to PageHeader when the workspace has at least one project; keep the zero-project empty state as the only action area in that state; add an accessible group label (page.projectActions in en/fr/ar); keep the dashed cards first, search hiding, archived grid, sort, loading and error behaviour unchanged. Do not change the server, API, schema or permission model.",
+          "linkedRequirements": [
+            "FR-034",
+            "NFR-019"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-043",
+            "AC-044",
+            "AC-045",
+            "AC-046"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.2",
+          "title": "Verify the header actions across states and widths",
+          "description": "Run client typecheck, client lint, client build, node .sdrive/scripts/validate-governance.js and a changed-file secret scan. Check 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL: header and cards both offer the actions; read-only sees neither; projects:write without tasks:write sees only New project; searching hides the cards but not the header; archived projects have no cards; zero projects shows the empty-state actions without a duplicate header group; the create dialog and AI route open. Do not author or run tests.",
+          "linkedRequirements": [
+            "FR-034",
+            "NFR-019"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-043",
+            "AC-044",
+            "AC-045",
+            "AC-046"
+          ],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

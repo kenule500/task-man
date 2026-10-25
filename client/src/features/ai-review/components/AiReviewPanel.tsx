@@ -147,7 +147,7 @@ const AiReviewPanel = ({ task, taskKey, workspaceSlug, canWrite }: AiReviewPanel
               {busy ? <Spinner decorative /> : shown ? <RotateCw aria-hidden /> : <Play aria-hidden />}
               {reviews.starting ? t('panel.starting') : busy ? t('panel.runningShort') : shown ? t('panel.rerun') : t('panel.run')}
             </Button>
-            {block === 'disabled' && canManage && !settingsLoading && (
+            {(block === 'disabled' || block === 'unavailable') && canManage && !settingsLoading && (
               <Link to={`/${workspaceSlug}/settings`} className="text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary">
                 {t('panel.openSettings')}
               </Link>
@@ -155,7 +155,12 @@ const AiReviewPanel = ({ task, taskKey, workspaceSlug, canWrite }: AiReviewPanel
           </div>
           {blockedMessage && (
             <p id={hintId} className="text-sm text-slate-600">
-              {blockedMessage} {block === 'disabled' && canManage ? t('panel.disabledManage') : ''}
+              {blockedMessage}{' '}
+              {block === 'disabled' && canManage
+                ? t('panel.disabledManage')
+                : block === 'unavailable' && canManage
+                  ? t('panel.unavailableManage')
+                  : ''}
             </p>
           )}
           {!blockedMessage && !hasCriteria && block === null && <p className="text-xs text-slate-600">{t('panel.noCriteria')}</p>}

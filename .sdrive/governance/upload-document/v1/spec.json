@@ -1,0 +1,1113 @@
+{
+  "feature": "upload-document",
+  "title": "Upload a document and turn it into a project plan with AI",
+  "version": 1,
+  "overview": {
+    "problemStatement": "A requirements document arrives as a PDF, DOCX, TXT or Markdown file, and the team still has to translate it into a project by hand: project details, sprints, epics, tasks, subtasks and acceptance criteria. The shipped create-a-project-with-AI flow removes that work, but it only knows how to create a new project. When the work belongs to a project the team already uses, the person is forced to create a duplicate project or re-enter the backlog by hand. The flow never asks where the plan should go, so the wrong destination is only discovered after the project exists.",
+    "proposedSolution": "Keep the four-step flow (upload, analyze, review, create) and add an explicit destination choice on the upload step. Create a new project keeps the current behaviour: the AI proposes project details and creating writes the project and everything in it. Add to an existing project lets the person pick a non-archived project in the workspace from a searchable selector; the AI still produces sprints, epics, tasks, subtasks and acceptance criteria, but the plan's project block is ignored and creating adds only those records to the chosen project, leaving the project, its existing records and its settings untouched. The choice is stored on the plan as targetProjectId (null for a new project), shown on review, and can be changed before creation without regenerating. Both paths stay atomic: the existing project is never deleted, and only records created by a failed request are rolled back. In addition, this version makes the installation's AI provider a configuration choice rather than hard-coded Qwen: an operator selects a preset (Qwen, DeepSeek, OpenAI, OpenRouter or a custom OpenAI-compatible endpoint), supplies the key and may override the base URL and model. The existing DASHSCOPE_* variables keep working as Qwen aliases. Per-workspace provider choice and bring-your-own keys are not part of this version.",
+    "targetAudience": "Workspace members who hold projects:write and tasks:write and receive product requirements as documents: product owners, scrum masters, tech leads and developers setting up delivery work. The existing-project path serves teams that already run a project in TaskMan and want new scope in its backlog instead of a parallel project.",
+    "assumptions": [
+      "The image's flow (drag-and-drop upload, file chip, AI analysis, generated project details, sprints, tasks, subtasks, acceptance criteria, preview tabs and sprint accordion) is already shipped in client/src/features/ai-plan and server/src/utils/ai/plan; this version governs it and treats it as reuse. The new scope is the destination choice and the existing-project creation path.",
+      "Permissions do not change: the flow remains limited to people with projects:write and tasks:write, because every plan contains sprints (project structure) as well as tasks.",
+      "A target project must belong to the same workspace; moving work between workspaces is out of scope.",
+      "The plan's generated project block stays in the stored plan (the schema requires it) but is ignored when the destination is an existing project; no project name/key conflict applies on that path.",
+      "Existing sprints and tasks in the target project are never edited, reordered, completed or deleted; generated sprints are added alongside them and duplicate sprint names are suffixed.",
+      "The final destination is decided when the person presses the create action; the create request may override the destination stored at upload so a mistake is recoverable without another generation.",
+      "The document is untrusted input and may contain prompt injection; the existing fencing and data-only declaration remain in force.",
+      "The installation selects one AI provider for every workspace in this version; a workspace cannot override the provider, endpoint or model."
+    ],
+    "outOfScope": [
+      "Multiple documents, pasting raw text, importing from a URL, OCR for scanned PDFs/images or spreadsheet intake; this version keeps one PDF/DOCX/TXT/Markdown file.",
+      "Collaborative review (share links, comments, approvals), plan diffing, confidence scoring, duplicate detection, capacity warnings beyond the current team-size hint, PII redaction and token/cost estimates.",
+      "Editing or replacing the target project's name, key, description, colour, icon, members, settings, existing sprints or existing tasks.",
+      "Previewing workflow statuses (Done, In Progress) in the generated plan: nothing exists yet, so all created tasks start at the workspace workflow's starting stage; status badges appear only after creation in the project views.",
+      "Choosing a target outside the workspace, cross-workspace moves, or creating a project and then moving the generated records into it.",
+      "Deleting, archiving or merging the target project when a plan is discarded.",
+      "Per-workspace or per-user provider/model selection, bring-your-own keys, provider fallback or routing, cost/quota dashboards, and native Anthropic/Gemini adapters (Claude is usable through OpenRouter) — the installation chooses one provider for everyone.",
+      "Changing the prompt, plan schema, destination behaviour, limits or the four-step flow; this update only changes which provider and model answer the requests."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Upload a requirements document and set the planning options",
+      "role": "workspace member",
+      "want": "to drag a requirements document in and set how the plan should be shaped",
+      "benefit": "the AI has what it needs to produce a plan that fits our team",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "The upload step accepts one PDF, DOCX, TXT or Markdown (.md/.markdown) file by drag-and-drop or the file picker; it refuses .doc, other extensions, empty files and files above the configured limit (4 MB by default) with a readable reason before upload, shows the chosen file's name and formatted size with a remove action, and disables Analyze with AI while no valid file is chosen, AI is off for the workspace, or the daily plan limit is reached."
+        },
+        {
+          "id": "AC-002",
+          "text": "The upload step sends project name (at most 60 characters), project key (2-6 letters or digits), sprint length (1-4 weeks), start date (today or later), team size (1-200), language (English, French or Arabic) and notes (at most 500 characters) as multipart fields; invalid values are refused in the form and again by the server, and the same file and options are kept for a retry after a failure."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Choose where the generated plan goes",
+      "role": "workspace member",
+      "want": "to be asked whether the plan should create a new project or be added to an existing one, and to pick the target",
+      "benefit": "I do not end up with a duplicate project when the work belongs in a project we already have",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-003",
+          "text": "The upload step presents a labelled, keyboard-operable choice between Create a new project (default) and Add to an existing project; choosing the latter reveals a searchable selector of the workspace's non-archived projects showing name and key, excludes archived projects, explains when there are none while keeping Create a new project available, and blocks submission until a target is selected."
+        },
+        {
+          "id": "AC-004",
+          "text": "The destination is stored on the plan (targetProjectId, null for a new project) and survives a reload/resume; the plan detail returns the resolved target (_id, name, key, archived) or null; the review step names the destination, and the person can switch between a new project and another active project before creating without regenerating the plan."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Review and edit the generated plan",
+      "role": "workspace member",
+      "want": "to inspect the plan by sprints, tasks, subtasks and acceptance criteria, fix anything wrong, and see where it will land",
+      "benefit": "what gets created matches the document and our standards",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-005",
+          "text": "The review step shows the generated project, sprints, epics, items (type, priority, story points) and counts, with tabs for Sprints, Tasks, Subtasks and Acceptance Criteria; the Sprints tab lists each sprint's name, goal, date range and items in an accordion; titles, descriptions, goals and criteria can be edited inline, items can be removed with an undo toast, and validation problems block creation; for a new project the project name/key/description/colour are editable, while for an existing target they are replaced by a read-only Adding to <name> (<key>) summary."
+        },
+        {
+          "id": "AC-006",
+          "text": "While generating, the screen reports queued/running, polls until ready, offers cancel, and explains a timeout; a ready plan offers regenerate (same file and options, when the browser still holds the file) and discard (with confirmation when there are unsaved edits); the 30-day retention of the plan and the fact that the document itself is not stored are stated before upload."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Create a new project from the plan",
+      "role": "workspace member",
+      "want": "the whole plan created in one step",
+      "benefit": "the project is ready to work in without retyping",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-007",
+          "text": "Creating with new project writes the project, its sprints, epics, tasks, subtasks and acceptance criteria atomically, reserves task numbers, uses the workspace workflow's starting stage, records project.created, sprint.created per sprint and ai.plan_created, rolls everything back on failure, refuses a taken name or key with 409 plus a suggestion, and returns { project, counts, destination: \"new\" }; a second submit cannot create twice."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Add the generated plan to an existing project",
+      "role": "workspace member",
+      "want": "the sprints, tasks, subtasks and criteria added to a project we already use, without changing that project",
+      "benefit": "the AI plan lands in the right place and we keep our existing work",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-008",
+          "text": "The server validates a target project at upload and again at create: the id must be a valid ObjectId, the project must exist in the caller's workspace and must not be archived; failures answer 400 TARGET_INVALID, 404 TARGET_NOT_FOUND or 409 TARGET_ARCHIVED/TARGET_UNAVAILABLE, write nothing, and leave the plan ready so another target can be chosen."
+        },
+        {
+          "id": "AC-009",
+          "text": "Creating with an existing target writes only the plan's sprints (with names deduplicated against the target's existing sprint names), epics, tasks, subtasks and acceptance criteria into that project; it does not create or modify a project, its name/key/description/colour/icon/members/settings, or any existing sprint or task; tasks carry the target project's name, the workspace's starting stage and reserved workspace task numbers; the plan's own project block is ignored; plan.projectId becomes the target and the response is { project, counts, destination: \"existing\" } with ai.plan_created and sprint.created activity entries."
+        },
+        {
+          "id": "AC-010",
+          "text": "Creating into an existing project labels the primary action with the target and item count and asks for confirmation naming the target and the sprint/task/subtask/criteria counts; the create claim still prevents a double submit; a failure deletes only the tasks and sprints created by that request and never the target project or its pre-existing records; if the target became unavailable or the caller lost projects:write/tasks:write, the request fails with a readable code and the plan stays ready."
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Use the flow safely in any language and with a keyboard",
+      "role": "workspace member using a keyboard, a screen reader, French or Arabic",
+      "want": "the new destination step to work in my language and input method",
+      "benefit": "I can use the feature without a mouse and understand exactly where the plan goes",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-011",
+          "text": "The destination choice and project selector are reachable and operable by keyboard, have visible focus and programmatic labels, announce errors, meet the touch-target rules on small screens, read correctly in RTL, and all new copy exists in English, French and Arabic."
+        },
+        {
+          "id": "AC-012",
+          "text": "The uploaded document's text is held in memory for generation only; the stored plan keeps the filename, MIME type, size, character count, truncation flag and at most a 2,000-character preview, never the document; the preview is cleared when the plan is deleted or cancelled; plans expire after 30 days; document text, prompts and model output are not written to logs or activity entries."
+        }
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Choose the AI provider at installation level",
+      "role": "self-hosting administrator",
+      "want": "to choose the AI provider and model through documented environment presets",
+      "benefit": "the installation can use DeepSeek, OpenAI, Claude through OpenRouter, Qwen or another compatible endpoint without code changes or sending data to a vendor my organisation has not approved",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-013",
+          "text": "Given only AI_PROVIDER and AI_API_KEY (with optional AI_BASE_URL and AI_MODEL), when the server resolves its AI settings, then the preset supplies the endpoint and model defaults, both AI code review and document plans use that single resolved configuration, and an unknown provider, missing key, missing model or non-HTTPS endpoint leaves AI unavailable with a readable reason instead of crashing or attempting a request."
+        },
+        {
+          "id": "AC-014",
+          "text": "Given an existing installation that sets only DASHSCOPE_API_KEY, DASHSCOPE_BASE_URL and DASHSCOPE_MODEL, when it upgrades, then Qwen remains the provider with the same behaviour and no new variable is required; when both families are set, AI_* wins deterministically, and no API response, server log or client bundle contains the key."
+        },
+        {
+          "id": "AC-015",
+          "text": "The workspace AI settings card and the document upload notice name the configured provider and model (for example \"DeepSeek · deepseek-chat\"), the unavailable notice tells an administrator which variables to check, and all changed copy exists in English, French and Arabic."
+        }
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Create projects from the Projects page header",
+      "role": "workspace member who can create projects",
+      "want": "the Projects page to show only real project folders and to offer both creation actions in the header",
+      "benefit": "I can scan the grid quickly and start a blank project or a document-based plan from the same place on any screen size",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-016",
+          "text": "Given a workspace with at least one project, when a member with projects:write opens the Projects page, then the header shows \"New project\" and \"Create with AI\"; the project grid lists only real project folders and no dashed \"New project\" or \"Create with AI\" card; activating \"Create with AI\" opens /{workspaceSlug}/projects/new/ai; a member without projects:write sees neither action, and a member with projects:write but without tasks:write sees \"New project\" only."
+        },
+        {
+          "id": "AC-017",
+          "text": "Given no projects, a search with no matches, a loading state, an error, or archived projects, when the page renders, then no dashed creation card appears; the header actions remain available according to permission; the existing empty, no-match, loading and error messages still explain the state; and archived projects keep using the same grid."
+        },
+        {
+          "id": "AC-018",
+          "text": "At 320, 360, 768, 1024 and 1280 px, the page has no horizontal scroll; the header actions stack vertically below sm and sit side by side from sm; the project grid is one column below 640 px, two columns from 640 px, three from 768 px and four from 1280 px; the search and sort controls stack below sm; every action is keyboard operable with visible focus, touch targets are at least 40 px below md, and the layout and copy read correctly in English, French, Arabic and RTL."
+        }
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Use OpenCode Console as an AI provider",
+      "role": "self-hosting administrator",
+      "want": "an opencode provider preset that defaults to OpenCode Console and DeepSeek V4.1 Flash Free",
+      "benefit": "I can use a free OpenAI-compatible model with one provider value and without the first-class OpenRouter preset",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-019",
+          "text": "Given AI_PROVIDER=opencode and a non-empty AI_API_KEY, when the server resolves its AI settings, then the provider id is opencode, the label is \"OpenCode Console\", the base URL is https://opencode.ai/inference/openai/v1, the model is deepseek-v4.1-flash-free, both AI code review and document plans use that configuration, and explicit AI_BASE_URL/AI_MODEL values still win; with a missing key, AI is unavailable with KEY_MISSING, no provider request is made, and the API still starts."
+        },
+        {
+          "id": "AC-020",
+          "text": "Given AI_PROVIDER=openrouter, when the server resolves its AI settings, then the provider is unknown, AI is unavailable with PROVIDER_UNKNOWN, and no request is made; the accepted provider list, settings and unavailable copy, .env.example, client provider type and documentation no longer contain openrouter; the custom preset remains available for any HTTPS OpenAI-compatible endpoint, including OpenRouter when an administrator configures it explicitly; no response, log or client bundle contains a key."
+        },
+        {
+          "id": "AC-021",
+          "text": "When opencode is active, the workspace AI settings card and the document upload notice name \"OpenCode Console\" and deepseek-v4.1-flash-free; the unavailable copy lists qwen, deepseek, openai, opencode and custom; all changed copy exists in English, French and Arabic and reads correctly in RTL."
+        }
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Configure workspace AI with our own provider key",
+      "role": "workspace administrator with settings:manage",
+      "want": "to choose the AI provider and save our own API key in Workspace Settings",
+      "benefit": "our workspace controls which vendor processes its code and documents, without the server operator holding a shared key",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-022",
+          "text": "Given a member with settings:manage, when they open Workspace Settings → AI, then they can choose qwen, deepseek, openai, opencode or custom, see the preset endpoint and model, enter a new key, replace the saved key or remove it, optionally override the model and, for custom, provide an HTTPS base URL and model, save the configuration and run a connection test; a member without settings:manage cannot read the key, change the provider, save or remove it, and the settings form is not mounted for them."
+        },
+        {
+          "id": "AC-023",
+          "text": "Given a saved workspace configuration, when a member runs AI code review or creates a project from a document, then both features use that workspace's provider, model, base URL and decrypted key; a provider or model change takes effect on the next request without a server restart; and a workspace with no configuration returns AI_NOT_CONFIGURED without making a provider request, even when installation AI_* variables are present."
+        },
+        {
+          "id": "AC-024",
+          "text": "Given an absent key, a rejected key, a provider rate limit, a timeout or an invalid custom endpoint, when an administrator saves or tests the configuration or a member starts an AI action, then the response is a readable, non-secret error, no partial review, plan, project, sprint or task records are created, and the previously saved configuration remains unless the administrator explicitly replaced or removed it."
+        },
+        {
+          "id": "AC-027",
+          "text": "Given an existing installation that sets AI_PROVIDER, AI_API_KEY, AI_BASE_URL, AI_MODEL or the legacy DASHSCOPE_* aliases, when this version is deployed, then workspace AI does not use those variables and no key is copied into any workspace; every workspace starts unconfigured until a settings:manage member saves a configuration; server-level daily limits, diff-size limits and upload limits still apply."
+        },
+        {
+          "id": "AC-030",
+          "text": "At 320 px, with keyboard only and in English, French, Arabic and RTL, the AI settings form is operable with visible focus, programmatic labels and announced validation errors; the key field is write-only and masked with a show/hide control; controls have at least 40 px touch targets below md; configured, unconfigured, testing, success and failure states are distinguishable without colour alone; and all new copy exists in all three locales."
+        }
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Trust workspace AI credentials and custom endpoints",
+      "role": "workspace administrator or security reviewer",
+      "want": "the key to be write-only and encrypted, the endpoint to be safe, and the configuration status to be visible",
+      "benefit": "I can verify the setup without exposing the credential or turning the server into a proxy for internal services",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-025",
+          "text": "Given a saved key, when the settings response is read, then it contains only keySet, a last-four-character hint and non-secret metadata; the full key is never returned by any endpoint, written to logs or activity, embedded in the client bundle, or stored in plaintext; the encrypted value is bound to the workspace id so ciphertext copied to another workspace fails authentication."
+        },
+        {
+          "id": "AC-026",
+          "text": "Given an administrator removes the workspace AI configuration, when the removal succeeds, then the encrypted key and provider settings are cleared, AI code review and automatic review are turned off for that workspace, existing reviews and plans remain readable, and the activity entry records the action, provider and model but not the key or endpoint."
+        },
+        {
+          "id": "AC-028",
+          "text": "Given a saved or unsaved configuration, when the administrator activates Test connection, then the server sends a minimal request that contains no workspace code, document text, task data or prompts; it returns success or a readable non-secret failure and records the result and time; the test is rate-limited and subject to the same endpoint validation as a real request."
+        },
+        {
+          "id": "AC-029",
+          "text": "Given a custom base URL, when it is saved, tested or used, then only an HTTPS URL without credentials, query or fragment is accepted; loopback, private, link-local, multicast, reserved and cloud-metadata destinations are rejected before any key is sent, redirects are not followed, and the resolved address is bound to the connection to prevent DNS rebinding. HTTP endpoints are rejected."
+        }
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Recognise the AI settings as the home for every AI feature",
+      "role": "workspace owner or administrator",
+      "want": "one clearly named AI assistant section that lists what AI is used for in this workspace",
+      "benefit": "I configure the provider once without assuming it only affects pull-request reviews, and future AI features do not need a new settings area",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-031",
+          "text": "Given a member with settings:manage opening Workspace Settings, when the AI card renders, then its heading reads \"AI assistant\", a bulleted list names the capabilities that exist (pull-request code review; creating a project from a requirements document) and the enable switch reads \"Enable AI features\"; the card does not describe itself as code review only."
+        },
+        {
+          "id": "AC-032",
+          "text": "Given the AI card, when the workspace has no provider configured, then the heading, the capability bullets and the enable switch still render with their normal copy, the bullets name only capabilities that exist, and no empty placeholder, variable name or review-only wording is shown."
+        },
+        {
+          "id": "AC-033",
+          "text": "Given English, French or Arabic, when the card renders at 320, 375, 768, 1024 or 1280 px, then the heading, bullets and switch label are translated, the Arabic layout is RTL without horizontal overflow, and the keyboard focus order and accessible names are unchanged."
+        }
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Create a project from a document without choosing a destination",
+      "role": "member who can create projects and tasks",
+      "want": "the document-to-project page to always create a new project",
+      "benefit": "I do not answer a destination question when the work is new",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-034",
+          "text": "Given the create-with-AI page, when the upload step renders, then no destination choice or existing-project picker is shown, the project name and key fields are always present, and the AI notice, file picker, options and recent plans keep their current behaviour."
+        },
+        {
+          "id": "AC-035",
+          "text": "Given a ready plan on that page, when the person creates it, then the create request targets a new project, the toast says the project was created, and the browser opens it."
+        }
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Add a document plan to the project I am looking at",
+      "role": "member who can create projects and tasks",
+      "want": "to upload a requirements document from a project's page",
+      "benefit": "the plan's sprints, tasks, subtasks and criteria are added to that project without creating a duplicate",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-036",
+          "text": "Given an active project, when a member with projects:write and tasks:write opens the project page, then the header shows an \"Add from document\" action beside the existing actions; the action is absent for a member missing either permission and for an archived project."
+        },
+        {
+          "id": "AC-037",
+          "text": "Given that action, when it is activated, then the four-step wizard opens on a project-scoped page; the upload step shows a read-only \"Adding to <name> <key>\" line where the destination choice used to be, no project name/key fields are shown, and the review step names the project and offers no way to change the destination."
+        },
+        {
+          "id": "AC-038",
+          "text": "Given a reviewed plan on the project-scoped page, when the person creates it, then the create request sends that project's id, the toast says the plan was added, the browser returns to the project, and the project's existing sprints and tasks are unchanged."
+        },
+        {
+          "id": "AC-039",
+          "text": "Given a project-scoped page opened with a plan id that was stored for another project or was already created, when the page loads, then it does not add that plan to the current project: it shows the plan's own destination and lets the person return to the project, and no write is sent to the wrong project."
+        }
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "Start work from the Projects grid",
+      "role": "member who can create projects",
+      "want": "the New project and Create with AI cards at the start of the project grid",
+      "benefit": "starting a project is the first thing I see and the grid keeps its folder design",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-040",
+          "text": "Given at least one active project, when a member with projects:write opens Projects, then the first items of the grid are the dashed \"New project\" card and, when the member also has tasks:write, the dashed \"Create with AI\" card, followed by the project folders in the chosen sort order; the header shows no duplicate creation buttons."
+        },
+        {
+          "id": "AC-041",
+          "text": "Given a search query, then the action cards are hidden and only matching folders remain; with no projects, the empty state offers both actions according to permission; archived projects are listed without action cards."
+        },
+        {
+          "id": "AC-042",
+          "text": "At 320, 375, 768, 1024 and 1280 px, the cards come first in DOM and visual order, keep 40 px touch targets and visible focus, cause no horizontal scroll, are translated in English, French and Arabic, and work RTL; the AI card opens /{workspaceSlug}/projects/new/ai."
+        }
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "Reach project creation from the Projects header",
+      "role": "member who can create projects",
+      "want": "the New project and Create with AI actions in the Projects page header as well as in the grid",
+      "benefit": "the actions stay available while I search or browse archived projects and I can start work from the page's main action area",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-043",
+          "text": "Given at least one project in the workspace, when a member with projects:write opens Projects, then the page header shows a \"New project\" action and, when the member also has tasks:write, a \"Create with AI\" action; activating \"New project\" opens the existing create-project dialog, activating \"Create with AI\" opens /{workspaceSlug}/projects/new/ai, and the dashed \"New project\" and \"Create with AI\" cards remain the first items of the active grid. A member without projects:write sees neither header action, and a member with projects:write but not tasks:write sees only \"New project\"."
+        },
+        {
+          "id": "AC-044",
+          "text": "Given a search query, a changed sort, archived projects shown or hidden, or a long project grid, when the page renders, then the header actions remain visible and follow the same permission gates; the cards remain hidden while searching and absent from the archived grid."
+        },
+        {
+          "id": "AC-045",
+          "text": "Given zero projects, when the empty state renders, then the header does not repeat the empty state's actions; the empty state keeps offering \"New project\" and, with tasks:write, \"Create with AI\" according to permission."
+        },
+        {
+          "id": "AC-046",
+          "text": "At 320, 375, 768, 1024 and 1280 px, the header actions stack below sm, keep 40 px touch targets and visible focus, do not overlap the title or description, cause no horizontal scroll, are translated in English, French and Arabic, and work RTL; the action group has an accessible name so it is distinguishable from the grid cards."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "The upload step MUST accept one PDF, DOCX, TXT or Markdown file by drag-and-drop or picker, enforce the extension/MIME allow-list, the non-empty rule and the configured size limit, show the file chip with name and formatted size, allow removal, and disable submission while the file is invalid, AI is unavailable or the daily limit is reached.",
+      "linkedAcceptanceCriteria": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "FR-002",
+      "text": "The upload step MUST collect project name (at most 60 characters), project key (2-6 alphanumeric), sprint length (1-4 weeks), start date (today or later), team size (1-200), language (en/fr/ar) and notes (at most 500 characters), validate them on the client and server, and keep the file and options for retry.",
+      "linkedAcceptanceCriteria": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "FR-003",
+      "text": "The upload step MUST prompt for a destination with Create a new project as the default and Add to an existing project requiring a target chosen from the workspace's non-archived projects (name and key, searchable), with an empty state that keeps the new-project path available.",
+      "linkedAcceptanceCriteria": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "FR-004",
+      "text": "The chosen destination MUST be stored with the plan (targetProjectId, null for new), returned resolved in the plan detail (_id, name, key, archived), shown on the review step, and changeable before creation without regenerating the plan.",
+      "linkedAcceptanceCriteria": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "FR-005",
+      "text": "Uploading MUST queue a background generation (202) with one active plan per person and workspace, the daily workspace limit, the configured character budget and timeout; the document MUST be fenced as untrusted data in the prompt; the client MUST poll, allow cancellation and explain stale/timeout states.",
+      "linkedAcceptanceCriteria": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "FR-006",
+      "text": "The review step MUST preview the plan in Sprints/Tasks/Subtasks/Acceptance Criteria tabs with counts, a sprint accordion (name, goal, dates, items), inline editing, removal with undo and blocking validation; it MUST show project fields only for a new project and a read-only target summary for an existing one.",
+      "linkedAcceptanceCriteria": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "FR-007",
+      "text": "Creating a new project MUST write the project, sprints, epics, tasks, subtasks and criteria atomically, reserve task numbers, apply the workspace's starting stage, record activity, roll back on failure, refuse a taken name/key with 409 and a suggestion, and guard against a double submit.",
+      "linkedAcceptanceCriteria": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "FR-008",
+      "text": "The server MUST validate an existing target at upload and at create for ObjectId shape, membership in the caller's workspace and non-archived state, with distinct 400/404/409 codes, no writes on failure and the plan left ready.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "FR-009",
+      "text": "Creating into an existing project MUST add only the plan's sprints, epics, tasks, subtasks and criteria to that project, deduplicate sprint names against the target's existing names, leave all project fields, members, settings and existing sprints/tasks untouched, ignore the plan's project block, set plan.projectId to the target and return the target with counts and destination: existing.",
+      "linkedAcceptanceCriteria": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "FR-010",
+      "text": "Both creation paths MUST claim the plan atomically, create records in batches, and on failure delete only the records created by that request (including a newly created project on the new path) while never deleting a pre-existing target or its records; a created plan cannot be created again.",
+      "linkedAcceptanceCriteria": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "FR-011",
+      "text": "Creating into an existing project MUST label the primary action with the target and item count and ask for confirmation listing the target and the sprint/task/subtask/criteria counts, with a cancel that writes nothing.",
+      "linkedAcceptanceCriteria": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "FR-012",
+      "text": "The destination controls and all new copy MUST be keyboard operable, labelled, focus-visible, screen-reader friendly, RTL-correct and available in English, French and Arabic.",
+      "linkedAcceptanceCriteria": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "FR-013",
+      "text": "The server MUST resolve the AI configuration from AI_PROVIDER (qwen, deepseek, openai, openrouter or custom), AI_API_KEY, optional AI_BASE_URL and optional AI_MODEL; each preset MUST supply a base URL and default model, the explicit overrides MUST win, and custom MUST require a base URL and a model. Every model call — code review and document plans — MUST use the one resolved configuration.",
+      "linkedAcceptanceCriteria": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "FR-014",
+      "text": "The server MUST keep DASHSCOPE_API_KEY, DASHSCOPE_BASE_URL and DASHSCOPE_MODEL working as Qwen aliases, and AI_* MUST take precedence when both families are set, so an existing installation upgrades without configuration changes.",
+      "linkedAcceptanceCriteria": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "FR-015",
+      "text": "Invalid provider configuration MUST NOT stop the API or reach the network: an unknown provider, an absent key (unless a custom endpoint is keyless), an absent model or an unsupported base URL MUST mark AI unavailable and expose a non-secret reason an administrator can act on.",
+      "linkedAcceptanceCriteria": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "FR-016",
+      "text": "The AI settings response and the workspace settings card MUST expose the resolved provider id/label and model; the upload notice MUST name that provider instead of a hard-coded vendor; and the unavailable copy MUST list the accepted AI_PROVIDER values and the variables to set, in English, French and Arabic.",
+      "linkedAcceptanceCriteria": [
+        "AC-015"
+      ]
+    },
+    {
+      "id": "FR-017",
+      "text": "A provider change MUST take effect for both AI code review and document plans on the next request after a server restart, with no database migration, workspace setting change or change to existing plans and reviews.",
+      "linkedAcceptanceCriteria": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "FR-018",
+      "text": "The server MUST add an opencode preset with the label \"OpenCode Console\", base URL https://opencode.ai/inference/openai/v1, default model deepseek-v4.1-flash-free and a required API key; AI_PROVIDER MUST accept qwen, deepseek, openai, opencode and custom; explicit AI_BASE_URL and AI_MODEL MUST win; and both AI code review and document plans MUST use the same resolved configuration.",
+      "linkedAcceptanceCriteria": [
+        "AC-019",
+        "AC-021"
+      ]
+    },
+    {
+      "id": "FR-019",
+      "text": "The server MUST remove the first-class openrouter preset and every OpenRouter-specific default, copy and documentation reference; AI_PROVIDER=openrouter MUST resolve as an unknown provider with PROVIDER_UNKNOWN and MUST NOT reach the network. The generic custom preset MUST remain for any HTTPS OpenAI-compatible endpoint, including OpenRouter if an administrator configures it explicitly.",
+      "linkedAcceptanceCriteria": [
+        "AC-020",
+        "AC-021"
+      ]
+    },
+    {
+      "id": "FR-020",
+      "text": "The Projects page MUST show only real project folders in its grid and MUST NOT render the dashed \"New project\" or \"Create with AI\" cards; the page header MUST offer \"New project\" to members with projects:write and \"Create with AI\" to members with both projects:write and tasks:write; \"Create with AI\" MUST open /{workspaceSlug}/projects/new/ai; the empty, no-match, loading, error and archived states MUST keep their existing behaviour.",
+      "linkedAcceptanceCriteria": [
+        "AC-016",
+        "AC-017",
+        "AC-018"
+      ]
+    },
+    {
+      "id": "FR-021",
+      "text": "The server MUST store one AI configuration per workspace, containing the provider id (qwen, deepseek, openai, opencode or custom), the effective base URL and model, an encrypted API key, a non-secret key hint, the configuring user and timestamps, and the last test result; the configuration MUST be readable only within its workspace.",
+      "linkedAcceptanceCriteria": [
+        "AC-022",
+        "AC-023"
+      ]
+    },
+    {
+      "id": "FR-022",
+      "text": "settings:manage MUST authorize saving, replacing, testing and removing the workspace AI configuration; other workspace members MUST see only availability, provider label and model; no route, log, activity entry or error MAY return the key, and the client MUST never receive it after submission.",
+      "linkedAcceptanceCriteria": [
+        "AC-022",
+        "AC-025"
+      ]
+    },
+    {
+      "id": "FR-023",
+      "text": "The workspace administrator MUST select the existing presets; each preset MUST supply its endpoint and default model; explicit model overrides MUST be allowed; custom MUST require an HTTPS base URL, a model and an API key; no new provider SDK or third-party dependency is introduced.",
+      "linkedAcceptanceCriteria": [
+        "AC-022",
+        "AC-029"
+      ]
+    },
+    {
+      "id": "FR-024",
+      "text": "The workspace configuration MUST be the sole source for AI code review and document plans; installation AI_* and legacy DASHSCOPE_* provider variables MUST NOT authorize or supply a fallback key for workspace AI; no server key is migrated into a workspace; a missing configuration MUST return AI_NOT_CONFIGURED before any provider request.",
+      "linkedAcceptanceCriteria": [
+        "AC-023",
+        "AC-027"
+      ]
+    },
+    {
+      "id": "FR-025",
+      "text": "Both AI features MUST resolve the workspace configuration on each request; a saved change MUST apply to the next request without a restart; in-flight reviews and plans keep the model they started with; existing reviews and plans remain readable.",
+      "linkedAcceptanceCriteria": [
+        "AC-023",
+        "AC-024"
+      ]
+    },
+    {
+      "id": "FR-026",
+      "text": "The key MUST be encrypted with server/src/utils/secretBox.ts, bound to the workspace id, and MUST NOT be stored in plaintext; replacing a key MUST overwrite the previous ciphertext; removing the configuration MUST delete it; a saved key is never prefilled into the form.",
+      "linkedAcceptanceCriteria": [
+        "AC-025"
+      ]
+    },
+    {
+      "id": "FR-027",
+      "text": "Removing the workspace AI configuration MUST atomically clear the encrypted key and provider settings and set ai.enabled and ai.autoReview to false; it MUST NOT delete existing reviews or plans; the activity entry MUST record the action, provider and model but no secret or endpoint.",
+      "linkedAcceptanceCriteria": [
+        "AC-026"
+      ]
+    },
+    {
+      "id": "FR-028",
+      "text": "The server MUST provide a rate-limited connection test that sends no workspace content and returns a non-secret result; custom endpoints MUST pass HTTPS, credential-free URL, private/reserved/metadata address and DNS-rebinding checks, redirects MUST NOT be followed, and HTTP endpoints MUST be rejected.",
+      "linkedAcceptanceCriteria": [
+        "AC-028",
+        "AC-029"
+      ]
+    },
+    {
+      "id": "FR-029",
+      "text": "The Workspace Settings AI card MUST provide provider selection, endpoint/model disclosure, a write-only key field, save, test and remove actions, key-set and last-test status, and readable errors; it MUST NOT render for members without settings:manage.",
+      "linkedAcceptanceCriteria": [
+        "AC-022",
+        "AC-030"
+      ]
+    },
+    {
+      "id": "FR-030",
+      "text": "The Workspace Settings AI card MUST title itself \"AI assistant\", present its current capabilities as a bulleted list that includes pull-request code review and creating a project from a requirements document, and label the ai.enabled switch \"Enable AI features\". Its copy MUST NOT state or imply that the settings apply only to code review, and MUST stay generic enough that a future AI capability is added as a bullet without renaming the card.",
+      "linkedAcceptanceCriteria": [
+        "AC-031",
+        "AC-032"
+      ]
+    },
+    {
+      "id": "FR-031",
+      "text": "The create-from-document page MUST always create a new project. It MUST NOT render a destination choice, the existing-project picker, or destination-change controls; the project name and key fields MUST always be shown; the create request MUST target a new project.",
+      "linkedAcceptanceCriteria": [
+        "AC-034",
+        "AC-035"
+      ]
+    },
+    {
+      "id": "FR-032",
+      "text": "The project details page MUST offer \"Add from document\" to members holding both projects:write and tasks:write when the project is active. The action MUST open a project-scoped version of the same four-step wizard whose destination is fixed to that project: no destination choice, no project name/key fields, the project named in the upload and review steps, the create request carrying that project's id, and success returning to the project.",
+      "linkedAcceptanceCriteria": [
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039"
+      ]
+    },
+    {
+      "id": "FR-033",
+      "text": "The Projects page MUST render the dashed \"New project\" and \"Create with AI\" cards as the first items of the active project grid, New project first, gated by projects:write and by projects:write plus tasks:write respectively, and MUST NOT render duplicate creation buttons in the page header. The cards MUST be hidden while a search query is active, MUST not appear in the archived grid, and the zero-project empty state MUST offer both actions according to permission.",
+      "linkedAcceptanceCriteria": [
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ]
+    },
+    {
+      "id": "FR-034",
+      "text": "The Projects page MUST render \"New project\" in the page header for members with projects:write and \"Create with AI\" in the page header for members with both projects:write and tasks:write, in addition to the dashed cards. This requirement supersedes only the clause in FR-033 that forbids duplicate header creation buttons; the cards, their order, their search/archived visibility and the zero-project empty state MUST keep their existing behaviour. The header actions MUST remain available across search, sort and archived states, MUST be disabled only while loading or when the workspace slug is unavailable, and \"Create with AI\" MUST open /{workspaceSlug}/projects/new/ai.",
+      "linkedAcceptanceCriteria": [
+        "AC-043",
+        "AC-044",
+        "AC-045",
+        "AC-046"
+      ]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Every route MUST keep protect and requirePermission('projects:write') plus the tasks:write check, and every target lookup MUST be scoped to req.workspace._id; a target outside the workspace MUST be indistinguishable from a missing one. (CON-512)",
+      "linkedAcceptanceCriteria": [
+        "AC-008",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "NFR-002",
+      "text": "File uploads MUST enforce the MIME/extension allow-list, pass the stored name through sanitizeFilename, apply multer file/field limits, and validate targetProjectId as an ObjectId through express-validator before it reaches a query; no user value may be interpolated into a raw query. (CON-507, CON-515, CON-516)",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-003",
+      "text": "The document MUST remain fenced with a random boundary and declared as data in the prompt; generated text MUST be rendered as React text (no dangerouslySetInnerHTML), and secrets that appear in the document MUST not be echoed into the plan. (CON-517)",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-012"
+      ]
+    },
+    {
+      "id": "NFR-004",
+      "text": "The document text MUST NOT be persisted; only filename, MIME type, size, character count, truncation flag and a preview of at most 2,000 characters are stored; the preview MUST be cleared on delete/cancel and the plan MUST expire after 30 days. (CON-501, CON-504)",
+      "linkedAcceptanceCriteria": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "NFR-005",
+      "text": "The feature MUST reuse the platform's Helmet headers, API rate limiting, HTTPS/HSTS and validated environment configuration; CSRF remains not applicable because authentication is header-based with no cookies. (CON-513, CON-514, CON-519, CON-520; CON-518 not applicable)",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-006",
+      "text": "The flow MUST follow DESIGN.md's accessibility and i18n rules: keyboard alternatives, visible focus, at least 40px touch targets below md (44px for the tab bar, disclosure triggers and menu rows), all strings through i18next in en/fr/ar, and logical direction utilities for RTL. (DESIGN.md Interaction & accessibility and Internationalization; CON-703)",
+      "linkedAcceptanceCriteria": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "NFR-007",
+      "text": "One generation MUST stay bounded: 4 MB upload by default, 60,000 characters to the model, at most 8 sprints, 12 epics, 120 items, 300 subtasks and 6 criteria per item, 20 generations per workspace per UTC day, and a 200-second generation timeout; the request MUST answer 202 and the client polls about every 2 seconds.",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-006"
+      ]
+    },
+    {
+      "id": "NFR-008",
+      "text": "Creation MUST be atomic and idempotent on both paths: the plan is claimed before writes, inserts run in batches, the created records are tracked, and a rollback removes only those records; a pre-existing target and its records are never part of the rollback.",
+      "linkedAcceptanceCriteria": [
+        "AC-007",
+        "AC-010"
+      ]
+    },
+    {
+      "id": "NFR-009",
+      "text": "The API key MUST remain server-side only: it MUST NOT be returned by any endpoint, written to logs or activity, embedded in client code, or committed; .env.example MUST document every new variable with empty placeholders, and the existing .env ignore rules MUST stay in force. (CON-501, CON-504, CON-505, CON-519)",
+      "linkedAcceptanceCriteria": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "NFR-010",
+      "text": "Preset defaults and validation MUST live in one pure server module that can be unit tested without network access; provider calls MUST keep the existing zod validation, single repair retry, timeout, output-token and daily-limit bounds, so a weaker JSON model cannot bypass validation or create a retry loop.",
+      "linkedAcceptanceCriteria": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "NFR-011",
+      "text": "The provider/model disclosure MUST be readable text rather than colour alone, meet contrast rules, read correctly in RTL, and be keyboard reachable where it is actionable; all new copy MUST be available in English, French and Arabic. (CON-305, CON-703)",
+      "linkedAcceptanceCriteria": [
+        "AC-015"
+      ]
+    },
+    {
+      "id": "NFR-012",
+      "text": "The Projects page MUST be responsive and accessible from 320 px upward: no horizontal scroll; header actions stack below sm; the grid is 1/2/3/4 columns at <640/640/768/1280 px; search and sort stack below sm; controls keep at least 40 px touch targets below md; every action is keyboard operable with visible focus; and all copy and layout work in English, French, Arabic and RTL. (CON-305, CON-306, CON-703)",
+      "linkedAcceptanceCriteria": [
+        "AC-018"
+      ]
+    },
+    {
+      "id": "NFR-013",
+      "text": "Workspace AI keys MUST follow the existing secret-handling baseline: AES-256-GCM via secretBox, context-bound to the workspace, never in logs, activity, errors or client bundles, and never committed; key replacement and removal MUST be auditable without recording the secret. (CON-112, CON-501, CON-505, CON-519, NFR-009)",
+      "linkedAcceptanceCriteria": [
+        "AC-025"
+      ]
+    },
+    {
+      "id": "NFR-014",
+      "text": "Outbound AI requests to workspace-configured endpoints MUST be resistant to SSRF and DNS rebinding, use HTTPS, disable redirects, apply timeouts and size bounds, and send the key only in the provider authorization header to the validated destination. (OWASP SSRF Prevention Cheat Sheet)",
+      "linkedAcceptanceCriteria": [
+        "AC-028",
+        "AC-029"
+      ]
+    },
+    {
+      "id": "NFR-015",
+      "text": "The settings card MUST meet CON-305/CON-306: keyboard operable, visible focus, programmatic labels, announced errors, 40 px touch targets below md, no horizontal scroll from 320 px, English/French/Arabic and RTL.",
+      "linkedAcceptanceCriteria": [
+        "AC-030"
+      ]
+    },
+    {
+      "id": "NFR-016",
+      "text": "The change MUST NOT add a third-party dependency, MUST keep the existing daily limits and document/diff bounds, MUST keep the API bootable with legacy AI_* variables present, and MUST not require a data migration.",
+      "linkedAcceptanceCriteria": [
+        "AC-023",
+        "AC-027"
+      ]
+    },
+    {
+      "id": "NFR-017",
+      "text": "The renamed copy MUST exist in English, French and Arabic and MUST keep CON-305/CON-306: keyboard operable, visible focus, programmatic labels, announced errors, 40 px touch targets below md, no horizontal scroll from 320 px, and RTL. The change MUST NOT add a dependency, alter the stored settings shape or the settings/test/save/remove API contract, or change who may see the card.",
+      "linkedAcceptanceCriteria": [
+        "AC-033"
+      ]
+    },
+    {
+      "id": "NFR-018",
+      "text": "The new copy MUST exist in English, French and Arabic and MUST keep CON-305/CON-306: keyboard operable, visible focus, programmatic labels, 40 px touch targets below md, no horizontal scroll from 320 px, and RTL. The change MUST NOT add a dependency, alter the plan upload/create API contract, stored plan shape, permission model or AI settings, and MUST NOT store document text. The project-scoped route MUST apply the same permission gate as the create-with-AI page and MUST NOT trust a plan id from another project.",
+      "linkedAcceptanceCriteria": [
+        "AC-034",
+        "AC-035",
+        "AC-036",
+        "AC-037",
+        "AC-038",
+        "AC-039",
+        "AC-040",
+        "AC-041",
+        "AC-042"
+      ]
+    },
+    {
+      "id": "NFR-019",
+      "text": "The restored header actions MUST meet CON-305/CON-306: keyboard operable, visible focus, programmatic labels, an accessible group name, 40 px touch targets below md, no horizontal scroll from 320 px, English/French/Arabic and RTL. The change MUST NOT add a dependency, alter the cards' existing order or visibility, the create-project dialog, the AI route, the permission model, or any API or schema.",
+      "linkedAcceptanceCriteria": [
+        "AC-046"
+      ]
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "The workspace has no active project to add to.",
+      "expectedBehavior": "The existing-project option explains there are none and offers a link to create one; Create a new project stays selected so the flow is not blocked."
+    },
+    {
+      "id": "EC-002",
+      "description": "The target is archived or deleted between upload and creation.",
+      "expectedBehavior": "The create request answers TARGET_ARCHIVED/TARGET_UNAVAILABLE, writes nothing, and the plan stays ready; the review step shows which target failed and lets the person pick another or switch to a new project."
+    },
+    {
+      "id": "EC-003",
+      "description": "The target is renamed after upload.",
+      "expectedBehavior": "The plan detail resolves the current name and key; the review banner and confirmation show the current values, and creation uses the current name."
+    },
+    {
+      "id": "EC-004",
+      "description": "The target already has a sprint with the same name as a generated one.",
+      "expectedBehavior": "The new sprint is created with a numeric suffix; the existing sprint is untouched."
+    },
+    {
+      "id": "EC-005",
+      "description": "The target already has many sprints/tasks, or the plan hits the item/subtask limits.",
+      "expectedBehavior": "The existing records are untouched; the normal plan limits still apply; the confirmation shows exactly how many records will be added."
+    },
+    {
+      "id": "EC-006",
+      "description": "The caller loses projects:write or tasks:write between upload and create.",
+      "expectedBehavior": "403 with a readable message; no writes; the plan stays ready for someone who still has access (or the owner after the permission is restored)."
+    },
+    {
+      "id": "EC-007",
+      "description": "AI is disabled or the workspace daily limit is reached.",
+      "expectedBehavior": "Upload is disabled with the existing notices; an in-flight generation that loses AI fails with AI_DISABLED; the plan can be discarded without creating anything."
+    },
+    {
+      "id": "EC-008",
+      "description": "The person changes the destination twice, then double-submits.",
+      "expectedBehavior": "The first create claims the plan; the second answers PLAN_ALREADY_CREATED and cannot write a second set of records."
+    },
+    {
+      "id": "EC-009",
+      "description": "Both AI_* and DASHSCOPE_* are set with different values.",
+      "expectedBehavior": "AI_* wins for the whole resolved configuration; the effective provider and model appear in settings so the operator can confirm what is in use."
+    },
+    {
+      "id": "EC-010",
+      "description": "AI_PROVIDER is unknown or a required value is empty.",
+      "expectedBehavior": "AI is unavailable; the API still starts; settings and the upload page name the accepted providers and variables; no provider request is made."
+    },
+    {
+      "id": "EC-011",
+      "description": "The key and endpoint belong to different regions (for example a Qwen key against the wrong DashScope region), or the account cannot use the configured model.",
+      "expectedBehavior": "The existing AI_AUTH or AI_BAD_REQUEST message is returned, nothing is created, the plan stays ready, and the administrator copy points at the base URL and model."
+    },
+    {
+      "id": "EC-012",
+      "description": "AI_BASE_URL uses plain HTTP.",
+      "expectedBehavior": "It is rejected unless the provider is custom and the host is loopback (localhost, 127.0.0.1, ::1), so the key is never sent unencrypted."
+    },
+    {
+      "id": "EC-013",
+      "description": "AI_MODEL names a model the account does not have.",
+      "expectedBehavior": "The provider's refusal maps to a readable error; the job fails without partial creation, and the operator can retry after changing the model."
+    },
+    {
+      "id": "EC-014",
+      "description": "AI_PROVIDER=opencode is set without AI_API_KEY, or the free model is rate-limited or unavailable.",
+      "expectedBehavior": "A missing key reports KEY_MISSING with no request; a provider refusal maps to the existing readable AI error, the plan stays ready, and no partial project or task is created."
+    },
+    {
+      "id": "EC-015",
+      "description": "An existing installation still sets AI_PROVIDER=openrouter after the upgrade.",
+      "expectedBehavior": "The provider is unknown, AI is unavailable with PROVIDER_UNKNOWN, the API still starts, and the administrator copy tells the operator to use opencode or a custom OpenAI-compatible endpoint; no request is made and no key is exposed."
+    },
+    {
+      "id": "EC-016",
+      "description": "The Projects page is opened at 320 px with no projects, long project names or a search with no matches.",
+      "expectedBehavior": "The header actions stack without overflow, the grid is one column (or the empty/no-match state), the dashed creation cards are absent, and the page keeps its existing messages and keyboard access."
+    },
+    {
+      "id": "EC-017",
+      "description": "A workspace has no AI configuration while the installation still sets AI_API_KEY.",
+      "expectedBehavior": "AI is unavailable with AI_NOT_CONFIGURED, no provider request is made, the enable/auto-review controls are disabled, and the settings card tells a settings:manage member to configure a provider."
+    },
+    {
+      "id": "EC-018",
+      "description": "The saved key is rejected (401/403), the provider is rate-limited (429), the request times out, or the custom endpoint is malformed.",
+      "expectedBehavior": "The admin or member sees a readable, non-secret error; no partial review, plan, project, sprint or task is created; the saved configuration remains for correction and can be replaced or removed."
+    },
+    {
+      "id": "EC-019",
+      "description": "An administrator removes the configuration while a review or plan is running.",
+      "expectedBehavior": "The in-flight operation may finish or fail independently; the next request is AI_NOT_CONFIGURED; automatic review is off; existing records remain readable."
+    },
+    {
+      "id": "EC-020",
+      "description": "A custom URL uses HTTP, resolves to a private, link-local or cloud-metadata address, or redirects to one.",
+      "expectedBehavior": "The URL is rejected before the key is sent, no provider request is made, and the admin sees a safe validation error."
+    },
+    {
+      "id": "EC-021",
+      "description": "Two workspaces use different keys and one changes or removes its configuration.",
+      "expectedBehavior": "The other workspace is unaffected; a ciphertext copied from one workspace to another fails authentication because the context does not match."
+    },
+    {
+      "id": "EC-022",
+      "description": "A member's settings:manage permission is revoked while the form is open.",
+      "expectedBehavior": "The save, test and remove calls return 403, no configuration changes, and the unsaved key is discarded by the client."
+    },
+    {
+      "id": "EC-023",
+      "description": "The key field is empty, whitespace-only or over the maximum accepted length.",
+      "expectedBehavior": "The client and server reject it with a field error; the previous key is not replaced and the value is never echoed back."
+    },
+    {
+      "id": "EC-024",
+      "description": "Reviews or plans created under the previous provider remain in the workspace.",
+      "expectedBehavior": "They remain readable with their stored model and results; no record is rewritten by the provider change."
+    },
+    {
+      "id": "EC-025",
+      "description": "A new AI capability is added later and reuses the same provider.",
+      "expectedBehavior": "It appears as an additional bullet in the same card; the \"AI assistant\" heading and the \"Enable AI features\" switch label stay unchanged, and no settings field or migration is added unless that capability needs its own toggle."
+    },
+    {
+      "id": "EC-026",
+      "description": "The project is archived or deleted while the project-scoped wizard is open.",
+      "expectedBehavior": "Create answers 404/409, the review step shows the target problem, the plan stays ready, and no partial sprint or task is written."
+    },
+    {
+      "id": "EC-027",
+      "description": "AI is unconfigured, turned off, or over the daily limit on the project page.",
+      "expectedBehavior": "The same notice as the new-project page, Analyze is disabled, and no request is sent."
+    },
+    {
+      "id": "EC-028",
+      "description": "A member loses projects:write or tasks:write, or opens the project-scoped URL directly without them.",
+      "expectedBehavior": "The header action disappears and the page shows the no-access state; no plan is started."
+    },
+    {
+      "id": "EC-029",
+      "description": "The project-scoped route is opened with a ?plan= id from another project or one that was already created.",
+      "expectedBehavior": "The page does not add it to the current project; it shows the plan's own destination and offers return/discard, and no cross-project write is sent."
+    },
+    {
+      "id": "EC-030",
+      "description": "The Projects page has zero projects, only archived projects, a search with no matches, or 320 px width with long names.",
+      "expectedBehavior": "Both actions in the empty state, no cards in the archived grid, cards hidden while searching, and no horizontal scroll."
+    },
+    {
+      "id": "EC-031",
+      "description": "A member has projects:write but not tasks:write, or is read-only.",
+      "expectedBehavior": "They see only the New project card/action, or no action cards at all, and the header stays free of duplicate buttons."
+    },
+    {
+      "id": "EC-032",
+      "description": "The Projects page has a search query, only archived projects, zero projects, or 320 px width with long names.",
+      "expectedBehavior": "The header actions remain available when at least one project exists and permission allows; with zero projects, the empty state owns the actions and the header does not duplicate them; the cards stay hidden while searching and absent from the archived grid; no horizontal scroll."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "server/src/utils/ai/plan/{service,prompt,schema,create}.ts",
+      "type": "internal",
+      "notes": "Reused for generation, validation, finalisation and creation; the existing-project branch extends createProjectFromPlan."
+    },
+    {
+      "name": "server/src/utils/ai/provider.ts and utils/ai/config.ts",
+      "type": "internal",
+      "notes": "Existing OpenAI-compatible provider and configuration; no new provider or model."
+    },
+    {
+      "name": "unpdf and jszip extraction (server/src/utils/ai/plan/extract.ts)",
+      "type": "internal",
+      "notes": "Reused for PDF/DOCX text extraction; TXT and Markdown are read directly."
+    },
+    {
+      "name": "multer and express-validator",
+      "type": "internal",
+      "notes": "Already installed; the new targetProjectId field and the create body use the existing validation approach."
+    },
+    {
+      "name": "client/src/features/projects and useProjectDirectory",
+      "type": "internal",
+      "notes": "Reused to list and select non-archived target projects; the server validates the target again."
+    },
+    {
+      "name": "client/src/features/ai-plan",
+      "type": "internal",
+      "notes": "UploadStep, ReviewStep, useAiProjectPlan and aiPlanApi are modified, not duplicated."
+    },
+    {
+      "name": "AI provider API",
+      "type": "external",
+      "notes": "The selected OpenAI-compatible provider (Qwen, DeepSeek, OpenAI, OpenRouter or custom) and its key, shared by AI review and document plans; no new SDK."
+    },
+    {
+      "name": "Provider presets (AI_PROVIDER, AI_API_KEY, AI_BASE_URL, AI_MODEL)",
+      "type": "internal",
+      "notes": "One resolved configuration for both AI features; Qwen, DeepSeek, OpenAI, OpenRouter (Claude, Gemini, Mistral) and custom endpoints. DASHSCOPE_* stays as an alias; no new dependency."
+    },
+    {
+      "name": "OpenCode Console API",
+      "type": "external",
+      "notes": "OpenAI-compatible endpoint https://opencode.ai/inference/openai/v1; deepseek-v4.1-flash-free is free for a limited time and requires an OpenCode Console API key. No new SDK; the existing openai client is reused. Source: https://opencode.ai/docs/zen/ (accessed 2026-10-20)."
+    },
+    {
+      "name": "openai SDK",
+      "type": "library",
+      "notes": "Already installed; reused unchanged for the opencode preset. No new dependency."
+    },
+    {
+      "name": "OpenRouter",
+      "type": "external",
+      "notes": "No longer a first-class preset. An administrator may still target it through custom; no project dependency is removed."
+    },
+    {
+      "name": "Workspace AI provider configuration",
+      "type": "internal",
+      "notes": "One encrypted configuration per workspace, consumed by both AI code review and document plans."
+    },
+    {
+      "name": "openai SDK",
+      "type": "library",
+      "notes": "Already installed; reused unchanged for every preset. No new third-party dependency."
+    },
+    {
+      "name": "OWASP SSRF Prevention Cheat Sheet",
+      "type": "external",
+      "notes": "URL validation, private-address rejection, redirect handling and DNS-rebinding guidance. https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html (accessed 2026-10-21)."
+    },
+    {
+      "name": "OWASP Secrets Management Cheat Sheet",
+      "type": "external",
+      "notes": "Secret storage, redaction, rotation and least-privilege guidance. https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html (accessed 2026-10-21)."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "The plan is added to the wrong project, polluting a real backlog.",
+      "mitigation": "A visible destination choice, a review banner naming the target, an action label that includes the target and count, and a confirmation dialog listing exactly what will be added."
+    },
+    {
+      "id": "RISK-002",
+      "description": "A failure mid-creation leaves partial sprints/tasks, or a rollback deletes pre-existing work.",
+      "mitigation": "Claim the plan first, track only the ids created by this request, delete only those on failure, never include the target project or its existing records in the rollback, and batch inserts."
+    },
+    {
+      "id": "RISK-003",
+      "description": "A hostile document injects instructions or secrets into the plan.",
+      "mitigation": "Keep the random boundary, data-only declaration and secret-suppression rules in the prompt; render output as text; never echo credentials."
+    },
+    {
+      "id": "RISK-004",
+      "description": "The target changes between upload and creation (renamed, archived, deleted) or the person loses permission.",
+      "mitigation": "Re-validate at create, return distinct codes, leave the plan ready, and show the current target name from the detail response."
+    },
+    {
+      "id": "RISK-005",
+      "description": "A large plan overwhelms an existing project or duplicates sprint names.",
+      "mitigation": "Keep the plan limits, deduplicate sprint names against existing ones, show counts in the confirmation, and leave existing records untouched."
+    },
+    {
+      "id": "RISK-006",
+      "description": "A misconfigured preset makes the feature look broken or sends data to an unapproved vendor.",
+      "mitigation": "Resolve presets in one module, show the effective provider and model in settings, keep the API up with a readable unavailable reason, and document every value in .env.example."
+    },
+    {
+      "id": "RISK-007",
+      "description": "A custom base URL leaks the key over plain HTTP or points at an internal service.",
+      "mitigation": "Accept only HTTPS, with a loopback-only exception for keyless local custom endpoints; never accept the URL from the client and never return it."
+    },
+    {
+      "id": "RISK-008",
+      "description": "A provider with weaker JSON adherence or a smaller output limit degrades plans.",
+      "mitigation": "Keep zod validation and the single repair retry, keep output-token/timeout overrides, and document a recommended model per preset."
+    },
+    {
+      "id": "RISK-009",
+      "description": "The OpenCode free model is promotional, may be rate-limited, or may be retired or repriced.",
+      "mitigation": "Pin deepseek-v4.1-flash-free in the preset but document the overrides; require a key; show the effective provider/model; keep custom or another preset as a fallback; do not promise free availability."
+    },
+    {
+      "id": "RISK-010",
+      "description": "Removing the OpenRouter preset removes the first-class Claude path.",
+      "mitigation": "Document that custom can target an OpenAI-compatible gateway for Claude if the administrator chooses; do not claim first-class Claude support; keep the generic HTTPS endpoint validation."
+    },
+    {
+      "id": "RISK-011",
+      "description": "A free model retains or trains on TaskMan documents or code.",
+      "mitigation": "Document that the operator must choose a model with acceptable terms; OpenCode documents DeepSeek V4.1 Flash Free as zero-retention/no-training; keep AI off until a workspace opts in."
+    },
+    {
+      "id": "RISK-012",
+      "description": "A workspace administrator enters a custom endpoint that targets an internal service, cloud metadata or a redirect chain (SSRF).",
+      "mitigation": "Require HTTPS, reject credentials/query/fragment and private/reserved/metadata addresses, disable redirects, bind the resolved address to the connection, rate-limit tests, and reject HTTP entirely."
+    },
+    {
+      "id": "RISK-013",
+      "description": "The workspace key leaks through a response, log, activity entry, error message, client bundle or database backup.",
+      "mitigation": "Encrypt with secretBox, keep the key select:false and server-only, return only keySet/last four, redact provider errors, never log request bodies or headers, and add a secret scan to verification."
+    },
+    {
+      "id": "RISK-014",
+      "description": "The administrator who saved the key leaves the workspace, or the key is lost, so AI becomes unavailable.",
+      "mitigation": "Let any settings:manage member replace or remove the key; show the configuring user and last-test time; do not attempt key recovery; keep AI off until a new key is saved."
+    },
+    {
+      "id": "RISK-015",
+      "description": "Different providers have different retention, training and residency terms, and members may not know which one processes their code or documents.",
+      "mitigation": "Name the provider and model in the settings card and upload notice, keep AI off by default, require an explicit admin save, and make the admin responsible for the provider terms."
+    },
+    {
+      "id": "RISK-016",
+      "description": "Existing installations expect AI_* to keep working and are surprised when workspace AI is unconfigured after upgrade.",
+      "mitigation": "Keep the API bootable, mark the variables as legacy in .env.example and release notes, show an actionable AI_NOT_CONFIGURED state, and do not copy a server key into workspaces without consent."
+    },
+    {
+      "id": "RISK-017",
+      "description": "Members who used \"Create with AI\" to add to an existing project lose the only entry point they know and create duplicate projects.",
+      "mitigation": "The project page carries \"Add from document\" for the same plan flow, the AI card hint says it creates a new project, and both entry points are covered by browser checks."
+    },
+    {
+      "id": "RISK-018",
+      "description": "A project-scoped plan resumed from a stale or shared address adds work to the wrong project.",
+      "mitigation": "The route fixes the target per project, the create request sends that project id, and a plan whose stored target differs is refused (EC-029)."
+    },
+    {
+      "id": "RISK-019",
+      "description": "Two action cards before the folders push real projects below the fold on small screens and break the grid scan order.",
+      "mitigation": "Cards are compact, share the folder grid, are hidden while searching, and the grid keeps one column on phones."
+    },
+    {
+      "id": "RISK-020",
+      "description": "Restoring the header buttons beside the folder cards creates two entry points for the same action and can clutter the header or confuse assistive technology.",
+      "mitigation": "The header actions are permission-gated, grouped under an accessible name, compact and stacked below sm; the cards keep their order; the zero-project empty state owns the actions; browser checks cover both entry points and narrow widths."
+    }
+  ]
+}

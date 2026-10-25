@@ -109,6 +109,8 @@
     "deleted": "« {{name}} » supprimé",
     "deleteError": "Impossible de supprimer le projet.",
     "newProject": "Nouveau projet",
+    "projectActions": "Actions du projet",
+    "newProjectCard": "Nouveau projet",
     "title": "Projets",
     "description": "Des dossiers pour vos sprints et vos tâches. Ouvrez-en un pour planifier des sprints et suivre l’avancement.",
     "loading": "Chargement des projets",
@@ -131,7 +133,8 @@
     "deleteTitle": "Supprimer « {{name}} » ?",
     "deleteBody": "Le projet et ses sprints sont supprimés. Ses tâches sont conservées, sans projet ni sprint.",
     "deleteConfirm": "Supprimer le projet",
-    "deleting": "Suppression..."
+    "deleting": "Suppression...",
+    "createWithAi": "Créer avec l’IA"
   },
   "detail": {
     "loading": "Chargement du projet",
@@ -143,6 +146,7 @@
     "projects": "Projets",
     "archived": "Archivé",
     "openBoard": "Ouvrir le tableau",
+    "addFromDocument": "Ajouter depuis un document",
     "sprintSaved": "Sprint enregistré",
     "sprintCreated": "Sprint créé"
   },
@@ -391,8 +395,7 @@
     "description": "Description",
     "descriptionPlaceholder": "De quoi parle ce projet ?",
     "color": "Couleur",
-    "icon": "Icône",
-    "newCard": "Nouveau projet"
+    "icon": "Icône"
   },
   "colors": {
     "blue": "Bleu crépuscule",

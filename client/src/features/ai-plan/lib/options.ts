@@ -11,4 +11,6 @@ export const defaultOptions = (): PlanUploadOptions => ({
   teamSize: '',
   extraInstructions: '',
   language: currentLanguage(),
+  destination: 'new',
+  targetProjectId: null,
 });

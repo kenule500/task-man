@@ -1,8 +1,8 @@
 import { useId, useState, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { FileUp, FileText, Lock, Sparkles, X } from 'lucide-react';
+import { FileUp, FileText, FolderKanban, Lock, Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Field, SegmentedControl, Surface } from '@/components/ds';
+import { Alert, Field, SegmentedControl, Surface, Tag } from '@/components/ds';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { LANGUAGE_NAMES, SUPPORTED_LANGUAGES } from '@/i18n';
 import { OptionSelect } from '@/features/tasks/components/TaskSelects';
 import type { AiSettings } from '@/features/ai-review/types';
+import type { Project } from '@/features/projects';
 import { todayKey } from '@/features/tasks/lib/date';
 import { ACCEPT_ATTRIBUTE, DEFAULT_MAX_BYTES, fileProblem, formatFileSize } from '../lib/file';
 import { defaultOptions } from '../lib/options';
@@ -30,6 +31,8 @@ interface UploadStepProps {
   onRetrySettings: () => void;
   /** The person can change workspace settings, so the notice can link to where AI is switched on. */
   canManageSettings: boolean;
+  /** The project the plan is added to; null creates a new project. */
+  target?: Project | null;
   /** Document and options of an earlier attempt (after a failure or a cancel). */
   initial: PlanRequest | null;
   busy: boolean;
@@ -44,10 +47,16 @@ interface UploadStepProps {
 
 /** Step 1: pick the requirements document, set the options, and see what happens to the text before sending it. */
 export const UploadStep = ({
-  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, initial, busy, error, failure, recent, onOpenRecent, onOpenActive, onStart,
+  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, target = null, initial, busy, error, failure, recent,
+  onOpenRecent, onOpenActive, onStart,
 }: UploadStepProps) => {
   const { t } = useTranslation('aiPlan');
   const inputId = useId();
+  const providerLabel = settings?.provider
+    ? settings.provider.id === 'custom'
+      ? t('notice.customProvider')
+      : settings.provider.label
+    : t('notice.providerFallback');
   const [file, setFile] = useState<File | null>(initial?.file ?? null);
   const [fileError, setFileError] = useState('');
   const [dragging, setDragging] = useState(false);
@@ -76,12 +85,14 @@ export const UploadStep = ({
     if (dropped) choose(dropped);
   };
 
+  const dateInvalid = options.startDate !== '' && options.startDate < todayKey();
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (file && aiReady && !busy) onStart(file, options);
+    if (file && aiReady && !busy) {
+      onStart(file, { ...options, destination: target ? 'existing' : 'new', targetProjectId: target?._id ?? null });
+    }
   };
-
-  const dateInvalid = options.startDate !== '' && options.startDate < todayKey();
 
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
@@ -97,7 +108,12 @@ export const UploadStep = ({
       {/* ---- Is AI on, and what leaves the building */}
       <Surface padding="md" className="space-y-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-text-strong"><Lock aria-hidden className="size-4 text-text-subtle" /> {t('notice.title')}</h2>
-        <p className="text-sm text-text-body">{t('notice.body')}</p>
+        <p className="text-sm text-text-body">
+          {t('notice.body', {
+            provider: providerLabel,
+            model: settings?.model || t('notice.modelFallback'),
+          })}
+        </p>
         <ul className="list-disc space-y-1 ps-5 text-sm text-text-body marker:text-text-faint">
           <li>{t('notice.sent')}</li>
           <li>{t('notice.stored', { days: 30 })}</li>
@@ -111,7 +127,12 @@ export const UploadStep = ({
             <Button type="button" variant="outline" size="sm" onClick={onRetrySettings} className="mt-2 h-10 rounded-lg sm:h-8">{t('notice.retry')}</Button>
           </Alert>
         ) : settings && !settings.available ? (
-          <Alert tone="warning" title={t('notice.unavailableTitle')}>{t('notice.unavailableBody')}</Alert>
+          <Alert tone="warning" title={t('notice.unavailableTitle')}>
+            {t('notice.unavailableBody')}{' '}
+            {canManageSettings
+              ? <Link to={`/${slug}/settings`} className="font-medium underline underline-offset-2">{t('notice.openSettings')}</Link>
+              : t('notice.askAdminSetup')}
+          </Alert>
         ) : settings && !settings.enabled ? (
           <Alert tone="warning" title={t('notice.offTitle')}>
             {t('notice.offBody')}{' '}
@@ -129,6 +150,22 @@ export const UploadStep = ({
           )
         ) : null}
       </Surface>
+
+      {/* ---- The project this plan is added to (chosen on the project page) */}
+      {target && (
+        <Surface padding="md" className="flex items-start gap-3">
+          <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-info-bg text-info-fg">
+            <FolderKanban className="size-5" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-text-strong">{t('upload.addingTo', { name: target.name })}</h2>
+              <Tag tone="neutral"><span className="font-mono">{target.key}</span></Tag>
+            </div>
+            <p className="text-sm text-text-subtle">{t('upload.addingToHint')}</p>
+          </div>
+        </Surface>
+      )}
 
       {/* ---- The document */}
       <Surface padding="md" className="space-y-3">
@@ -180,26 +217,30 @@ export const UploadStep = ({
       {/* ---- Options */}
       <Surface padding="md" className="space-y-4">
         <h2 className="text-sm font-semibold text-text-strong">{t('upload.optionsTitle')}</h2>
-        <p className="text-sm text-text-subtle">{t('upload.optionsHint')}</p>
+        <p className="text-sm text-text-subtle">{target ? t('upload.optionsHintExisting') : t('upload.optionsHint')}</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label={t('upload.projectName')} htmlFor={`${inputId}-name`} hint={t('upload.projectNameHint')}>
-            <Input
-              id={`${inputId}-name`}
-              value={options.projectName}
-              maxLength={60}
-              onChange={event => change('projectName', event.target.value)}
-              className="h-11 rounded-lg border-border-strong bg-surface-raised text-base shadow-none sm:h-9 sm:text-sm"
-            />
-          </Field>
-          <Field label={t('upload.projectKey')} htmlFor={`${inputId}-key`} hint={t('upload.projectKeyHint')}>
-            <Input
-              id={`${inputId}-key`}
-              value={options.projectKey}
-              maxLength={6}
-              onChange={event => change('projectKey', cleanKey(event.target.value))}
-              className="h-11 rounded-lg border-border-strong bg-surface-raised font-mono text-base uppercase shadow-none sm:h-9 sm:text-sm"
-            />
-          </Field>
+          {!target && (
+            <>
+              <Field label={t('upload.projectName')} htmlFor={`${inputId}-name`} hint={t('upload.projectNameHint')}>
+                <Input
+                  id={`${inputId}-name`}
+                  value={options.projectName}
+                  maxLength={60}
+                  onChange={event => change('projectName', event.target.value)}
+                  className="h-11 rounded-lg border-border-strong bg-surface-raised text-base shadow-none sm:h-9 sm:text-sm"
+                />
+              </Field>
+              <Field label={t('upload.projectKey')} htmlFor={`${inputId}-key`} hint={t('upload.projectKeyHint')}>
+                <Input
+                  id={`${inputId}-key`}
+                  value={options.projectKey}
+                  maxLength={6}
+                  onChange={event => change('projectKey', cleanKey(event.target.value))}
+                  className="h-11 rounded-lg border-border-strong bg-surface-raised font-mono text-base uppercase shadow-none sm:h-9 sm:text-sm"
+                />
+              </Field>
+            </>
+          )}
           <div className="space-y-1.5">
             <p className="text-sm font-medium text-slate-700">{t('upload.sprintLength')}</p>
             <SegmentedControl

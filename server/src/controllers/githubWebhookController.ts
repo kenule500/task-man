@@ -101,7 +101,7 @@ export const githubWebhook = async (req: Request, res: Response): Promise<void> 
 
     const workspace = slug
       ? await Workspace.findOne({ slug, 'integrations.github.enabled': true })
-        .select('+integrations.github.secret integrations.github.autoTransition ai.enabled ai.autoReview')
+        .select('+integrations.github.secret +ai.apiKeyEncrypted')
       : null;
     const secret = workspace?.integrations?.github?.secret;
 

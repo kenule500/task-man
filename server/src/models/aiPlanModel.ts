@@ -28,6 +28,8 @@ export interface IAiPlan extends Omit<Document, 'model'> {
     teamSize: number | null;
     extraInstructions: string;
     language: PlanLanguage;
+    /** Project the plan is added to; null creates a new project. */
+    targetProjectId: mongoose.Types.ObjectId | null;
   };
   plan: PlanContent | null;
   model: string;
@@ -64,6 +66,7 @@ const aiPlanSchema = new Schema<IAiPlan>({
     teamSize: { type: Number, default: null, min: 1, max: 200 },
     extraInstructions: { type: String, default: '', maxlength: 500 },
     language: { type: String, enum: ['en', 'fr', 'ar'], default: 'en' },
+    targetProjectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
   },
   // Validated by zod (utils/ai/plan/schema.ts) before every write
   plan: { type: Schema.Types.Mixed, default: null },

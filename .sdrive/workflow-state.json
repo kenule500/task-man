@@ -1,0 +1,856 @@
+{
+  "features": [
+    {
+      "name": "auth-sessions",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "automations-audit",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "custom-fields-workflow",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "flow-reports",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "import-export",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "integrations-webhooks",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "notifications",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "real-time-chat",
+      "branch": "feature/chat",
+      "base": "main",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "ongoing",
+          "currentStep": "implementation",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Specification and traceability drafted by /sdrive:propose; awaiting Gate 1 approval before plan and tasks.",
+              "by": "specification",
+              "timestamp": "2026-10-17T02:16:04.580Z"
+            },
+            {
+              "event": "Gate 1 approved by the user. Plan and tasks generated; awaiting Gate 2 approval before implementation.",
+              "by": "specification",
+              "timestamp": "2026-10-17T02:16:04.580Z"
+            },
+            {
+              "event": "Gate 2 approved by the user. Specification and planning gates approved; 64 tasks across 10 phases ready for /sdrive:apply. No production code written yet.",
+              "by": "specification",
+              "timestamp": "2026-10-17T02:16:04.580Z"
+            },
+            {
+              "event": "Lifecycle transition backlog -> ongoing at the start of implementation. Branch recorded as feature/chat at the user's explicit direction instead of the conventional feature/real-time-chat; base recorded as main. That branch already carried 1 commit not present in main (74e1e4d 'Fix pnpm-lock.yaml merge conflict'), so /sdrive:archive should read feature.base rather than assuming the branch is level with main.",
+              "by": "implementation",
+              "timestamp": "2026-10-17T02:49:58.999Z"
+            },
+            {
+              "event": "Partial implementation committed as 3a3ebc9: 37 of 64 tasks complete (P1-P6 plus T10.2-T10.4). The server-side chat API and Socket.IO transport are implemented and the server typechecks. /sdrive:verify reports status fail (matched 19, missing 86, renamed 1, extra 281); the missing items are the P7 transport unification and the P8/P9 client work, which were not implemented, so the implementation gate stays pending and the feature is not complete.",
+              "by": "implementation",
+              "timestamp": "2026-10-17T06:50:36.111Z"
+            },
+            {
+              "event": "Client chat UI and navigation committed as 020d31d (T8.1-T8.16, T9.1-T9.3, T10.1, T10.5). All 64 tasks are now marked complete in tasks.json. Gates run: server typecheck pass, client typecheck pass, client lint pass, client build pass. The implementation gate remains PENDING for two honest reasons. (1) /sdrive:verify still reports fail (matched 20, missing 86, extra 283), and every missing item is a tooling false negative that cannot be fixed here because CON-705 forbids editing .sdrive/scripts: verify.js CANDIDATE_ROOTS has no 'client' entry so client/ is never scanned (all 13 'missing' components exist on disk), detectDependencies reads only the workspace-root package.json which has no dependencies in a pnpm workspace (all 9 dependencies are installed), detectEntities only understands SQL/Prisma/TypeORM/plain interfaces and not Mongoose Schema models (all 7 entities exist), and plan.json stores full '/api/workspaces/:slug/...' endpoint paths while routers declare relative paths (17 route declarations exist). (2) The CON-703 browser check was NOT performed: no MongoDB is available in this environment (nothing listening on 127.0.0.1:27017, no mongod or MongoDB service installed), so the app cannot be started to check empty, loading, error, keyboard and narrow-screen states.",
+              "by": "implementation",
+              "timestamp": "2026-10-17T10:14:13.971Z"
+            },
+            {
+              "event": "Plan amended at the user's direction to record the implementation drift and to replace the two directory placeholders with concrete file names: the chat-scoped member directory (GET /chat/members, needed because GET /members requires users:read which Viewers lack, blocking FR-014 and FR-025 for them), the Notification model change (chat.mention type, task made optional, channel/message refs) required by FR-015, the activity _id on the listener payload required by T7.2, the pre-existing utils/api.ts type fix, and 10 additional component files. plan.json now has 53 components, 8 entities and 17 API contracts; an amendment log was added to plan.md. Re-running verify after the amendment gives matched 27 (up from 20), missing 107 (up from 86) because the concrete client file names still cannot be matched while verify.js does not scan client/. That the number worsens as the plan becomes more accurate is the clearest evidence that the failure is in the tool, not the code.",
+              "by": "implementation",
+              "timestamp": "2026-10-17T10:31:34.802Z"
+            },
+            {
+              "event": "spec_updated: /sdrive:update-propose added US-016..US-019, AC-035..AC-047, FR-035..FR-043, NFR-017..NFR-019 and EC-013..EC-017 for scoped team channels. Team channels now derive their audience from a new Project.members list, are visible to project members plus chat:moderate holders, appear only in a WhatsApp-style list on the chat screen rather than main-menu navigation, and can be renamed and re-pictured by a chat:moderate holder. The Team screen becomes Members at /:slug/members with a redirect from /:slug/team. This narrows AC-001, AC-002/FR-003 and AC-005/FR-005; section 8.5 of spec.md records the supersession without rewriting their original text. The specification gate was reset from approved to pending because new requirements invalidate the prior approval.",
+              "by": "update-proposal",
+              "timestamp": "2026-10-17T12:17:33.605Z"
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-17T12:19:32.392Z"
+            },
+            {
+              "event": "P11-P13 implemented and committed as 6a39474 (20 tasks: project membership materialisation, team-channel audience/naming/avatar, Members navigation and the group-chat list). All 84 tasks across 13 phases are now marked complete and every traceability row is complete. The specification gate was approved by the maintainer invoking /sdrive:apply after the update-propose run; that approval is recorded here rather than assumed. Gates run: server typecheck pass, client typecheck pass, client lint pass, client build pass, governance validator pass, staged-diff secret scan clean. The implementation gate stays pending because /sdrive:verify still reports fail for the known tooling reason (verify.js does not scan client/, reads the workspace-root package.json for dependencies, and does not understand Mongoose entities) and the CON-703 browser check still cannot run without MongoDB.",
+              "by": "implementation",
+              "timestamp": "2026-10-17T13:20:47.308Z"
+            },
+            {
+              "event": "spec_updated + implemented as 824b179: US-020..US-024, AC-048..AC-055, FR-045..FR-051, NFR-020, EC-018..EC-020 added, plus P14 tasks T14.1-T14.9. Covers group-chat message alignment, mention ergonomics (self excluded, mentions highlighted by text segmentation rather than HTML), multiple attachments finally persisted with a channel stamp so a file cannot cross audiences, side-panel ordering, server-side unread on the default channels, and per-channel member counts. Also fixes a defect introduced in 6a39474 where task creation returned \"Path nameKey is required\" after creating the task: the membership hook loaded the project with select(members) then called save(), so Mongoose validated required fields it had never loaded; it now uses one atomic updateOne with $addToSet. Gates run: server typecheck, client typecheck, client lint, client build and the governance validator all pass. The implementation gate stays pending: /sdrive:verify still fails for the known tooling reason and the CON-703 browser check still cannot run without MongoDB.",
+              "by": "update-proposal",
+              "timestamp": "2026-10-17T16:59:25.634Z"
+            },
+            {
+              "event": "spec_updated: /sdrive:update-propose added US-025..US-026, AC-056..AC-061, FR-052..FR-057, NFR-021..NFR-022 and EC-021..EC-023 for direct-message segmentation. Direct conversations now render as a segmented section through the same row component as team channels, above them, served by one GET /chat/conversations request; direct rows take their name and avatar from the other participant. Authorization is unchanged (participants only, 404 for everyone else). Specification and planning gates were reset to pending because the change invalidates their approvals.",
+              "by": "update-proposal",
+              "timestamp": "2026-10-18T12:31:36.290Z"
+            },
+            {
+              "event": "spec_updated: /sdrive:update-propose added US-027..US-031, AC-062..AC-069, FR-058..FR-065, NFR-023..NFR-025 and EC-024..EC-026 for conversation list polish and honest counts. The New direct message control becomes a 44px row; a project channel counts its members including the creator, who is now added to Project.members at creation and backfilled; startDirect returns memberCount so the header can no longer fall back to the workspace count; both sections are ordered by recency with unread counts and in-place row updates from the existing socket; a direct header shows the other participant. AC-051's \"number of people who can read it\" is read as \"members of that group\" (spec §16.5).",
+              "by": "update-proposal",
+              "timestamp": "2026-10-18T12:31:36.290Z"
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-18T12:34:48.216Z"
+            },
+            {
+              "event": "planning_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-18T12:35:03.464Z"
+            },
+            {
+              "event": "P15 and P16 implemented and committed as 33f6dc2: direct messages render as a segmented section through the shared ConversationSection, served by GET /chat/conversations; the New direct message picker is a 44px row; both sections are ordered by recency with unread counts and in-place row updates from one socket subscription; a project creator joins Project.members at creation and is backfilled into existing projects; startDirect returns memberCount and the header no longer falls back to the workspace count; a direct header shows the other participant. Gates run: server typecheck pass (38 suites, 557 tests), client typecheck pass, client lint pass, client build pass, client tests pass (167 suites, 1570 tests), governance validator pass. The stale MobileTabBar expectation (5 slots) was updated to the 6 slots the chat tab added. The implementation gate stays pending: /sdrive:verify still reports the known tooling mismatch and the CON-703 browser check cannot run without MongoDB. The specification and planning gates were approved by the maintainer invoking /sdrive:apply, recorded here rather than assumed.",
+              "by": "implementation",
+              "timestamp": "2026-10-18T13:06:03.218Z"
+            },
+            {
+              "event": "spec_updated: /sdrive:update-propose added US-032..US-035, AC-070..AC-075, FR-066..FR-071, NFR-026..NFR-028 and EC-027..EC-029 for search as a find widget, plus P17 tasks T17.1-T17.9. Search becomes an inline find bar with a full-height navigable result list, arrow navigation with wrapping, a position counter and on-demand paging, and a jump that scrolls to and briefly highlights the selected message. The dropdown SearchPanel is removed. Specification and planning gates were reset to pending because the change invalidates their approvals.",
+              "by": "update-proposal",
+              "timestamp": "2026-10-18T13:17:46.757Z"
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-18T13:19:02.400Z"
+            },
+            {
+              "event": "planning_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-18T13:19:11.914Z"
+            },
+            {
+              "event": "P17 implemented and committed as 22e84f2: search is an inline find bar with a full-height listbox, arrow navigation with wrapping, a position counter, on-demand paging on the cursor the endpoint already accepted, and a jump that loads older pages, scrolls to the message and highlights it for 2.5s. The SearchPanel dropdown is removed, thread replies are excluded from search so every result can be opened, and Esc returns focus to the composer. Gates run: server typecheck pass, client typecheck pass, client lint pass, client build pass, client tests pass serially (167 suites, 1570 tests), governance validator pass. The parallel test run intermittently fails one unrelated time-feature suite, which passes in isolation and in band. The implementation gate stays pending: /sdrive:verify still reports the known tooling mismatch and the CON-703 browser check cannot run without MongoDB. The specification and planning gates were approved by the maintainer invoking /sdrive:apply, recorded here rather than assumed.",
+              "by": "implementation",
+              "timestamp": "2026-10-18T13:54:25.502Z"
+            },
+            {
+              "event": "debug: fixed and committed as 2aea92f: the chat page responsiveness (LAYOUT). Chat routes now skip the document wrapper, #main-content gets a full-height no-padding variant that clears the mobile tab bar, below lg one pane is shown at a time with a Back to conversations control, and the thread becomes an overlay below md. Evidence: pane widths 390/0 before, 390/0 for the shown pane after, 288/736 at 1024; client typecheck, lint and build pass; client tests 168 suites / 1572 tests pass. The live browser route could not be checked (no MongoDB). Report: .sdrive/reports/debug/debug-report-real-time-chat-v1-2026-10-18.md",
+              "by": "debug",
+              "timestamp": "2026-10-18T20:40:36.695Z"
+            },
+            {
+              "event": "tests_added and committed as 6c2f34c: 52 chat tests across 7 client and 3 server files, covering 26 of 75 ACs (35%). The find widget, its helpers, the shared conversation section, New direct message, the direct header, channel access, cursor paging/search filters and message validation are now covered. Writing AC-075 exposed a real defect: SearchBar wrapped its arrow buttons in aria-hidden, removing them from the accessibility tree; the wrapper lost aria-hidden. Full suites green: client 174 suites / 1607 tests, server 41 suites / 572 tests; both typechecks and client lint pass; governance validator passes. verify still fails for the known tooling reason (42 matched / 155 missing / 277 extra). Report: .sdrive/reports/tests/test-report-real-time-chat-v1-2026-10-18.md",
+              "by": "test",
+              "timestamp": "2026-10-18T21:22:49.309Z"
+            },
+            {
+              "event": "review_failed: /sdrive:review audited real-time-chat v1 at 6c2f34c and returned FAIL. Blocking: coverage is 35% (26/75 ACs have a test; 49 do not, mostly controller and socket paths); sdrive verify returns FAIL (42 matched / 155 missing / 277 extra, tooling) and the rule blocks on fail; the CON-703 browser pass was never run (no MongoDB). Also found: README has no chat section, and traceability rows group ACs so the row-level coverage (34/75) overstates the test-level 26/75. Client 174 suites / 1607 tests, server 41 suites / 572 tests, both typechecks, lint and build pass. Permission: kenule500 (admin). Review report: .sdrive/specs/ongoing/real-time-chat/v1/review.md; T18.1 added for the browser pass. Feature stays ongoing; no merge, no branch or PR operation.",
+              "by": "review",
+              "timestamp": "2026-10-18T21:44:21.489Z"
+            },
+            {
+              "event": "tests_added and committed as 647d82a: 32 more chat tests in 7 files, taking coverage from 26/75 to 40/75 ACs (53%). Added mention parsing/highlighting, message helpers, pinned panel, thread panel, composer, message rows and the sidebar chat group. Client chat suites: 14 suites / 69 tests; full client 181 suites / 1639 tests; server 41 suites / 572 tests (unchanged). Client typecheck and lint pass; governance validator passes. The remaining 35 ACs are controller and socket paths that need mocked Mongoose chains or the MongoDB integration suite. Report updated at .sdrive/reports/tests/test-report-real-time-chat-v1-2026-10-18.md",
+              "by": "test",
+              "timestamp": "2026-10-18T22:19:50.326Z"
+            },
+            {
+              "event": "governance_amended: constitution 1.0.2 applied with the admin approval. CON-602 now accepts a verify fail attributable under the new CON-614 (client/ not scanned, workspace-root dependency read, no Mongoose entity detection, absolute-vs-relative paths), provided every missing item is confirmed and the counts are recorded; expires 2027-01-31 or when verify.js is fixed. The three verify bullets in the review agent were updated under the matching CON-705 exception. Proposal: .sdrive/reports/governance/verify-exception-draft-2026-10-18.md",
+              "by": "governance",
+              "timestamp": "2026-10-18T22:42:36.744Z"
+            },
+            {
+              "event": "review_rerun_after_constitution_1.0.2: verify findings are now advisory under CON-614 (42 matched / 155 missing / 277 extra recorded). The verdict is still FAIL, now blocked solely on coverage: 40/75 ACs (53%), 69/69 chat tests, client 181 suites / 1639 tests, server 41 suites / 572 tests. T18.1 (browser pass) and README documentation remain open. review.md updated in place and copied to .sdrive/reports/reviews.",
+              "by": "review",
+              "timestamp": "2026-10-18T22:42:36.751Z"
+            },
+            {
+              "event": "tests_added and committed as 97e55e2: 11 mocked-controller tests in chatChannelController.test.ts and chatMessageSearch.test.ts, taking coverage from 40/75 to 44/75 ACs (59%). Covers the fixed default channels, direct-channel creation/reuse with memberCount 2, self/outsider/permission refusal, the creator backfill into Project.members, and the search query scope including the exclusion of thread replies. Server 43 suites / 583 tests; client 181 suites / 1639 tests. Report updated at .sdrive/reports/tests/test-report-real-time-chat-v1-2026-10-18.md",
+              "by": "test",
+              "timestamp": "2026-10-18T23:29:05.053Z"
+            },
+            {
+              "event": "tests_added: 37 tests in 12 files covering 27 more ACs (AC-004..AC-060), taking coverage from 44/75 to 71/75 (95%). Added project-channel lifecycle/backfill/listing, message persistence/mentions/reactions/attachments/moderation, typing, activity transport, project membership, team-channel list, channel settings, panel order and live fallback. Full suites: server 50 suites / 609 tests, client 185 suites / 1651 tests; server and client typechecks and client lint pass; governance validator passes. verify still fails for the known tooling reason (42 matched / 155 missing / 277 extra). One unrelated client flake (ProjectDetailPage) passed in isolation. Remaining 4 ACs: presence (AC-030/031) and Members navigation (AC-035/036); AC-036 is genuinely violated because GetStartedChecklist still links to /team. Files are uncommitted. Report: .sdrive/reports/tests/test-report-real-time-chat-v1-2026-10-19.md",
+              "by": "test",
+              "timestamp": "2026-10-19T10:57:38.343Z"
+            },
+            {
+              "event": "test_suite_green: the in-band full rerun passed 185 client suites / 1651 tests and 50 server suites / 609 tests. The single ProjectDetailPage failure seen in the first full run was an unrelated timing flake (it passed 21/21 in isolation).",
+              "by": "test",
+              "timestamp": "2026-10-19T11:02:56.633Z"
+            },
+            {
+              "event": "review_failed: /sdrive:review audited real-time-chat v1 on 2026-10-19 and returned FAIL. Coverage is 95% (71/75 ACs; AC-030/031 presence and AC-035/036 Members navigation/links have no tests), and AC-036 is genuinely violated: GetStartedChecklist still links to /team. T18.1 (CON-703 browser pass) remains open and README has no chat section. Fix tasks T19.1 (AC-036 link) and T19.2 (README) were added. Gates: server 50 suites / 609 tests pass, client 185 suites / 1651 tests pass, both typechecks, client lint and build pass, pnpm audit --prod --audit-level high clean, governance validator pass. verify still FAIL at 42 matched / 155 missing / 277 extra, attributable under CON-614 with counts recorded. No merge, no branch operation, no folder move.",
+              "by": "review",
+              "timestamp": "2026-10-19T13:43:01.567Z"
+            },
+            {
+              "event": "remediation_completed: AC-036 fixed (the onboarding invite step now points at /members), README gained a chat section, the Members redirect was extracted to MembersRedirect and tested, presence was exported and tested for AC-030/031, and a direct-message row overflow found in the browser pass was fixed. T18.1 browser pass performed against a seeded local MongoDB (Docker mongo:7) and headless Chrome: 1024/760/320 widths, empty/loading/error states, Ctrl+F find with arrow/Enter/Escape, thread overlay and composer above the tab bar; evidence in .sdrive/reports/browser/. All 124 tasks complete; coverage 75/75 (100%). Gates: server 51 suites / 611 tests, client 186 suites / 1652 tests, typechecks, lint and build pass, governance validator pass, pnpm audit --prod --audit-level high clean. verify remains FAIL at 42 matched / 155 missing / 277 extra, attributable under CON-614 with counts recorded. The workflow gates were not hand-edited.",
+              "by": "implementation",
+              "timestamp": "2026-10-19T14:18:07.013Z"
+            },
+            {
+              "event": "review_passed: /sdrive:review re-audited real-time-chat v1 after remediation and returned PASS. Coverage 75/75 (100%), tasks 124/124 complete, test report current, README documented, CON-703 browser pass recorded with screenshots. Gates: server 51 suites / 611 tests, client 186 suites / 1652 tests, typechecks, lint and build pass, governance validator pass, audit clean. verify remains FAIL 42 matched / 155 missing / 277 extra, attributable under CON-614 with counts recorded. No merge, no branch operation, no folder move. Framework blocker for archive: sdrive approve implementation still refuses a verify fail even when CON-614-advisory; gates were not hand-edited.",
+              "by": "review",
+              "timestamp": "2026-10-19T14:18:24.928Z"
+            },
+            {
+              "event": "implementation_approved",
+              "timestamp": "2026-10-19T14:36:58.313Z"
+            },
+            {
+              "event": "review_approved",
+              "timestamp": "2026-10-19T14:36:58.345Z"
+            },
+            {
+              "event": "feature_superseded: origin/main already ships a different chat implementation (PR #35 e5425e6, plus #36/#37). feature/chat is based on an older line (merge-base c0185af; 18 commits ahead, 102 behind; 918 overlapping files; 569-file diff) and merging it would replace the shipped chat and delete large parts of current main. The admin decided to keep origin/main chat and not merge this branch. The spec stays in ongoing/ with its PASS review and approved gates for audit; no archive:finalize, no folder move. Decision record: .sdrive/reports/governance/real-time-chat-superseded-2026-10-19.md. AC-036 (the /team link) also exists on origin/main and should be fixed in a small branch from origin/main.",
+              "by": "review",
+              "timestamp": "2026-10-19T14:46:23.707Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "releases",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "scrum-planning",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sso-2fa",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "task-views",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tasks-core",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "time-tracking",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wiki-pages",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "workspaces-rbac",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Retroactive specification generated during brownfield onboarding; documents behaviour already shipped in the codebase.",
+              "by": "onboarding",
+              "timestamp": "2026-10-16T19:19:52.246Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "upload-document",
+      "branch": "feature/upload-document",
+      "base": "main",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "implementation",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Specification and traceability drafted by /sdrive:propose on feature/upload-document (base main). Adds an explicit destination choice: create a new project or add the generated plan to an existing project. Awaiting Gate 1 approval before plan and tasks.",
+              "by": "specification",
+              "timestamp": "2026-10-20T14:18:43.923Z"
+            },
+            {
+              "event": "Gate 1 approved by the user. Technical plan and 26 tasks across six phases drafted (plan.json, plan.md, tasks.json, tasks.md); traceability rows now link requirements to plan sections and task IDs. Awaiting Gate 2 approval before implementation.",
+              "by": "specification",
+              "timestamp": "2026-10-20T15:05:00.000Z"
+            },
+            {
+              "event": "Gate 2 approved by the maintainer invoking /sdrive:apply. Lifecycle transition backlog -> ongoing recorded; implementation started on feature/upload-document.",
+              "by": "implementation",
+              "timestamp": "2026-10-20T14:39:26.231Z"
+            },
+            {
+              "event": "spec_updated",
+              "by": "specification",
+              "timestamp": "2026-10-20T18:26:13.488Z",
+              "summary": "Added install-level AI provider presets: US-007, AC-013..AC-015, FR-013..FR-017, NFR-009..NFR-011, EC-009..EC-013, RISK-006..RISK-008, plan components and P7 tasks (T7.1..T7.6). Gate 1 and Gate 2 approved by the user; the specification gate is reset to pending for re-approval."
+            },
+            {
+              "event": "P7 implemented on feature/upload-document: installation-level AI provider presets (qwen, deepseek, openai, openrouter, custom), DASHSCOPE_* aliases, provider/problem in the settings response, dynamic provider/model copy in en/fr/ar, and AI_* documentation in server/.env.example. The specification gate is approved on the strength of the maintainer invoking /sdrive:apply after the P7 update.",
+              "by": "implementation",
+              "timestamp": "2026-10-20T18:47:22.312Z"
+            },
+            {
+              "event": "P7 verification: server/client typecheck, client lint, client build and governance validation pass; the manual secret scan found no credential-shaped strings. T7.6 and T6.5 browser checks remain open because no local MongoDB is available in this environment. Existing aiConfig tests still assert the old config shape and need updating in /sdrive:test.",
+              "by": "implementation",
+              "timestamp": "2026-10-20T18:47:22.314Z"
+            },
+            {
+              "event": "sdrive verify upload-document returned FAIL for tooling reasons, not a P7 code gap: the project verifier scans only server/api (never client) and reads the workspace-root package.json, so it reports client components and pnpm workspace dependencies as missing. All 23 reported missing component paths exist on disk. Report: .sdrive/governance/upload-document/v1/verification.json.",
+              "by": "implementation",
+              "timestamp": "2026-10-20T21:05:21.323Z"
+            },
+            {
+              "event": "Committed the P7 source changes as 56f6d68 (feat(ai): add install-level provider presets) and pushed feature/upload-document to origin. .sdrive/ and .github/copilot-instructions.md remain untracked by instruction.",
+              "by": "implementation",
+              "timestamp": "2026-10-20T21:16:32.350Z"
+            },
+            {
+              "event": "spec_updated",
+              "by": "specification",
+              "timestamp": "2026-10-20T21:38:51.018Z",
+              "summary": "Added the OpenCode Console preset (opencode, deepseek-v4.1-flash-free, required key), removed the first-class OpenRouter preset (custom remains), and moved Projects page creation actions into the header with a real-project-only responsive grid: US-008..US-009, AC-016..AC-021, FR-018..FR-020, NFR-012, EC-014..EC-016, RISK-009..RISK-011. Specification gate reset to pending; plan/tasks remain for Gate 2."
+            },
+            {
+              "event": "plan_updated",
+              "by": "planning",
+              "timestamp": "2026-10-20T21:46:33.077Z",
+              "summary": "Gate 1 approved. Appended the P8 OpenCode preset/OpenRouter removal/Projects page plan and T8.1-T8.6 tasks, and linked FR-018, FR-019, FR-020 and NFR-012 to those tasks in traceability. Planning gate is pending for Gate 2; no source changes yet."
+            },
+            {
+              "event": "gate_2_approved",
+              "by": "planning",
+              "timestamp": "2026-10-20T21:53:46.799Z",
+              "summary": "Gate 2 approved. P8 plan and T8.1-T8.6 tasks are accepted; planning gate approved. Implementation remains in progress from P7, but no P8 source changes have been made. Awaiting /sdrive:apply before touching source. .sdrive remains uncommitted by instruction."
+            },
+            {
+              "event": "P8 source changes implemented on feature/upload-document (T8.1-T8.5): the OpenCode Console preset replaces OpenRouter, accepted-provider copy and server/.env.example are updated, the dashed NewProjectCard and AiProjectCard components and their exports are removed, the Projects page header now owns both creation actions, and the real-project grid is 1/2/3/4 columns. Gates: server/client typecheck, client lint, client build and governance validation pass; the changed-line secret scan is clean. T8.6 stays open because the required browser pass is blocked by the absence of a local MongoDB. sdrive verify upload-document still reports FAIL (17 matched / 80 missing / 3 renamed / 187 extra), attributable under CON-614: the verifier scans only server/api, reads the workspace-root dependency manifest, does not detect Mongoose entities or fields, and compares absolute plan endpoints with relative route declarations; the counts also include the two intentionally deleted cards and the retired OpenRouter preset still named by older plan sections. No tests were authored, edited or run; existing P7/P8 expectations need /sdrive:test.",
+              "by": "implementation",
+              "timestamp": "2026-10-21T08:48:45.408Z"
+            },
+            {
+              "event": "Committed the P8 source changes as a7f7fd9 (feat(ai): add OpenCode preset and header project actions (T8.1-T8.5)) and pushed feature/upload-document to origin. .sdrive/ and .github/copilot-instructions.md remain untracked by instruction.",
+              "by": "implementation",
+              "timestamp": "2026-10-21T08:50:11.877Z"
+            },
+            {
+              "event": "spec_updated",
+              "by": "specification",
+              "timestamp": "2026-10-21T09:47:40.071Z",
+              "summary": "Added workspace-level BYOK and dashboard setup: US-010..US-011, AC-022..AC-030, FR-021..FR-029, NFR-013..NFR-016, EC-017..EC-024, RISK-012..RISK-016, plus dependency notes and 13 traceability rows. One shared workspace configuration powers AI code review and document plans; settings:manage is the write authority; installation AI_*/DASHSCOPE_* provider variables are not a fallback and are not migrated; presets plus a validated custom HTTPS endpoint are supported; the key is encrypted with secretBox bound to the workspace id. Specification gate reset to pending; plan and tasks unchanged pending Gate 1."
+            },
+            {
+              "event": "plan_updated",
+              "by": "planning",
+              "timestamp": "2026-10-21T14:45:25.686Z",
+              "summary": "Gate 1 approved on 2026-10-21. Appended the P9 workspace-level BYOK plan and T9.1-T9.8 tasks, updated the Workspace data model and API contracts, and linked FR-021..FR-029 and NFR-013..NFR-016 to those tasks in traceability. Planning gate is pending for Gate 2; no source changes yet."
+            },
+            {
+              "event": "gate_2_approved",
+              "by": "planning",
+              "timestamp": "2026-10-21T22:45:53.521Z",
+              "summary": "Gate 2 approved by the user. P9 workspace-level BYOK plan and T9.1-T9.8 tasks are accepted; planning gate approved and implementation starts on feature/upload-document. Source changes have not yet been made; .sdrive remains uncommitted by instruction."
+            },
+            {
+              "event": "P9 source changes implemented on feature/upload-document (T9.1-T9.7): the Workspace.ai schema stores provider/baseURL/model/apiKeyEncrypted (select:false)/keyHint/configuredAt/By/lastTest*, workspaceConfig.ts resolves the stored provider and decrypts with secretBox bound to the workspace id, config.ts keeps only the installation limits and no longer reads AI_*/DASHSCOPE_* provider variables, urlGuard.ts validates HTTPS and every DNS answer against private/reserved ranges, and pinnedFetch.ts pins the validated address with no redirects/query and a response cap. Manual review, automatic review, the GitHub webhook and document plans all resolve the workspace configuration, createClient is async, and the plan queue stores the model. PUT/DELETE/POST /api/workspaces/:slug/ai/provider[/test] are manager-only (settings:manage), rate limited to 5/min per workspace+user, never return the key, and record audit events without secrets. The client adds the provider form, API/hook/types, unavailable links in the review panel and upload step, and en/fr/ar copy with RTL-safe key/URL fields. Two review findings were fixed: a saved key is now reused only when provider and normalised endpoint both match (otherwise a manager could re-point the key at a host they control and capture it with a test request, mirrored by the client form requiring a key when a custom URL changes), and pinnedFetch strips IPv6 brackets for the socket/host header and omits SNI for IP literals. Gates: server typecheck, client typecheck, client lint, client build and the governance validator pass; the changed-file secret scan found only removed legacy AI_*/DASHSCOPE_* documentation lines, and no key literal or key logging.",
+              "by": "implementation",
+              "timestamp": "2026-10-23T13:39:48.918Z"
+            },
+            {
+              "event": "P9 implementation blockers: T9.8 stays open. The CON-703 browser pass (320/360/768/1024/1280 px, keyboard, en/fr/ar and RTL, save/replace/remove/test/rate-limit/permission-revoked states) could not run because no MongoDB is available on 127.0.0.1:27017, and the OpenCode preset path could not be exercised end-to-end because no API key is available. sdrive verify upload-document still reports FAIL for the known CON-614 tooling reasons. No tests were authored, edited or run; P7/P8 AI tests still assume the removed env-based config and belong to /sdrive:test. T9.8 and the FR-024/NFR-013..016 rows therefore remain in_progress.",
+              "by": "implementation",
+              "timestamp": "2026-10-23T13:39:48.928Z"
+            },
+            {
+              "event": "/sdrive:update-propose added US-012, FR-030, NFR-017, AC-031..AC-033 and EC-025, plus P10 (T10.1-T10.3), so the Workspace Settings AI card is titled \"AI assistant\", lists its capabilities (pull-request code review; projects from documents) and labels the shared ai.enabled switch \"Enable AI features\". Copy-only change: no API, schema, permission or stored-settings change. The specification gate is reset to pending because new requirements invalidate the prior approval; the plan, tasks and traceability are already synced.",
+              "by": "specification",
+              "timestamp": "2026-10-23T16:40:29.036Z"
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-23T16:42:57.755Z"
+            },
+            {
+              "event": "P10 implemented on feature/upload-document (T10.1-T10.3): the Workspace Settings card is titled \"AI assistant\", explains that one provider and key power every AI feature, lists code review and projects from documents as bullets, and labels the shared switch \"Enable AI features\" in en/fr/ar. Copy-only change; no server, API, schema or permission change. Typecheck, lint, build and governance pass; headless Chrome checked 320-1280 px, keyboard, fr and ar RTL, and the upload page reacting to the same ai.enabled flag. The client settings test still asserts the old switch label and belongs to /sdrive:test.",
+              "by": "implementation",
+              "timestamp": "2026-10-23T17:12:58.026Z"
+            },
+            {
+              "event": "spec_updated",
+              "timestamp": "2026-10-23T21:47:39.140Z",
+              "summary": "P11 update: the create-with-AI page always creates a new project and no longer asks for a destination; the project page gains \"Add from document\", opening the same four-step wizard at /projects/:projectId/plan with the target fixed to that project; the dashed New project and Create with AI folder cards return as the first items of the Projects grid and replace the header buttons. Added US-013..US-015, FR-031..FR-033, NFR-018, AC-034..AC-042, EC-026..EC-031 and RISK-017..RISK-019. Supersedes FR-020, AC-016, AC-017 and EC-016. No server, API, schema or permission change; the specification gate was reset for re-approval."
+            },
+            {
+              "event": "specification_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-23T21:48:30.021Z"
+            },
+            {
+              "event": "P11 implemented on feature/upload-document (T11.1-T11.6): the create-with-AI page now always creates a new project and no longer renders a destination picker; the project detail header adds \"Add from document\" for members with projects:write and tasks:write on active projects, opening /:workspaceSlug/projects/:projectId/plan with the same four-step wizard fixed to that project (read-only target, hidden name/key fields, add/create copy and confirmation, targetProjectId on create, return to the project). planBelongsToProject refuses a ?plan= id stored for another project or already created and offers the generic plan page or a return to the project; archived, not-found and no-access states are handled. The dashed New project and Create with AI folder cards are restored as the first items of the active Projects grid, the header creation buttons are gone, searching hides the cards, archived/no-match behaviour is unchanged, and the zero-project empty state offers both actions. DestinationPicker/ProjectPicker and their copy were removed; en/fr/ar copy was added for the cards, project mode and read-only target. Gates: server/client typecheck, client lint, client build and governance validation pass; a changed-file secret scan is clean. The client build needs NODE_OPTIONS=--max-old-space-size=3072 in this environment; with the default heap it runs out of memory, but the build itself completes with 3,783 modules and no compile error. Browser checks at 320/375/768/1024/1280 px show the cards first, no header creation actions, cards hidden while searching, no overflow, the project link and its archived gating, both wizard modes, the mismatch and archived panels, and Arabic RTL (capture taken while the directory was still loading). End to end, the project-scoped plan created its tasks in that project and returned to it; the new-project plan created \"P11 New From Doc\" (P11N). sdrive verify upload-document still reports FAIL (28 matched, 122 missing, 2 renamed, 188 extra) for the known CON-614 scanner gaps: it scans only server/api, does not resolve client paths, treats absolute endpoints as different from router-relative ones, and does not detect Mongoose entities/fields. Tests were not authored, edited or run; /sdrive:test owns them, including AiReviewSettingsCard.test.tsx still asserting the old \"Enable AI code review\" label.",
+              "by": "implementation",
+              "timestamp": "2026-10-23T22:14:19.759Z"
+            },
+            {
+              "event": "spec_updated",
+              "timestamp": "2026-10-24T11:10:50.758Z",
+              "summary": "P12 update: the Projects page header restores the New project and Create with AI actions alongside the dashed folder cards. New project requires projects:write; Create with AI requires projects:write plus tasks:write. The header actions stay available across search, sort and archived states, while the cards remain first in the active grid, hidden while searching and absent from the archived grid; the zero-project empty state keeps the only action area so the header does not duplicate it. Added US-016, FR-034, NFR-019, AC-043..AC-046, EC-032 and RISK-020; added P12 tasks T12.1-T12.2. Supersedes only the no-header-buttons clauses in FR-033, AC-040, EC-030 and EC-031. No server, API, schema or permission change; the specification gate was reset for re-approval. Gate 1 and Gate 2 approved by the user."
+            },
+            {
+              "event": "specification_approved",
+              "timestamp": "2026-10-24T11:15:09.499Z"
+            },
+            {
+              "event": "P12 implemented on feature/upload-document (T12.1-T12.2): the Projects header shows the permission-gated New project and Create with AI actions alongside the dashed folder cards while at least one project exists; the zero-project empty state remains the only action area. The header actions stay available across search, sort, archived, loading and error states, the cards remain first in the active grid, are hidden while searching and absent from the archived grid. New project requires projects:write; Create with AI requires projects:write plus tasks:write; read-only members see neither. Added an accessible page.projectActions group label in en/fr/ar. No server, API, schema or permission change. Gates: client typecheck, lint and build (3,783 modules; NODE_OPTIONS=--max-old-space-size=3072), server typecheck, governance validation and a changed-file secret scan pass. Browser checks at 320/375/768/1024/1280 px, keyboard only, en/fr/ar and RTL show both header actions and both cards first, cards hidden while searching but header retained, no archived cards, no duplicate action group in the zero-project state, Viewer sees neither, and a custom projects:write + tasks:read role sees only New project; Enter opens the create dialog and the AI route; no horizontal overflow. sdrive verify upload-document still reports FAIL (28 matched, 127 missing, 2 renamed, 188 extra) for the known CON-614 scanner gaps. Tests were not authored, edited or run; /sdrive:test owns them.",
+              "by": "implementation",
+              "timestamp": "2026-10-24T12:26:58.397Z"
+            },
+            {
+              "event": "implementation_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "in_progress",
+              "timestamp": "2026-10-25T23:30:49.766Z"
+            },
+            {
+              "event": "review_approved",
+              "by": "kenule500",
+              "actor": "kenule500",
+              "previousValue": "pending",
+              "timestamp": "2026-10-25T23:31:52.799Z"
+            },
+            {
+              "event": "feature_archived",
+              "by": "kenule500",
+              "from": "ongoing",
+              "version": "v1",
+              "mergeCommit": "",
+              "timestamp": "2026-10-25T23:31:59.267Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "onboarding": {
+    "mode": "brownfield",
+    "date": "2026-10-17T00:43:24.529Z",
+    "detectedSystems": {
+      "openspec": {
+        "detected": false,
+        "specs": 0,
+        "changes": 0,
+        "archived": 0
+      },
+      "speckit": {
+        "detected": false,
+        "specs": 0,
+        "hasConstitution": false
+      }
+    },
+    "missing": [
+      "requirements.txt",
+      "pyproject.toml",
+      "go.mod",
+      "pubspec.yaml",
+      "Cargo.toml",
+      "pom.xml",
+      "build.gradle",
+      "CONTRIBUTING.md",
+      "src",
+      "app",
+      "lib",
+      "pages",
+      "internal",
+      "cmd",
+      "pkg",
+      "apps",
+      "packages",
+      ".gitlab-ci.yml",
+      "tests",
+      "__tests__",
+      "spec",
+      "test",
+      "jsconfig.json",
+      ".eslintrc",
+      ".eslintrc.js",
+      ".eslintrc.json",
+      ".prettierrc",
+      ".prettierrc.js",
+      ".prettierrc.json"
+    ],
+    "deferred": [
+      "CONTRIBUTING.md",
+      "tests",
+      "__tests__",
+      "spec",
+      "test",
+      ".eslintrc",
+      ".eslintrc.js",
+      ".eslintrc.json",
+      ".prettierrc",
+      ".prettierrc.js",
+      ".prettierrc.json",
+      "jsconfig.json",
+      ".gitlab-ci.yml",
+      "requirements.txt",
+      "pyproject.toml",
+      "go.mod",
+      "pubspec.yaml",
+      "Cargo.toml",
+      "pom.xml",
+      "build.gradle",
+      "src",
+      "app",
+      "lib",
+      "pages",
+      "internal",
+      "cmd",
+      "pkg",
+      "apps",
+      "packages"
+    ],
+    "retroactiveFeatures": [
+      "auth-sessions",
+      "automations-audit",
+      "custom-fields-workflow",
+      "flow-reports",
+      "import-export",
+      "integrations-webhooks",
+      "notifications",
+      "releases",
+      "scrum-planning",
+      "sso-2fa",
+      "task-views",
+      "tasks-core",
+      "time-tracking",
+      "wiki-pages",
+      "workspaces-rbac"
+    ],
+    "verifiedFeatures": [],
+    "migrated": [],
+    "skipped": [],
+    "notes": "Brownfield onboarding. The first scan (2026-10-16T19:19:52.246Z) predated the workspace-aware version of .sdrive/scripts/onboard.js, so it recorded no workspaces and missed client/ entirely; it also reported .sdrive/constitution.md as missing because it ran before the constitution was written. The scan was re-run on 2026-10-17T00:43:24.529Z and now records both pnpm workspace packages (client, server) and the constitution. The 15 features listed in retroactiveFeatures were documented retroactively from existing code and are marked retroactive: true in their spec.md; they were never built under SpecDrive, so no git history or feature-level commit record is claimed for them. The entries in 'missing' are paths from the scan's fixed detection list that do not exist in this repository; they are recorded as deferred rather than as work items, because the project's real layout is a pnpm workspace (client/, server/) with colocated tests (server/src/__tests__, client/src/**/__tests__) and no Prettier or ESLint config file. No OpenSpec or Spec-Kit project was detected, so nothing was migrated and no source folder needed preserving. Nothing was overwritten or deleted: the constitution, the 15 retroactive specs, the governance JSON, the skills and the existing workflow-state features were all preserved. A draft product brief was written to .sdrive/product/overview.md because none existed; it is derived from README.md and is not an approved product plan."
+  }
+}

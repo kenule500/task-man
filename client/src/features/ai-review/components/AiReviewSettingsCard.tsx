@@ -5,6 +5,7 @@ import { Alert, IconTile, SectionHeader, Spinner, Surface, SwitchField, toast } 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatNumber } from '@/i18n/format';
+import AiProviderForm from './AiProviderForm';
 import { useAiSettings } from '../hooks/useAiSettings';
 import type { AiSettingsPatch } from '../types';
 
@@ -13,14 +14,20 @@ const OUTLINE_BTN = 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-7
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{20,255}$/;
 
 /**
- * Workspace settings card for the AI code review. Turning it on is the opt-in to send pull request code to
- * Alibaba Cloud Model Studio, so the notice sits above the switch. The GitHub token field is write-only.
- * Only mount it for members who hold settings:manage (the API requires it to change anything).
+ * Workspace settings card for every AI feature (code review and document plans). Turning it on is the
+ * opt-in to send workspace content to the configured AI provider, so the notice sits above the switch.
+ * The GitHub token field is write-only. Only mount it for members who hold settings:manage (the API
+ * requires it to change anything).
  */
 const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const { t } = useTranslation('ai');
   const tokenId = useId();
-  const { settings, loading, error, reload, update } = useAiSettings(workspaceSlug);
+  const { settings, loading, error, reload, update, saveProvider, removeProvider, testProvider } = useAiSettings(workspaceSlug);
+  const providerLabel = settings?.provider && settings.provider.id !== 'unknown'
+    ? settings.provider.id === 'custom'
+      ? t('settings.customProvider')
+      : settings.provider.label
+    : t('settings.providerFallback');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState('');
   const [token, setToken] = useState('');
@@ -59,14 +66,18 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   return (
     <Surface as="section" aria-labelledby="ai-review-heading" className="sm:p-6">
       <SectionHeader className="mb-1" title={<span id="ai-review-heading">{t('settings.title')}</span>} />
-      <p className="mb-4 text-xs text-slate-600">{t('settings.description')}</p>
+      <p className="mb-2 text-xs text-slate-600">{t('settings.description')}</p>
+      <ul className="mb-4 list-disc space-y-1 ps-5 text-xs text-slate-600">
+        <li>{t('settings.capabilities.codeReview')}</li>
+        <li>{t('settings.capabilities.documentPlans')}</li>
+      </ul>
 
       <div className="rounded-xl border border-slate-200 p-4">
         <div className="mb-4 flex items-start gap-3">
           <IconTile size="sm" tone="neutral"><Bot /></IconTile>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-slate-900">Alibaba Cloud Model Studio</h3>
-            {settings && <p className="text-xs text-slate-600">{t('settings.model', { model: settings.model })}</p>}
+            <h3 className="text-sm font-semibold text-slate-900">{providerLabel}</h3>
+            {settings?.model && <p className="text-xs text-slate-600">{t('settings.model', { model: settings.model })}</p>}
           </div>
         </div>
 
@@ -79,9 +90,27 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
           <p role="status" className="flex items-center gap-2 text-sm text-slate-600"><Spinner decorative />{t('settings.loading')}</p>
         ) : (
           <div className="space-y-5">
-            {!settings.available && <Alert tone="warning">{t('settings.unavailable')}</Alert>}
+            <AiProviderForm
+              key={`${settings.provider?.id ?? 'none'}:${settings.model}:${settings.config?.baseURL ?? ''}:${settings.config?.keySet ? 'key' : 'nokey'}`}
+              settings={settings}
+              onSave={saveProvider}
+              onRemove={removeProvider}
+              onTest={testProvider}
+            />
 
-            <Alert tone="warning" title={t('settings.notice.title')}>{t('settings.notice.body')}</Alert>
+            {!settings.available && (
+              <Alert tone="warning">
+                <p>{t('settings.unavailable')}</p>
+                {settings.problem && <p className="mt-1 text-xs">{t(`settings.problems.${settings.problem}`)}</p>}
+              </Alert>
+            )}
+
+            <Alert tone="warning" title={t('settings.notice.title')}>
+              {t('settings.notice.body', {
+                provider: providerLabel,
+                model: settings.model || t('settings.modelFallback'),
+              })}
+            </Alert>
 
             <SwitchField
               label={t('settings.enable.label')}

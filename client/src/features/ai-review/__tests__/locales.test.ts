@@ -20,11 +20,11 @@ const flat = (tree: Tree, prefix = ''): Record<string, string> =>
 describe('ai translations', () => {
   const base = [...new Set(paths(en as Tree))].sort();
 
-  it.each([['fr', fr], ['ar', ar]] as const)('%s has every key of English and no extra', (_name, tree) => {
+  it.each([['fr', fr], ['ar', ar]] as const)('TEST-030 AC-030: %s has every key of English and no extra', (_name, tree) => {
     expect([...new Set(paths(tree as Tree))].sort()).toEqual(base);
   });
 
-  it.each([['fr', fr], ['ar', ar]] as const)('%s keeps the placeholders of the English text', (_name, tree) => {
+  it.each([['fr', fr], ['ar', ar]] as const)('AC-030: %s keeps the placeholders of the English text', (_name, tree) => {
     const english = flat(en as Tree);
     // Plural forms may spell a number out instead of using {{count}}, so only the other placeholders are compared
     const named = (text: string) => placeholders(text).filter(name => name !== 'count');

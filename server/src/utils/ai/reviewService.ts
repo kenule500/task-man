@@ -9,12 +9,12 @@ import User from '../../models/userModel.js';
 import Workspace from '../../models/workspaceModel.js';
 import { decryptSecret } from '../secretBox.js';
 import { isPushConfigured, pushSentence, sendPushToUser } from '../webPush.js';
-import { readAiConfig } from './config.js';
 import { selectDiff } from './diffSelect.js';
 import { fetchPullRequest, parsePrUrl, type PrRef } from './githubPr.js';
 import { reviewWithModel } from './provider.js';
 import { countResults, finalizeReview } from './schema.js';
 import { AiReviewError, type ReviewModelInput } from './types.js';
+import { resolveWorkspaceAiConfig, type WorkspaceAiSettings } from './workspaceConfig.js';
 
 // Queues and runs AI code reviews. Used by the review routes and by the GitHub webhook (auto review).
 
@@ -87,8 +87,8 @@ export const pickLinkedPullRequest = (links: LinkLike[] | undefined): { ref: PrR
 // ----------------------------------------------------------------
 export interface QueueInput {
   workspaceId: Id;
-  /** `ai` settings of the workspace as stored. */
-  settings: { enabled?: boolean } | undefined;
+  /** `ai` settings of the workspace as stored, including the encrypted key when selected. */
+  settings: WorkspaceAiSettings | undefined;
   task: Pick<ITask, '_id' | 'links'>;
   prUrl?: string;
   requestedBy: Id | null;
@@ -99,8 +99,10 @@ export interface QueueInput {
  * and stores a queued review. Throws `AiQueueError`.
  */
 export const queueReview = async (input: QueueInput): Promise<IAiReview> => {
-  const config = readAiConfig();
-  if (!config.available) throw new AiQueueError(503, 'AI_DISABLED', 'The AI code review is not configured on this server.');
+  const config = resolveWorkspaceAiConfig(String(input.workspaceId), input.settings);
+  if (!config.available) {
+    throw new AiQueueError(503, 'AI_NOT_CONFIGURED', 'AI code review is not configured for this workspace. An owner or admin can set it up in the workspace settings.');
+  }
   if (input.settings?.enabled !== true) throw new AiQueueError(503, 'AI_DISABLED', 'The AI code review is turned off for this workspace. An administrator can turn it on in the settings.');
 
   let target: { ref: PrRef; title: string; sha: string } | null;
@@ -121,8 +123,8 @@ export const queueReview = async (input: QueueInput): Promise<IAiReview> => {
   if (await AiReview.exists({ task: input.task._id, status: { $in: ['queued', 'running'] } })) {
     throw new AiQueueError(409, 'REVIEW_IN_PROGRESS', 'A review of this task is already running.');
   }
-  if (await countUsedToday(input.workspaceId) >= config.dailyLimit) {
-    throw new AiQueueError(429, 'AI_DAILY_LIMIT', `This workspace has used its ${config.dailyLimit} AI reviews for today. The limit resets at midnight UTC.`);
+  if (await countUsedToday(input.workspaceId) >= config.limits.dailyLimit) {
+    throw new AiQueueError(429, 'AI_DAILY_LIMIT', `This workspace has used its ${config.limits.dailyLimit} AI reviews for today. The limit resets at midnight UTC.`);
   }
 
   try {
@@ -211,11 +213,14 @@ export const runReview = async (reviewId: Id | string): Promise<void> => {
   if (!review) return;
 
   try {
-    const config = readAiConfig();
-    const workspace = await Workspace.findById(review.workspace).select('slug ai +integrations.github.accessTokenEncrypted');
+    // A projection with only `+` paths is an exclusion projection, so the whole `ai` block is
+    // loaded (including `ai.enabled`) and only the two encrypted secrets are added back.
+    const workspace = await Workspace.findById(review.workspace).select('+ai.apiKeyEncrypted +integrations.github.accessTokenEncrypted');
     const task = await Task.findOne({ _id: review.task, workspace: review.workspace });
     if (!workspace || !task) throw new AiReviewError('The task no longer exists.', 'TASK_GONE');
-    if (workspace.ai?.enabled !== true || !config.available) throw new AiReviewError('The AI code review was turned off before it started.', 'AI_DISABLED');
+    const config = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
+    if (workspace.ai?.enabled !== true) throw new AiReviewError('The AI code review was turned off before it started.', 'AI_DISABLED');
+    if (!config.available) throw new AiReviewError('AI code review is no longer configured for this workspace.', 'AI_NOT_CONFIGURED');
 
     const ref = parsePrUrl(review.pr.url);
     if (!ref) throw new AiReviewError('The pull request link is not valid.', 'INVALID_PR_URL');
@@ -233,7 +238,7 @@ export const runReview = async (reviewId: Id | string): Promise<void> => {
     const pr = await fetchPullRequest(ref, token);
     if (pr.files.length === 0) throw new AiReviewError('The pull request has no changed files to review.', 'EMPTY_PULL_REQUEST');
 
-    const selection = selectDiff(pr.files, config.maxDiffChars);
+    const selection = selectDiff(pr.files, config.limits.maxDiffChars);
     const notFetched = Math.max(0, pr.changedFiles - pr.files.length);
     if (notFetched > 0) {
       selection.omittedFiles.push(`(+${notFetched} more files were not fetched)`);
@@ -255,7 +260,7 @@ export const runReview = async (reviewId: Id | string): Promise<void> => {
       selection,
     };
 
-    const answer = await reviewWithModel(input);
+    const answer = await reviewWithModel(input, { config });
     const result = {
       ...finalizeReview(answer.output, { criteria, knownFiles: input.manifest.map(file => file.filename), truncated: selection.truncated }),
       model: answer.model,

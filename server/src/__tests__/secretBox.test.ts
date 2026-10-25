@@ -9,18 +9,18 @@ import {
 const KEY = 'k'.repeat(40);
 
 describe('secretBox (AES-256-GCM)', () => {
-  it('round-trips a secret and never stores it in the clear', () => {
+  it('TEST-025 AC-025: round-trips a secret and never stores it in the clear', () => {
     const box = encryptSecret('JBSWY3DPEHPK3PXP', 'user-1', KEY);
     expect(box).toMatch(/^v1\.[\w-]+\.[\w-]+\.[\w-]+$/);
     expect(box).not.toContain('JBSWY3DPEHPK3PXP');
     expect(decryptSecret(box, 'user-1', KEY)).toBe('JBSWY3DPEHPK3PXP');
   });
 
-  it('uses a fresh IV, so the same secret encrypts differently each time', () => {
+  it('AC-025: uses a fresh IV, so the same secret encrypts differently each time', () => {
     expect(encryptSecret('same', 'ctx', KEY)).not.toBe(encryptSecret('same', 'ctx', KEY));
   });
 
-  it('fails for another key, another context or a modified value', () => {
+  it('AC-025: fails for another key, another context or a modified value', () => {
     const box = encryptSecret('secret', 'user-1', KEY);
     expect(() => decryptSecret(box, 'user-1', 'x'.repeat(40))).toThrow();
     expect(() => decryptSecret(box, 'user-2', KEY)).toThrow();
@@ -30,13 +30,13 @@ describe('secretBox (AES-256-GCM)', () => {
     expect(() => decryptSecret('not-a-box', 'user-1', KEY)).toThrow();
   });
 
-  it('derives a 32 byte key that depends on the key material', () => {
+  it('AC-025: derives a 32 byte key that depends on the key material', () => {
     expect(deriveKey(KEY)).toHaveLength(32);
     expect(deriveKey(KEY).equals(deriveKey(KEY))).toBe(true);
     expect(deriveKey(KEY).equals(deriveKey(`${KEY}!`))).toBe(false);
   });
 
-  it('prefers TWO_FACTOR_KEY and falls back to JWT_SECRET', () => {
+  it('AC-025: prefers TWO_FACTOR_KEY and falls back to JWT_SECRET', () => {
     const saved = { two: process.env.TWO_FACTOR_KEY, jwt: process.env.JWT_SECRET };
     try {
       process.env.JWT_SECRET = 'jwt-secret-for-the-test-aaaaaaaaaaaaaaaa';

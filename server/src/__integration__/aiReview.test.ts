@@ -4,15 +4,20 @@ import {
 } from './harness.js';
 import { signBody } from '../utils/githubEvents.js';
 import { decryptSecret } from '../utils/secretBox.js';
-import { reviewWithModel } from '../utils/ai/provider.js';
+import { reviewWithModel, testAiConnection } from '../utils/ai/provider.js';
 
 // The model provider is replaced: no request ever leaves for Alibaba Cloud. GitHub is replaced with a fetch spy.
-jest.mock('../utils/ai/provider.js', () => ({ __esModule: true, reviewWithModel: jest.fn() }));
+jest.mock('../utils/ai/provider.js', () => ({
+  __esModule: true,
+  reviewWithModel: jest.fn(),
+  testAiConnection: jest.fn(),
+}));
 
 beforeAll(startApp);
 afterAll(stopApp);
 
 const provider = reviewWithModel as unknown as jest.Mock;
+const testConnection = testAiConnection as unknown as jest.Mock;
 const GITHUB_TOKEN = 'ghp_abcdefghijklmnopqrstuvwxyz0123456789';
 
 let team: Awaited<ReturnType<typeof createTeam>>;
@@ -24,6 +29,7 @@ let webTask: { _id: string; number: number };
 let plainTask: { _id: string; number: number };
 
 const aiUrl = () => `/api/workspaces/${slug}/ai`;
+const plansUrl = () => `/api/workspaces/${slug}/ai/plans`;
 const runUrl = (id = webTask._id, workspaceSlug = slug) => `${tasksUrl(workspaceSlug)}/${id}/ai-review`;
 const listUrl = (id = webTask._id, workspaceSlug = slug) => `${tasksUrl(workspaceSlug)}/${id}/ai-reviews`;
 const run = (user: TestUser, body: Record<string, unknown> = {}, id = webTask._id) =>
@@ -31,6 +37,11 @@ const run = (user: TestUser, body: Record<string, unknown> = {}, id = webTask._i
 const settings = (user: TestUser) => http().get(aiUrl()).set(bearer(user.token));
 const patchSettings = (user: TestUser | { token: string }, body: Record<string, unknown>) =>
   http().patch(aiUrl()).set(bearer(user.token)).send(body);
+// AI is workspace BYOK: the provider and key live on the workspace, not in AI_*/DASHSCOPE_* environment variables.
+const configure = (user: TestUser, body: Record<string, unknown> = { provider: 'qwen', apiKey: 'sk-test-never-logged' }) =>
+  http().put(`${aiUrl()}/provider`).set(bearer(user.token)).send(body);
+const unconfigure = (user: TestUser) =>
+  http().delete(`${aiUrl()}/provider`).set(bearer(user.token));
 
 // ----------------------------------------------------------------
 // GitHub fake
@@ -110,6 +121,13 @@ const runAndWait = async (user: TestUser, body: Record<string, unknown> = {}, ta
   return waitForReview(user, queued.body._id, taskId);
 };
 
+/** Makes a suite independent of the AI switches and provider left on by earlier suites. */
+const ensureReviewEnabled = async () => {
+  const current = await settings(team.owner);
+  if (!current.body.available) expect((await configure(team.owner)).status).toBe(200);
+  expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
+};
+
 const deliver = (event: string, payload: unknown) => {
   const body = JSON.stringify(payload);
   return http()
@@ -133,8 +151,6 @@ const reviewCount = async (taskId: string) =>
   mongoose.connection.collection('aireviews').countDocuments({ task: new mongoose.Types.ObjectId(taskId) });
 
 beforeAll(async () => {
-  process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
-  delete process.env.DASHSCOPE_MODEL;
   delete process.env.AI_REVIEW_DAILY_LIMIT;
   delete process.env.AI_REVIEW_MAX_DIFF_CHARS;
   jest.spyOn(global, 'fetch').mockImplementation(fakeGithub as typeof fetch);
@@ -143,6 +159,7 @@ beforeAll(async () => {
   other = await createTeam();
   outsider = await registerUser('Nina Notmember');
   slug = team.workspace.slug;
+  expect((await configure(team.owner)).status).toBe(200);
 
   const project = await http().post(`/api/workspaces/${slug}/projects`).set(bearer(team.owner.token)).send({ name: 'Web Site', key: 'WEB' });
   if (project.status !== 201) throw new Error(`project failed: ${project.status}`);
@@ -158,7 +175,6 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  delete process.env.DASHSCOPE_API_KEY;
   jest.restoreAllMocks();
 });
 
@@ -174,7 +190,7 @@ beforeEach(() => {
 
 // ================================================================
 describe('acceptance criteria on tasks', () => {
-  it('are stored in order with ids and shown in the task activity', async () => {
+  it('AC-023: are stored in order with ids and shown in the task activity', async () => {
     const task = await createTask(team.owner, slug, { title: 'With criteria', acceptanceCriteria: [{ text: '  First  ' }, { text: 'Second' }] });
     expect(task.acceptanceCriteria.map((item: { text: string }) => item.text)).toEqual(['First', 'Second']);
     expect(task.acceptanceCriteria[0]._id).toMatch(/^[a-f0-9]{24}$/);
@@ -195,7 +211,7 @@ describe('acceptance criteria on tasks', () => {
     expect(cleared.body.acceptanceCriteria).toEqual([]);
   });
 
-  it('are validated: text 1..300, at most 30, plain objects', async () => {
+  it('AC-023: are validated: text 1..300, at most 30, plain objects', async () => {
     const bad = async (acceptanceCriteria: unknown) =>
       (await http().post(tasksUrl(slug)).set(bearer(team.owner.token)).send({ title: 'x', deadline: '2030-01-01', acceptanceCriteria })).status;
     expect(await bad([{ text: '' }])).toBe(400);
@@ -211,11 +227,12 @@ describe('acceptance criteria on tasks', () => {
 
 // ================================================================
 describe('AI settings', () => {
-  it('shows availability to anyone who can read tasks, and never a key or token', async () => {
+  it('AC-025: shows availability to anyone who can read tasks, and never a key or token', async () => {
     const res = await settings(team.viewer);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       available: true, enabled: false, autoReview: false, model: 'qwen-plus', dailyLimit: 50, usedToday: 0, githubTokenSet: false,
+      provider: { id: 'qwen', label: 'Qwen' }, problem: null,
       plan: { dailyLimit: 20, usedToday: 0, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 },
     });
     expect(JSON.stringify(res.body)).not.toContain('sk-test');
@@ -223,13 +240,15 @@ describe('AI settings', () => {
     expect((await settings(outsider)).status).toBeGreaterThanOrEqual(403);
   });
 
-  it('reports the feature as unavailable when the server has no API key', async () => {
-    delete process.env.DASHSCOPE_API_KEY;
-    expect((await settings(team.owner)).body.available).toBe(false);
-    process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
+  it('AC-023: reports the feature as unavailable when the workspace has no saved provider', async () => {
+    expect((await unconfigure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: false, enabled: false, problem: 'AI_NOT_CONFIGURED' });
+    // Saving again starts from consent off, which the next tests rely on.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: true, enabled: false, model: 'qwen-plus' });
   });
 
-  it('can only be changed with settings:manage, never through an API token', async () => {
+  it('AC-022: can only be changed with settings:manage, never through an API token', async () => {
     for (const user of [team.viewer, team.developer]) {
       expect((await patchSettings(user, { enabled: true })).status).toBe(403);
     }
@@ -242,7 +261,7 @@ describe('AI settings', () => {
     expect((await settings(team.owner)).body.enabled).toBe(false);
   });
 
-  it('validates the body', async () => {
+  it('AC-022: validates the body', async () => {
     expect((await patchSettings(team.owner, {})).status).toBe(400);
     expect((await patchSettings(team.owner, { enabled: 'yes' })).status).toBe(400);
     expect((await patchSettings(team.owner, { autoReview: 1 })).status).toBe(400);
@@ -251,7 +270,7 @@ describe('AI settings', () => {
     expect((await patchSettings(team.owner, { githubToken: 42 })).status).toBe(400);
   });
 
-  it('stores the GitHub token encrypted, bound to the workspace, and never returns it', async () => {
+  it('AC-025: stores the GitHub token encrypted, bound to the workspace, and never returns it', async () => {
     const res = await patchSettings(team.owner, { githubToken: GITHUB_TOKEN });
     expect(res.status).toBe(200);
     expect(res.body.githubTokenSet).toBe(true);
@@ -272,10 +291,10 @@ describe('AI settings', () => {
       await http().get(`/api/workspaces/${slug}/activity`).set(bearer(team.owner.token)),
     ];
     for (const body of bodies) expect(JSON.stringify(body.body)).not.toContain(GITHUB_TOKEN);
-    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'usedToday']);
+    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'problem', 'provider', 'usedToday']);
   });
 
-  it('clears the token with null and audits every change without the token', async () => {
+  it('AC-026: clears the token with null and audits every change without the token', async () => {
     expect((await patchSettings(team.owner, { githubToken: null })).body.githubTokenSet).toBe(false);
     const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
     expect(stored?.integrations?.github?.accessTokenEncrypted).toBeUndefined();
@@ -291,8 +310,170 @@ describe('AI settings', () => {
 });
 
 // ================================================================
+describe('workspace AI provider (BYOK)', () => {
+  it('TEST-022 AC-022: saves a preset with its endpoint and model, and never returns the key', async () => {
+    const res = await configure(team.owner, { provider: 'deepseek', apiKey: 'sk-owner-secret-9876' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      available: true, enabled: false, autoReview: false, problem: null,
+      provider: { id: 'deepseek', label: 'DeepSeek' }, model: 'deepseek-chat',
+      config: { keySet: true, keyHint: '9876', baseURL: 'https://api.deepseek.com/v1' },
+    });
+    expect(JSON.stringify(res.body)).not.toContain('sk-owner-secret');
+
+    // Only settings:manage may read the metadata or change the provider; everyone else can see availability
+    const read = await settings(team.viewer);
+    expect(read.status).toBe(200);
+    expect(read.body).toMatchObject({ available: true });
+    expect(read.body.config).toBeUndefined();
+    expect((await configure(team.viewer, { provider: 'openai', apiKey: 'sk-viewer-secret' })).status).toBe(403);
+
+    const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
+    const box = stored?.ai?.apiKeyEncrypted as string;
+    expect(box).toMatch(/^v1\./);
+    expect(box).not.toContain('sk-owner-secret');
+    expect(decryptSecret(box, String(stored?._id))).toBe('sk-owner-secret-9876');
+    expect(() => decryptSecret(box, 'another-workspace')).toThrow();
+  });
+
+  it('AC-022: keeps the saved key when none is entered, replaces it when one is, and accepts a model override', async () => {
+    const kept = await configure(team.owner, { provider: 'deepseek' });
+    expect(kept.status).toBe(200);
+    expect(kept.body.config.keyHint).toBe('9876');
+
+    const replaced = await configure(team.owner, { provider: 'deepseek', apiKey: 'sk-replaced-4321', model: 'deepseek-reasoner' });
+    expect(replaced.body).toMatchObject({ model: 'deepseek-reasoner', config: { keySet: true, keyHint: '4321' } });
+
+    expect((await configure(team.owner, { provider: 'nope', apiKey: 'x' })).status).toBe(400);
+    expect((await configure(team.owner, { provider: 'custom', apiKey: 'sk-custom' })).status).toBe(400);
+  });
+
+  it('AC-029: a custom endpoint must be HTTPS, credential-free, query-free and public', async () => {
+    const attempt = (baseURL: string) => configure(team.owner, { provider: 'custom', baseURL, apiKey: 'sk-custom', model: 'm' });
+
+    for (const baseURL of [
+      'http://api.example.com/v1',
+      'https://user:pw@api.example.com/v1',
+      'https://api.example.com/v1?token=1',
+      'https://api.example.com/v1#fragment',
+    ]) {
+      const refused = await attempt(baseURL);
+      expect(refused.status).toBe(400);
+      expect(refused.body.code).toBe('BASE_URL_INVALID');
+    }
+
+    for (const host of ['127.0.0.1', '10.1.2.3', '172.16.5.4', '192.168.1.10', '169.254.169.254', '100.64.0.1', '[::1]', '[fd00::1]']) {
+      const refused = await attempt(`https://${host}/v1`);
+      expect(refused.status).toBe(400);
+      expect(refused.body.code).toBe('BASE_URL_PRIVATE');
+    }
+
+    // Every refusal happened before the stored configuration changed, so the key was never sent anywhere
+    expect((await settings(team.owner)).body).toMatchObject({ provider: { id: 'deepseek' }, model: 'deepseek-reasoner' });
+  });
+
+  it('TEST-028 AC-028: tests the connection with the saved configuration, records the result and time, and sends no workspace content', async () => {
+    testConnection.mockResolvedValueOnce({ ok: true, code: 'OK' });
+    const passed = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token)).send({});
+    expect(passed.status).toBe(200);
+    expect(passed.body).toMatchObject({ ok: true, code: 'OK' });
+    expect(passed.body.testedAt).toEqual(expect.any(String));
+
+    const config = testConnection.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(config).toMatchObject({
+      available: true, provider: { id: 'deepseek' }, model: 'deepseek-reasoner', baseURL: 'https://api.deepseek.com/v1',
+    });
+    expect(Object.keys(config).sort()).toEqual(['apiKey', 'available', 'baseURL', 'keyHint', 'keySet', 'limits', 'model', 'problem', 'provider']);
+    expect(JSON.stringify(config)).not.toMatch(/workspace|ticket|document|prompt/i);
+    expect((await settings(team.owner)).body.config).toMatchObject({ lastTestStatus: 'success', lastTestCode: 'OK', lastTestedAt: expect.any(String) });
+
+    testConnection.mockResolvedValueOnce({ ok: false, code: 'AI_UNAVAILABLE' });
+    const failed = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token)).send({});
+    expect(failed.body).toMatchObject({ ok: false, code: 'AI_UNAVAILABLE' });
+    expect((await settings(team.owner)).body.config).toMatchObject({ lastTestStatus: 'failed', lastTestCode: 'AI_UNAVAILABLE' });
+
+    // Unsaved values can be tested without replacing what is stored
+    testConnection.mockResolvedValueOnce({ ok: true, code: 'OK' });
+    const entered = await http().post(`${aiUrl()}/provider/test`).set(bearer(team.owner.token))
+      .send({ provider: 'openai', apiKey: 'sk-unsaved-0000' });
+    expect(entered.body).toMatchObject({ ok: true, code: 'OK' });
+    expect(testConnection.mock.calls.at(-1)?.[0]).toMatchObject({ provider: { id: 'openai' }, model: 'gpt-4o-mini' });
+    expect((await settings(team.owner)).body).toMatchObject({ provider: { id: 'deepseek' }, config: { keyHint: '4321' } });
+  });
+
+  it('AC-028: rate-limits connection tests per member and workspace', async () => {
+    expect((await http().put(`/api/workspaces/${other.workspace.slug}/ai/provider`).set(bearer(other.owner.token))
+      .send({ provider: 'qwen', apiKey: 'sk-other-0000' })).status).toBe(200);
+    testConnection.mockResolvedValue({ ok: true, code: 'OK' });
+    const url = `/api/workspaces/${other.workspace.slug}/ai/provider/test`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      expect((await http().post(url).set(bearer(other.owner.token)).send({})).status).toBe(200);
+    }
+    const limited = await http().post(url).set(bearer(other.owner.token)).send({});
+    expect(limited.status).toBe(429);
+    expect(limited.body.code).toBe('AI_TEST_RATE_LIMIT');
+  });
+
+  it('TEST-026 AC-026: removing the configuration clears the key and provider, turns AI and automatic review off, and keeps history readable', async () => {
+    expect((await patchSettings(team.owner, { enabled: true, autoReview: true })).body).toMatchObject({ enabled: true, autoReview: true });
+
+    // History written earlier stays readable after the provider is gone
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const reviewId = new mongoose.Types.ObjectId();
+    await mongoose.connection.collection('aireviews').insertOne({
+      _id: reviewId,
+      workspace: new mongoose.Types.ObjectId(team.workspace.id), task: new mongoose.Types.ObjectId(plainTask._id),
+      pr: { repo: 'a/b', number: 42, url: 'https://github.com/a/b/pull/42', title: '', headSha: 'old' },
+      status: 'completed', verdict: 'match', summary: '', criteria: [], issues: [], counts: { met: 0, partial: 0, missing: 0, issues: 0 },
+      truncated: false, omittedFiles: [], model: 'm', usage: { inputTokens: 0, outputTokens: 0 }, error: '', requestedBy: null,
+      createdAt: yesterday, updatedAt: yesterday,
+    });
+    const planId = new mongoose.Types.ObjectId();
+    await mongoose.connection.collection('aiplans').insertOne({
+      _id: planId,
+      workspace: new mongoose.Types.ObjectId(team.workspace.id), createdBy: new mongoose.Types.ObjectId(team.owner.id),
+      status: 'ready', model: 'm', active: false, creating: false, deletedAt: null, plan: null,
+      source: { fileName: 'old.txt', mimeType: 'text/plain', size: 3, chars: 3, truncated: false, preview: '' },
+      options: {
+        projectName: 'Old plan', projectKey: 'OLD', sprintLengthWeeks: 2, startDate: '2032-05-03', teamSize: 3,
+        language: 'en', notes: '', targetProjectId: null,
+      },
+      createdAt: yesterday, updatedAt: yesterday,
+    });
+
+    const removed = await unconfigure(team.owner);
+    expect(removed.status).toBe(200);
+    expect(removed.body).toMatchObject({
+      available: false, enabled: false, autoReview: false, provider: null, problem: 'AI_NOT_CONFIGURED',
+      config: { keySet: false, keyHint: null },
+    });
+
+    const stored = await mongoose.connection.collection('workspaces').findOne({ slug });
+    expect(stored?.ai?.apiKeyEncrypted).toBeUndefined();
+    expect(stored?.ai?.provider).toBeUndefined();
+    expect(stored?.ai?.baseURL).toBeUndefined();
+    expect(stored?.ai?.model).toBeUndefined();
+
+    expect((await http().get(`${listUrl(plainTask._id)}/${reviewId}`).set(bearer(team.owner.token))).status).toBe(200);
+    expect((await http().get(`${plansUrl()}/${planId}`).set(bearer(team.owner.token))).status).toBe(200);
+
+    const log = await http().get(`/api/workspaces/${slug}/activity?area=ai`).set(bearer(team.owner.token));
+    const entry = (log.body.items as { action: string; changes: { field: string; from?: string; to?: string }[] }[])
+      .find(item => item.action === 'ai.settings_updated' && item.changes.some(change => change.field === 'provider' && change.to === 'none'));
+    expect(entry).toBeDefined();
+    expect(entry?.changes).toEqual(expect.arrayContaining([{ field: 'apiKey', from: 'set', to: 'cleared' }]));
+    expect(JSON.stringify(log.body)).not.toContain('sk-replaced');
+    expect(JSON.stringify(log.body)).not.toContain('https://api.deepseek.com');
+
+    // Restore for the rest of the suite. A first configuration always starts with consent off.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await settings(team.owner)).body).toMatchObject({ available: true, enabled: false, autoReview: false });
+  });
+});
+
+// ================================================================
 describe('running a review: refusals', () => {
-  it('answers 503 AI_DISABLED until the workspace opts in', async () => {
+  it('AC-023: answers 503 AI_DISABLED until the workspace opts in', async () => {
     const res = await run(team.developer);
     expect(res.status).toBe(503);
     expect(res.body.code).toBe('AI_DISABLED');
@@ -301,16 +482,19 @@ describe('running a review: refusals', () => {
     expect(await reviewCount(webTask._id)).toBe(0);
   });
 
-  it('answers 503 AI_DISABLED when the server has no API key, even when the workspace opted in', async () => {
+  it('AC-023: answers 503 AI_NOT_CONFIGURED when the workspace has no saved provider, even when it opted in', async () => {
     expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
-    delete process.env.DASHSCOPE_API_KEY;
+    expect((await unconfigure(team.owner)).status).toBe(200);
     const res = await run(team.developer);
-    process.env.DASHSCOPE_API_KEY = 'sk-test-never-logged';
     expect(res.status).toBe(503);
-    expect(res.body.code).toBe('AI_DISABLED');
+    expect(res.body.code).toBe('AI_NOT_CONFIGURED');
+    expect(provider).not.toHaveBeenCalled();
+    // Restore for the rest of the suite: saving a provider resets consent, so turn it back on.
+    expect((await configure(team.owner)).status).toBe(200);
+    expect((await patchSettings(team.owner, { enabled: true })).body.enabled).toBe(true);
   });
 
-  it('needs tasks:write to start and tasks:read to look', async () => {
+  it('AC-023: needs tasks:write to start and tasks:read to look', async () => {
     expect((await run(team.viewer)).status).toBe(403);
     expect((await http().post(runUrl()).send({})).status).toBe(401);
     expect((await run(outsider)).status).toBeGreaterThanOrEqual(403);
@@ -318,7 +502,7 @@ describe('running a review: refusals', () => {
     expect((await http().get(listUrl()).set(bearer(outsider.token))).status).toBeGreaterThanOrEqual(403);
   });
 
-  it('refuses a task with no linked pull request, a bad address and an unknown task', async () => {
+  it('AC-024: refuses a task with no linked pull request, a bad address and an unknown task', async () => {
     const none = await run(team.developer, {}, plainTask._id);
     expect(none.status).toBe(400);
     expect(none.body.code).toBe('NO_PULL_REQUEST');
@@ -342,7 +526,9 @@ describe('running a review: success', () => {
   let modelInput: any;
   let githubSeen: { url: string; authorization: string | null }[] = [];
 
-  it('queues with 202, runs after the response and stores the result', async () => {
+  beforeEach(ensureReviewEnabled);
+
+  it('AC-023: queues with 202, runs after the response and stores the result', async () => {
     holdProvider();
     const queued = await run(team.developer);
     expect(queued.status).toBe(202);
@@ -353,7 +539,15 @@ describe('running a review: success', () => {
     });
     expect(queued.body.criteria).toBeUndefined();
 
-    // While it runs, a second request for the same task is refused
+    // While it runs, a second request for the same task is refused. The worker may not have
+    // claimed the queued review yet, so wait until it is queued/running rather than racing it.
+    let started = false;
+    for (let attempt = 0; attempt < 100 && !started; attempt += 1) {
+      const list = await http().get(listUrl()).set(bearer(team.developer.token));
+      started = (list.body as { status: string }[]).some(review => review.status === 'queued' || review.status === 'running');
+      if (!started) await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    expect(started).toBe(true);
     const conflict = await run(team.developer);
     expect(conflict.status).toBe(409);
     expect(conflict.body.code).toBe('REVIEW_IN_PROGRESS');
@@ -367,7 +561,7 @@ describe('running a review: success', () => {
     expect(completed.status).toBe('completed');
   });
 
-  it('keeps the ticket wording, the evidence, the counts, the model and the tokens', () => {
+  it('AC-023: keeps the ticket wording, the evidence, the counts, the model and the tokens', () => {
     expect(completed).toMatchObject({
       verdict: 'match', model: 'qwen-test', truncated: false, omittedFiles: [], error: '',
       counts: { met: 2, partial: 0, missing: 0, issues: 1 },
@@ -380,7 +574,7 @@ describe('running a review: success', () => {
     expect(completed.issues![0]).toMatchObject({ severity: 'low', file: 'src/login.ts' });
   });
 
-  it('sent the model the ticket, the pull request and its diff, nothing else', () => {
+  it('AC-023: sent the model the ticket, the pull request and its diff, nothing else', () => {
     const input = modelInput;
     expect(input.ticket).toMatchObject({ key: 'WEB-' + webTask.number, title: 'Build the login', criteriaSource: 'explicit' });
     expect(input.ticket.criteria).toEqual(['A user can sign in with email and password', 'A wrong password shows an error message']);
@@ -392,7 +586,7 @@ describe('running a review: success', () => {
     expect(serialized).not.toContain(plainTask._id);
   });
 
-  it('read GitHub with the saved token because the repository is linked to the workspace', () => {
+  it('AC-023: read GitHub with the saved token because the repository is linked to the workspace', () => {
     expect(githubSeen.length).toBeGreaterThanOrEqual(2);
     expect(githubSeen.every(call => call.authorization === `Bearer ${GITHUB_TOKEN}`)).toBe(true);
     expect(githubSeen.map(call => call.url)).toEqual(expect.arrayContaining([
@@ -401,7 +595,7 @@ describe('running a review: success', () => {
     ]));
   });
 
-  it('records the activity and tells the person who asked', async () => {
+  it('AC-023: records the activity and tells the person who asked', async () => {
     const activity = await http().get(`${tasksUrl(slug)}/${webTask._id}/activity`).set(bearer(team.owner.token));
     const entry = activity.body.items.find((item: { action: string }) => item.action === 'ai.review_completed');
     expect(entry).toBeDefined();
@@ -415,7 +609,7 @@ describe('running a review: success', () => {
     expect(ownerInbox.body.items.some((item: { type: string }) => item.type === 'ai.review_completed')).toBe(false);
   });
 
-  it('lists the history without the long parts and counts the review in the daily usage', async () => {
+  it('AC-023: lists the history without the long parts and counts the review in the daily usage', async () => {
     const list = await http().get(listUrl()).set(bearer(team.viewer.token));
     expect(list.status).toBe(200);
     expect(list.body).toHaveLength(1);
@@ -425,7 +619,7 @@ describe('running a review: success', () => {
     expect((await settings(team.owner)).body.usedToday).toBe(1);
   });
 
-  it('never lets a model that says match override the rules', async () => {
+  it('AC-023: never lets a model that says match override the rules', async () => {
     provider.mockImplementationOnce(async () => answer({
       verdict: 'match',
       criteria: [
@@ -444,7 +638,7 @@ describe('running a review: success', () => {
     expect((await runAndWait(team.developer)).verdict).toBe('partial');
   });
 
-  it('uses the description and checklist when there are no explicit criteria, and says so', async () => {
+  it('AC-023: uses the description and checklist when there are no explicit criteria, and says so', async () => {
     await http().patch(`${tasksUrl(slug)}/${webTask._id}`).set(bearer(team.owner.token))
       .send({ acceptanceCriteria: [], checklist: [{ text: 'Login form exists' }, { text: 'Error on wrong password' }] });
     provider.mockImplementationOnce(async () => answer({ criteria: [{ index: 1, status: 'met', evidence: [{ file: 'src/login.ts', note: 'ok' }] }, { index: 2, status: 'missing', evidence: [], explanation: '' }] }));
@@ -459,7 +653,7 @@ describe('running a review: success', () => {
     });
   });
 
-  it('is invisible to other workspaces and to other tasks', async () => {
+  it('AC-023: is invisible to other workspaces and to other tasks', async () => {
     const list = await http().get(listUrl()).set(bearer(team.owner.token));
     const id = list.body[0]._id;
     // The same ids through another workspace's slug, with another workspace's owner
@@ -478,7 +672,9 @@ describe('running a review: success', () => {
 
 // ================================================================
 describe('running a review: partial reviews and failures', () => {
-  it('flags a partial review, lists what was left out and never reports match', async () => {
+  beforeEach(ensureReviewEnabled);
+
+  it('AC-024: flags a partial review, lists what was left out and never reports match', async () => {
     process.env.AI_REVIEW_MAX_DIFF_CHARS = '5000';
     pullFiles = [
       { filename: 'src/a.ts', patch: '+'.repeat(2000) },
@@ -499,7 +695,7 @@ describe('running a review: partial reviews and failures', () => {
     expect(input.manifest).toHaveLength(4);
   });
 
-  it('reports a GitHub failure on the review without calling the model or using quota', async () => {
+  it('AC-024: reports a GitHub failure on the review without calling the model or using quota', async () => {
     const before = (await settings(team.owner)).body.usedToday;
     githubStatus = 404;
     const review = await runAndWait(team.developer);
@@ -511,7 +707,7 @@ describe('running a review: partial reviews and failures', () => {
     expect((await settings(team.owner)).body.usedToday).toBe(before);
   });
 
-  it('reports a provider failure as a safe message', async () => {
+  it('AC-024: reports a provider failure as a safe message', async () => {
     const { AiReviewError } = jest.requireActual('../utils/ai/types.js') as typeof import('../utils/ai/types.js');
     provider.mockImplementationOnce(async () => { throw new AiReviewError('The AI provider is having problems. Try again in a few minutes.', 'AI_UNAVAILABLE'); });
     const failed = await runAndWait(team.developer);
@@ -525,7 +721,7 @@ describe('running a review: partial reviews and failures', () => {
     expect(unexpected.error).not.toContain('ECONNREFUSED');
   });
 
-  it('does not send the saved GitHub token for a repository none of the workspace tasks link to', async () => {
+  it('AC-025: does not send the saved GitHub token for a repository none of the workspace tasks link to', async () => {
     githubStatus = 404;
     const review = await runAndWait(team.developer, { prUrl: 'https://github.com/someone/private-repo/pull/3' });
     expect(review.status).toBe('failed');
@@ -535,14 +731,14 @@ describe('running a review: partial reviews and failures', () => {
     expect(review.error).toMatch(/save a GitHub token/);
   });
 
-  it('can review a pull request given by address when the repository is linked', async () => {
+  it('AC-024: can review a pull request given by address when the repository is linked', async () => {
     const review = await runAndWait(team.developer, { prUrl: 'https://github.com/acme/app/pull/8' });
     expect(review.status).toBe('completed');
     expect(review.pr.number).toBe(8);
     expect(githubCalls.every(call => call.authorization === `Bearer ${GITHUB_TOKEN}`)).toBe(true);
   });
 
-  it('stops at the daily limit with a clear message', async () => {
+  it('AC-024: stops at the daily limit with a clear message', async () => {
     const used = (await settings(team.owner)).body.usedToday;
     process.env.AI_REVIEW_DAILY_LIMIT = String(used);
     const res = await run(team.developer);
@@ -556,7 +752,7 @@ describe('running a review: partial reviews and failures', () => {
     expect((await waitForReview(team.developer, again.body._id)).status).toBe('completed');
   });
 
-  it('keeps only the latest 10 reviews in the history', async () => {
+  it('AC-023: keeps only the latest 10 reviews in the history', async () => {
     for (let index = 0; index < 11; index += 1) {
       await mongoose.connection.collection('aireviews').insertOne({
         workspace: new mongoose.Types.ObjectId(team.workspace.id), task: new mongoose.Types.ObjectId(plainTask._id),
@@ -574,6 +770,8 @@ describe('running a review: partial reviews and failures', () => {
 
 // ================================================================
 describe('auto review from the GitHub webhook', () => {
+  beforeEach(ensureReviewEnabled);
+
   const waitForCount = async (count: number) => {
     for (let attempt = 0; attempt < 100; attempt += 1) {
       const reviews = await mongoose.connection.collection('aireviews').find({ task: new mongoose.Types.ObjectId(webTask._id), 'pr.headSha': 'sha-auto' }).toArray();
@@ -583,14 +781,14 @@ describe('auto review from the GitHub webhook', () => {
     return mongoose.connection.collection('aireviews').find({ task: new mongoose.Types.ObjectId(webTask._id), 'pr.headSha': 'sha-auto' }).toArray();
   };
 
-  it('does nothing while auto review is off', async () => {
+  it('AC-026: does nothing while auto review is off', async () => {
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('synchronize', 7, webTask.number, 'sha-auto'));
     await new Promise(resolve => setTimeout(resolve, 200));
     expect(await reviewCount(webTask._id)).toBe(before);
   });
 
-  it('queues one review per head commit for a linked pull request', async () => {
+  it('AC-023: queues one review per head commit for a linked pull request', async () => {
     await new Promise(resolve => setTimeout(resolve, 100));
     expect((await patchSettings(team.owner, { autoReview: true })).body.autoReview).toBe(true);
     pullHeadSha = 'sha-auto';
@@ -607,7 +805,7 @@ describe('auto review from the GitHub webhook', () => {
     expect(await waitForCount(1)).toHaveLength(1);
   });
 
-  it('skips drafts, closed and edited events', async () => {
+  it('AC-023: skips drafts, closed and edited events', async () => {
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('opened', 7, webTask.number, 'sha-draft', { draft: true }));
     await deliver('pull_request', prPayload('edited', 7, webTask.number, 'sha-edit'));
@@ -616,7 +814,7 @@ describe('auto review from the GitHub webhook', () => {
     expect(await reviewCount(webTask._id)).toBe(before);
   });
 
-  it('does nothing when the workspace opted out of AI review', async () => {
+  it('AC-026: does nothing when the workspace opted out of AI review', async () => {
     await patchSettings(team.owner, { enabled: false });
     const before = await reviewCount(webTask._id);
     await deliver('pull_request', prPayload('synchronize', 7, webTask.number, 'sha-off'));
@@ -629,7 +827,7 @@ describe('auto review from the GitHub webhook', () => {
 
 // ================================================================
 describe('simultaneous requests', () => {
-  it('starts only one review when two requests for the same task arrive together', async () => {
+  it('AC-023: starts only one review when two requests for the same task arrive together', async () => {
     await patchSettings(team.owner, { enabled: true });
     holdProvider();
     const [first, second] = await Promise.all([run(team.developer), run(team.developer)]);

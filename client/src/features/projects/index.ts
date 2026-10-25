@@ -14,12 +14,12 @@ export * from './lib/summary';
 export * from './lib/velocity';
 
 export { default as ProjectFolderCard } from './components/ProjectFolderCard';
+export { default as NewProjectCard } from './components/NewProjectCard';
 export { default as ProjectIcon } from './components/ProjectIcon';
 export { default as ProjectFolderIcon, type ProjectFolderIconSize } from './components/ProjectFolderIcon';
 export { default as ProjectChip } from './components/ProjectChip';
 export { default as ProjectsProvider } from './context/ProjectsProvider';
 export { useProjectDirectory, type ProjectDirectory } from './context/ProjectsContext';
-export { default as NewProjectCard } from './components/NewProjectCard';
 export { default as ProjectFormDialog } from './components/ProjectFormDialog';
 export { default as SprintFormDialog } from './components/SprintFormDialog';
 export { default as CompleteSprintDialog } from './components/CompleteSprintDialog';

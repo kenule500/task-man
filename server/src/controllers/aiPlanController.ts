@@ -6,13 +6,14 @@ import AiPlan, { type IAiPlan } from '../models/aiPlanModel.js';
 import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import { sanitizeFilename } from '../middleware/uploadMiddleware.js';
 import { readPlanConfig } from '../utils/ai/plan/config.js';
-import { createProjectFromPlan } from '../utils/ai/plan/create.js';
+import { createFromPlan as writePlan } from '../utils/ai/plan/create.js';
 import { isDateKey, nextMonday } from '../utils/ai/plan/dates.js';
 import { DocumentError, extractDocument } from '../utils/ai/plan/extract.js';
 import {
   assertCanQueuePlan, assertPlanFeatureOn, createQueuedPlan, runPlan, type PlanOptionsInput,
 } from '../utils/ai/plan/service.js';
 import { countPlan, describePlanProblem, editedPlanSchema, finalizePlan, PLAN_LANGUAGES, type PlanLanguage } from '../utils/ai/plan/schema.js';
+import { findTargetProject, resolveTargetProject, type PlanTarget } from '../utils/ai/plan/target.js';
 import { shortenForModel } from '../utils/ai/plan/text.js';
 import { AiQueueError, runInBackground } from '../utils/ai/reviewService.js';
 
@@ -26,7 +27,7 @@ const userIdOf = (req: Request): Id => req.user?._id as Id;
 
 /** A plan as the API returns it. The list leaves out the content (plan, preview); the detail route has them. */
 export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'options' | 'model' | 'usage' | 'error' | 'errorCode' | 'projectId' | 'createdAt' | 'startedAt' | 'completedAt'>
-  & { plan?: IAiPlan['plan']; createdBy?: unknown }, detail: boolean) => ({
+  & { plan?: IAiPlan['plan']; createdBy?: unknown }, detail: boolean, targetProject: PlanTarget | null = null) => ({
   _id: String(plan._id),
   status: plan.status,
   source: detail ? plan.source : { ...plan.source, preview: undefined },
@@ -41,7 +42,7 @@ export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'opti
   createdAt: plan.createdAt,
   startedAt: plan.startedAt ?? null,
   completedAt: plan.completedAt ?? null,
-  ...(detail ? { plan: plan.plan ?? null } : {}),
+  ...(detail ? { targetProject, plan: plan.plan ?? null } : {}),
 });
 
 const failure = (res: Response, error: unknown, context: string): void => {
@@ -84,8 +85,9 @@ export const requireTaskWrite = (req: Request, res: Response, next: NextFunction
 /** Answers 503 before the file is read when AI is off, so nothing large is processed for nothing. */
 export const ensurePlansEnabled = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const stored = await Workspace.findById(workspaceOf(req)._id).select('ai').lean();
-    assertPlanFeatureOn(stored?.ai);
+    const workspaceId = workspaceOf(req)._id as Id;
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
+    assertPlanFeatureOn(workspaceId, stored?.ai);
     next();
   } catch (error) {
     failure(res, error, 'ensurePlansEnabled');
@@ -121,6 +123,12 @@ export const validateUploadPlan = [
   body('teamSize').optional({ values: 'falsy' }).isInt({ min: 1, max: 200 }).withMessage('The team size must be between 1 and 200'),
   body('extraInstructions').optional({ values: 'falsy' }).isString().isLength({ max: MAX_EXTRA_INSTRUCTIONS }).withMessage(`The notes are too long (${MAX_EXTRA_INSTRUCTIONS} characters at most)`),
   body('language').optional({ values: 'falsy' }).isIn(PLAN_LANGUAGES).withMessage('Choose English, French or Arabic'),
+  body('targetProjectId').optional({ values: 'falsy' }).isString().trim().isMongoId().withMessage('Choose a valid project'),
+];
+
+export const validateCreateFromPlan = [
+  // Absent = keep the stored destination, null = a new project, a string = that project
+  body('targetProjectId').optional({ nullable: true }).isString().trim().isMongoId().withMessage('Choose a valid project'),
 ];
 
 // ================================================================
@@ -129,7 +137,8 @@ export const validateUploadPlan = [
 export const uploadPlan = async (req: Request, res: Response): Promise<void> => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    res.status(400).json({ errors: errors.array(), message: errors.array()[0]?.msg });
+    const targetInvalid = errors.array().some(error => (error as { path?: string }).path === 'targetProjectId');
+    res.status(400).json({ errors: errors.array(), message: errors.array()[0]?.msg, ...(targetInvalid ? { code: 'TARGET_INVALID' } : {}) });
     return;
   }
   if (!req.file) {
@@ -142,14 +151,16 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
     const userId = userIdOf(req);
     const config = readPlanConfig();
 
-    const stored = await Workspace.findById(workspaceId).select('ai').lean();
-    await assertCanQueuePlan({ workspaceId, userId, settings: stored?.ai });
+    const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
+    const ai = await assertCanQueuePlan({ workspaceId, userId, settings: stored?.ai });
+
+    const field = (name: string): string => (typeof req.body?.[name] === 'string' ? (req.body[name] as string).trim() : '');
+    const targetProject = field('targetProjectId') ? await resolveTargetProject(workspaceId, field('targetProjectId')) : null;
 
     const fileName = sanitizeFilename(req.file.originalname);
     const extracted = await extractDocument(fileName, req.file.buffer);
     const shortened = shortenForModel(extracted.text, config.maxChars);
 
-    const field = (name: string): string => (typeof req.body?.[name] === 'string' ? (req.body[name] as string).trim() : '');
     const options: PlanOptionsInput = {
       projectName: field('projectName'),
       projectKey: field('projectKey').toUpperCase(),
@@ -158,6 +169,7 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
       teamSize: Number.parseInt(field('teamSize'), 10) || null,
       extraInstructions: field('extraInstructions'),
       language: (PLAN_LANGUAGES as readonly string[]).includes(field('language')) ? field('language') as PlanLanguage : 'en',
+      targetProjectId: targetProject ? new mongoose.Types.ObjectId(targetProject._id) : null,
     };
 
     const plan = await createQueuedPlan({
@@ -167,10 +179,11 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
         fileName, mimeType: extracted.mimeType, size: req.file.size, chars: extracted.text.length, truncated: shortened.truncated, text: extracted.text,
       },
       options,
+      model: ai.model,
     });
     // The work continues after the response (kept alive by waitUntil on Vercel); the text lives only in this closure
     runInBackground(runPlan(plan._id as Id, { text: shortened.text, truncated: shortened.truncated }));
-    res.status(202).json(planView(plan.toObject(), true));
+    res.status(202).json(planView(plan.toObject(), true, targetProject));
   } catch (error) {
     failure(res, error, 'uploadPlan');
   }
@@ -198,7 +211,10 @@ export const getPlan = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ message: 'Plan not found' });
       return;
     }
-    res.status(200).json(planView(plan.toObject(), true));
+    const targetProject = plan.options.targetProjectId
+      ? await findTargetProject(plan.workspace, plan.options.targetProjectId)
+      : null;
+    res.status(200).json(planView(plan.toObject(), true, targetProject));
   } catch (error) {
     failure(res, error, 'getPlan');
   }
@@ -235,7 +251,10 @@ export const updatePlan = async (req: Request, res: Response): Promise<void> => 
       res.status(409).json({ message: 'The plan changed in the meantime. Reload it.', code: 'PLAN_NOT_READY' });
       return;
     }
-    res.status(200).json(planView(saved.toObject(), true));
+    const targetProject = saved.options.targetProjectId
+      ? await findTargetProject(saved.workspace, saved.options.targetProjectId)
+      : null;
+    res.status(200).json(planView(saved.toObject(), true, targetProject));
   } catch (error) {
     failure(res, error, 'updatePlan');
   }
@@ -243,6 +262,12 @@ export const updatePlan = async (req: Request, res: Response): Promise<void> => 
 
 // @route POST /api/workspaces/:slug/ai/plans/:id/create (owner; projects:write + tasks:write) -> 201 with the new project
 export const createFromPlan = async (req: Request, res: Response): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const targetInvalid = errors.array().some(error => (error as { path?: string }).path === 'targetProjectId');
+    res.status(400).json({ errors: errors.array(), message: errors.array()[0]?.msg, ...(targetInvalid ? { code: 'TARGET_INVALID' } : {}) });
+    return;
+  }
   let claimed: IAiPlan | null = null;
   try {
     const existing = await findPlan(req, { ownOnly: true });
@@ -250,6 +275,15 @@ export const createFromPlan = async (req: Request, res: Response): Promise<void>
       res.status(404).json({ message: 'Plan not found' });
       return;
     }
+    // Absent = the destination stored at upload; null = a new project; a string = that project
+    const hasOverride = req.body !== null && typeof req.body === 'object'
+      && Object.prototype.hasOwnProperty.call(req.body, 'targetProjectId');
+    const target: PlanTarget | null = hasOverride
+      ? (req.body.targetProjectId === null ? null : await resolveTargetProject(existing.workspace, req.body.targetProjectId))
+      : (existing.options.targetProjectId
+        ? await resolveTargetProject(existing.workspace, existing.options.targetProjectId, { missingCode: 'TARGET_UNAVAILABLE', missingStatus: 409 })
+        : null);
+
     // Claimed atomically, so a double click or two tabs cannot create the project twice
     claimed = await AiPlan.findOneAndUpdate(
       { _id: existing._id, workspace: existing.workspace, createdBy: existing.createdBy, status: 'ready', creating: { $ne: true }, deletedAt: null },
@@ -263,10 +297,17 @@ export const createFromPlan = async (req: Request, res: Response): Promise<void>
       });
       return;
     }
-    const created = await createProjectFromPlan(req, claimed);
+    const created = await writePlan(req, claimed, target);
     await AiPlan.updateOne(
       { _id: claimed._id },
-      { $set: { status: 'created', creating: false, projectId: new mongoose.Types.ObjectId(created.project._id) } },
+      {
+        $set: {
+          status: 'created',
+          creating: false,
+          projectId: new mongoose.Types.ObjectId(created.project._id),
+          'options.targetProjectId': target ? new mongoose.Types.ObjectId(target._id) : null,
+        },
+      },
     );
     res.status(201).json(created);
   } catch (error) {

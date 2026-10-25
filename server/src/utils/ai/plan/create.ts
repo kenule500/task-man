@@ -12,23 +12,38 @@ import { AiQueueError } from '../reviewService.js';
 import { dayToDate } from './dates.js';
 import { countPlan, describePlanProblem, editedPlanSchema, finalizePlan, planEndDate, uniqueKey, uniqueName, type PlanContent } from './schema.js';
 import { usedProjectNames } from './service.js';
+import { dedupeSprintNames } from './sprints.js';
+import type { PlanTarget } from './target.js';
 
-// Creates the project, its sprints, epics, tasks, subtasks and acceptance criteria from a reviewed plan.
-// All or nothing: whatever this call wrote is taken back when a step fails (the same approach as the importer).
+// Creates the project, its sprints, epics, tasks, subtasks and acceptance criteria from a reviewed plan. The same
+// writer is used to add a plan to a project that already exists. All or nothing: whatever this call wrote is taken
+// back when a step fails (the same approach as the importer), and a pre-existing target is never part of the rollback.
 
 type Id = mongoose.Types.ObjectId;
 
 const BATCH = 200;
 
+export type PlanDestination = 'new' | 'existing';
+
 export interface CreatedFromPlan {
   project: { _id: string; name: string; key: string };
   counts: { sprints: number; epics: number; items: number; subtasks: number; tasks: number; criteria: number };
+  destination: PlanDestination;
 }
 
 interface Draft {
   _id: Id;
   [field: string]: unknown;
 }
+
+/** Ids this request has written, collected before each insert so a partial batch can still be rolled back. */
+interface Written {
+  sprintIds: Id[];
+  taskIds: Id[];
+  taskCount: number;
+}
+
+const emptyWritten = (): Written => ({ sprintIds: [], taskIds: [], taskCount: 0 });
 
 /** The task documents of a plan, in creation order: epics first, then each item followed by its subtasks. */
 export const draftTasks = (content: PlanContent, context: {
@@ -132,25 +147,122 @@ export const draftTasks = (content: PlanContent, context: {
   return drafts;
 };
 
+/** Parses and finalises the plan; both destinations start here. */
+const readPlan = (plan: IAiPlan, options: { takenNames?: ReadonlySet<string>; takenKeys?: ReadonlySet<string> } = {}): PlanContent => {
+  const parsed = editedPlanSchema.safeParse(plan.plan);
+  if (!parsed.success) throw new AiQueueError(422, 'PLAN_INVALID', `The plan is not valid: ${describePlanProblem(parsed.error)}`);
+  return finalizePlan(parsed.data, {
+    startDate: plan.options.startDate,
+    sprintLengthWeeks: plan.options.sprintLengthWeeks,
+    keepDates: true,
+    ...options,
+  });
+};
+
 /**
- * Creates everything for a plan that is `ready`. The caller has claimed the plan (`creating`) and handles the status;
- * this throws `AiQueueError` for conflicts (name or key already used) and rolls back on any other failure.
+ * Writes the plan's sprints, epics, items, subtasks and criteria into a project. Task numbers are reserved once and
+ * inserts run in batches. Ids are recorded before each insert, so the caller can remove exactly these records.
  */
+const writePlanRecords = async (
+  content: PlanContent,
+  context: {
+    workspaceId: Id;
+    userId: Id;
+    projectId: Id;
+    projectName: string;
+    stage: { stage: string; status: string };
+    startDate: string;
+    sprintLengthWeeks: number;
+    sprintNames: string[];
+  },
+  written: Written,
+): Promise<void> => {
+  written.sprintIds = content.sprints.map(() => new mongoose.Types.ObjectId());
+  if (content.sprints.length > 0) {
+    await Sprint.insertMany(content.sprints.map((sprint, index) => ({
+      _id: written.sprintIds[index],
+      workspace: context.workspaceId,
+      project: context.projectId,
+      name: context.sprintNames[index] ?? sprint.name,
+      goal: sprint.goal,
+      startDate: dayToDate(sprint.startDate),
+      endDate: dayToDate(sprint.endDate),
+      status: 'planned',
+    })));
+  }
+
+  const drafts = draftTasks(content, {
+    sprintIds: written.sprintIds,
+    userId: context.userId,
+    workspaceId: context.workspaceId,
+    projectName: context.projectName,
+    stage: context.stage,
+    startDate: context.startDate,
+    sprintLengthWeeks: context.sprintLengthWeeks,
+    basePosition: Date.now(),
+  });
+  written.taskIds = drafts.map(draft => draft._id);
+  const firstNumber = await reserveTaskNumbers(context.workspaceId, drafts.length);
+  const numbered = drafts.map((draft, index) => ({ ...draft, number: firstNumber + index }));
+  for (let from = 0; from < numbered.length; from += BATCH) {
+    await Task.insertMany(numbered.slice(from, from + BATCH) as never[]);
+  }
+  written.taskCount = numbered.length;
+};
+
+/** Deletes only the records this request created; the target project and its pre-existing records are untouched. */
+const rollback = async (workspaceId: Id, written: Written, newProjectId: Id | null): Promise<void> => {
+  try {
+    if (written.taskIds.length > 0) await Task.deleteMany({ _id: { $in: written.taskIds }, workspace: workspaceId });
+    if (written.sprintIds.length > 0) await Sprint.deleteMany({ _id: { $in: written.sprintIds }, workspace: workspaceId });
+    if (newProjectId) await Project.deleteOne({ _id: newProjectId, workspace: workspaceId });
+  } catch (cleanupError) {
+    console.error('createFromPlan rollback error:', (cleanupError as Error).message);
+  }
+};
+
+const recordSprints = async (req: Request, projectId: Id, projectName: string, sprintIds: Id[], sprintNames: string[]): Promise<void> => {
+  for (const [index, name] of sprintNames.entries()) {
+    await recordActivity(req, {
+      action: 'sprint.created', summary: `${name} · ${projectName}`, project: projectId, sprint: sprintIds[index],
+    });
+  }
+};
+
+const recordPlanCreated = async (
+  req: Request,
+  plan: IAiPlan,
+  projectId: Id,
+  projectName: string,
+  counts: ReturnType<typeof countPlan>,
+  taskCount: number,
+  destination: PlanDestination,
+): Promise<void> => {
+  await recordActivity(req, {
+    action: 'ai.plan_created',
+    summary: projectName,
+    project: projectId,
+    changes: [
+      { field: 'file', to: plan.source.fileName },
+      { field: 'destination', to: destination },
+      ...(destination === 'existing' ? [{ field: 'target', to: projectName }] : []),
+      { field: 'sprints', to: String(counts.sprints) },
+      { field: 'tasks', to: String(taskCount) },
+      { field: 'subtasks', to: String(counts.subtasks) },
+      { field: 'criteria', to: String(counts.criteria) },
+    ],
+  });
+};
+
+/** Creates a new project and everything in the plan. */
 export const createProjectFromPlan = async (req: Request, plan: IAiPlan): Promise<CreatedFromPlan> => {
   const workspace = req.workspace as IWorkspace;
   const workspaceId = workspace._id as Id;
   const userId = req.user?._id as Id;
 
-  const parsed = editedPlanSchema.safeParse(plan.plan);
-  if (!parsed.success) throw new AiQueueError(422, 'PLAN_INVALID', `The plan is not valid: ${describePlanProblem(parsed.error)}`);
-  const content = finalizePlan(parsed.data, {
-    startDate: plan.options.startDate,
-    sprintLengthWeeks: plan.options.sprintLengthWeeks,
-    keepDates: true,
-  });
-
   // Names and keys are checked here (not silently changed): the person fixes them on the review screen
   const { names, keys } = await usedProjectNames(workspaceId);
+  const content = readPlan(plan);
   if (names.has(content.project.name.toLowerCase())) {
     const suggestion = uniqueName(content.project.name, names);
     throw Object.assign(new AiQueueError(409, 'PROJECT_NAME_TAKEN', 'A project with this name already exists. Choose another name.'), { suggestion });
@@ -163,8 +275,7 @@ export const createProjectFromPlan = async (req: Request, plan: IAiPlan): Promis
   const resolvedStage = stageFor(workflowOf(workspace), { status: 'pending' });
   if (!resolvedStage) throw new AiQueueError(422, 'PLAN_INVALID', 'The workspace workflow has no starting stage.');
 
-  const taskIds: Id[] = [];
-  const sprintIds: Id[] = content.sprints.map(() => new mongoose.Types.ObjectId());
+  const written = emptyWritten();
   let projectId: Id | null = null;
 
   try {
@@ -178,74 +289,88 @@ export const createProjectFromPlan = async (req: Request, plan: IAiPlan): Promis
     });
     projectId = project._id as Id;
 
-    if (content.sprints.length > 0) {
-      await Sprint.insertMany(content.sprints.map((sprint, index) => ({
-        _id: sprintIds[index],
-        workspace: workspaceId,
-        project: projectId,
-        name: sprint.name,
-        goal: sprint.goal,
-        startDate: dayToDate(sprint.startDate),
-        endDate: dayToDate(sprint.endDate),
-        status: 'planned',
-      })));
-    }
-
-    const drafts = draftTasks(content, {
-      sprintIds,
-      userId,
+    const sprintNames = content.sprints.map(sprint => sprint.name);
+    await writePlanRecords(content, {
       workspaceId,
+      userId,
+      projectId,
       projectName: project.name,
       stage: resolvedStage,
       startDate: plan.options.startDate,
       sprintLengthWeeks: plan.options.sprintLengthWeeks,
-      basePosition: Date.now(),
-    });
-    taskIds.push(...drafts.map(draft => draft._id));
-    const firstNumber = await reserveTaskNumbers(workspaceId, drafts.length);
-    const numbered = drafts.map((draft, index) => ({ ...draft, number: firstNumber + index }));
-    for (let from = 0; from < numbered.length; from += BATCH) {
-      await Task.insertMany(numbered.slice(from, from + BATCH) as never[]);
-    }
+      sprintNames,
+    }, written);
 
     const counts = countPlan(content);
     await recordActivity(req, { action: 'project.created', summary: project.name, project: projectId });
-    for (const [index, sprint] of content.sprints.entries()) {
-      await recordActivity(req, {
-        action: 'sprint.created', summary: `${sprint.name} · ${project.name}`, project: projectId, sprint: sprintIds[index],
-      });
-    }
-    await recordActivity(req, {
-      action: 'ai.plan_created',
-      summary: project.name,
-      project: projectId,
-      changes: [
-        { field: 'file', to: plan.source.fileName },
-        { field: 'sprints', to: String(counts.sprints) },
-        { field: 'tasks', to: String(numbered.length) },
-        { field: 'subtasks', to: String(counts.subtasks) },
-        { field: 'criteria', to: String(counts.criteria) },
-      ],
-    });
+    await recordSprints(req, projectId, project.name, written.sprintIds, sprintNames);
+    await recordPlanCreated(req, plan, projectId, project.name, counts, written.taskCount, 'new');
 
     return {
       project: { _id: String(projectId), name: project.name, key: project.key },
       counts: {
-        sprints: counts.sprints, epics: counts.epics, items: counts.items, subtasks: counts.subtasks, tasks: numbered.length, criteria: counts.criteria,
+        sprints: counts.sprints, epics: counts.epics, items: counts.items, subtasks: counts.subtasks, tasks: written.taskCount, criteria: counts.criteria,
       },
+      destination: 'new',
     };
   } catch (error) {
     // All or nothing: take back whatever this call already wrote
-    try {
-      if (taskIds.length > 0) await Task.deleteMany({ _id: { $in: taskIds }, workspace: workspaceId });
-      await Sprint.deleteMany({ _id: { $in: sprintIds }, workspace: workspaceId });
-      if (projectId) await Project.deleteOne({ _id: projectId, workspace: workspaceId });
-    } catch (cleanupError) {
-      console.error('createProjectFromPlan rollback error:', (cleanupError as Error).message);
-    }
+    await rollback(workspaceId, written, projectId);
     if ((error as { code?: number } | null)?.code === 11000) {
       throw new AiQueueError(409, 'PROJECT_NAME_TAKEN', 'A project with this name already exists. Choose another name.');
     }
     throw error;
   }
 };
+
+/**
+ * Adds the plan's sprints, epics, items, subtasks and criteria to an existing project. The plan's project block and
+ * the target's own fields, members, settings, sprints and tasks are left untouched.
+ */
+export const createIntoProjectFromPlan = async (req: Request, plan: IAiPlan, target: PlanTarget): Promise<CreatedFromPlan> => {
+  const workspace = req.workspace as IWorkspace;
+  const workspaceId = workspace._id as Id;
+  const userId = req.user?._id as Id;
+
+  const content = readPlan(plan);
+  const resolvedStage = stageFor(workflowOf(workspace), { status: 'pending' });
+  if (!resolvedStage) throw new AiQueueError(422, 'PLAN_INVALID', 'The workspace workflow has no starting stage.');
+
+  const targetId = new mongoose.Types.ObjectId(target._id);
+  const existing = await Sprint.find({ workspace: workspaceId, project: targetId }).select('name').lean();
+  const sprintNames = dedupeSprintNames(content.sprints.map(sprint => sprint.name), existing.map(sprint => sprint.name));
+
+  const written = emptyWritten();
+  try {
+    await writePlanRecords(content, {
+      workspaceId,
+      userId,
+      projectId: targetId,
+      projectName: target.name,
+      stage: resolvedStage,
+      startDate: plan.options.startDate,
+      sprintLengthWeeks: plan.options.sprintLengthWeeks,
+      sprintNames,
+    }, written);
+
+    const counts = countPlan(content);
+    await recordSprints(req, targetId, target.name, written.sprintIds, sprintNames);
+    await recordPlanCreated(req, plan, targetId, target.name, counts, written.taskCount, 'existing');
+
+    return {
+      project: { _id: target._id, name: target.name, key: target.key },
+      counts: {
+        sprints: counts.sprints, epics: counts.epics, items: counts.items, subtasks: counts.subtasks, tasks: written.taskCount, criteria: counts.criteria,
+      },
+      destination: 'existing',
+    };
+  } catch (error) {
+    // Only this request's records: the target project and its existing sprints/tasks are never included
+    await rollback(workspaceId, written, null);
+    throw error;
+  }
+};
+
+/** Creates the plan in the chosen destination: a new project, or the validated existing target. */
+export const createFromPlan = async (req: Request, plan: IAiPlan, target: PlanTarget | null): Promise<CreatedFromPlan> =>
+  target ? createIntoProjectFromPlan(req, plan, target) : createProjectFromPlan(req, plan);

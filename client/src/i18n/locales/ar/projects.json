@@ -118,6 +118,8 @@
     "deleted": "تم حذف \"{{name}}\"",
     "deleteError": "تعذّر حذف المشروع.",
     "newProject": "مشروع جديد",
+    "projectActions": "إجراءات المشروع",
+    "newProjectCard": "مشروع جديد",
     "title": "المشاريع",
     "description": "مجلدات لسبرينتاتك ومهامك. افتح مشروعًا لتخطيط السبرينتات وتتبع التقدم.",
     "loading": "جارٍ تحميل المشاريع",
@@ -143,7 +145,8 @@
     "deleteTitle": "هل تريد حذف \"{{name}}\"؟",
     "deleteBody": "سيُحذف المشروع وسبرينتاته. تبقى مهامه دون مشروع أو سبرينت.",
     "deleteConfirm": "حذف المشروع",
-    "deleting": "جارٍ الحذف..."
+    "deleting": "جارٍ الحذف...",
+    "createWithAi": "إنشاء بالذكاء الاصطناعي"
   },
   "detail": {
     "loading": "جارٍ تحميل المشروع",
@@ -155,6 +158,7 @@
     "projects": "المشاريع",
     "archived": "مؤرشف",
     "openBoard": "فتح اللوحة",
+    "addFromDocument": "إضافة من مستند",
     "sprintSaved": "تم حفظ السبرينت",
     "sprintCreated": "تم إنشاء السبرينت"
   },
@@ -439,8 +443,7 @@
     "description": "الوصف",
     "descriptionPlaceholder": "ما موضوع هذا المشروع؟",
     "color": "اللون",
-    "icon": "الأيقونة",
-    "newCard": "مشروع جديد"
+    "icon": "الأيقونة"
   },
   "colors": {
     "blue": "أزرق الغسق",
