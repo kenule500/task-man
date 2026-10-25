@@ -213,9 +213,9 @@ export const runReview = async (reviewId: Id | string): Promise<void> => {
   if (!review) return;
 
   try {
-    // Include the whole `ai` block: a positive projection that only names the encrypted key would
-    // hide `ai.enabled`, and the worker would refuse a review the workspace had switched on.
-    const workspace = await Workspace.findById(review.workspace).select('slug ai +ai.apiKeyEncrypted +integrations.github.accessTokenEncrypted');
+    // A projection with only `+` paths is an exclusion projection, so the whole `ai` block is
+    // loaded (including `ai.enabled`) and only the two encrypted secrets are added back.
+    const workspace = await Workspace.findById(review.workspace).select('+ai.apiKeyEncrypted +integrations.github.accessTokenEncrypted');
     const task = await Task.findOne({ _id: review.task, workspace: review.workspace });
     if (!workspace || !task) throw new AiReviewError('The task no longer exists.', 'TASK_GONE');
     const config = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
