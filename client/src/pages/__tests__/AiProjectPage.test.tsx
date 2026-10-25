@@ -7,6 +7,8 @@ import { aiPlanApi } from '@/features/ai-plan/api';
 import { makeAiPlan, makePlan } from '@/features/ai-plan/__tests__/fixtures';
 import { aiReviewApi } from '@/features/ai-review/api';
 import { settings } from '@/features/ai-review/__tests__/fixtures';
+import { ProjectsContext } from '@/features/projects/context/ProjectsContext';
+import { makeProject } from '@/features/projects/__tests__/fixtures';
 import AiProjectPage from '../AiProjectPage';
 
 jest.setTimeout(60000);
@@ -34,17 +36,24 @@ const plans = aiPlanApi as jest.Mocked<typeof aiPlanApi>;
 const aiSettings = aiReviewApi as jest.Mocked<typeof aiReviewApi>;
 const WRITER = ['projects:read', 'projects:write', 'tasks:read', 'tasks:write'];
 
+const website = makeProject({ _id: 'p1', name: 'Website', key: 'WEB' });
+const reload = jest.fn().mockResolvedValue(undefined);
+const directory = { slug: 'demo', projects: [website], loading: false, byName: () => undefined, reload };
+
 const Where = () => <p data-testid="where">{useLocation().pathname}{useLocation().search}</p>;
 
 const renderPage = (entry = '/demo/projects/new/ai') =>
   render(
-    <MemoryRouter initialEntries={[entry]}>
-      <Routes>
-        <Route path="/:workspaceSlug/projects/new/ai" element={<><AiProjectPage /><Where /></>} />
-        <Route path="/:workspaceSlug/projects/:projectId" element={<><h1>Project page</h1><Where /></>} />
-      </Routes>
-      <Toaster />
-    </MemoryRouter>,
+    <ProjectsContext.Provider value={directory}>
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route path="/:workspaceSlug/projects/new/ai" element={<><AiProjectPage /><Where /></>} />
+          <Route path="/:workspaceSlug/projects/:projectId/plan" element={<><AiProjectPage /><Where /></>} />
+          <Route path="/:workspaceSlug/projects/:projectId" element={<><h1>Project page</h1><Where /></>} />
+        </Routes>
+        <Toaster />
+      </MemoryRouter>
+    </ProjectsContext.Provider>,
   );
 
 const queued = () => makeAiPlan({ status: 'queued', plan: null, counts: null, startedAt: null, completedAt: null });
@@ -60,6 +69,7 @@ const analyze = async (user: ReturnType<typeof userEvent.setup>) => {
 beforeEach(() => {
   jest.useFakeTimers();
   granted = WRITER;
+  directory.projects = [website];
   aiSettings.getSettings.mockResolvedValue(settings());
   plans.list.mockResolvedValue([]);
   plans.remove.mockResolvedValue(undefined);
@@ -216,6 +226,99 @@ describe('AiProjectPage', () => {
     expect(await screen.findByRole('heading', { name: 'Project page' })).toBeInTheDocument();
     expect(plans.update.mock.calls.at(-1)?.[2].project.name).toBe('Online Bookshop (2)');
     expect(plans.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('AC-037: opens the wizard for the project, fixes the destination and hides the name and key fields', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    plans.upload.mockResolvedValue(queued());
+    plans.get.mockResolvedValue(makeAiPlan({
+      options: { ...makeAiPlan().options, targetProjectId: 'p1' },
+      targetProject: { _id: 'p1', name: 'Website', key: 'WEB', archived: false },
+    }));
+    renderPage('/demo/projects/p1/plan');
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Add a plan to Website' })).toBeInTheDocument();
+    expect(screen.getByText('Adding to Website')).toBeInTheDocument();
+    expect(screen.getByText('WEB')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Project name')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Project key/)).not.toBeInTheDocument();
+
+    await analyze(user);
+    expect(plans.upload.mock.calls[0][2]).toMatchObject({ destination: 'existing', targetProjectId: 'p1' });
+
+    // The review names the project and offers no destination choice
+    const destination = await screen.findByRole('region', { name: 'Plan destination' }, { timeout: 10000 });
+    expect(within(destination).getByText('Website (WEB)')).toBeInTheDocument();
+    expect(within(destination).getByText('Existing project')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /destination|project/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^Add \d+ items? to Website \(WEB\)/ })[0]).toBeInTheDocument();
+  });
+
+  it('AC-038: adds the reviewed plan to the project, says so and returns to the project', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    plans.get.mockResolvedValue(makeAiPlan({
+      options: { ...makeAiPlan().options, targetProjectId: 'p1' },
+      targetProject: { _id: 'p1', name: 'Website', key: 'WEB', archived: false },
+    }));
+    plans.update.mockImplementation(async (_slug, _id, plan) => makeAiPlan({ plan }));
+    plans.create.mockResolvedValue({
+      project: { _id: 'p1', name: 'Website', key: 'WEB' },
+      counts: { sprints: 2, epics: 1, items: 3, subtasks: 2, tasks: 6, criteria: 5 },
+      destination: 'existing',
+    });
+    renderPage('/demo/projects/p1/plan?plan=plan-1');
+
+    await user.click((await screen.findAllByRole('button', { name: /^Add \d+ items? to Website \(WEB\)/ }, { timeout: 10000 }))[0]);
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText('Add this plan to “Website (WEB)”?')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: /^Add \d+ items?$/ }));
+
+    await waitFor(() => expect(plans.create).toHaveBeenCalledWith('demo', 'plan-1', 'p1'));
+    expect(await screen.findByRole('heading', { name: 'Project page' })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent('/demo/projects/p1');
+    expect(screen.getByTestId('where')).not.toHaveTextContent('plan=');
+    expect(await screen.findByText('Plan added to “Website”')).toBeInTheDocument();
+    expect(screen.getByText('6 tasks in 2 sprints were added. The project\'s existing work was not changed.')).toBeInTheDocument();
+    expect(reload).toHaveBeenCalled();
+  });
+
+  it('AC-039: refuses a plan stored for another project and points at the plan instead of writing', async () => {
+    plans.get.mockResolvedValue(makeAiPlan({
+      options: { ...makeAiPlan().options, targetProjectId: 'p2' },
+      targetProject: { _id: 'p2', name: 'Mobile app', key: 'MOB', archived: false },
+    }));
+    renderPage('/demo/projects/p1/plan?plan=plan-1');
+
+    expect(await screen.findByText('This plan belongs to another project')).toBeInTheDocument();
+    expect(screen.getByText(/started for another project or is already created/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the plan' })).toHaveAttribute('href', '/demo/projects/new/ai?plan=plan-1');
+    expect(screen.getAllByRole('link', { name: 'Back to the project' })
+      .some(link => link.getAttribute('href') === '/demo/projects/p1')).toBe(true);
+    expect(screen.getByTestId('where')).toHaveTextContent('/demo/projects/p1/plan');
+    expect(screen.getByTestId('where')).not.toHaveTextContent('plan=');
+    expect(plans.update).not.toHaveBeenCalled();
+    expect(plans.create).not.toHaveBeenCalled();
+    expect(plans.remove).not.toHaveBeenCalled();
+  });
+
+  it('AC-039: opens the project a plan already created instead of adding it again', async () => {
+    plans.get.mockResolvedValue(makeAiPlan({ status: 'created', projectId: 'p-done', targetProject: null }));
+    renderPage('/demo/projects/p1/plan?plan=plan-1');
+
+    expect(await screen.findByRole('heading', { name: 'Project page' })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent('/demo/projects/p-done');
+    expect(plans.update).not.toHaveBeenCalled();
+    expect(plans.create).not.toHaveBeenCalled();
+    expect(plans.remove).not.toHaveBeenCalled();
+  });
+
+  it('refuses an archived project before the wizard starts', async () => {
+    directory.projects = [website, makeProject({ _id: 'p-archived', name: 'Old site', key: 'OLD', archived: true })];
+    renderPage('/demo/projects/p-archived/plan');
+
+    expect(await screen.findByText('This project is archived')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Drop your document here/)).not.toBeInTheDocument();
+    expect(plans.upload).not.toHaveBeenCalled();
   });
 
   it('AC-034/AC-035: does not offer the page to people who cannot create both projects and tasks', async () => {

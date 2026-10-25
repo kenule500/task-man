@@ -3,6 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import WorkspaceSettingsPage from '../WorkspaceSettingsPage';
 import api from '@/utils/api';
+import { aiReviewApi } from '@/features/ai-review/api';
+import { settings as aiSettings } from '@/features/ai-review/__tests__/fixtures';
+
+jest.mock('@/features/ai-review/api', () => ({
+  ...jest.requireActual('@/features/ai-review/api'),
+  aiReviewApi: { ...jest.requireActual('@/features/ai-review/api').aiReviewApi, getSettings: jest.fn() },
+}));
 
 jest.mock('@/utils/api', () => ({
   __esModule: true,
@@ -53,6 +60,7 @@ let roles: (ReturnType<typeof system> | ReturnType<typeof custom>)[] = [];
 
 beforeEach(() => {
   granted = ['settings:manage'];
+  (aiReviewApi.getSettings as jest.Mock).mockResolvedValue(aiSettings());
   roles = [system('Product Owner', ['projects:read', 'tasks:read']), system('Viewer', ['projects:read']), custom('Auditor')];
   mockedApi.get.mockImplementation(async (url: string) => {
     if (url === '/roles/permissions') return { data: catalog };
@@ -105,6 +113,23 @@ describe('WorkspaceSettingsPage roles', () => {
   it('shows edit controls for custom roles to managers', async () => {
     renderPage();
     expect(await screen.findByRole('button', { name: 'Edit role Auditor' })).toBeInTheDocument();
+  });
+
+  it('AC-022: mounts the AI provider settings only for members who can manage settings', async () => {
+    const { unmount } = renderPage();
+    expect(await screen.findByRole('region', { name: 'AI assistant' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'AI provider' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('combobox', { name: 'Provider' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText(/API key/)[0]).toHaveAttribute('type', 'password');
+    expect(screen.getAllByRole('button', { name: 'Test connection' }).length).toBeGreaterThan(0);
+    unmount();
+
+    granted = [];
+    renderPage();
+    expect(await screen.findByRole('region', { name: 'Permission matrix' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'AI assistant' })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('heading', { name: 'AI provider' })).toHaveLength(0);
+    expect(screen.queryAllByRole('combobox', { name: 'Provider' })).toHaveLength(0);
   });
 
   it('hides edit controls from read-only users but still shows the matrix', async () => {
