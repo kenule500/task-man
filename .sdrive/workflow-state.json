@@ -1,0 +1,447 @@
+{
+  "features": [
+    {
+      "name": "auth-sessions",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "automations-audit",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "custom-fields-workflow",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "flow-reports",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "import-export",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "integrations-webhooks",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "notifications",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "real-time-chat",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "backlog",
+          "currentStep": "specification",
+          "gates": {
+            "specification": "pending",
+            "planning": "pending",
+            "implementation": "pending",
+            "review": "pending"
+          },
+          "history": [
+            {
+              "event": "Specification written and awaiting Gate 1 approval.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "releases",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "scrum-planning",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sso-2fa",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "task-views",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tasks-core",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "time-tracking",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wiki-pages",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "workspaces-rbac",
+      "currentVersion": "v1",
+      "versions": [
+        {
+          "id": "v1",
+          "phase": "completed",
+          "currentStep": "review",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "approved",
+            "review": "approved"
+          },
+          "history": [
+            {
+              "event": "Feature entry reconstructed from its existing v1 spec during onboarding. The feature is shipped and covered by tests; the four gates record that shipped state, not separate approval events.",
+              "by": "onboarding",
+              "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "onboarding": {
+    "mode": "brownfield",
+    "date": "2026-10-26T19:41:39.397Z",
+    "detectedSystems": {
+      "openspec": {
+        "detected": false,
+        "specs": 0,
+        "changes": 0,
+        "archived": 0
+      },
+      "speckit": {
+        "detected": false,
+        "specs": 0,
+        "hasConstitution": false
+      },
+      "frameworks": []
+    },
+    "missing": [
+      "CONTRIBUTING.md"
+    ],
+    "deferred": [],
+    "retroactiveFeatures": [
+      "auth-sessions",
+      "automations-audit",
+      "custom-fields-workflow",
+      "flow-reports",
+      "import-export",
+      "integrations-webhooks",
+      "notifications",
+      "releases",
+      "scrum-planning",
+      "sso-2fa",
+      "task-views",
+      "tasks-core",
+      "time-tracking",
+      "wiki-pages",
+      "workspaces-rbac"
+    ],
+    "verifiedFeatures": [
+      "auth-sessions",
+      "automations-audit",
+      "custom-fields-workflow",
+      "flow-reports",
+      "import-export",
+      "integrations-webhooks",
+      "notifications",
+      "releases",
+      "scrum-planning",
+      "sso-2fa",
+      "task-views",
+      "tasks-core",
+      "time-tracking",
+      "wiki-pages",
+      "workspaces-rbac"
+    ],
+    "migrated": [],
+    "skipped": [],
+    "notes": "Onboarding re-run on an already-adopted workspace. The scan found 16 existing specs, 5 skills, a constitution (v1.0.2, preserved unchanged) and 66 governance documents. workflow-state.json had been reset to {\"features\": []}, so the feature registry was rebuilt from each spec's own status line; no feature history was invented. No external spec system (OpenSpec, Spec Kit, Kiro, Agent OS, BMAD) was present, so no migration ran. Prettier configuration is absent by design (CON-209), not a gap. real-time-chat remains backlog pending Gate 1."
+  }
+}
