@@ -1,0 +1,334 @@
+{
+  "feature": "scrum-planning",
+  "version": 1,
+  "architecture": {
+    "approach": "Retroactive plan of the implemented design. Projects and sprints are workspace-scoped Mongoose documents exposed by permission-guarded Express routers under /api/workspaces/:slug/projects; a task's sprint container is a Sprint ObjectId plus the project name it belongs to, kept consistent by reconcileSprint in the task controller. The backlog, sprint cards and sprint dialogs live in client/src/features/projects, while the analytical views are pure functions in feature lib folders (burndown, velocity, sprintStats, roadmap, workload, capacity) consumed by the pages under client/src/pages. Nothing in this feature adds a datastore: the sprint report is derived from the activity log the app already records.",
+    "components": [
+      {
+        "name": "server/src/models/projectModel.ts",
+        "action": "create",
+        "description": "Project document with workspace scope, nameKey unique per workspace, a key generated from the name and the colour/icon enums."
+      },
+      {
+        "name": "server/src/models/sprintModel.ts",
+        "action": "create",
+        "description": "Sprint document with project, name, goal, start and end dates, status and the velocity fields startedAt, completedAt and completedPoints."
+      },
+      {
+        "name": "server/src/controllers/projectController.ts",
+        "action": "create",
+        "description": "Project and sprint handlers, their express-validator chains, syncProjectsFromTasks, the rename cascade and the conditional sprint state changes."
+      },
+      {
+        "name": "server/src/routes/projectRoutes.ts",
+        "action": "create",
+        "description": "Router mounted at /api/workspaces/:slug/projects with protect and one requirePermission call per route."
+      },
+      {
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "description": "Mounts the projects sub-router and declares the read-only sprint report route /:slug/projects/:projectId/sprints/:sprintId/report behind projects:read."
+      },
+      {
+        "name": "server/src/controllers/reportController.ts",
+        "action": "create",
+        "description": "getSprintReport and the exported classifySprintScope that rebuilds a task's sprint membership from the activity log."
+      },
+      {
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "description": "Accepts the sprint field on create and update, validates it with findOpenSprint and keeps project and sprint in step."
+      },
+      {
+        "name": "server/src/utils/activity.ts",
+        "action": "reuse",
+        "description": "recordActivity and diffFields supply the sprint.* entries and the task.updated sprint moves the report reads."
+      },
+      {
+        "name": "client/src/features/projects/components/ProjectWorkspace.tsx",
+        "action": "create",
+        "description": "The Sprints, Backlog, Epics, Releases, Wiki and Overview tabs, sprint cards grouped by status, the move-to-sprint select and the velocity card."
+      },
+      {
+        "name": "client/src/features/projects/components/SprintFormDialog.tsx",
+        "action": "create",
+        "description": "Create and edit sprint form with the suggested name and dates and the goal field."
+      },
+      {
+        "name": "client/src/features/projects/components/CompleteSprintDialog.tsx",
+        "action": "create",
+        "description": "Asks where the unfinished tasks go (backlog or a planned sprint) before the sprint is completed."
+      },
+      {
+        "name": "client/src/features/projects/lib/burndown.ts",
+        "action": "create",
+        "description": "buildBurndown and describeBurndown (pure, unit tested)."
+      },
+      {
+        "name": "client/src/features/projects/lib/velocity.ts",
+        "action": "create",
+        "description": "sprintVelocities and averageVelocity (pure)."
+      },
+      {
+        "name": "client/src/features/projects/lib/sprintStats.ts",
+        "action": "create",
+        "description": "workProgress, daysUntilEnd, formatSprintRange, suggestSprintDates and suggestSprintName (pure, unit tested)."
+      },
+      {
+        "name": "client/src/features/projects/hooks/useProjects.ts",
+        "action": "create",
+        "description": "Loads projects with their sprints through the shared query cache and exposes the sprint mutations with readable errors."
+      },
+      {
+        "name": "client/src/features/planning/lib/roadmap.ts",
+        "action": "create",
+        "description": "buildRoadmap, buildAxis, placeSpan, sprintBands, releaseMarkers and the describe* text alternatives (pure, unit tested)."
+      },
+      {
+        "name": "client/src/features/planning/lib/workload.ts",
+        "action": "create",
+        "description": "tasksInScope, aggregateWorkload, defaultWorkloadProject, defaultWorkloadSprint and describeLoad (pure, unit tested)."
+      },
+      {
+        "name": "client/src/features/planning/lib/capacity.ts",
+        "action": "create",
+        "description": "parseCapacity, loadCapacity and saveCapacity for the per-workspace capacity kept in the browser."
+      },
+      {
+        "name": "client/src/features/planning/lib/sprintReport.ts",
+        "action": "create",
+        "description": "Types of the report payload plus scopeTasksOf, deliveredPercent and pointsLabel (pure, unit tested)."
+      },
+      {
+        "name": "client/src/features/planning/components/RoadmapTimeline.tsx",
+        "action": "create",
+        "description": "Desktop epic timeline with sprint bands, release markers and the today line."
+      },
+      {
+        "name": "client/src/features/planning/components/RoadmapList.tsx",
+        "action": "create",
+        "description": "Narrow-screen list of the same epics with progress and health."
+      },
+      {
+        "name": "client/src/features/planning/components/WorkloadList.tsx",
+        "action": "create",
+        "description": "Per-person rows with the capacity bar, item and point totals and the tasks behind them."
+      },
+      {
+        "name": "client/src/features/planning/components/ReportTable.tsx",
+        "action": "create",
+        "description": "Task table used by the sprint report buckets."
+      },
+      {
+        "name": "client/src/pages/RoadmapPage.tsx",
+        "action": "create",
+        "description": "Roadmap screen: project filter, month or week zoom, legend, epic list and release milestones."
+      },
+      {
+        "name": "client/src/pages/WorkloadPage.tsx",
+        "action": "create",
+        "description": "Workload screen: sprint or date-range scope, capacity input and the workload list."
+      },
+      {
+        "name": "client/src/pages/SprintReportPage.tsx",
+        "action": "create",
+        "description": "Sprint report screen: summary cards, the burndown built from the report scope and the five buckets."
+      },
+      {
+        "name": "client/src/pages/ProjectDetailPage.tsx",
+        "action": "create",
+        "description": "Project screen that hosts the sprint dialogs and remounts the task-dependent part of the page after a sprint change."
+      }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "name", "type": "String (1-60)", "action": "no_change" },
+          { "name": "nameKey", "type": "String (lower-cased name, unique per workspace)", "action": "no_change" },
+          { "name": "key", "type": "String matching /^[A-Z0-9]{2,6}$/", "action": "no_change" },
+          { "name": "description", "type": "String (max 500)", "action": "no_change" },
+          { "name": "color", "type": "enum blue|violet|rose|orange|amber|emerald|teal|slate", "action": "no_change" },
+          { "name": "icon", "type": "enum folder|rocket|code|megaphone|palette|bug|book|briefcase", "action": "no_change" },
+          { "name": "archived", "type": "Boolean", "action": "no_change" },
+          { "name": "createdBy", "type": "ObjectId ref User", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Sprint",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "project", "type": "ObjectId ref Project", "action": "no_change" },
+          { "name": "name", "type": "String (1-60)", "action": "no_change" },
+          { "name": "goal", "type": "String (max 300)", "action": "no_change" },
+          { "name": "startDate", "type": "Date", "action": "no_change" },
+          { "name": "endDate", "type": "Date", "action": "no_change" },
+          { "name": "status", "type": "enum planned|active|completed", "action": "no_change" },
+          { "name": "startedAt", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "completedAt", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "completedPoints", "type": "Number (min 0)", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "sprint", "type": "ObjectId ref Sprint", "action": "no_change", "nullable": true },
+          { "name": "project", "type": "String (project name, max 60)", "action": "no_change" },
+          { "name": "storyPoints", "type": "Number (min 0, max MAX_STORY_POINTS)", "action": "no_change", "nullable": true },
+          { "name": "parent", "type": "ObjectId ref Task", "action": "no_change", "nullable": true },
+          { "name": "type", "type": "enum task|story|bug|spike|epic", "action": "no_change" },
+          { "name": "status", "type": "enum pending|in-progress|completed", "action": "no_change" },
+          { "name": "completedAt", "type": "Date", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "action", "type": "String (sprint.created, sprint.started, sprint.completed, sprint.deleted, task.updated, ...)", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change", "nullable": true },
+          { "name": "project", "type": "ObjectId ref Project", "action": "no_change", "nullable": true },
+          { "name": "sprint", "type": "ObjectId ref Sprint", "action": "no_change", "nullable": true },
+          { "name": "changes", "type": "Array of { field, from, to }", "action": "no_change" },
+          { "name": "createdAt", "type": "Date (TTL index, 365 days)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "GET /api/workspaces/:slug/projects resolves the workspace from the slug, upserts a Project for every task project name that has none, then returns the projects with their sprints attached. A sprint is created inside a project, started (planned to active, startedAt) and completed (active to completed, completedAt plus completedPoints summed over the completed top-level tasks), which moves the unfinished tasks to the backlog or to a planned sprint and records those moves in Activity. A task joins a sprint by writing task.sprint together with the sprint's project name; every change is recorded in Activity, and the sprint report later replays the sprint-related changes of that log to rebuild who was committed, added, removed and completed."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/projects",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/projects",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/projects/:id",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/projects/:id",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/projects/:id/sprints",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-002", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/projects/:id/sprints/:sprintId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-002", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/projects/:id/sprints/:sprintId/start",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-003", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/projects/:id/sprints/:sprintId/complete",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-004", "NFR-002"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/projects/:id/sprints/:sprintId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-005", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/projects/:projectId/sprints/:sprintId/report",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-007", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/tasks",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-006", "NFR-001"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/tasks/:id",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-006", "NFR-001"]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "description": "Workspace isolation (CON-106): findProject and findSprint and every task, activity and sprint query carry workspace: req.workspace._id, so a valid ObjectId from another workspace resolves to 404 instead of returning data. Ids are cast with mongoose.isValidObjectId before use and request values are never interpolated into raw queries (CON-516)."
+    },
+    {
+      "requirementId": "NFR-002",
+      "description": "Authorisation runs before the handler (CON-105, CON-512): projectRoutes applies protect and then requirePermission('projects:read' | 'projects:write' | 'projects:delete'), and the sprint report route requires projects:read, so a role without project access cannot read sprint scope or report data."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-003",
+      "strategy": "listProjects fetches projects and sprints with one parallel Promise.all and groups them in memory instead of running a query per project; the roadmap, workload, burndown and velocity computations are pure functions over the already-loaded task list, memoised with useMemo in the pages."
+    },
+    {
+      "requirementId": "NFR-001",
+      "strategy": "The sprint report reads the activity log through the existing { workspace, action, createdAt } index and selects only task, changes and createdAt, then loads only the tasks that point at the sprint or appear in a recorded move."
+    }
+  ],
+  "dependencies": [
+    { "name": "express", "type": "library", "action": "no_change", "notes": "Router with mergeParams: true so :slug is visible to the project routes." },
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "Unique index { workspace, nameKey } on Project and the { workspace, project, startDate } index on Sprint." },
+    { "name": "client/src/features/tasks", "type": "internal", "action": "no_change", "notes": "useTasks and lib/date are the task and calendar-day source the planning views consume." },
+    { "name": "client/src/features/projects", "type": "internal", "action": "no_change", "notes": "Exported through its index.ts and also imported by the planning pages (useProjects, BurndownChart, sprintStats)." },
+    { "name": "client/src/features/live", "type": "internal", "action": "no_change", "notes": "useLiveRefresh('projects') refetches projects when a teammate changes them." }
+  ],
+  "risks": [
+    {
+      "description": "The sprint report depends on activity rows that expire after 365 days, so a very old sprint cannot be reconstructed exactly.",
+      "mitigation": "The report falls back to the tasks still pointing at the sprint and their creation dates, and the limitation is recorded as edge case EC-007."
+    },
+    {
+      "description": "Completing or deleting a sprint moves tasks server-side while the client task list is a separate cache, which can show stale sprint membership.",
+      "mitigation": "ProjectDetailPage keys the task-dependent part of the page by a counter that increments after a sprint was completed or deleted, remounting it to fetch fresh tasks."
+    },
+    {
+      "description": "A project rename has to cascade to tasks, wiki pages and custom fields or work silently leaves the project.",
+      "mitigation": "updateProject performs the three updates in one request with a case-insensitive collation; deleting a project instead unassigns its tasks explicitly."
+    }
+  ]
+}

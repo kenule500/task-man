@@ -1,0 +1,134 @@
+{
+  "feature": "notifications",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": ["AC-001", "AC-003"],
+      "planSection": "architecture.components (server/src/utils/notify.ts, taskController.ts) / dataModel.entities Notification",
+      "taskIds": ["T1.1", "T1.4", "T3.1", "T3.3"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": ["AC-002", "AC-003"],
+      "planSection": "architecture.approach (snapshot-diff rules) / architecture.components server/src/utils/notify.ts",
+      "taskIds": ["T1.3", "T3.1", "T3.3"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": ["AC-005", "AC-006"],
+      "planSection": "architecture.components (notify.ts, taskExtrasController.ts) / dataModel.flowDescription",
+      "taskIds": ["T1.3", "T1.4", "T3.2", "T3.3"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": ["AC-004"],
+      "planSection": "architecture.components server/src/utils/notify.ts#resolveMentions",
+      "taskIds": ["T1.3", "T3.2", "T4.3"],
+      "testIds": ["TEST-001", "TEST-002", "TEST-005"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": ["AC-007"],
+      "planSection": "apiContracts GET /api/notifications / performanceConsiderations NFR-001",
+      "taskIds": ["T2.1", "T2.4", "T4.2"],
+      "testIds": ["TEST-002", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": ["AC-008", "AC-009"],
+      "planSection": "apiContracts POST /api/notifications/:id/read and /read-all",
+      "taskIds": ["T2.1", "T2.4", "T4.2"],
+      "testIds": ["TEST-002", "TEST-005", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": ["AC-012"],
+      "planSection": "securityConsiderations NFR-002 / dataModel.flowDescription (email channel)",
+      "taskIds": ["T1.3", "T1.4", "T3.3"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": ["AC-013", "AC-014"],
+      "planSection": "apiContracts /api/notifications/push/* / dataModel.entities PushSubscription",
+      "taskIds": ["T1.2", "T2.2", "T2.4", "T4.4"],
+      "testIds": ["TEST-003", "TEST-005"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": ["AC-015"],
+      "planSection": "architecture.components server/src/utils/webPush.ts#sendPushToUser",
+      "taskIds": ["T1.5", "T4.4"],
+      "testIds": ["TEST-003"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": ["AC-011"],
+      "planSection": "apiContracts PUT /api/profile/notifications / dataModel.entities User",
+      "taskIds": ["T2.3", "T2.4"],
+      "testIds": ["TEST-004"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": ["AC-007"],
+      "planSection": "dataModel.entities Notification (TTL 90 days) / performanceConsiderations NFR-004",
+      "taskIds": ["T1.1"],
+      "testIds": ["TEST-001"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": ["AC-010", "AC-013"],
+      "planSection": "architecture.components client/src/features/notifications/ + pages",
+      "taskIds": ["T4.1", "T4.2", "T4.3", "T4.4"],
+      "testIds": ["TEST-005", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": ["AC-007", "AC-008"],
+      "planSection": "securityConsiderations NFR-001 / apiContracts GET /api/notifications",
+      "taskIds": ["T1.4", "T2.1", "T3.3"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": ["AC-012"],
+      "planSection": "securityConsiderations NFR-002 (escaped email HTML)",
+      "taskIds": ["T1.4"],
+      "testIds": ["TEST-001"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": ["AC-013", "AC-015"],
+      "planSection": "securityConsiderations NFR-003 (VAPID/email configuration)",
+      "taskIds": ["T1.5", "T2.2"],
+      "testIds": ["TEST-003"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": ["AC-015"],
+      "planSection": "securityConsiderations NFR-004 / performanceConsiderations NFR-004",
+      "taskIds": ["T1.3", "T1.4", "T1.5"],
+      "testIds": ["TEST-001"],
+      "status": "complete"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "feature": "releases",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Release model and pure helpers",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Release model with the per-project unique name",
+          "description": "server/src/models/releaseModel.ts: workspace, project, name, nameKey, description, startDate, releaseDate, status, releasedAt and createdBy, with the unique { workspace, project, nameKey } index and the nameKey set in a pre-validate hook.",
+          "linkedRequirements": ["FR-001", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Pure progress and release-notes helpers with tests",
+          "description": "server/src/utils/releaseNotes.ts (summarizeProgress, isReleaseOverdue, NOTE_GROUPS, taskKey, buildReleaseNotes) and server/src/__tests__/releaseNotes.test.ts covering the grouping, the overdue rule and the notes for finished and unfinished releases.",
+          "linkedRequirements": ["FR-006", "FR-009", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-004", "AC-010", "AC-011"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Release API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Validation chains and the create, update and delete handlers",
+          "description": "validateCreateRelease/validateUpdateRelease plus createRelease (project in workspace, date order, release.created), updateRelease (archive, reopen clearing releasedAt, refusing released, date re-check) and deleteRelease (unassigning the tasks and recording the count).",
+          "linkedRequirements": ["FR-002", "FR-003", "FR-008", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "List and detail with derived progress",
+          "description": "listReleases with the project filter, the status ordering and the progress per release computed from one task query, and getRelease with the project, the keyed tasks and the non-epic progress.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-006", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-004", "AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Release action with the unfinished-work choice",
+          "description": "validateReleaseAction and releaseRelease: only unreleased, moveOpenTo resolved to another unreleased release of the same project, the conditional status update with its conflict, the move of unfinished tasks and their subtasks, one activity entry per moved task and the { release, movedTasks } response.",
+          "linkedRequirements": ["FR-007", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Release notes endpoint",
+          "description": "getReleaseNotes builds the notes from the completed tasks of the release and returns { markdown, groups } as JSON, or the Markdown alone with ?format=markdown as text/markdown.",
+          "linkedRequirements": ["FR-009", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Router wiring with its permissions",
+          "description": "server/src/routes/releaseRoutes.ts declares the seven routes with protect and requirePermission('projects:read'|'projects:write') and is mounted at /:slug/releases from server/src/routes/workspaceRoutes.ts.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-007", "FR-008", "FR-009", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-005", "AC-006", "AC-010"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Task and roadmap integration",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Task release assignment rules",
+          "description": "The release field on the task model and the rules in server/src/controllers/taskController.ts: resolveRelease (workspace, unreleased, same project or adopt the release's project, no epics), reconcileRelease (drop on a project change) and the same rules for the bulk update, with subtasks following their parent.",
+          "linkedRequirements": ["FR-011", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Roadmap release milestones",
+          "description": "ReleaseMarker, releaseMarkers and describeReleaseMarker in client/src/features/planning/lib/roadmap.ts, used by RoadmapPage to place the dated releases of the selected project on the axis and to open the release page from a marker.",
+          "linkedRequirements": ["FR-012"],
+          "linkedAcceptanceCriteria": ["AC-013"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Releases UI",
+      "dependencies": ["P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Client releases module: types, api and hooks",
+          "description": "client/src/features/releases with types.ts, api.ts, index.ts and the hooks useReleases (shared through the query cache), useRelease and useReleaseStatus, all requests through the shared axios instance.",
+          "linkedRequirements": ["FR-004", "FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Releases tab, cards and dialogs",
+          "description": "ReleasesTab, ReleaseCard, ReleaseStatusTag, ReleaseFormDialog, ReleaseNowDialog and ReleaseDialogs: the three status sections with an archive toggle, the create/edit form with its date rule, the release dialog asking where unfinished tasks go, and the archive/reopen/delete actions.",
+          "linkedRequirements": ["FR-003", "FR-007", "FR-008", "FR-010"],
+          "linkedAcceptanceCriteria": ["AC-006", "AC-007", "AC-008", "AC-009", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Release page with progress and notes",
+          "description": "client/src/pages/ReleasePage.tsx: breadcrumbs, status tag, dates and due line, the progress ring and description of the progress, the tasks grouped by status, the notes panel and the release/archive/reopen/edit/delete actions gated on projects:write.",
+          "linkedRequirements": ["FR-005", "FR-009", "FR-010"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-010", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Task release field and label",
+          "description": "TaskReleaseField (select built from releaseOptionsFor with 'No release' first), TaskReleaseLabel (link to the release page) and TaskReleaseDetail in the task form and details block.",
+          "linkedRequirements": ["FR-010", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T4.5",
+          "title": "Client tests for the helpers, components and markers",
+          "description": "client/src/features/releases/__tests__/lib.test.ts (progress, dates, suggestions, options, grouping, notes parsing), components.test.tsx (notes rendered as text, the release dialog choices, the form rules) and roadmapMarkers.test.ts.",
+          "linkedRequirements": ["FR-010", "FR-012", "NFR-003", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-013"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

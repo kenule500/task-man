@@ -1,0 +1,103 @@
+{
+  "feature": "wiki-pages",
+  "version": 1,
+  "architecture": {
+    "approach": "Store the wiki as a tree of Markdown documents plus a bounded history. Two collections carry it: Page (title, slug, content, parent, position, project, optimistic-concurrency version, archived flag, creator/editor) and PageVersion (a snapshot of the previous title/content/version per edit). Everything that is not persistence or transport is a pure function in server/src/utils/pages.ts — slug generation and uniqueness, task-key extraction, depth and subtree measurement, move legality and search snippets — so the tree rules are decided and tested in one place. The controller validates through express-validator chains, applies the pure rules, and records page.created/updated/deleted in the shared activity log; the routes are permission scoped per operation under /api/workspaces/:slug/pages, which gets its own 400 kB JSON parser because a document is much larger than an ordinary API body. On the client the wiki is a feature module whose tree, markdown and mention helpers live in lib/ with tests, and whose reader renders Markdown through react-markdown with a custom remark plugin that links the task keys the server resolved.",
+    "components": [
+      { "name": "server/src/models/pageModel.ts", "action": "create", "description": "Page schema with MAX_PAGE_TITLE 120, MAX_PAGE_CONTENT 100k, MAX_PAGE_DEPTH 3, MAX_PAGE_VERSIONS 20, the unique (workspace, project, slug) index and the (workspace, project, parent, position) index." },
+      { "name": "server/src/models/pageVersionModel.ts", "action": "create", "description": "PageVersion snapshot schema with the unique (page, version) index." },
+      { "name": "server/src/utils/pages.ts", "action": "create", "description": "Pure helpers: slugify, uniqueSlug, extractTaskKeys (MAX_MENTIONS 50), depthOf, subtreeHeight, isSelfOrDescendant, canMoveUnder, snippetAround, escapeRegex." },
+      { "name": "server/src/controllers/pageController.ts", "action": "create", "description": "listPages, searchPages, getPage, createPage, updatePage, deletePage, movePage, listVersions, getVersion, restoreVersion plus the validation chains, project resolution, mention resolution and activity recording." },
+      { "name": "server/src/routes/pageRoutes.ts", "action": "create", "description": "Ten routes on one router (protect once, then a permission per route), with /search declared before /:id." },
+      { "name": "server/src/app.ts", "action": "modify", "description": "Mounts express.json({ limit: '400kb' }) for /api/workspaces/:slug/pages before the general 100 kB parser." },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "modify", "description": "Mounts the pages router at /:slug/pages." },
+      { "name": "client/src/features/wiki/", "action": "create", "description": "Feature module: api, types, hooks (useWikiTree, useWikiPage, useWikiSearch), lib (tree, markdown toolbar edits, mentions) and components (WikiNav, WikiTree, WikiDocument, PageEditor, MarkdownView, ConflictDialog, VersionHistorySheet, TaskMentionPicker, NewPageDialog, ProjectWikiTab)." },
+      { "name": "client/src/pages/WikiPage.tsx", "action": "create", "description": "Workspace wiki screen: tree, selected page, editor, conflict dialog, version sheet and delete flow." },
+      { "name": "client/src/features/projects/components/ProjectWorkspace.tsx", "action": "modify", "description": "Renders ProjectWikiTab for the project-scoped wiki." },
+      { "name": "client/src/App.tsx", "action": "modify", "description": "Lazy routes for the workspace and project wiki screens." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Page",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "project", "type": "String max 60 ('' = workspace wiki)", "action": "add" },
+          { "name": "parent", "type": "ObjectId ref Page", "action": "add", "nullable": true },
+          { "name": "title", "type": "String 1..120", "action": "add" },
+          { "name": "slug", "type": "String max 160", "action": "add" },
+          { "name": "content", "type": "String max 100000 (Markdown)", "action": "add" },
+          { "name": "position", "type": "Number (order among siblings)", "action": "add" },
+          { "name": "createdBy", "type": "ObjectId ref User", "action": "add", "nullable": true },
+          { "name": "updatedBy", "type": "ObjectId ref User", "action": "add", "nullable": true },
+          { "name": "version", "type": "Number (optimistic concurrency, starts at 1)", "action": "add" },
+          { "name": "archived", "type": "Boolean", "action": "add" }
+        ]
+      },
+      {
+        "name": "PageVersion",
+        "action": "create",
+        "fields": [
+          { "name": "page", "type": "ObjectId ref Page", "action": "add" },
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "version", "type": "Number (unique per page)", "action": "add" },
+          { "name": "title", "type": "String max 120", "action": "add" },
+          { "name": "content", "type": "String max 100000", "action": "add" },
+          { "name": "editedBy", "type": "ObjectId ref User", "action": "add", "nullable": true },
+          { "name": "createdAt", "type": "Date", "action": "add" }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "action", "type": "String (page.created | page.updated | page.deleted already in ACTIVITY_ACTIONS)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Create: the controller resolves the project name, checks that the parent is in the same wiki and that depthOf(parent) + 1 stays within three levels, computes the next sibling position, then picks a slug (uniqueSlug over the slugs already taken, with up to three attempts on a duplicate-key error), stores the page and records page.created. Read: a full read populates the creator/editor and resolves the task keys of the content against the workspace's projects and tasks to return a mentions list. Edit: the stored version is compared with the submitted one; a mismatch returns 409 with the latest page, a no-op returns the page unchanged, and a real change runs one atomic findOneAndUpdate guarded by the version, snapshots the pre-edit document into PageVersion, prunes snapshots beyond the newest twenty, and records page.updated. Move/delete: the whole tree of that wiki is loaded as a node map, canMoveUnder decides legality, siblings are re-numbered, children of a deleted page are re-parented to its parent, and the deleted page's versions are removed. Search: a two-character minimum, escapeRegex on the query, a case-insensitive match on title or content and snippetAround for the excerpt. The Activity row is listed as no_change because page.created, page.updated and page.deleted already exist in ACTIVITY_ACTIONS; the wiki feature is one of the writers of that log."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/pages", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/pages", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-002", "FR-003", "FR-011", "FR-012"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/pages/search", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-007", "NFR-001"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/pages/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-008", "NFR-001"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/pages/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-004", "FR-005", "FR-011"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/pages/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "FR-011", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/pages/:id/move", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-003", "FR-006"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/pages/:id/versions", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "NFR-001"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/pages/:id/versions/:version", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/pages/:id/restore/:version", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "FR-011"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "pageRoutes applies protect once and then one requirePermission per route (tasks:read, tasks:write, tasks:delete); every query filters by workspaceIdOf(req) and the project name, so a page id from another workspace never matches." },
+    { "requirementId": "NFR-002", "description": "The reader renders Markdown with react-markdown, which does not render raw HTML and drops unsafe URL schemes through its default urlTransform; external links are given target=_blank with rel=noopener noreferrer, and the comment in MarkdownView.tsx records that decision. No dangerouslySetInnerHTML exists in the client (CON-517)." },
+    { "requirementId": "NFR-003", "description": "Content and nesting are capped in the model (title 120, content 100 000, depth 3, twenty versions) and in app.ts (400 kB JSON body for this path only), so the largest accepted page is known." },
+    { "requirementId": "NFR-004", "description": "Search never uses user input as a pattern: escapeRegex is applied before the RegExp is built, the query must be at least two characters, and the project filter is a resolved, exact name." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-001", "strategy": "The tree is fetched with a projection that omits content, and the full read happens only for the selected page; a full read resolves mentions with two bounded queries (projects by key, tasks by number) instead of one query per key." },
+    { "requirementId": "NFR-003", "strategy": "Snapshots are pruned to twenty per page after every write, and deletion removes a page's snapshots with it, so history cannot grow without bound." },
+    { "requirementId": "NFR-004", "strategy": "Search is restricted to the requested wiki (workspace plus project) and returns at most the default page of results with a snippet built from the stored content rather than a full-document response." },
+    { "requirementId": "NFR-002", "strategy": "The Markdown renderer is lazy-loaded with the wiki route and memoised on its inputs (MarkdownView is a memo component), so the rest of the app does not pay for the markdown pipeline." }
+  ],
+  "dependencies": [
+    { "name": "react-markdown + remark-gfm", "type": "library", "action": "add", "notes": "Rendering pipeline of the reader; raw HTML is not rendered and URL schemes are sanitised." },
+    { "name": "express.json({ limit: '400kb' })", "type": "internal", "action": "add", "notes": "Path-specific parser mounted before the general 100 kB parser in app.ts." },
+    { "name": "Mongoose unique indexes", "type": "internal", "action": "add", "notes": "(workspace, project, slug) prevents duplicate slugs; (page, version) prevents duplicate snapshots." },
+    { "name": "server/src/utils/activity.ts", "type": "internal", "action": "no_change", "notes": "Page lifecycle entries are written through recordActivity." }
+  ],
+  "risks": [
+    { "description": "Concurrent edits losing text.", "mitigation": "Version-checked edits with a 409 that returns the latest page, a snapshot taken before each accepted edit, and a client dialog that offers the newer text." },
+    { "description": "A crafted move creating a cycle or a deeper tree than the limit.", "mitigation": "canMoveUnder combines isSelfOrDescendant with a depth-plus-subtree-height budget and is the only path that authorises a move." },
+    { "description": "Markdown rendering turning into an injection or a tracking vector.", "mitigation": "No raw HTML, sanitised URL schemes, noopener/noreferrer on external links, images rendered as links so reading a page triggers no third-party request." },
+    { "description": "Unbounded storage from edit history and content size.", "mitigation": "Twenty snapshots per page, hard model caps on title/content, and a 400 kB body limit for this path only." }
+  ]
+}

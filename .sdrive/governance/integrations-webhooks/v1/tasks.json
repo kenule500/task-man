@@ -1,0 +1,209 @@
+{
+  "feature": "integrations-webhooks",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "GitHub integration",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Store the GitHub integration on the workspace",
+          "description": "Add integrations.github (enabled, secret with select:false, autoTransition, connectedAt) to server/src/models/workspaceModel.ts and mount the raw-body parser for /api/integrations/github before express.json in server/src/app.ts.",
+          "linkedRequirements": ["FR-001", "FR-002", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-004"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Write the pure GitHub event helpers",
+          "description": "Add server/src/utils/githubEvents.ts: verifySignature and signBody (constant-time HMAC-SHA256), extractTaskKeys with per-surface case rules and caps, safeGithubUrl, TRANSITIONS/nextStatus and the payload-to-plan function.",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Build the webhook receiver",
+          "description": "Add server/src/controllers/githubWebhookController.ts and server/src/routes/integrationRoutes.ts: slug pattern check, workspace lookup with the integration enabled, decoy verification for unknown slugs, ping/ignored/invalid-JSON answers, upsertTaskLink, transitionTask and the audited task.updated entry.",
+          "linkedRequirements": ["FR-002", "FR-004", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Expose the GitHub settings API",
+          "description": "Add server/src/controllers/integrationController.ts and the five workspace routes: view (secret only while enabled, Cache-Control no-store), enable, regenerate-secret (409 when disabled), PATCH autoTransition with a validator and disable, each audited as integration.updated.",
+          "linkedRequirements": ["FR-001", "NFR-001", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Cover the integration with integration tests",
+          "description": "Add server/src/__integration__/github.test.ts: settings API behaviour, webhook authentication (signature, slug probing, ping) and linking/transitions.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-003", "FR-004"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-004", "AC-005", "AC-006"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Outbound webhooks",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Model webhooks and deliveries",
+          "description": "Add server/src/models/webhookModel.ts (secret select:false, events, active, failureCount, lastDeliveryAt, caps 10 and 20) and server/src/models/webhookDeliveryModel.ts (status, attempt, responseStatus, durationMs, error, requestBody 8 KB, 14-day TTL).",
+          "linkedRequirements": ["FR-005", "FR-007", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Write the payload and signature helpers",
+          "description": "Add server/src/utils/webhooks/payload.ts: generateWebhookSecret, signBody/verifySignature, matchesEvent and buildPayload with the byte budget that keeps the stored body re-sendable.",
+          "linkedRequirements": ["FR-007"],
+          "linkedAcceptanceCriteria": ["AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Implement the SSRF guard",
+          "description": "Add server/src/utils/webhooks/ssrf.ts: checkWebhookUrl (scheme, credentials, port per environment, blocked IP literals), isBlockedAddress and resolvePublicAddresses with IPv4/IPv6 classification and the production/development port sets.",
+          "linkedRequirements": ["FR-008", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Implement signed delivery and its log",
+          "description": "Add server/src/utils/webhooks/deliver.ts: sendWebhookRequest with a 5 s timeout, the guarded lookup, redirects disabled and the body discarded; deliverToWebhook that records the attempt and maintains failureCount/lastDeliveryAt/auto-disable.",
+          "linkedRequirements": ["FR-007", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Dispatch recorded activity to webhooks",
+          "description": "Add server/src/utils/webhooks/register.ts: payloadForActivity (workspace slug, actor, summary, task key and url, changes) and dispatchActivity, registered once per process with registerWebhooks() in server/src/app.ts.",
+          "linkedRequirements": ["FR-007"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T2.6",
+          "title": "Expose the webhook management API",
+          "description": "Add server/src/controllers/webhookController.ts and server/src/routes/webhookRoutes.ts: list/create/update/delete with the cap and SSRF check, one-time secret, rotate-secret, test ping, deliveries list and redeliver, all behind protect + rejectApiToken + settings:manage.",
+          "linkedRequirements": ["FR-005", "FR-006", "NFR-001", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T2.7",
+          "title": "Cover signing, matching and the guard with unit tests",
+          "description": "Add server/src/__tests__/webhooks.test.ts: signing/verification, event matching and payload trimming, isBlockedAddress classification, checkWebhookUrl rules and the resolution/target validation path.",
+          "linkedRequirements": ["FR-003", "FR-007", "FR-008"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.8",
+          "title": "Cover webhook management with integration tests",
+          "description": "Add server/src/__integration__/webhooks.test.ts: access, create/manage (cap, validation, one-time secret, rotate, test), delivery (local receiver, failure counting) and the SSRF guard.",
+          "linkedRequirements": ["FR-005", "FR-006", "FR-007", "FR-008", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-008", "AC-009", "AC-010"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Personal API tokens",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Model tokens and their generation",
+          "description": "Add server/src/models/apiTokenModel.ts and server/src/utils/apiTokens.ts: tm_ + base62 generation without modulo bias, keyed PBKDF2 digest, format check, scope/expiry helpers and the caps (10 active, 365 days, name 60).",
+          "linkedRequirements": ["FR-009", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Authenticate tokens in protect",
+          "description": "Extend server/src/middleware/authMiddleware.ts: recognise a token, resolve it by digest, refuse it outside workspace routes, refresh lastUsedAt at most once a minute, attach req.apiToken, and add the rejectApiToken middleware.",
+          "linkedRequirements": ["FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Bind tokens to a workspace and to their scopes",
+          "description": "Extend server/src/middleware/permissionMiddleware.ts: refuse a token for another workspace, refuse a permission the token lacks, and set req.permissions to the intersection of the role and the scopes.",
+          "linkedRequirements": ["FR-010", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Expose the token API",
+          "description": "Add server/src/controllers/tokenController.ts and server/src/routes/tokenRoutes.ts: list (own, active), create (scope subset, cap, expiry) and revoke (own, or any with settings:manage), recording token.created/token.revoked, behind protect + rejectApiToken + tasks:read.",
+          "linkedRequirements": ["FR-009", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Cover the token lifecycle with tests",
+          "description": "Add server/src/__tests__/apiTokens.test.ts (generation, digest, scope and expiry helpers) and server/src/__integration__/apiTokens.test.ts (create/list/revoke, scope enforcement, workspace binding, rejectApiToken).",
+          "linkedRequirements": ["FR-009", "FR-010"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-012"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Client surfaces",
+      "dependencies": ["P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Build the developers feature module",
+          "description": "Add client/src/features/developers: api (tokensApi, webhooksApi), hooks, lib/catalog (scope groups, expiry options, event groups and labels), lib/snippets (curl and signature verification) and the dialogs, lists and sections.",
+          "linkedRequirements": ["FR-011"],
+          "linkedAcceptanceCriteria": ["AC-013", "AC-014"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Add the developers page",
+          "description": "Add client/src/pages/DevelopersPage.tsx using useAuthGuard and Sidebar, hosting TokensSection and WebhooksSection with their hooks.",
+          "linkedRequirements": ["FR-011", "FR-009", "FR-005"],
+          "linkedAcceptanceCriteria": ["AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Build the GitHub integration card",
+          "description": "Add client/src/features/integrations (api, types, GitHubIntegrationCard) and host it in client/src/pages/WorkspaceSettingsPage.tsx: enable, copy the receiver URL and secret, switch autoTransition, regenerate and disable.",
+          "linkedRequirements": ["FR-012", "FR-001"],
+          "linkedAcceptanceCriteria": ["AC-013", "AC-001"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Cover the client surfaces with tests",
+          "description": "Add client/src/features/developers/__tests__/{components,lib}.test.tsx, client/src/features/integrations/__tests__/GitHubIntegrationCard.test.tsx and the workspace settings page test.",
+          "linkedRequirements": ["FR-011", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-013", "AC-014"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "feature": "notifications",
+  "title": "Notifications (in-app, email and Web Push)",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Team work is distributed over tasks, comments and assignments, so a member had no way to learn that a task was assigned to them or that they were mentioned in a comment unless they happened to reopen the right task. Task writes (server/src/controllers/taskController.ts, taskExtrasController.ts) therefore needed a fan-out step that records what happened to whom and, when the recipient allows it, reaches them by email or by device notification.",
+    "proposedSolution": "Recorded events are turned into recipient plans by pure rules in server/src/utils/notify.ts (addedAssignees, planTaskNotifications, planCommentNotifications, resolveMentions, wantsEmail, wantsPush), stored as Notification documents (server/src/models/notificationModel.ts), and delivered by server/src/utils/notify.ts#deliver, which inserts one row per recipient, then optionally sends Web Push (server/src/utils/webPush.ts) and email (server/src/utils/sendEmail.ts + emailTemplates.ts) according to the recipient's stored preferences. The client exposes a bell (client/src/features/notifications/components/NotificationBell.tsx) that polls GET /api/notifications, an inbox page (client/src/pages/InboxPage.tsx), toasts for new unread items (hooks/useNewNotificationToasts.ts), mention autocomplete (lib/mentions.ts) and device settings (components/PushDeviceSettings.tsx).",
+    "targetAudience": "Signed-in workspace members who are assigned tasks, mentioned in comments, own commented tasks, watch tasks they commented on, or configure their own notification channels; and the workspace administrators who run the server that sends them.",
+    "assumptions": [
+      "The weeklyDigest preference is stored and returned by PUT /api/profile/notifications, but no digest sender, scheduler or cron entry was found in server/src during this onboarding; the switch is documented as stored-only.",
+      "In-app notifications are considered delivered only through HTTP polling: no websocket layer exists (see .sdrive/context/architecture-context.md), so the bell polls every 60 s while the tab is visible.",
+      "Push delivery assumes a service worker registered by the client PWA layer (client/src/pwa) and a browser that supports the Push API; on iOS this requires the app to be installed to the Home Screen (client/src/features/notifications/lib/push.ts)."
+    ],
+    "outOfScope": [
+      "Sending a scheduled weekly digest email (preference exists, sender does not).",
+      "Notification preferences per workspace: the stored switches in server/src/models/userModel.ts are global to the user.",
+      "Digest/push for events other than the four NOTIFICATION_TYPES in server/src/models/notificationModel.ts (task.assigned, task.completed, comment.mention, comment.reply_on_my_task)."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Be told when a task is assigned to me",
+      "role": "workspace member",
+      "want": "an in-app notification when someone adds me as an assignee of a task, plus an email or device notification when I allow it",
+      "benefit": "I start work that is waiting for me without having to poll the board",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "Adding a member to a task's assignees creates exactly one task.assigned notification for that member, and never for the member who made the change." },
+        { "id": "AC-002", "text": "Updating a task notifies only the assignees that the update added, compared with the previous assignee list (server/src/utils/notify.ts#addedAssignees); saving an unchanged list notifies nobody." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Know when work that concerns me is completed",
+      "role": "task owner, assignee or watcher",
+      "want": "a notification when a task becomes completed",
+      "benefit": "I can confirm the work myself instead of discovering the change later",
+      "acceptanceCriteria": [
+        { "id": "AC-003", "text": "Moving a task into the completed status notifies the owner, the assignees and the watchers once each, excluding the actor; creating a task that is already completed, or saving a completed task again, notifies nobody." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Reach teammates with @mentions in comments",
+      "role": "member commenting on a task",
+      "want": "the members I tag with @Name to be notified, and the task's other people to hear about the comment once",
+      "benefit": "the right people see my question without me having to message them elsewhere",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "resolveMentions tags \"@First Last\" and a \"@first\" that no other member shares, case-insensitively, only at a word boundary, longest label first, and ignores names that are not workspace members." },
+        { "id": "AC-005", "text": "Mentioned members receive comment.mention and the task's owner, assignees and watchers receive comment.reply_on_my_task once each; the comment author is never notified, even when they tag themself." },
+        { "id": "AC-006", "text": "Commenting subscribes the author as a watcher of the task (server/src/utils/notify.ts#notifyComment), and comment notifications carry a comment excerpt in the email body." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Read and clear my own notifications",
+      "role": "signed-in user",
+      "want": "a bell with the unread total, an inbox list and a way to mark one or all items as read",
+      "benefit": "I can catch up quickly and remove the badge when I am done",
+      "acceptanceCriteria": [
+        { "id": "AC-007", "text": "GET /api/notifications returns the caller's notifications newest first with nextBefore and unreadCount, defaults to 20 items, caps limit at 50, supports unread=1 and answers 400 for a malformed before cursor." },
+        { "id": "AC-008", "text": "POST /api/notifications/:id/read is idempotent, answers 404 for an unknown id or another user's notification, and leaves another user's notification unread." },
+        { "id": "AC-009", "text": "POST /api/notifications/read-all marks only the caller's unread notifications and answers unreadCount 0." },
+        { "id": "AC-010", "text": "The bell polls every 60 s while the tab is visible, refetches when the window regains focus, shows \"99+\" above 99 unread and announces reads so every mounted list refetches (hooks/useNotificationFeed.ts)." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Choose how I am notified",
+      "role": "signed-in user",
+      "want": "switches for email, per-event email and device notifications",
+      "benefit": "I receive what is useful to me and nothing else",
+      "acceptanceCriteria": [
+        { "id": "AC-011", "text": "PUT /api/profile/notifications accepts only real booleans for email, taskAssigned, taskCompleted, weeklyDigest and push, updates just the provided keys and answers 400 for a non-boolean value." },
+        { "id": "AC-012", "text": "An email is sent only when the recipient's notifications.email and the matching event flag allow it (email for assignment, taskCompleted for completion); push is sent unless notifications.push is false." }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Get device notifications",
+      "role": "user on a supported browser",
+      "want": "to switch Web Push on for this device and off again",
+      "benefit": "I notice work that needs me even when the app is closed",
+      "acceptanceCriteria": [
+        { "id": "AC-013", "text": "GET /api/notifications/push/public-key reports the VAPID public key with enabled, and POST /api/notifications/push/subscribe answers 503 while VAPID keys are unset." },
+        { "id": "AC-014", "text": "Subscribing upserts by endpoint, requiring an https endpoint of at most 2048 characters and base64url p256dh/auth keys (at most 200 characters each); an endpoint already used by another account moves to the caller." },
+        { "id": "AC-015", "text": "Sending push deletes the subscriptions the push service reports as gone (404/410), refreshes lastUsedAt for the ones that answered, and never throws, so a push outage cannot fail the request that caused the notification." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "Task create/update handlers record in-app notifications for assignment and completion by calling notifyTaskEvents with the task and, on update, the previous assignee and status snapshot (server/src/controllers/taskController.ts).", "linkedAcceptanceCriteria": ["AC-001", "AC-003"] },
+    { "id": "FR-002", "text": "The notification audience is derived from the previous snapshot: only newly added assignees, and completion only on the transition into completed, with owner, assignees and watchers de-duplicated and the actor removed.", "linkedAcceptanceCriteria": ["AC-002", "AC-003"] },
+    { "id": "FR-003", "text": "Comment handlers resolve mentions and record mention plus follow-up notifications, and commenting adds the author to the task's watchers.", "linkedAcceptanceCriteria": ["AC-005", "AC-006"] },
+    { "id": "FR-004", "text": "Mentions are resolved against the names of current workspace members by pure rules that accept a full name or a unique first name, ignoring case and requiring a word boundary.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-005", "text": "GET /api/notifications serves the caller's notifications across the workspaces they still belong to, newest first, with cursor pagination, an unread filter and an unread total, and projects the actor, task (with its display key) and workspace.", "linkedAcceptanceCriteria": ["AC-007"] },
+    { "id": "FR-006", "text": "A single notification or all of the caller's notifications can be marked read; both operations are idempotent, scoped to the caller and report 404 for an id that is not theirs.", "linkedAcceptanceCriteria": ["AC-008", "AC-009"] },
+    { "id": "FR-007", "text": "Email is delivered to the recipients whose preferences allow it, using the shared notification template that escapes user-controlled text in HTML (server/src/utils/emailTemplates.ts#notificationTemplate).", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "FR-008", "text": "A browser's Web Push subscription can be registered and removed; registration is refused with 503 while the server has no VAPID configuration and validates the endpoint and key format.", "linkedAcceptanceCriteria": ["AC-013", "AC-014"] },
+    { "id": "FR-009", "text": "Web Push is sent to every subscription of a recipient with a 24 h TTL, subscriptions answering 404/410 are deleted, lastUsedAt is refreshed for the others and every failure is logged rather than thrown.", "linkedAcceptanceCriteria": ["AC-015"] },
+    { "id": "FR-010", "text": "Notification channel preferences (email, taskAssigned, taskCompleted, weeklyDigest, push) are stored on the user document with defaults and updated through PUT /api/profile/notifications.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "FR-011", "text": "In-app notifications are removed by MongoDB after 90 days through a TTL index on createdAt (server/src/models/notificationModel.ts).", "linkedAcceptanceCriteria": ["AC-007"] },
+    { "id": "FR-012", "text": "The client surfaces notifications: a bell with the unread badge that opens the item, an inbox page with all/unread filters and paging, toasts for new unread items (at most three, then a \"+N more\" toast), mention autocomplete in the comment box and a device settings panel.", "linkedAcceptanceCriteria": ["AC-010", "AC-013"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Every notification read and write is scoped to the authenticated user, and delivery skips recipients who are no longer members of the workspace (CON-106, CON-512).", "linkedAcceptanceCriteria": ["AC-007", "AC-008"] },
+    { "id": "NFR-002", "text": "User-controlled text is always rendered as text: email HTML escapes it and the client renders strings as React children, so a task title or comment cannot inject markup (CON-517).", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "NFR-003", "text": "VAPID and mail credentials are read from the environment at call time, are never logged, and push is silently disabled when the configuration is incomplete (CON-206, CON-519).", "linkedAcceptanceCriteria": ["AC-013", "AC-015"] },
+    { "id": "NFR-004", "text": "Notification fan-out is best-effort and cannot fail the user's write: notify helpers catch and log every error, so a mail or push outage only loses that channel (CON-105).", "linkedAcceptanceCriteria": ["AC-015"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "The recipient's browser or the server cannot do push (unsupported browser, no VAPID keys, permission denied).", "expectedBehavior": "The device panel shows unsupported, unavailable or denied; the public-key endpoint reports enabled false and subscribe answers 503, while in-app notifications and email keep working." },
+    { "id": "EC-002", "description": "The only new assignee is the person who made the change.", "expectedBehavior": "No notification is created, because the actor is filtered out of every plan (addedAssignees followed by the actor filter)." },
+    { "id": "EC-003", "description": "A recipient leaves the workspace between the event and delivery.", "expectedBehavior": "deliver() intersects the planned recipients with the workspace's current member list, so nothing is stored or sent for them." },
+    { "id": "EC-004", "description": "A user comments on a task they own and mention nobody, or mentions only themself.", "expectedBehavior": "No notification is created for that user; the task still records the comment and the mention list resolved for it." },
+    { "id": "EC-005", "description": "A page of notifications contains items the client has never seen but that are older than the newest seen item.", "expectedBehavior": "findNewUnread ignores them (they are not newer than the latest seen createdAt), so the bell does not toast history when paging deeper." }
+  ],
+  "dependencies": [
+    { "name": "web-push", "type": "library", "notes": "Sends VAPID-signed Web Push messages; the module is disabled without error while the keys are missing (server/src/utils/webPush.ts)." },
+    { "name": "nodemailer", "type": "library", "notes": "SMTP transport, used only when EMAIL_HOST is set (server/src/utils/sendEmail.ts)." },
+    { "name": "Resend HTTP API", "type": "service", "notes": "Preferred mail provider via RESEND_API_KEY; works on serverless hosts where SMTP may not." },
+    { "name": "Mongoose (MongoDB)", "type": "internal", "notes": "Notification and PushSubscription models, including the 90-day TTL index." },
+    { "name": "client service worker (PWA)", "type": "internal", "notes": "Required for Web Push delivery to the browser (client/src/pwa, features/notifications/hooks/usePushSubscription.ts)." },
+    { "name": "VAPID key pair", "type": "external", "notes": "VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT must all be set for push to be enabled." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "A slow or failing mail or push provider delays the task write, because delivery is awaited inside the request.", "mitigation": "Every send is wrapped in try/catch or Promise.allSettled and failures are logged only; the in-app row is stored before any channel is attempted." },
+    { "id": "RISK-002", "description": "A mention pattern could tag the wrong member when two people share a first name.", "mitigation": "resolveMentions only accepts a first name that no other member shares and prefers the longest matching label, so \"@Ann Lee\" never also tags \"Ann\"." },
+    { "id": "RISK-003", "description": "Notifications are stored for every recipient of every event, which grows the collection.", "mitigation": "A TTL index deletes in-app notifications after 90 days and the list endpoint is capped at 50 rows per page." }
+  ]
+}

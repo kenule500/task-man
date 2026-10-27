@@ -1,0 +1,153 @@
+{
+  "feature": "time-tracking",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Entry model and pure helpers",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "TimeEntry model with the single-timer index",
+          "description": "server/src/models/timeEntryModel.ts: workspace, task, user, startedAt, endedAt, minutes, note and running with the { workspace, user, startedAt } and { task } indexes plus the partial unique index on { workspace, user } where running is true.",
+          "linkedRequirements": ["FR-001", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Pure time tracking helpers and their tests",
+          "description": "server/src/utils/timeTracking.ts (minutesBetween, timerEnd, dayKey, parseRangeBound, summarizeEntries, formatMinutes, csvCell, toCsvRows) with server/src/__tests__/timeTracking.test.ts.",
+          "linkedRequirements": ["FR-004", "FR-009", "NFR-003", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-012", "AC-013"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Task-scoped endpoints",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Manual logging with its validation chain",
+          "description": "addTimeEntry and validateTimeEntry in server/src/controllers/timeController.ts: minutes or start plus end, the 1440-minute ceiling, the 200-character note, the future-start guard and the 201 response with entry and loggedMinutes.",
+          "linkedRequirements": ["FR-002", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003", "AC-004"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Timer start and stop with the one-timer rule",
+          "description": "startTimer stops and logs a timer running elsewhere and returns the entry already running on the same task, stopTimer ends the entry with the 1440-minute cap and a minimum of one minute, and both rely on the partial unique index for the racing case.",
+          "linkedRequirements": ["FR-003", "FR-004", "FR-001"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Task total resync, deletion rules and the task time read",
+          "description": "syncLogged recomputes loggedMinutes from the stopped entries after log, stop and delete; deleteTimeEntry allows the author or settings:manage and logs time.deleted; getTaskTime returns the estimate, the total, the caller's running entry and up to 500 entries.",
+          "linkedRequirements": ["FR-005", "FR-006", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Route wiring on the tasks router",
+          "description": "GET/POST /:id/time, POST /:id/timer/start, POST /:id/timer/stop and DELETE /:id/time/:entryId on server/src/routes/taskRoutes.ts with tasks:read or tasks:write and the validation chain in place.",
+          "linkedRequirements": ["FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-005", "AC-007", "AC-009"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Timesheet and export",
+      "dependencies": ["P1", "P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Timesheet filters, totals and limits",
+          "description": "timesheetFilter and loadSheet in server/src/controllers/timeController.ts: range bounds, the user filter for settings:manage, the project filter through task ids, the stopped-only rule, the 5000-row limit with the truncated flag, and the totals by user, day and task with project keys resolved in one query.",
+          "linkedRequirements": ["FR-007", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Running timer endpoint",
+          "description": "getRunningTimer returns the caller's running entry with its task key, or { entry: null }, so the header pill and the task dialog read the same source.",
+          "linkedRequirements": ["FR-008", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "CSV export with the formula guard",
+          "description": "exportTimesheet reuses the filter logic with a 20000-row limit and writes the ten-column CSV with a UTF-8 byte-order mark, quoting through csvCell and a filename carrying the workspace slug and the day.",
+          "linkedRequirements": ["FR-009", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Workspace time router",
+          "description": "server/src/routes/timeRoutes.ts with /running, /export.csv and the timesheet at the root, mounted at /:slug/time from server/src/routes/workspaceRoutes.ts behind protect and requirePermission('tasks:read').",
+          "linkedRequirements": ["FR-007", "FR-008", "FR-009", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-012"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Time tracking UI",
+      "dependencies": ["P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Duration helpers and the shared timer store",
+          "description": "client/src/features/time/lib/duration.ts (parseDuration, formatDuration, describeDuration, formatElapsed, timeProgress, describeProgress) and timerStore.ts (subscribeTimer, getTimerSnapshot, refreshTimer, selectWorkspace, startTimer, stopTimer, notifyTimeChanged, TIME_CHANGED_EVENT).",
+          "linkedRequirements": ["FR-010", "FR-011", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Time section in the task dialog",
+          "description": "TaskTimeSection.tsx with the estimate field, the logged total, TimeProgressBar, the entry list, start and stop, LogTimePopover and deletion, backed by useTaskTime and useRunningTimer (reload on the time-changed event and on focus).",
+          "linkedRequirements": ["FR-011", "FR-005"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Header timer pill",
+          "description": "TimerPill.tsx rendering the running timer with the task key, the elapsed clock and a stop button, shown by the app shell and hidden without a timer or tasks:read.",
+          "linkedRequirements": ["FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Weekly timesheet page with CSV download",
+          "description": "TimesheetPage.tsx with week navigation (startOfIsoWeek, weekDayKeys, shiftWeekStart, weekRange), the person filter for managers, WeekGridTable built by buildWeekGrid, the totals and the export button downloading the blob from timeApi.exportCsv.",
+          "linkedRequirements": ["FR-012", "FR-007", "FR-009", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T4.5",
+          "title": "Client tests for the helpers and the UI",
+          "description": "client/src/features/time/__tests__/duration.test.ts, timesheet.test.ts and timeUi.test.tsx covering the duration parsing and formatting, the week grid and the time UI states.",
+          "linkedRequirements": ["FR-011", "FR-012", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-008", "AC-009", "AC-010"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

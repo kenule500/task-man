@@ -1,0 +1,154 @@
+{
+  "feature": "wiki-pages",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Models and pure tree rules",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Model pages and their versions",
+          "description": "Add server/src/models/pageModel.ts (title 120, content 100k, depth 3, versions 20, slug/position/version/archived, both indexes) and server/src/models/pageVersionModel.ts (snapshot with the unique (page, version) index).",
+          "linkedRequirements": ["FR-001", "FR-005", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Write the pure slug and mention helpers",
+          "description": "Add server/src/utils/pages.ts: slugify, uniqueSlug, extractTaskKeys with MAX_MENTIONS, snippetAround and escapeRegex.",
+          "linkedRequirements": ["FR-002", "FR-007", "FR-008", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-010", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Write the pure depth and move rules",
+          "description": "Add depthOf, subtreeHeight, isSelfOrDescendant and canMoveUnder to server/src/utils/pages.ts so nesting limits and cycle prevention are decided without the database.",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-002", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Cover the pure rules with unit tests",
+          "description": "Add server/src/__tests__/pages.test.ts for slugify/uniqueSlug, task-key extraction, snippets, escaping and the depth/move decisions.",
+          "linkedRequirements": ["FR-002", "FR-003", "FR-007", "FR-008", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-002", "AC-006", "AC-010"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Pages API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Implement listing, reading and searching",
+          "description": "Add listPages (tree rows without content, optional project with a 404 for an unknown one), getPage (with creator/editor populated and resolved mentions) and searchPages (two-character minimum, escaped case-insensitive match, snippets) to server/src/controllers/pageController.ts.",
+          "linkedRequirements": ["FR-001", "FR-007", "FR-008", "NFR-001", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-010", "AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Implement creation with slug and position rules",
+          "description": "createPage: project resolution, parent membership and depth check, next sibling position, unique slug with a retry on a duplicate key, page.created activity.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-003", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Implement version-guarded editing",
+          "description": "updatePage with the version check, the 409 answer carrying the latest page, the no-op shortcut, applyEdit (atomic findOneAndUpdate) and the snapshot/prune of the previous text, plus page.updated activity.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Implement move and delete",
+          "description": "movePage (canMoveUnder, re-numbering of siblings, answers the whole tree) and deletePage (children move up one level, the page's versions are deleted, page.deleted recorded).",
+          "linkedRequirements": ["FR-006", "FR-003", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Implement the version history endpoints",
+          "description": "listVersions (current version plus the newest twenty summaries), getVersion (one version with its content, 404 when unknown) and restoreVersion (the old text written as a new edit so the replaced text stays in history).",
+          "linkedRequirements": ["FR-005"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.6",
+          "title": "Declare the routes and the body limit",
+          "description": "Add server/src/routes/pageRoutes.ts (protect once, then a permission per route, /search before /:id), mount it at /:slug/pages in server/src/routes/workspaceRoutes.ts and add the 400 kB JSON parser for that path in server/src/app.ts.",
+          "linkedRequirements": ["FR-012", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        },
+        {
+          "id": "T2.7",
+          "title": "Cover the pages API with integration tests",
+          "description": "Add server/src/__integration__/pages.test.ts: access, create/read/validation, nesting and moving, editing and conflicts, history, delete, projects, mentions, search and the audit trail.",
+          "linkedRequirements": ["FR-001", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-011", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-004", "AC-006", "AC-007", "AC-008", "AC-010", "AC-011"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Client wiki module",
+      "dependencies": ["P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Build the wiki API, types and hooks",
+          "description": "Add client/src/features/wiki/{api,types,index}.ts and the hooks useWikiTree, useWikiPage and useWikiSearch, including the conflict result type that turns a 409 into { kind: 'conflict', page }.",
+          "linkedRequirements": ["FR-009"],
+          "linkedAcceptanceCriteria": ["AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Write the client tree and markdown helpers",
+          "description": "Add lib/tree.ts (groupByParent, visibleRows, ancestorsOf, expandedToReveal, depthOf, heightBelow, planMove, canAddChild, summaryOf), lib/markdown.ts (wrapSelection, prefixLines, cycleHeading, insertLink, insertTaskKey, applyToolbarAction) and lib/mentions.ts (taskHref, mentionLinks, remarkTaskKeys, isExternalHref, isInternalHref, describeLastEdit).",
+          "linkedRequirements": ["FR-009", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-013", "AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Build the reader, editor and dialogs",
+          "description": "Add MarkdownView (react-markdown + remark-gfm + remarkTaskKeys, heading shift, safe links, images as links), WikiDocument, PageEditor with the toolbar, ConflictDialog, VersionHistorySheet, TaskMentionPicker, NewPageDialog, WikiNav and WikiTree with keyboard move/indent.",
+          "linkedRequirements": ["FR-009", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Add the wiki screens and the project tab",
+          "description": "Add client/src/pages/WikiPage.tsx (tree, page, editor, conflict, versions, delete) with lazy routes in client/src/App.tsx, and render ProjectWikiTab inside client/src/features/projects/components/ProjectWorkspace.tsx.",
+          "linkedRequirements": ["FR-009", "FR-010"],
+          "linkedAcceptanceCriteria": ["AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Cover the client wiki with tests",
+          "description": "Add client/src/features/wiki/__tests__/{tree,markdown,mentions}.test.ts, MarkdownView.test.tsx and components.test.tsx for the tree helpers, toolbar edits, mention rendering and the components.",
+          "linkedRequirements": ["FR-009", "NFR-002", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-012", "AC-013"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

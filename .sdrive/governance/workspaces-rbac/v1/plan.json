@@ -1,0 +1,132 @@
+{
+  "feature": "workspaces-rbac",
+  "version": 1,
+  "architecture": {
+    "approach": "One authorization pipeline, declared in the router and never re-implemented in a controller (CON-105, CON-512): server/src/routes/workspaceRoutes.ts declares `protect` then `requirePermission('<area>:<action>')` per route, the middleware resolves the workspace from the URL slug plus membership and attaches req.workspace, req.role and req.permissions, and the controller reads the workspace from that request object so every query is scoped to req.workspace._id (CON-106). Permissions are a closed catalogue in server/src/config/permissions.ts; roles are either the five seeded system roles (isSystem true, workspaceId null) or custom roles owned by one workspace. All role resolution and granting goes through server/src/utils/roleAccess.ts so the privilege ceiling lives in one testable module, and pure helpers (roleHelpers, workspaceHelpers, roleRank) stay free of HTTP and the database (CON-109).",
+    "components": [
+      { "name": "server/src/config/permissions.ts", "action": "reuse", "description": "PERMISSIONS catalogue (area:action with label and group), the five SYSTEM_ROLES, deriveActions and hasPermission" },
+      { "name": "server/src/middleware/permissionMiddleware.ts", "action": "reuse", "description": "requirePermission factory: slug resolution, membership lookup, role load, two-factor policy gate, API-token workspace/scope check, attachment of req.workspace/req.role/req.permissions" },
+      { "name": "server/src/utils/roleAccess.ts", "action": "reuse", "description": "findAssignableRole (system or same-workspace, ObjectId-string guarded), canGrantRole (privilege ceiling), findDefaultRole, roleRank, OWNER_ROLE_NAME, DEFAULT_ROLE_NAME" },
+      { "name": "server/src/utils/seedRoles.ts", "action": "reuse", "description": "seedSystemRoles upsert and repairMemberRoles for members without a roleId" },
+      { "name": "server/src/utils/roleHelpers.ts", "action": "reuse", "description": "getInvalidPermissions, findCustomRoleOr404, hasRoleNameConflict" },
+      { "name": "server/src/utils/workspaceHelpers.ts", "action": "reuse", "description": "findMember and isWorkspaceOwner" },
+      { "name": "server/src/utils/activity.ts", "action": "reuse", "description": "recordActivity/auditLookup used by member, role, invitation and workspace changes" },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "reuse", "description": "The route table: create/list/join without workspace context, then every :slug route with protect + requirePermission and the matching validator" },
+      { "name": "server/src/controllers/workspaceController.ts", "action": "reuse", "description": "createWorkspace, getMyWorkspaces, getWorkspaceBySlug, switchWorkspace, joinWorkspace, getWorkspaceMembers, updateWorkspace, regenerateInviteCode, validateUpdateWorkspace, permissionsOf" },
+      { "name": "server/src/controllers/memberController.ts", "action": "reuse", "description": "changeMemberRole, removeMember, leaveWorkspace with the owner and privilege rules" },
+      { "name": "server/src/controllers/roleController.ts", "action": "reuse", "description": "listWorkspaceRoles, listPermissions, createCustomRole, updateCustomRole, deleteCustomRole, withinOwnPermissions" },
+      { "name": "server/src/controllers/invitationController.ts", "action": "reuse", "description": "createInvitation (+validateCreateInvitation), listInvitations, cancelInvitation, getInvitationByToken, acceptInvitation, declineInvitation" },
+      { "name": "server/src/models/workspaceModel.ts", "action": "reuse", "description": "name/slug/owner/members{user,roleId,joinedAt}/inviteCode, security.require2fa, board and workflow settings, index on members.user" },
+      { "name": "server/src/models/roleModel.ts", "action": "reuse", "description": "name/description/permissions/isSystem/workspaceId with the two partial unique indexes" },
+      { "name": "server/src/models/invitationModel.ts", "action": "reuse", "description": "workspaceId/invitedBy/email/roleId/token hash/status/expiresAt with the pending-per-address partial unique index" },
+      { "name": "server/src/routes/invitationRoutes.ts", "action": "reuse", "description": "Public GET /:token preview and the authenticated accept/decline actions, mounted at /api/invitations" },
+      { "name": "server/src/routes/roleRoutes.ts", "action": "reuse", "description": "GET /api/roles/permissions behind protect for the role editor" },
+      { "name": "server/src/app.ts", "action": "reuse", "description": "Mounts /api/workspaces, /api/invitations and /api/roles; runs seedSystemRoles and repairMemberRoles through ensureReady before the first request" },
+      { "name": "client/src/context/PermissionProvider.tsx", "action": "reuse", "description": "Derives the workspace slug from the URL and loads /auth/currentuser?workspaceSlug=..., exposing user, workspace, role, permissions, actions, can() and hasRole()" },
+      { "name": "client/src/hooks/usePermissions.ts", "action": "reuse", "description": "The consumer hook that throws outside the provider" },
+      { "name": "client/src/features/workspace/api.ts", "action": "reuse", "description": "workspaceApi.get/members/update/regenerateInvite against /workspaces/:slug" },
+      { "name": "client/src/features/workspace/useWorkspaceData.ts", "action": "reuse", "description": "Loads the workspace and its members together and exposes setters so pages can reflect edits" },
+      { "name": "client/src/features/workspace/lib.ts", "action": "reuse", "description": "canManageWorkspace, buildInviteLink, formatJoinedDate, getInitials" },
+      { "name": "client/src/features/workspace/components/WorkspaceSecurityCard.tsx", "action": "reuse", "description": "The Security section: shows the require2fa switch, blocks enabling it without two-factor of your own, and explains the lockout risk" },
+      { "name": "client/src/pages/TeamMembersPage.tsx", "action": "reuse", "description": "Member list with the role control, invite modal, remove action and permission-driven editability" },
+      { "name": "client/src/components/InviteMemberModal.tsx", "action": "reuse", "description": "Invite by email with a role selector limited to what the caller may grant" },
+      { "name": "client/src/pages/WorkspaceSettingsPage.tsx", "action": "reuse", "description": "Rename, invite code rotation and the security section" }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "FR-013", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Workspace",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "string (trimmed, max 60)", "action": "no_change" },
+          { "name": "slug", "type": "string (unique, lowercase, /^[a-z0-9-]+$/)", "action": "no_change" },
+          { "name": "owner", "type": "ObjectId (ref User)", "action": "no_change" },
+          { "name": "members", "type": "array of { user: ObjectId, roleId: ObjectId, joinedAt: Date }", "action": "no_change" },
+          { "name": "inviteCode", "type": "string (unique, 12 uppercase hex)", "action": "no_change" },
+          { "name": "security.require2fa", "type": "boolean (default false)", "action": "no_change" },
+          { "name": "taskCounter", "type": "number (minimum 0)", "action": "no_change" },
+          { "name": "createdAt", "type": "Date (timestamps)", "action": "no_change" },
+          { "name": "updatedAt", "type": "Date (timestamps)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Role",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "string (trimmed, max 60)", "action": "no_change" },
+          { "name": "description", "type": "string (max 280)", "action": "no_change" },
+          { "name": "permissions", "type": "string[] of catalogue keys", "action": "no_change" },
+          { "name": "isSystem", "type": "boolean (default false, indexed)", "action": "no_change" },
+          { "name": "workspaceId", "type": "ObjectId (ref Workspace, indexed)", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Invitation",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspaceId", "type": "ObjectId (ref Workspace, indexed)", "action": "no_change" },
+          { "name": "invitedBy", "type": "ObjectId (ref User)", "action": "no_change" },
+          { "name": "email", "type": "string (lowercase, trimmed, indexed)", "action": "no_change" },
+          { "name": "roleId", "type": "ObjectId (ref Role)", "action": "no_change" },
+          { "name": "token", "type": "string (unique SHA-256 hash)", "action": "no_change" },
+          { "name": "status", "type": "enum pending|accepted|declined|expired", "action": "no_change" },
+          { "name": "expiresAt", "type": "Date (indexed, 3 days)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "A signed-in user creates a workspace: the document is written with the creator as owner and as the first member holding the Product Owner role id, plus a unique slug and a 12-hex invite code, and the user's workspace list and activeWorkspace are updated. Every later request to /api/workspaces/:slug/... resolves membership through requirePermission, which attaches the workspace, the role and the permission keys, so controllers only ever act inside that workspace. Membership changes (join by code, invite/accept, role change, removal, leave) all funnel through roleAccess: findAssignableRole restricts the target to a system role or a role of the same workspace, canGrantRole compares the actor's permissions with the role's unless the actor owns the workspace, and findDefaultRole supplies Viewer for invite-code joins. Roles live either as system documents (workspaceId null, isSystem true) or as custom documents owned by one workspace with a partial unique index on { workspaceId, name }."
+  },
+  "apiContracts": [
+    { "method": "POST", "path": "/api/workspaces", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-001"] },
+    { "method": "GET", "path": "/api/workspaces", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "POST", "path": "/api/workspaces/join", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-003"] },
+    { "method": "GET", "path": "/api/workspaces/:slug", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/activate", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-011"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/invite-code", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-011"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/members", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/members/:userId/role", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-006"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/members/:userId", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/members/me", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/invitations", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/invitations", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/invitations/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "GET", "path": "/api/invitations/:token", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/invitations/:token/accept", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/invitations/:token/decline", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/roles", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/roles", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/roles/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/roles/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "GET", "path": "/api/roles/permissions", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/activity", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-011"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "requirePermission resolves the workspace with slug equality AND 'members.user': the caller's ObjectId, so a non-member can never learn that a workspace exists. On success the controller uses req.workspace, and CON-106 makes 'filter by req.workspace._id' the review rule for every new workspace query." },
+    { "requirementId": "NFR-002", "description": "findAssignableRole is the only way a role id from a request becomes a role document: it requires a valid ObjectId string and matches { _id, $or: [{ isSystem: true }, { workspaceId }] }, so a role of another workspace cannot be granted. canGrantRole then compares permission sets and always refuses Product Owner for a non-owner, which makes self-promotion and lateral escalation fail closed." },
+    { "requirementId": "NFR-003", "description": "Non-string and malformed identifiers are rejected before any query runs (findAssignableRole returns null, findCustomRoleOr404 answers 404), which prevents operator payloads such as { \"$ne\": null } from widening a lookup (CON-516)." },
+    { "requirementId": "NFR-004", "description": "permissionMiddleware.test.ts asserts the 401/400/403 branches and the attached context, rbacSecurity.test.ts asserts the privilege ceiling with the real SYSTEM_ROLES catalogue, and rbac.test.ts plus workspaces.test.ts exercise the same rules over HTTP against a real database, so a regression in the pipeline fails the build (CON-402)." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-001", "strategy": "Each authorized request costs one indexed Workspace lookup (index on members.user plus the unique slug) and one Role.findById; the same document is reused by the controller instead of being re-queried." },
+    { "requirementId": "NFR-004", "strategy": "getMyWorkspaces projects name, slug, owner, members and createdAt and populates only member names and role names, so the workspace switcher never ships invite codes, emails or full user documents." },
+    { "requirementId": "NFR-002", "strategy": "Role documents are shared across workspaces for the system roles (one document per role, workspaceId null) so role resolution stays a single indexed lookup rather than a per-workspace copy." }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "Workspace, Role and Invitation models with partial unique indexes" },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "validateUpdateWorkspace, validateCreateInvitation and the board/GitHub setting chains" },
+    { "name": "express-rate-limit", "type": "library", "action": "no_change", "notes": "The sensitive limiter covers /api/workspaces/join and /api/invitations" },
+    { "name": "MongoDB", "type": "service", "action": "no_change", "notes": "Workspaces, memberships, roles, invitations and the activity log" },
+    { "name": "server/src/config/permissions.ts", "type": "internal", "action": "no_change", "notes": "Closed permission catalogue and the five system role definitions" },
+    { "name": "server/src/utils/roleAccess.ts", "type": "internal", "action": "no_change", "notes": "The single place where roles are resolved, defaulted and granted" },
+    { "name": "server/src/utils/seedRoles.ts", "type": "internal", "action": "no_change", "notes": "Boot-time seeding and repair of memberships without a roleId" }
+  ],
+  "risks": [
+    { "description": "A future workspace route is added without requirePermission", "mitigation": "The permission is declared next to the path in workspaceRoutes.ts, and the middleware and integration suites fail when the pipeline changes" },
+    { "description": "Legacy members without a roleId break access after a migration", "mitigation": "repairMemberRoles runs on boot, getCurrentUser self-heals on demand, and the middleware answers an explicit 403 instead of crashing" },
+    { "description": "A custom role is deleted while still assigned", "mitigation": "deleteCustomRole checks Workspace.exists({ 'members.roleId': role._id }) and answers 409" },
+    { "description": "An invite code leaks to the wrong audience", "mitigation": "Codes grant the read-only Viewer role only, can be rotated by settings:manage, and the join route is rate limited" }
+  ]
+}

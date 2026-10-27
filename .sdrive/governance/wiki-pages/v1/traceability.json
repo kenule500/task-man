@@ -1,0 +1,134 @@
+{
+  "feature": "wiki-pages",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": ["AC-001", "AC-003"],
+      "planSection": "apiContracts GET/POST /api/workspaces/:slug/pages / dataModel.entities Page",
+      "taskIds": ["T1.1", "T2.1", "T2.2", "T2.7"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": ["AC-001"],
+      "planSection": "architecture.components server/src/utils/pages.ts (slugify, uniqueSlug)",
+      "taskIds": ["T1.2", "T1.4", "T2.2"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": ["AC-002", "AC-006"],
+      "planSection": "architecture.components server/src/utils/pages.ts (depthOf, subtreeHeight, canMoveUnder)",
+      "taskIds": ["T1.3", "T1.4", "T2.2", "T2.4", "T2.7"],
+      "testIds": ["TEST-001", "TEST-002", "TEST-003"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": ["AC-004"],
+      "planSection": "apiContracts PATCH /api/workspaces/:slug/pages/:id (409 + latest page)",
+      "taskIds": ["T2.3", "T2.7", "T3.1"],
+      "testIds": ["TEST-002", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": ["AC-005", "AC-008", "AC-009"],
+      "planSection": "dataModel.entities PageVersion / apiContracts versions and restore endpoints",
+      "taskIds": ["T1.1", "T2.3", "T2.5", "T2.7"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": ["AC-006", "AC-007"],
+      "planSection": "apiContracts POST /:id/move and DELETE /:id",
+      "taskIds": ["T2.4", "T2.7"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": ["AC-010"],
+      "planSection": "apiContracts GET /api/workspaces/:slug/pages/search",
+      "taskIds": ["T1.2", "T1.4", "T2.1", "T2.7"],
+      "testIds": ["TEST-001", "TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": ["AC-011", "AC-012"],
+      "planSection": "architecture.components pageController.ts#resolveMentions + client lib/mentions.ts",
+      "taskIds": ["T1.2", "T2.1", "T2.7", "T3.2", "T3.3"],
+      "testIds": ["TEST-001", "TEST-002", "TEST-004", "TEST-005"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": ["AC-013", "AC-012"],
+      "planSection": "architecture.components client/src/features/wiki/",
+      "taskIds": ["T3.1", "T3.2", "T3.3", "T3.4", "T3.5"],
+      "testIds": ["TEST-003", "TEST-004", "TEST-005", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": ["AC-013", "AC-001"],
+      "planSection": "architecture.components ProjectWikiTab + ProjectWorkspace.tsx",
+      "taskIds": ["T3.4"],
+      "testIds": ["TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": ["AC-003", "AC-005", "AC-007"],
+      "planSection": "dataModel.entities Activity (page.created/updated/deleted)",
+      "taskIds": ["T2.2", "T2.3", "T2.4", "T2.7"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": ["AC-001"],
+      "planSection": "architecture.components server/src/app.ts (400 kB parser for the pages path)",
+      "taskIds": ["T2.6"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": ["AC-001", "AC-007"],
+      "planSection": "securityConsiderations NFR-001 / apiContracts paths",
+      "taskIds": ["T2.1", "T2.6", "T2.7"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": ["AC-012"],
+      "planSection": "securityConsiderations NFR-002 (react-markdown rendering rules)",
+      "taskIds": ["T3.3", "T3.5"],
+      "testIds": ["TEST-005"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": ["AC-001", "AC-002", "AC-005"],
+      "planSection": "securityConsiderations NFR-003 / performanceConsiderations NFR-003",
+      "taskIds": ["T1.1", "T2.6", "T2.3"],
+      "testIds": ["TEST-002"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": ["AC-002", "AC-006", "AC-010"],
+      "planSection": "securityConsiderations NFR-004 / architecture.components utils/pages.ts and client lib/",
+      "taskIds": ["T1.2", "T1.4", "T3.2", "T3.5"],
+      "testIds": ["TEST-001", "TEST-003", "TEST-004"],
+      "status": "complete"
+    }
+  ]
+}

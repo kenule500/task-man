@@ -1,0 +1,134 @@
+{
+  "feature": "tasks-core",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": ["AC-001", "AC-002", "AC-010"],
+      "planSection": "architecture.components (taskController.ts, taskRoutes.ts, TaskFormDialog.tsx) / apiContracts POST /api/workspaces/:slug/tasks",
+      "taskIds": ["T1.1", "T2.1", "T2.2", "T3.1", "T3.4"],
+      "testIds": ["TEST-003", "TEST-007", "TEST-010", "TEST-018"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": ["AC-003"],
+      "planSection": "architecture.components (taskController.updateTask, useTasks.applyPatch) / apiContracts PUT|PATCH /api/workspaces/:slug/tasks/:id",
+      "taskIds": ["T2.3", "T3.2", "T3.6"],
+      "testIds": ["TEST-003", "TEST-007", "TEST-010", "TEST-015"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": ["AC-007", "AC-012"],
+      "planSection": "architecture.components (taskController.deleteTask, cleanUpRemovedTasks) / apiContracts DELETE /api/workspaces/:slug/tasks/:id",
+      "taskIds": ["T1.1", "T2.4"],
+      "testIds": ["TEST-003", "TEST-010", "TEST-013", "TEST-025"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": ["AC-008", "AC-009"],
+      "planSection": "architecture.components (taskQuery.ts) / apiContracts GET /api/workspaces/:slug/tasks",
+      "taskIds": ["T1.3", "T2.1", "T3.3"],
+      "testIds": ["TEST-001", "TEST-007", "TEST-016", "TEST-019"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": ["AC-004"],
+      "planSection": "architecture.components (taskGraph.ts, taskRelationController.ts)",
+      "taskIds": ["T1.2", "T2.5"],
+      "testIds": ["TEST-002", "TEST-003", "TEST-011"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": ["AC-010"],
+      "planSection": "architecture.components (taskNumbers.ts, Workspace.taskCounter)",
+      "taskIds": ["T1.4", "T2.2"],
+      "testIds": ["TEST-001", "TEST-003", "TEST-019"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": ["AC-005", "AC-006"],
+      "planSection": "architecture.components (findValidParent, taskRelationController.moveTask, SubtaskList.tsx)",
+      "taskIds": ["T1.1", "T2.5", "T3.2", "T3.5"],
+      "testIds": ["TEST-008", "TEST-011", "TEST-015", "TEST-020", "TEST-021"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": ["AC-015"],
+      "planSection": "architecture.components (recurrence.ts, spawnNextOccurrence)",
+      "taskIds": ["T1.5", "T2.8"],
+      "testIds": ["TEST-004", "TEST-015", "TEST-022"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": ["AC-016"],
+      "planSection": "architecture.components (duplicateTask, copiedFields) / apiContracts POST /:id/duplicate",
+      "taskIds": ["T2.8"],
+      "testIds": ["TEST-003", "TEST-010"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": ["AC-011", "AC-012", "AC-014"],
+      "planSection": "architecture.components (taskExtrasController.ts, TaskComments.tsx, TaskAttachments.tsx, TaskWatchToggle.tsx)",
+      "taskIds": ["T2.6", "T2.10", "T3.5"],
+      "testIds": ["TEST-006", "TEST-012", "TEST-013", "TEST-024", "TEST-025"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": ["AC-013"],
+      "planSection": "architecture.components (activityController.getTaskActivity, TaskActivity.tsx)",
+      "taskIds": ["T1.1", "T2.7", "T3.5"],
+      "testIds": ["TEST-009", "TEST-026"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": ["AC-017"],
+      "planSection": "architecture.components (bulkTaskController.ts, BulkActionBar.tsx) / apiContracts PATCH /tasks/bulk, POST /tasks/bulk-delete",
+      "taskIds": ["T2.9", "T3.2", "T3.6"],
+      "testIds": ["TEST-005", "TEST-014", "TEST-027"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": ["AC-003"],
+      "planSection": "securityConsiderations (NFR-001)",
+      "taskIds": ["T2.1", "T2.3", "T4.2"],
+      "testIds": ["TEST-003", "TEST-007", "TEST-010"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": ["AC-011"],
+      "planSection": "securityConsiderations (NFR-002)",
+      "taskIds": ["T2.1", "T2.6", "T4.1"],
+      "testIds": ["TEST-006", "TEST-007", "TEST-012"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": ["AC-002"],
+      "planSection": "securityConsiderations (NFR-003)",
+      "taskIds": ["T3.3", "T4.4"],
+      "testIds": ["TEST-017", "TEST-018"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": ["AC-010", "AC-015"],
+      "planSection": "performanceConsiderations (NFR-004)",
+      "taskIds": ["T1.4", "T2.10", "T3.2", "T4.3"],
+      "testIds": ["TEST-015", "TEST-003", "TEST-005"],
+      "status": "complete"
+    }
+  ]
+}

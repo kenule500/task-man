@@ -1,0 +1,118 @@
+{
+  "feature": "import-export",
+  "title": "Importing tasks from CSV, Trello and Jira exports",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Teams arriving from another tool had to retype their backlog: a board could not be brought into a workspace without losing lists, labels, checklists, comments, sprints or parent relationships, and there was no safe way to try an import out — a half-finished import left a workspace with duplicated, unmapped tasks.",
+    "proposedSolution": "A two-step import. POST /api/workspaces/:slug/import/preview parses the uploaded text with a source-specific parser (server/src/utils/importers/{csv,genericCsv,trello,jira}.ts) and answers a description of the file — counts, columns/lists, statuses with a suggested workspace stage, types with a suggested type, people with member matches, labels, sprints, parent/epic counts, a first page of items and warnings — without writing anything. POST /api/workspaces/:slug/import/commit then creates the tasks in the mapped project using the workspace's own workflow stages, in batches, all-or-nothing, with an import.completed entry in the activity log. The client (client/src/features/import) drives the same five steps in a wizard and reads the file in the browser, so nothing is uploaded until the user reviews the mapping.",
+    "targetAudience": "Workspace administrators and members migrating a backlog from Jira, Trello or a spreadsheet, and teams that keep a spreadsheet as the source of truth for upcoming work.",
+    "assumptions": [
+      "Only the three source formats exist: a Jira CSV export, a Trello board JSON export and a generic CSV/TSV file (IMPORT_SOURCES). Any other tool must be exported into one of them first. `assumption: true`",
+      "Sprint dates are synthesised: a sprint created during an import is given SPRINT_DAYS (14) days from the import date, because the export formats do not carry sprint dates. `assumption: true`",
+      "Comments written by someone who is not a member of the target workspace are attributed to the person running the import, and the count is reported as a warning. `assumption: true`"
+    ],
+    "outOfScope": [
+      "Exporting tasks out of TaskMan as CSV. The only CSV TaskMan produces for this feature is the download template; the audit log and timesheet exports belong to their own features.",
+      "Importing into an existing project from a different workspace, or merging into a project by id (projects are matched by name).",
+      "Importing workspace settings, roles, members or attachments; the import only creates tasks (and optionally a project and sprints)."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "See what a file contains before anything is created",
+      "role": "workspace member",
+      "want": "to upload an export and be told what is in it — how many items, which lists become which stages, who the people are, which labels and sprints appear",
+      "benefit": "I can judge an import before it touches the workspace",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "POST /api/workspaces/:slug/import/preview validates source (csv|trello|jira) and content (1..2 000 000 characters) and answers the source, total, limit, skipped, columns with counts and a suggested stage, types with a suggested type, people with isMember/memberId/memberName, labels, sprints, withParent, withEpic, comments, the workspace's members and workflow stages, the first 20 parsed items and up to 50 warnings, writing nothing to the database." },
+        { "id": "AC-002", "text": "A file the parser cannot read answers with the parser's readable message (ImportParseError, e.g. empty file, unusable columns) instead of a server error, and a file above the item limit is reported with a warning placed before the parser's own warnings." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Map the file onto the workspace",
+      "role": "workspace member",
+      "want": "to choose the target project, map each list to a workflow stage, map each person to a member (or leave them unassigned), map each type, and decide about sprints and comments",
+      "benefit": "the imported backlog follows our own workflow instead of the other tool's vocabulary",
+      "acceptanceCriteria": [
+        { "id": "AC-003", "text": "The commit accepts mapping { project: existing name or { name, key }, statusMap, userMap, typeMap, createSprints, includeComments } where every status value must be one of the workspace's workflow stage keys and every user value a member id or null; entries are read as plain data (never through the object prototype) and more than 2000 entries in one map is refused with a readable error." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Import the backlog into a project",
+      "role": "workspace member",
+      "want": "the tasks, labels, dates, assignees, sprints, checklists and comments to arrive in one project",
+      "benefit": "we start working in TaskMan without retyping anything",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "Importing into a new project requires projects:write (403 otherwise) and a name that is free in the workspace (409 when a project with that name already exists); importing into an existing project requires it to exist and not be archived; a project name must be at most MAX_PROJECT_NAME characters." },
+        { "id": "AC-005", "text": "Tasks are created in batches of 500 in the mapped project with task numbers reserved up front, statuses mapped through the workspace workflow (stageFor/workflowOf), labels normalized, dates written as YYYY-MM-DD calendar days, start/due dates that cannot be parsed counted as warnings, assignees limited to members present in the mapping, and comments/checklists/links carried over within their caps with a warning whenever a source value had to be dropped." },
+        { "id": "AC-006", "text": "Sprints are created only when the mapping asks for it and the caller may create them (at most 30 new sprints of 14 days, otherwise a warning explains what was skipped); the whole commit is all-or-nothing — a failure deletes the tasks, sprints and a newly created project it had already written — and success records import.completed with the source, created, skipped and sprint counts and answers with the created count, skipped count, sprintsCreated, warnings and the target project." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Do it in the app",
+      "role": "workspace member",
+      "want": "a wizard that explains each source, takes my file, shows the mapping and review steps and reports the result",
+      "benefit": "no command line and no hand-written JSON mapping",
+      "acceptanceCriteria": [
+        { "id": "AC-007", "text": "The wizard has five steps (source, upload, map, review, import); the file is read in the browser and sent as text, nothing is stored until the last step, and a file that is empty, larger than 2 MB or has the wrong extension is refused before upload with a readable reason (checkImportFile)." },
+        { "id": "AC-008", "text": "The source step explains what each source exports, how to obtain the file and what carries over, and offers the CSV template download (header row plus two example rows, CRLF, saved with a UTF-8 BOM so Excel reads accents)." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Be guided through the mapping",
+      "role": "workspace member",
+      "want": "the mapping pre-filled from the file, told exactly what still blocks the import, and a summary of the people outcome",
+      "benefit": "I finish the mapping quickly and catch problems before committing",
+      "acceptanceCriteria": [
+        { "id": "AC-009", "text": "initialMapping pre-fills status/type/person mappings from the preview's suggestions, mappingProblems reports what blocks the import (no project chosen, a new project name already used, a person not mapped), buildCommitMapping produces the request body and peopleSummary reports how many people are mapped and how many remain unassigned." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "A preview endpoint parses the uploaded text with the parser for the chosen source and describes its contents (counts, columns, statuses, types, people, labels, sprints, parents, comments, workflow stages, first items, warnings) without writing anything.", "linkedAcceptanceCriteria": ["AC-001", "AC-002"] },
+    { "id": "FR-002", "text": "Three source parsers (generic CSV/TSV, Trello board JSON, Jira CSV export) produce one neutral item shape (ImportItem) with per-source warnings and a skipped count, dispatched by parseImport and reporting failures as ImportParseError.", "linkedAcceptanceCriteria": ["AC-002"] },
+    { "id": "FR-003", "text": "Parsing uses shared helpers: a delimiter-detecting CSV reader, a sheet abstraction with column aliases, cleaned text that strips control/zero-width/bidi characters and cuts to the model limits, calendar-date and date-time parsing, priority/story-point parsing, list splitting, status/type suggestions and unique external ids for rows without one.", "linkedAcceptanceCriteria": ["AC-001", "AC-005"] },
+    { "id": "FR-004", "text": "A commit endpoint takes the same text plus a mapping and creates the tasks, reading every mapping entry as plain data, refusing a map with more than 2000 entries and refusing anything to import when the file has no items.", "linkedAcceptanceCriteria": ["AC-003"] },
+    { "id": "FR-005", "text": "The target project is either an existing one (must exist in the workspace and not be archived) or a new one (requires projects:write, a free name and a valid key), and a name already in use answers 409.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-006", "text": "Tasks are created in batches in the mapped project with reserved task numbers, statuses resolved through the workspace workflow, labels normalised, calendar-day dates, assignees limited to the mapping, checklist items and links carried over, and every dropped value or unparsable date counted in the warnings.", "linkedAcceptanceCriteria": ["AC-005"] },
+    { "id": "FR-007", "text": "Sprints named in the file are either mapped to existing sprints or created (at most 30, each 14 days long) and creation is refused for callers without project permissions, with a warning explaining the skip.", "linkedAcceptanceCriteria": ["AC-006"] },
+    { "id": "FR-008", "text": "Comments are imported only when the mapping asks for them (up to the item's comment cap), attributed to the importing member when the source author cannot be matched, with the count reported as a warning.", "linkedAcceptanceCriteria": ["AC-005", "AC-006"] },
+    { "id": "FR-009", "text": "The commit is all-or-nothing: the collections written during the request (tasks, sprints, a newly created project) are deleted again if the request fails, and a successful import records import.completed with the source, created, skipped and sprint counts.", "linkedAcceptanceCriteria": ["AC-006"] },
+    { "id": "FR-010", "text": "The client wizard runs source, upload, map, review and import steps, reads the file in the browser (with a FileReader fallback) and sends its text only from the review step.", "linkedAcceptanceCriteria": ["AC-007"] },
+    { "id": "FR-011", "text": "The wizard explains each source (what it exports, the steps to obtain it, what carries over) and can download the CSV template.", "linkedAcceptanceCriteria": ["AC-008"] },
+    { "id": "FR-012", "text": "The mapping and review steps pre-fill from the preview's suggestions, block the import while a problem remains, and summarise the mapping before it is sent.", "linkedAcceptanceCriteria": ["AC-009"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Both endpoints require tasks:write and scope every query to req.workspace._id; creating a project — or sprints — additionally requires projects:write, so a viewer-level role cannot change the workspace structure (CON-106, CON-512).", "linkedAcceptanceCriteria": ["AC-004", "AC-006"] },
+    { "id": "NFR-002", "text": "Imported text is sanitised and capped before it is stored: cleanText removes control, zero-width and bidirectional characters and cuts each value to the model limit, so a hostile export cannot hide characters in task text or exceed schema limits.", "linkedAcceptanceCriteria": ["AC-005"] },
+    { "id": "NFR-003", "text": "One request is bounded: 2 000 items, 2 000 000 characters of content (with a 3 MB JSON body limit on this path), batches of 500 writes, at most 30 new sprints, at most 2000 mapping entries, 50 warnings and 20 previewed items.", "linkedAcceptanceCriteria": ["AC-001", "AC-003", "AC-006"] },
+    { "id": "NFR-004", "text": "User-supplied mapping keys are read as data rather than through the object prototype, no value is interpolated into a query, and the commit is atomic with rollback so a rejected or failed import leaves no partial state (CON-516).", "linkedAcceptanceCriteria": ["AC-003", "AC-006"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "A file whose content does not match the chosen source (for example a Trello JSON uploaded as CSV, or a CSV with no usable title column).", "expectedBehavior": "The parser throws ImportParseError with a readable message and the preview answers that message instead of a server error; nothing is written." },
+    { "id": "EC-002", "description": "A file with more than the item limit.", "expectedBehavior": "The preview answers normally but adds a warning at the top of the list (\"split the file\"), and the commit refuses with a rule error before writing anything." },
+    { "id": "EC-003", "description": "Rows or cards that cannot become tasks (no title, archived Trello cards).", "expectedBehavior": "They are counted in skipped (plus the parser's own warnings) and are simply not imported." },
+    { "id": "EC-004", "description": "A person in the file who is not a member of the workspace.", "expectedBehavior": "The preview marks isMember false with no memberId, and the mapping decides: assign them to a member, or leave them unassigned (userMap value null)." },
+    { "id": "EC-005", "description": "A target project name that is already used by another project in the workspace.", "expectedBehavior": "409 with a message naming the conflict, so the user either picks the existing project or chooses another name." },
+    { "id": "EC-006", "description": "A failure in the middle of a commit (a database error while creating a later batch).", "expectedBehavior": "Everything this request had already created — tasks, sprints and a project created by this import — is deleted again and the error is reported, so the workspace is unchanged." }
+  ],
+  "dependencies": [
+    { "name": "Trello board JSON export", "type": "external", "notes": "The user produces it from Trello (Menu → Print, export and share → Export as JSON); archived cards are skipped." },
+    { "name": "Jira CSV export", "type": "external", "notes": "Export Excel CSV (all fields) is expected; the parser reads the standard columns for type, status, assignee, sprint, story points and parent." },
+    { "name": "server/src/utils/workflow.ts", "type": "internal", "notes": "workflowOf/stageFor map an imported list or status onto the workspace's own stages." },
+    { "name": "server/src/utils/taskNumbers.ts", "type": "internal", "notes": "reserveTaskNumbers allocates the task numbers used in the batch inserts." },
+    { "name": "server/src/utils/taskQuery.ts", "type": "internal", "notes": "normalizeLabels keeps imported labels within the workspace's label rules." },
+    { "name": "express.json({ limit: '3mb' })", "type": "internal", "notes": "Path-specific body parser for /api/workspaces/:slug/import, mounted before the general 100 kB parser." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "A large or malformed export could exhaust memory or leave half a backlog behind.", "mitigation": "Hard caps (2000 items, 2 MB of content, batches of 500), parse-time validation, and a rollback that removes everything the request created." },
+    { "id": "RISK-002", "description": "Imported text could carry invisible characters or markup tricks.", "mitigation": "cleanText strips control, zero-width and bidirectional characters and cuts to model limits; the client only ever renders imported text as React text." },
+    { "id": "RISK-003", "description": "Mapping keys could be used to reach the object prototype (a crafted userMap key such as constructor).", "mitigation": "Mapping objects are read through entriesOf, which takes own entries as plain data, and values are validated against members, stage keys and the task vocabularies before use." },
+    { "id": "RISK-004", "description": "An import could silently lose information (unmatched people, unparsable dates, dropped comments).", "mitigation": "Every loss is counted and surfaced: skipped items, warning counters (noDue, badDates, invalid, commentsAsImporter) and the up-to-50 warnings in both the preview and the result." }
+  ]
+}

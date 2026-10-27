@@ -1,0 +1,1357 @@
+{
+  "feature": "real-time-chat",
+  "version": 1,
+  "architecture": {
+    "approach": "Chat is added as a vertical slice that follows the repository's existing layering (models, controllers, routes with express-validator + requirePermission, and pure helpers in utils) rather than a parallel architecture. REST is the contract for every chat operation so the serverless Vercel deployment remains a supported configuration; Socket.IO is an additional fast path that delegates to the same controllers. Activity-feed push is kept separate from chat messaging: Activity rows and their permission filtering are unchanged, and only the delivery mechanism gains a socket path. The existing cursor poller is retained as the correctness fallback rather than deleted.",
+    "components": [
+      {
+        "name": "server/src/models/chatChannelModel.ts",
+        "action": "create",
+        "description": "Workspace-scoped channel of kind team, general, project or direct, with name key, project reference, participants, archived flag and denormalised last-message pointer."
+      },
+      {
+        "name": "server/src/models/chatMessageModel.ts",
+        "action": "create",
+        "description": "Message body, author, parent, mentions, attachments, edit/delete/pin timestamps and the (channel, createdAt, _id) cursor index."
+      },
+      {
+        "name": "server/src/models/chatReactionModel.ts",
+        "action": "create",
+        "description": "One row per (message, user, emoji) so a reaction toggle has a single unique key."
+      },
+      {
+        "name": "server/src/models/chatReadModel.ts",
+        "action": "create",
+        "description": "Last-read pointer per (channel, user) that drives unread badges."
+      },
+      {
+        "name": "server/src/models/chatPresenceModel.ts",
+        "action": "create",
+        "description": "User-level presence with a connection count and a TTL index so unclean disconnects age out."
+      },
+      {
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "create",
+        "description": "Pure visibility, write and moderation rules per channel kind; a direct-channel non-participant resolves to not_found rather than forbidden."
+      },
+      {
+        "name": "server/src/utils/chatQuery.ts",
+        "action": "create",
+        "description": "Pure cursor encode/decode, page-size clamping and the escaped search predicate."
+      },
+      {
+        "name": "server/src/utils/chatMentions.ts",
+        "action": "create",
+        "description": "Pure extraction of mention tokens resolved against workspace members."
+      },
+      {
+        "name": "server/src/utils/chatValidation.ts",
+        "action": "create",
+        "description": "One message-payload validator shared by the REST route and the socket event, so both enforce identical rules."
+      },
+      {
+        "name": "server/src/utils/chatRetention.ts",
+        "action": "create",
+        "description": "Purges messages past CHAT_RETENTION_DAYS from a periodic sweep, so the model never reads configuration (CON-206)."
+      },
+      {
+        "name": "server/src/realtime/bus.ts",
+        "action": "create",
+        "description": "Holds the Socket.IO server reference and room helpers, so controllers can broadcast without importing the socket server and creating a cycle."
+      },
+      {
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "create",
+        "description": "List and seed channels, backfill from projects, create or reuse direct channels."
+      },
+      {
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "create",
+        "description": "Send, history, edit, delete, pin, search, reactions, read state and attachments."
+      },
+      {
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "create",
+        "description": "Chat paths with express-validator chains and requirePermission('chat:<action>') declared in middleware order."
+      },
+      {
+        "name": "server/src/realtime/socket.ts",
+        "action": "create",
+        "description": "Socket.IO server factory: JWT handshake, session revocation check, workspace and channel rooms, per-connection throttle."
+      },
+      {
+        "name": "server/src/realtime/chatEvents.ts",
+        "action": "create",
+        "description": "Chat socket handlers delegating to the same controllers used by REST."
+      },
+      {
+        "name": "server/src/realtime/activityEvents.ts",
+        "action": "create",
+        "description": "Pushes Activity changes to permission-filtered audiences using the existing hiddenActions helper."
+      },
+      {
+        "name": "server/src/server.ts",
+        "action": "modify",
+        "description": "Attach the Socket.IO server to the existing HTTP server on the long-running entry point only."
+      },
+      {
+        "name": "server/src/app.ts",
+        "action": "modify",
+        "description": "Add the dedicated chat rate-limit policy alongside the existing apiLimiter."
+      },
+      {
+        "name": "server/src/config/permissions.ts",
+        "action": "modify",
+        "description": "Register the chat permission area and extend system roles explicitly without widening existing non-chat permissions."
+      },
+      {
+        "name": "server/src/config/env.ts",
+        "action": "modify",
+        "description": "Add chatRetentionDays (default 365) and expose the socket origin allow-list from validated configuration."
+      },
+      {
+        "name": "server/src/controllers/projectController.ts",
+        "action": "modify",
+        "description": "Create the project channel inside createProject and archive it inside the deleteProject cascade without deleting message rows."
+      },
+      {
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "description": "Mount the channels and chat routers under the existing permission-scoped workspace router."
+      },
+      {
+        "name": "server/src/models/notificationModel.ts",
+        "action": "modify",
+        "description": "Adds the chat.mention type and makes `task` optional, plus channel and message references, so chat mentions travel through the existing notification store instead of a second fan-out (spec FR-015)."
+      },
+      {
+        "name": "server/src/models/activityModel.ts",
+        "action": "modify",
+        "description": "Registers the chat.message_deleted action so moderator deletions are audited."
+      },
+      {
+        "name": "server/src/utils/activity.ts",
+        "action": "modify",
+        "description": "Carries the recorded entry _id on the listener payload so a pushed change can also hand the client a cursor (spec NFR-015)."
+      },
+      {
+        "name": "server/src/utils/emailTemplates.ts",
+        "action": "modify",
+        "description": "Adds the chat.mention sentence and subject so the existing email path covers chat mentions."
+      },
+      {
+        "name": "client/src/utils/api.ts",
+        "action": "modify",
+        "description": "Typed narrowing for the 403 TWO_FACTOR_REQUIRED payload. Pre-existing type error that blocked the client typecheck; fixed to let the quality gate run."
+      },
+      {
+        "name": "vercel.json",
+        "action": "modify",
+        "description": "Extends the Content-Security-Policy connect-src with wss:, which previously allowed 'self' only and blocked socket connections outright (spec NFR-014)."
+      },
+      {
+        "name": "client/src/features/chat/index.ts",
+        "action": "create",
+        "description": "Public entry point of the chat feature module; outside code imports through @/features/chat only."
+      },
+      {
+        "name": "client/src/features/chat/api.ts",
+        "action": "create",
+        "description": "REST calls routed through client/src/utils/api.ts so error messages and 401 redirects stay consistent."
+      },
+      {
+        "name": "client/src/features/chat/types.ts",
+        "action": "create",
+        "description": "Shared channel, message, reaction and presence DTOs."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatChannels.ts",
+        "action": "create",
+        "description": "Channel list, unread counts and the seed/backfill trigger."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatMessages.ts",
+        "action": "create",
+        "description": "Cursor paging, prepend without scroll jump, and live append."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatSocket.ts",
+        "action": "create",
+        "description": "Socket connection lifecycle, reconnect, transport state and per-event subscription."
+      },
+      {
+        "name": "client/src/features/chat/lib/messages.ts",
+        "action": "create",
+        "description": "Pure helpers: channel ordering, day grouping, prepend without duplicates, live upsert and unread derivation."
+      },
+      {
+        "name": "client/src/features/chat/lib/mentions.ts",
+        "action": "create",
+        "description": "Pure mention detection at the caret, insertion, and mapping typed @names back to workspace member ids."
+      },
+      {
+        "name": "client/src/features/chat/lib/reactions.ts",
+        "action": "create",
+        "description": "The fixed set of emoji offered by the reaction picker."
+      },
+      {
+        "name": "client/src/features/chat/lib/readState.ts",
+        "action": "create",
+        "description": "Per-browser last-visit timestamps behind one module, so components never touch the storage key directly (CON-204)."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "create",
+        "description": "One message row with inline edit, tombstone for deletes, attachments, reaction bar and author-only edit/delete actions."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageList.tsx",
+        "action": "create",
+        "description": "Day-grouped scroll area, load-older control, and a polite live region announcing incoming messages."
+      },
+      {
+        "name": "client/src/features/chat/components/Composer.tsx",
+        "action": "create",
+        "description": "Composer with @mention autocomplete, attachment upload, Enter to send and Shift+Enter for a new line."
+      },
+      {
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "create",
+        "description": "Channel title, online count, transport state, and the search, pin and members controls."
+      },
+      {
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete",
+        "description": "Removed: the picker moved to NewDirectMessage and the chat panel never renders this list."
+      },
+      {
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "create",
+        "description": "The CHAT group rendered in the sidebar between Main Menu and General, hidden without chat:read."
+      },
+      {
+        "name": "client/src/features/chat/components/ThreadPanel.tsx",
+        "action": "create",
+        "description": "Side panel listing a message's replies and accepting new ones without leaving the channel."
+      },
+      {
+        "name": "client/src/features/chat/components/Panels.tsx",
+        "action": "create",
+        "description": "Search results panel and pinned-messages panel."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "create",
+        "description": "Route screen composing the module; every action works over REST and is upgraded to the socket when one is available."
+      },
+      {
+        "name": "client/src/pages/ChatPage.tsx",
+        "action": "create",
+        "description": "Route page for /:workspaceSlug/chat and /:workspaceSlug/chat/:channelId, wrapped in AppShell."
+      },
+      {
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify",
+        "description": "Add the CHAT group between Main Menu and General, fed from the same permission-filtered channel source."
+      },
+      {
+        "name": "client/src/components/MobileTabBar.tsx",
+        "action": "modify",
+        "description": "Keep the mobile tab bar coherent with the new sidebar group."
+      },
+      {
+        "name": "client/src/App.tsx",
+        "action": "modify",
+        "description": "Register /:workspaceSlug/chat and /:workspaceSlug/chat/:channelId under WorkspaceLayout behind PermissionRoute."
+      },
+      {
+        "name": "client/src/features/live",
+        "action": "modify",
+        "description": "Consume socket events while preserving merge and liveStore semantics and retaining the poller as the fallback path."
+      },
+      {
+        "name": "server/src/models/projectModel.ts",
+        "action": "modify",
+        "description": "Adds a materialised members list with an index, maintained automatically from task assignment rather than by hand (FR-035)."
+      },
+      {
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "create",
+        "description": "Pure helpers for merging, de-duplicating and removing project member ids, unit tested without HTTP or the database."
+      },
+      {
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "description": "Adds the assignee to the owning project members when a task is assigned, and never removes them when the assignment changes (FR-035)."
+      },
+      {
+        "name": "server/src/controllers/workspaceController.ts",
+        "action": "modify",
+        "description": "Removes a departing member from every project members list so they cannot retain channel access (FR-044)."
+      },
+      {
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "modify",
+        "description": "Project channels are gated by the caller s project membership, with a chat:moderate override, replacing the projects:read gate (FR-003, FR-037)."
+      },
+      {
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "description": "Team-channel list with previews and unread state, plus rename and avatar handlers restricted to chat:moderate."
+      },
+      {
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "modify",
+        "description": "Adds the team list, rename, avatar upload and avatar download routes with their validator chains."
+      },
+      {
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "create",
+        "description": "WhatsApp-style group-chat list beside the conversation: avatar, name, last-message preview, unread dot, explicit empty state."
+      },
+      {
+        "name": "client/src/features/chat/components/ChannelSettingsDialog.tsx",
+        "action": "create",
+        "description": "Rename and avatar editing for a team channel, rendered only for callers holding chat:moderate."
+      },
+      {
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify",
+        "description": "Lists only the team and general channels; project channels are no longer main-menu navigation (AC-041)."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Composes the team-channel list beside the conversation and shows the archived banner read-only."
+      },
+      {
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify",
+        "description": "Calls for the team list, rename and avatar upload."
+      },
+      {
+        "name": "client/src/features/chat/types.ts",
+        "action": "modify",
+        "description": "Team-channel summary and name override types."
+      },
+      {
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify",
+        "description": "Renames the Team navigation item to Members and points it at the new path (AC-035)."
+      },
+      {
+        "name": "client/src/App.tsx",
+        "action": "modify",
+        "description": "Serves the team directory at /:workspaceSlug/members and redirects the previous /:workspaceSlug/team path (AC-035, AC-036)."
+      },
+      {
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "modify",
+        "description": "Uses one atomic updateOne with $addToSet instead of load-and-save, which had failed full-document validation on a partially selected project (Path nameKey is required)."
+      },
+      {
+        "name": "server/src/utils/gridfs.ts",
+        "action": "modify",
+        "description": "saveFile accepts metadata so an upload records its channel, and fileInfoOf reads a stored file name, size and type without streaming it."
+      },
+      {
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "description": "Resolves attachmentIds into stored attachments, refusing an id uploaded to another channel, so attachments are finally persisted on the message."
+      },
+      {
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "description": "Returns per-channel member count and server-side unread state alongside each channel."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "modify",
+        "description": "Right-aligns the caller own messages without their avatar, left-aligns others with avatar and name, and highlights mentions."
+      },
+      {
+        "name": "client/src/features/chat/components/Composer.tsx",
+        "action": "modify",
+        "description": "Excludes the signed-in user from the mention menu and accepts several files per selection, uploading each independently."
+      },
+      {
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete",
+        "description": "Removed: the picker moved to NewDirectMessage and the chat panel never renders this list."
+      },
+      {
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify",
+        "description": "Shows a count badge on the default channels using the server unread state."
+      },
+      {
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "modify",
+        "description": "Reports the channel member count rather than the workspace member count."
+      },
+      {
+        "name": "client/src/features/chat/lib/mentions.ts",
+        "action": "modify",
+        "description": "Adds segmentMentions, a pure splitter that marks which @tokens match a known member."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Threads member names to the message list and the channel member count to the header."
+      },
+      {
+        "name": "client/src/features/chat/components/ConversationSection.tsx",
+        "action": "create",
+        "description": "One segmented section: heading, conversation row (avatar, name, preview, unread count, archived chip, aria-current), loading and empty copy, footline, settings affordance."
+      },
+      {
+        "name": "client/src/features/chat/components/DirectMessageList.tsx",
+        "action": "create",
+        "description": "Direct messages rendered through ConversationSection with the other participant as the label."
+      },
+      {
+        "name": "client/src/features/chat/components/NewDirectMessage.tsx",
+        "action": "create",
+        "description": "A 44px New direct message row with a labelled teammate picker, rendered above both sections."
+      },
+      {
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "modify",
+        "description": "Reduced to a thin wrapper over ConversationSection; keeps the rename and avatar settings affordance."
+      },
+      {
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete",
+        "description": "Removed: the picker moved to NewDirectMessage and the chat panel never renders this list."
+      },
+      {
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "modify",
+        "description": "Shows the other participant avatar and name for a direct conversation; keeps the count from the server and no workspace-count fallback."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Loads conversations once, renders New direct message then both sections, and patches a row when a message arrives elsewhere."
+      },
+      {
+        "name": "client/src/features/chat/types.ts",
+        "action": "modify",
+        "description": "Adds ConversationCard, ConversationsPayload and the per-row unread count."
+      },
+      {
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify",
+        "description": "Adds conversations(); teams() retyped to ConversationCard."
+      },
+      {
+        "name": "client/src/features/chat/index.ts",
+        "action": "modify",
+        "description": "Exports the new section components."
+      },
+      {
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "description": "Adds listConversations, orders by lastMessageAt, returns unread counts, derives memberCount by kind and returns it from startDirect."
+      },
+      {
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "modify",
+        "description": "Serves GET /chat/conversations beside GET /chat/teams."
+      },
+      {
+        "name": "server/src/controllers/projectController.ts",
+        "action": "modify",
+        "description": "Adds the creator to Project.members when the project is created."
+      },
+      {
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "modify",
+        "description": "Adds ensureCreatorMember and the idempotent creator backfill used by the channel backfill pass."
+      },
+      {
+        "name": "client/src/features/chat/lib/conversations.ts",
+        "action": "create",
+        "description": "Pure ordering and background-row patch helpers plus the 9+ unread label."
+      },
+      {
+        "name": "client/src/features/chat/components/SearchBar.tsx",
+        "action": "create",
+        "description": "Inline find bar: input, position counter, previous/next and close, opening on Ctrl/Cmd+F and closing on Esc."
+      },
+      {
+        "name": "client/src/features/chat/components/SearchResults.tsx",
+        "action": "create",
+        "description": "Labelled listbox of option rows with author, date and highlighted snippet; bounds the rendered rows and keeps the selected row in view."
+      },
+      {
+        "name": "client/src/features/chat/lib/search.ts",
+        "action": "create",
+        "description": "Pure helpers: nextIndex with wrapping, formatCounter (3 of 12, 3 of 12+) and segmentSnippet for highlight-by-node."
+      },
+      {
+        "name": "client/src/features/chat/components/Panels.tsx",
+        "action": "modify",
+        "description": "SearchPanel removed; PinnedPanel is unchanged."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageList.tsx",
+        "action": "modify",
+        "description": "Stable message anchors, scrollToMessage and a temporary highlight for the jumped-to message."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "modify",
+        "description": "Element id per message and the highlight treatment used after a search jump."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Search state machine: term, rows, cursor, selection, paging, stale-response guard and jump."
+      },
+      {
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify",
+        "description": "search() accepts the before cursor the endpoint already supports."
+      },
+      {
+        "name": "client/src/features/chat/index.ts",
+        "action": "modify",
+        "description": "Exports SearchBar, SearchResults and the search helpers."
+      }
+    ],
+    "referencedRequirementIds": [
+      "FR-001",
+      "FR-002",
+      "FR-003",
+      "FR-004",
+      "FR-005",
+      "FR-006",
+      "FR-007",
+      "FR-008",
+      "FR-009",
+      "FR-010",
+      "FR-011",
+      "FR-012",
+      "FR-013",
+      "FR-014",
+      "FR-015",
+      "FR-016",
+      "FR-017",
+      "FR-018",
+      "FR-019",
+      "FR-020",
+      "FR-021",
+      "FR-022",
+      "FR-023",
+      "FR-024",
+      "FR-025",
+      "FR-026",
+      "FR-027",
+      "FR-028",
+      "FR-029",
+      "FR-030",
+      "FR-031",
+      "FR-032",
+      "FR-033",
+      "NFR-001",
+      "NFR-002",
+      "NFR-003",
+      "NFR-004",
+      "NFR-005",
+      "NFR-006",
+      "NFR-007",
+      "NFR-008",
+      "NFR-009",
+      "NFR-010",
+      "NFR-011",
+      "NFR-012",
+      "NFR-013",
+      "NFR-014",
+      "NFR-015",
+      "NFR-016",
+      "FR-035",
+      "FR-036",
+      "FR-037",
+      "FR-038",
+      "FR-039",
+      "FR-040",
+      "FR-041",
+      "FR-042",
+      "FR-043",
+      "FR-044",
+      "NFR-017",
+      "NFR-018",
+      "NFR-019",
+      "FR-045",
+      "FR-046",
+      "FR-047",
+      "FR-048",
+      "FR-049",
+      "FR-050",
+      "FR-051",
+      "NFR-020",
+      "FR-052",
+      "FR-053",
+      "FR-054",
+      "FR-055",
+      "FR-056",
+      "FR-057",
+      "FR-058",
+      "FR-059",
+      "FR-060",
+      "FR-061",
+      "FR-062",
+      "FR-063",
+      "FR-064",
+      "FR-065",
+      "NFR-021",
+      "NFR-022",
+      "NFR-023",
+      "NFR-024",
+      "NFR-025",
+      "FR-066",
+      "FR-067",
+      "FR-068",
+      "FR-069",
+      "FR-070",
+      "FR-071",
+      "NFR-026",
+      "NFR-027",
+      "NFR-028"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "ChatChannel",
+        "action": "update",
+        "fields": [
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "kind",
+            "type": "string (team|general|project|direct)",
+            "action": "add"
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "action": "add"
+          },
+          {
+            "name": "nameKey",
+            "type": "string",
+            "action": "add"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "action": "add"
+          },
+          {
+            "name": "project",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "participants",
+            "type": "ObjectId[]",
+            "action": "add"
+          },
+          {
+            "name": "archived",
+            "type": "boolean",
+            "action": "add"
+          },
+          {
+            "name": "lastMessageAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "lastMessageAuthor",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "createdAt",
+            "type": "Date",
+            "action": "add"
+          },
+          {
+            "name": "updatedAt",
+            "type": "Date",
+            "action": "add"
+          },
+          {
+            "name": "nameOverride",
+            "type": "string",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "avatarFileId",
+            "type": "string",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "avatarType",
+            "type": "string",
+            "nullable": true,
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "ChatMessage",
+        "action": "create",
+        "fields": [
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "channel",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "author",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "body",
+            "type": "string",
+            "action": "add"
+          },
+          {
+            "name": "parent",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "mentions",
+            "type": "ObjectId[]",
+            "action": "add"
+          },
+          {
+            "name": "attachments",
+            "type": "object[]",
+            "action": "add"
+          },
+          {
+            "name": "replyCount",
+            "type": "number",
+            "action": "add"
+          },
+          {
+            "name": "lastReplyAuthor",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "editedAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "deletedAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "pinnedAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "pinnedBy",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "createdAt",
+            "type": "Date",
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "ChatReaction",
+        "action": "create",
+        "fields": [
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "message",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "user",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "emoji",
+            "type": "string",
+            "action": "add"
+          },
+          {
+            "name": "createdAt",
+            "type": "Date",
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "ChatRead",
+        "action": "create",
+        "fields": [
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "channel",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "user",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "lastReadAt",
+            "type": "Date",
+            "action": "add"
+          },
+          {
+            "name": "lastReadMessage",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "ChatPresence",
+        "action": "create",
+        "fields": [
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "user",
+            "type": "ObjectId",
+            "action": "add"
+          },
+          {
+            "name": "connections",
+            "type": "number",
+            "action": "add"
+          },
+          {
+            "name": "seenAt",
+            "type": "Date",
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "update",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "action": "no_change"
+          },
+          {
+            "name": "workspace",
+            "type": "ObjectId",
+            "action": "no_change"
+          },
+          {
+            "name": "archived",
+            "type": "boolean",
+            "action": "no_change"
+          },
+          {
+            "name": "members",
+            "type": "ObjectId[]",
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "Notification",
+        "action": "update",
+        "fields": [
+          {
+            "name": "type",
+            "type": "string enum",
+            "action": "modify"
+          },
+          {
+            "name": "task",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "modify"
+          },
+          {
+            "name": "channel",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          },
+          {
+            "name": "message",
+            "type": "ObjectId",
+            "nullable": true,
+            "action": "add"
+          }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "update",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string enum",
+            "action": "modify"
+          }
+        ]
+      }
+    ],
+    "flowDescription": "A message is authorised through chatAccess against the channel scoped to req.workspace._id, its mentions are normalised against workspace members, and the row is written before any acknowledgement. Only after the write succeeds does the channel's lastMessageAt/lastMessageAuthor advance and the socket layer emit to the channel room excluding the author's connection. History is read newest-first with a (createdAt, _id) cursor, so paging stays a range scan rather than a growing skip. Reactions, read state and presence are separate small collections keyed by unique compound indexes, and presence carries a TTL so an unclean disconnect ages out instead of pinning a user online."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/channels",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-002",
+        "FR-003",
+        "FR-006"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/members",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-014",
+        "FR-025"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/direct",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-025"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-010",
+        "FR-011",
+        "FR-026"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-007",
+        "FR-008",
+        "FR-020"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/replies",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-012",
+        "FR-013"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-017"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-018",
+        "FR-027"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/reactions",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-016"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/reactions/:emoji",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-016"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/pin",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-024"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/pin",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-024"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/pins",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-024"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/search",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-023"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/read",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-022"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/attachments",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-019",
+        "FR-020"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/attachments/:attachmentId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-019"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/teams",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-038",
+        "FR-039",
+        "NFR-019"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/chat/:channelId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-040",
+        "FR-041"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/avatar",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-040",
+        "FR-042",
+        "NFR-018"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/avatar",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-042"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/conversations",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-052",
+        "FR-054",
+        "FR-058",
+        "FR-060",
+        "NFR-021",
+        "NFR-023"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/channels",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-063",
+        "FR-060"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/direct",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-063"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/search",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": [
+        "FR-067",
+        "FR-069",
+        "NFR-026"
+      ]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-006",
+      "description": "CON-511: the socket handshake validates the bearer token through the existing auth path and looks up the session, refusing revoked or expired sessions and closing their open sockets."
+    },
+    {
+      "requirementId": "NFR-007",
+      "description": "CON-512: every chat route declares requirePermission('chat:<action>') after protect, and every query filters req.workspace._id. Direct channels answer not_found rather than forbidden so existence is not disclosed."
+    },
+    {
+      "requirementId": "NFR-008",
+      "description": "CON-513: chat routes are mounted on the same Express app, so app.use(helmet()) applies; the socket upgrade does not introduce a second unprotected HTTP surface."
+    },
+    {
+      "requirementId": "NFR-009",
+      "description": "CON-514: a dedicated chat limiter is added next to apiLimiter, plus a per-connection token bucket on socket events so one client cannot flood a channel."
+    },
+    {
+      "requirementId": "NFR-010",
+      "description": "CON-515: express-validator chains cover every chat route and socket payloads are validated by the same pure validators before reaching a controller."
+    },
+    {
+      "requirementId": "NFR-011",
+      "description": "CON-516: ObjectIds are cast and strings validated, no client input is interpolated into a Mongo operator, and the search term is escaped before building its regex."
+    },
+    {
+      "requirementId": "NFR-012",
+      "description": "CON-517: message bodies render as text or through the existing react-markdown path; no dangerouslySetInnerHTML is introduced."
+    },
+    {
+      "requirementId": "NFR-013",
+      "description": "CON-519: socket origins come from config/env.ts corsOrigins rather than a literal, and are validated at startup."
+    },
+    {
+      "requirementId": "NFR-014",
+      "description": "CON-520: production sockets use wss:, and vercel.json connect-src must be extended with the socket origin because it currently allows 'self' only."
+    },
+    {
+      "requirementId": "NFR-005",
+      "description": "A socket is only accepted for a live, non-revoked session; logout or session removal terminates its connections."
+    },
+    {
+      "requirementId": "NFR-017",
+      "description": "Project-channel reads filter on the materialised Project.members list inside the query, so a non-member cannot receive another project messages even if a broadcast is misrouted."
+    },
+    {
+      "requirementId": "NFR-018",
+      "description": "Channel avatars reuse uploadMiddleware and utils/gridfs.ts; the existing size and content-type limits apply unchanged and no second upload surface exists."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "strategy": "Persist then emit, with room membership resolved once at connect rather than per message, so the hot path performs no per-recipient query."
+    },
+    {
+      "requirementId": "NFR-002",
+      "strategy": "Compound index (channel, createdAt, _id) turns the cursor predicate into a range scan; page size is hard-capped at 50."
+    },
+    {
+      "requirementId": "NFR-016",
+      "strategy": "Retention is enforced by a TTL index on message age plus a documented purge, bounding storage without an external maintenance job."
+    },
+    {
+      "requirementId": "NFR-015",
+      "strategy": "Reconnect replays from the stored cursor instead of refetching a full page, keeping reconnection cheap."
+    },
+    {
+      "requirementId": "NFR-019",
+      "strategy": "The team-channel list is one aggregation that joins last-message previews and unread counts, rather than a query per channel."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "socket.io",
+      "type": "library",
+      "action": "add",
+      "notes": "Server transport. Skill to be provisioned by /sdrive:apply before code uses it. Not usable on the serverless Vercel entry."
+    },
+    {
+      "name": "socket.io-client",
+      "type": "library",
+      "action": "add",
+      "notes": "Client transport. Skill to be provisioned by /sdrive:apply before code uses it."
+    },
+    {
+      "name": "express-rate-limit",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed; chat receives its own limiter instance."
+    },
+    {
+      "name": "express-validator",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed; used for the chat validator chains."
+    },
+    {
+      "name": "mongoose",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Already installed; new collections use the existing cluster."
+    },
+    {
+      "name": "existing RBAC",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Extended with a new permission area rather than replaced."
+    },
+    {
+      "name": "existing notifications",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "utils/notify.ts reused for mention and direct-message notifications."
+    },
+    {
+      "name": "existing uploads",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "uploadMiddleware and utils/gridfs.ts reused for attachments."
+    },
+    {
+      "name": "existing change feed",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "changeCursor and changeController retained as the fallback and replay source."
+    }
+  ],
+  "risks": [
+    {
+      "description": "The Vercel API entry is a serverless function and cannot hold a WebSocket open, so sockets are unavailable on that deployment.",
+      "mitigation": "REST is the contract for every operation, the cursor poll remains a first-class fallback, and the UI reports degraded transport rather than going stale."
+    },
+    {
+      "description": "Push delivery moves permission filtering from per-request to per-socket, risking disclosure of audit or project-change entries to callers who may not see them.",
+      "mitigation": "Compute the audience per permission with the existing hiddenActions helper and add a regression check per hidden action group."
+    },
+    {
+      "description": "Sockets silently drop events while disconnected, so a pure push design can lose changes without anyone noticing.",
+      "mitigation": "Replay from the stored cursor on reconnect and keep the poller as the correctness guarantee."
+    },
+    {
+      "description": "The live module has eight existing test files encoding current merge and poller behaviour; rewriting them alongside a new chat feature makes a bisect ambiguous.",
+      "mitigation": "Land the transport change as its own commit sequence before chat UI work and keep the poller tests for the fallback path."
+    },
+    {
+      "description": "User-authored message text is the largest new XSS surface in the product.",
+      "mitigation": "Render as text or through the existing markdown path, introduce no raw HTML injection, and verify in /sdrive:secure."
+    },
+    {
+      "description": "The Render free plan suspends idle instances, which kills open sockets.",
+      "mitigation": "Document the limitation and rely on reconnect plus cursor replay; never treat socket availability as guaranteed."
+    }
+  ]
+}

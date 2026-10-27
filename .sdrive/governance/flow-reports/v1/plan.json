@@ -1,0 +1,194 @@
+{
+  "feature": "flow-reports",
+  "version": 1,
+  "architecture": {
+    "approach": "Retroactive plan of the implemented design. Status moves are captured once, at the source, by a listener on the activity stream (server/src/utils/flow/register.ts, registered in server/src/app.ts) which writes a StatusTransition row per move; nothing else in the app needs to know about flow reporting. The metrics themselves are pure functions in server/src/utils/flow/metrics.ts (timelines, cumulative flow, cycle/lead time, aging WIP, throughput) that take transitions, tasks and a day range and return data with no database access, so the handler in server/src/controllers/flowController.ts is only query validation, data loading and serialisation. The client module client/src/features/flow mirrors the payload with types, fetches it through the shared axios instance and renders it as the Flow tab of the Reports page.",
+    "components": [
+      {
+        "name": "server/src/models/statusTransitionModel.ts",
+        "action": "create",
+        "description": "One row per status move (workspace, task, project name, sprint, type, from, to, at, actor) with the { workspace, at } index the report reads."
+      },
+      {
+        "name": "server/src/utils/flow/register.ts",
+        "action": "create",
+        "description": "registerFlowTracking subscribes once per process to onActivity and trackStatusTransition records task.created and status-changing task.updated events of top-level non-epic tasks."
+      },
+      {
+        "name": "server/src/app.ts",
+        "action": "modify",
+        "description": "Calls registerFlowTracking() before the automation and webhook listeners so automation-made moves are measured too."
+      },
+      {
+        "name": "server/src/utils/flow/metrics.ts",
+        "action": "create",
+        "description": "Pure metrics: dayKey, parseDayKey, makeRange, buildTimelines, cumulativeFlow, percentile, cycleTimes, leadTimes, agingWip, isoWeekLabel, throughput and buildFlowReport."
+      },
+      {
+        "name": "server/src/controllers/flowController.ts",
+        "action": "create",
+        "description": "parseFlowQuery enforces the filters and the 180-day cap; getFlowReport loads tasks, transitions and aging assignees and serialises the payload."
+      },
+      {
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "description": "Declares GET /:slug/reports/flow behind protect and requirePermission('projects:read')."
+      },
+      {
+        "name": "client/src/features/flow/types.ts",
+        "action": "create",
+        "description": "Client shapes of the payload: CfdDay, TimePoint, TimeStats, AgingItem, ThroughputWeek, FlowReport, FlowParams."
+      },
+      {
+        "name": "client/src/features/flow/api.ts",
+        "action": "create",
+        "description": "flowApi.report(slug, params) through the shared axios instance."
+      },
+      {
+        "name": "client/src/features/flow/hooks/useFlowReport.ts",
+        "action": "create",
+        "description": "Loads the report for the current filters, keeping loading/error keyed to the filter set so a stale answer cannot overwrite a newer one."
+      },
+      {
+        "name": "client/src/features/flow/lib/flow.ts",
+        "action": "create",
+        "description": "Presentation helpers: range presets, rangeFor, STACK_ORDER, axisScale, cfdMax, stackBands, areaPath, labelIndexes, agingLevel, AGING_META, countOverP85, isEmptyReport, describeCfd, describeStats."
+      },
+      {
+        "name": "client/src/features/flow/components/CumulativeFlowChart.tsx",
+        "action": "create",
+        "description": "Stacked cumulative flow chart with a hover/active index and a text alternative."
+      },
+      {
+        "name": "client/src/features/flow/components/TimeScatterChart.tsx",
+        "action": "create",
+        "description": "Cycle or lead time scatter plot with the percentile lines and the summary sentence."
+      },
+      {
+        "name": "client/src/features/flow/components/ThroughputChart.tsx",
+        "action": "create",
+        "description": "Bars of completions per ISO week."
+      },
+      {
+        "name": "client/src/features/flow/components/AgingWipList.tsx",
+        "action": "create",
+        "description": "Tasks in progress oldest first with their age, assignees and the level against p85."
+      },
+      {
+        "name": "client/src/features/flow/components/FlowReportPanel.tsx",
+        "action": "create",
+        "description": "Filters (project, sprint, range preset), the four summary cards, the cycle/lead switch and the three charts plus the aging list."
+      },
+      {
+        "name": "client/src/pages/ReportsPage.tsx",
+        "action": "modify",
+        "description": "Adds the Flow tab (SearchParams ?tab=flow) next to the overview report, shown only when the role holds projects:read."
+      }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "StatusTransition",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change" },
+          { "name": "project", "type": "String (project name at the time, max 60)", "action": "no_change" },
+          { "name": "sprint", "type": "ObjectId ref Sprint", "action": "no_change", "nullable": true },
+          { "name": "type", "type": "enum task|story|bug|spike|epic", "action": "no_change" },
+          { "name": "from", "type": "enum pending|in-progress|completed (null on creation)", "action": "no_change", "nullable": true },
+          { "name": "to", "type": "enum pending|in-progress|completed", "action": "no_change" },
+          { "name": "at", "type": "Date", "action": "no_change" },
+          { "name": "actor", "type": "ObjectId ref User", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "status", "type": "enum pending|in-progress|completed", "action": "no_change" },
+          { "name": "createdAt", "type": "Date", "action": "no_change" },
+          { "name": "updatedAt", "type": "Date", "action": "no_change" },
+          { "name": "completedAt", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "project", "type": "String (project name)", "action": "no_change" },
+          { "name": "number", "type": "Number", "action": "no_change", "nullable": true },
+          { "name": "parent", "type": "ObjectId ref Task", "action": "no_change", "nullable": true },
+          { "name": "assignees", "type": "Array of ObjectId ref User", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String (join key with task.project)", "action": "no_change" },
+          { "name": "key", "type": "String (task key prefix, default 'TM' when absent)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "User",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String (PUBLIC_USER_FIELDS)", "action": "no_change" },
+          { "name": "avatarUrl", "type": "String", "action": "no_change", "nullable": true }
+        ]
+      }
+    ],
+    "flowDescription": "A task status change is recorded as activity, which the flow listener turns into one StatusTransition row carrying the status it came from, the status it went to, the project name and the sprint at that moment and the time. On request, the handler loads the top-level non-epic tasks of the workspace (optionally narrowed by project name or sprint id) plus the transitions up to the end of the requested range, and the pure module rebuilds each task's ordered steps, backfilling from createdAt and from the first transition's 'from' when history is partial. Cumulative flow is counted per day across those steps, cycle and lead times are measured for the tasks whose completion falls in the range, throughput counts those completions per ISO week, and aging WIP lists the tasks whose current status is in progress with the days since they entered it."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/reports/flow",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "NFR-001", "NFR-002", "NFR-004"]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "description": "Workspace isolation (CON-106): the task query, the project key lookup, the transition query and the aging assignee lookup all carry workspace: req.workspace._id, so the project and sprint filters can only narrow inside the caller's workspace."
+    },
+    {
+      "requirementId": "NFR-002",
+      "description": "Authentication and authorisation (CON-511, CON-512): the route runs protect and requirePermission('projects:read'); only the public user fields are selected for the aging list, so no email or settings leak into the report (CON-517 keeps the client rendering text)."
+    },
+    {
+      "requirementId": "NFR-004",
+      "description": "Input validation (CON-515, CON-516): query values are checked as single strings and never interpolated into a raw query; the sprint filter is pattern-checked and cast with mongoose.Types.ObjectId, and the range is capped at 180 days before any query runs."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-004",
+      "strategy": "One task query with an explicit field selection, one transition query bounded by at <= range.end (and restricted to the task ids when the scope is filtered), and one user query only for the assignees that appear in the aging list. The metrics then run in memory over those arrays in a single pass per metric."
+    },
+    {
+      "requirementId": "NFR-003",
+      "strategy": "The pure module is free of database and HTTP access, so the heavy arithmetic is unit tested without MongoDB (CON-407) and can be reused by any caller that already has the tasks and transitions."
+    }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "StatusTransition rows, task filtering and ObjectId casting for the sprint filter." },
+    { "name": "server/src/utils/activity.ts", "type": "internal", "action": "no_change", "notes": "onActivity/RecordedActivity are the stream the flow tracking listener consumes." },
+    { "name": "server/src/utils/workflow.ts", "type": "internal", "action": "no_change", "notes": "CON-108: board stages map to the canonical statuses so the metrics keep their meaning with a custom workflow." },
+    { "name": "client/src/utils/api.ts", "type": "internal", "action": "no_change", "notes": "CON-207: flowApi uses the shared axios instance, so errors and the 401 redirect stay consistent." },
+    { "name": "client/src/features/projects", "type": "internal", "action": "no_change", "notes": "useProjects supplies the project and sprint options of the report filters." }
+  ],
+  "risks": [
+    {
+      "description": "Missing transitions (a process where tracking was not registered) produce incomplete timelines.",
+      "mitigation": "The listener is registered at application start and buildTimelines backfills from createdAt and from the first transition's from, so the report degrades instead of failing."
+    },
+    {
+      "description": "A busy 180-day range over every task of a workspace loads a lot of transitions.",
+      "mitigation": "The range cap plus narrowing the transition query to the tasks in scope when a project or sprint filter is set."
+    },
+    {
+      "description": "A small sample makes p85 look authoritative.",
+      "mitigation": "TimeStats carries count and the panel prints how many tasks were measured (or that none have finished yet)."
+    }
+  ]
+}

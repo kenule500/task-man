@@ -1,0 +1,431 @@
+{
+  "feature": "sso-2fa",
+  "title": "Single sign-on, two-factor authentication and personal API tokens",
+  "version": 1,
+  "overview": {
+    "problemStatement": "A password alone is the weakest link in a team tool: it can be guessed, reused or phished, and it is the wrong way to hand a script or a CI job access to a workspace. TaskMan therefore needs three additional ways to prove identity and to delegate access - OpenID Connect sign-in with Google and Microsoft, a time-based one-time password as a second step, and scoped personal API tokens - without ever storing a secret in a form that can be read back, and without logging anything an attacker could replay.",
+    "proposedSolution": "SSO uses the authorization-code flow with PKCE: server/src/utils/oidc.ts performs discovery, exchanges the code and verifies the ID token (RS256, audience, expiry, issuer, azp, nonce), while server/src/models/ssoStateModel.ts keeps only the hash of the state with a ten-minute TTL. Two-factor authentication implements TOTP (RFC 6238 over RFC 4226, HMAC-SHA1, 30 seconds, 6 digits, +/-1 step, replay protection via a stored last-used step) in server/src/utils/totp.ts; the shared secret is encrypted at rest by server/src/utils/secretBox.ts (AES-256-GCM, HKDF-derived key, user id as additional authenticated data) and recovery codes are stored as bcrypt hashes. The sign-in second step is a short-lived JWT bound to a single-use nonce in server/src/models/twoFactorChallengeModel.ts. Personal API tokens are `****** 40 base62 characters, stored only as a keyed PBKDF2-SHA256 digest, bound to one workspace and to a subset of the owner's permissions (server/src/utils/apiTokens.ts).",
+    "targetAudience": "Team members who sign in with a Google or Microsoft account, security-conscious users who add a second factor, account owners who need recovery codes, and developers who automate the API with personal tokens.",
+    "assumptions": [
+      "SSO is optional: a provider is offered only when both its client id and secret are configured, so an installation without GOOGLE_CLIENT_ID/MICROSOFT_CLIENT_ID simply shows no SSO button (server/src/config/sso.ts readSsoProviders).",
+      "The documented provider set is Google and Microsoft only; SSO_PROVIDER_IDS is the closed list and no other provider is implemented.",
+      "API_PUBLIC_URL must be set when the API and the web app do not share an origin (local development), because the OIDC redirect URI is built from it plus the provider path (getApiPublicUrl, callbackUrl).",
+      "TWO_FACTOR_KEY falls back to JWT_SECRET when unset, so rotating either signs existing two-factor secrets out; no key rotation procedure is implemented."
+    ],
+    "outOfScope": [
+      "Workspace roles, membership and the permission catalogue, documented as the workspaces-rbac feature; this feature only consumes the permission keys as API-token scopes.",
+      "Passwords, email verification, password reset and revocable sessions, documented as the auth-sessions feature (the two-factor second step reuses issueSession from that feature).",
+      "SAML, SCIM provisioning, WebAuthn/passkeys, SMS codes and hardware security keys: none are implemented.",
+      "Outbound webhooks and the GitHub integration, which live in the developers area but are not personal credentials."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Sign in with my Google or Microsoft account",
+      "role": "team member with a work identity",
+      "want": "sign in through my provider instead of a TaskMan password",
+      "benefit": "I do not have to remember or manage another password",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "GET /api/auth/sso/providers lists only the providers whose client id and client secret are both configured, as id and label pairs, and never returns a secret"
+        },
+        {
+          "id": "AC-002",
+          "text": "GET /api/auth/sso/:provider/start answers 404 for a provider that is not configured, and 400 when the requested redirect is not a relative in-app path"
+        },
+        {
+          "id": "AC-003",
+          "text": "Starting a sign-in redirects to the provider with state, nonce, an S256 PKCE challenge and the callback URL, sets Cache-Control: no-store, sets no cookie, and stores only the SHA-256 hash of the state with a ten-minute expiry"
+        },
+        {
+          "id": "AC-004",
+          "text": "The callback consumes the stored state exactly once: an unknown, malformed, expired or replayed state redirects to /login with sso_error=invalid_state and creates no session"
+        },
+        {
+          "id": "AC-005",
+          "text": "The authorization code is always exchanged with the provider, and a refusal, a missing code or an oversized code ends in a fixed code (access_denied or provider_error) rather than in provider text"
+        },
+        {
+          "id": "AC-006",
+          "text": "An ID token is accepted only with an RS256 signature from the discovered key set, the right audience, an unexpired exp, a sane iat, an accepted issuer, a matching azp when there are several audiences, and the stored nonce"
+        },
+        {
+          "id": "AC-007",
+          "text": "Microsoft sign-ins respect the configured tenant: organizations refuses personal accounts, consumers accepts only them, and a token whose issuer names a different tenant than its tid is rejected"
+        },
+        {
+          "id": "AC-008",
+          "text": "A new person gets a verified account with a random unknown password and no other sign-in method, while an existing verified account is linked by email and keeps its password working"
+        },
+        {
+          "id": "AC-009",
+          "text": "A second identity of the same provider for one account, or a duplicate provider/subject race, answers account_conflict, and an email the provider has not verified creates or links nothing"
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Complete the second step of sign-in with an authenticator code",
+      "role": "member who enabled two-factor authentication",
+      "want": "enter the code from my authenticator app after my password",
+      "benefit": "a stolen password alone is not enough to reach my workspace",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-010",
+          "text": "When the account has two-factor authentication on, POST /api/auth/login answers { twoFactorRequired: true, challenge } and issues no session"
+        },
+        {
+          "id": "AC-011",
+          "text": "POST /api/auth/login/2fa accepts a signed challenge bound to a stored single-use nonce that expires after 5 minutes, and issues a session only for a valid code"
+        },
+        {
+          "id": "AC-012",
+          "text": "A wrong code is counted against the challenge, the challenge is deleted after 5 wrong codes (or the right code following them) and a challenge cannot be replayed; the answer reports attemptsLeft"
+        },
+        {
+          "id": "AC-013",
+          "text": "Five consecutive wrong codes across challenges pause second-step attempts for the account for 15 minutes, answered with 429 code TWO_FACTOR_LOCKED"
+        },
+        {
+          "id": "AC-014",
+          "text": "An authenticator code is accepted once per time step: a code already used cannot sign in again, not even on a new challenge, and two parallel requests with the same code leave exactly one winner"
+        },
+        {
+          "id": "AC-015",
+          "text": "A single sign-on for an account with two-factor authentication redirects to the login page with a challenge in the URL fragment instead of a session"
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Turn two-factor authentication on from my account",
+      "role": "account owner",
+      "want": "set up an authenticator app and confirm it with a code before it takes effect",
+      "benefit": "I cannot lock myself out with a mistyped secret",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-016",
+          "text": "GET /api/profile/2fa reports enabled, enabledAt and recoveryCodesRemaining, and never a secret, a hash or a counter"
+        },
+        {
+          "id": "AC-017",
+          "text": "POST /api/profile/2fa/setup returns a base32 secret and an otpauth URL and stores the secret encrypted as pending, answering 409 ALREADY_ENABLED when two-factor is already on"
+        },
+        {
+          "id": "AC-018",
+          "text": "POST /api/profile/2fa/enable requires the account password plus a valid code, stores the secret encrypted, marks the proving time step as used, removes the pending secret and returns ten recovery codes once; a wrong password answers 400 INVALID_PASSWORD and a setup changed in another tab answers 409 SETUP_REQUIRED"
+        },
+        {
+          "id": "AC-019",
+          "text": "The shared secret is only ever persisted through server/src/utils/secretBox.ts (AES-256-GCM, HKDF-derived key, user id as additional authenticated data), so a ciphertext copied to another account cannot be decrypted"
+        },
+        {
+          "id": "AC-020",
+          "text": "A serialised user exposes at most { enabled, enabledAt } for two-factor: the secret, the pending secret and the recovery-code hashes are never returned by the profile or any other response"
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Keep access with recovery codes",
+      "role": "member who lost the authenticator device",
+      "want": "sign in with a recovery code and replace the codes afterwards",
+      "benefit": "losing a phone does not mean losing the account",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-021",
+          "text": "A recovery code is accepted once, is removed as it is used, and the answer reports how many codes remain"
+        },
+        {
+          "id": "AC-022",
+          "text": "Recovery codes are stored as bcrypt hashes and matched with a comparison that visits every stored hash, so timing does not reveal position"
+        },
+        {
+          "id": "AC-023",
+          "text": "POST /api/profile/2fa/recovery-codes replaces all codes after the password plus a current authenticator code (a recovery code cannot be spent to mint new ones), and the previous codes stop working"
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Manage how I sign in",
+      "role": "account owner",
+      "want": "see the providers linked to my account, remove one, and turn two-factor off again",
+      "benefit": "I keep control of my own sign-in methods",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-024",
+          "text": "POST /api/profile/2fa/disable requires the password plus a code or a recovery code and is refused with 409 TWO_FACTOR_REQUIRED_BY_WORKSPACE while a workspace the account belongs to requires two-factor; disabling clears every two-factor field, the used step and the open challenges"
+        },
+        {
+          "id": "AC-025",
+          "text": "GET /api/profile/sso lists the linked providers, whether a password exists and which providers are configured; DELETE /api/profile/sso/:provider unlinks one method, answers 404 for an unknown provider, and 400 LAST_SIGN_IN_METHOD for the only method of an account without a password"
+        },
+        {
+          "id": "AC-026",
+          "text": "Two-factor and SSO account endpoints cannot be reached with a personal API token (403), and an account that resets its password through email can unlink its last SSO method"
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Create and revoke scoped personal API tokens",
+      "role": "developer automating a workspace",
+      "want": "mint a token restricted to one workspace and a few permissions, and revoke it later",
+      "benefit": "automation works without spreading my password or my full access",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-027",
+          "text": "POST /api/workspaces/:slug/tokens validates the name (60 characters maximum) and at least one known scope, requires the scopes to be a subset of the caller's own permissions, returns the plain token once and stores only its PBKDF2-SHA256 digest plus an 8-character display prefix"
+        },
+        {
+          "id": "AC-028",
+          "text": "Listing tokens never returns the token or its digest, and shows only the caller's own tokens in that workspace"
+        },
+        {
+          "id": "AC-029",
+          "text": "At most 10 active tokens per user per workspace are allowed (400 otherwise), and expiry accepts 1 to 365 days or an explicit ISO date within a year"
+        },
+        {
+          "id": "AC-030",
+          "text": "A token is bound to its workspace and its scopes: a permission outside the scopes answers 403 'does not have the required scope', another workspace answers 403 'belongs to another workspace', and the token can never exceed its owner's current role"
+        },
+        {
+          "id": "AC-031",
+          "text": "A token never reaches account or workspace-management routes (403 'API tokens can only be used on workspace endpoints') and cannot create, list or revoke tokens"
+        },
+        {
+          "id": "AC-032",
+          "text": "DELETE /api/workspaces/:slug/tokens/:id revokes the caller's own token, or any token in the workspace when the caller holds settings:manage; revoked and expired tokens stop working"
+        },
+        {
+          "id": "AC-033",
+          "text": "lastUsedAt is written at most once a minute, unknown, malformed and look-alike tokens answer 401, and token.created and token.revoked are written to the activity log"
+        }
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Use the SSO and two-factor screens in the web app",
+      "role": "member using the browser",
+      "want": "sign in with a provider button, hand the fragment over safely, and enter codes in a forgiving form",
+      "benefit": "the secure flow is also the easy one",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-034",
+          "text": "The sign-in page renders one button per configured provider and nothing when none is configured, navigates to /auth/sso/:provider/start with the validated redirect, remembers the started sign-in for the tab in sessionStorage, and /sso/complete reads the token from the URL fragment, removes it from the address bar and history before storing the session, and rejects a hand-off that was not started in this tab"
+        },
+        {
+          "id": "AC-035",
+          "text": "The code field keeps digits only and caps at six, the secret is shown in groups of four, a recovery code is normalised to xxxx-xxxx, the downloadable recovery file states the account, the creation date and that each code works once, and a TWO_FACTOR_REQUIRED answer from the API raises the blocking workspace gate"
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "SSO providers are read from the environment and a provider counts as enabled only when its client id and secret are both set; the public list endpoint returns id and label for the configured set and the tenant value is sanitised to a single URL-safe segment (server/src/config/sso.ts readSsoProviders, isSsoProviderId; ssoController.listProviders)",
+      "linkedAcceptanceCriteria": ["AC-001"]
+    },
+    {
+      "id": "FR-002",
+      "text": "Starting an SSO sign-in fetches the discovery document, creates a PKCE verifier/challenge pair, a state and a nonce, stores only the state hash with the verifier, nonce, validated redirect and a ten-minute expiry, and redirects to the provider with no-store caching; the body is built by buildAuthorizationUrl and an unreachable provider answers 502 (ssoController.startSso, server/src/models/ssoStateModel.ts, server/src/utils/safeRedirect.ts)",
+      "linkedAcceptanceCriteria": ["AC-002", "AC-003"]
+    },
+    {
+      "id": "FR-003",
+      "text": "The callback deletes the pending state row before doing anything else, sends the code through the provider token endpoint with the PKCE verifier, and turns every outcome into one of a fixed set of error codes redirected to /login?sso_error=... (access_denied, invalid_state, provider_error, invalid_token, email_missing, email_unverified, tenant_not_allowed, account_conflict, server_error); on success the session token travels in the URL fragment of /sso/complete so it never reaches a server log (ssoController.ssoCallback, redirectWithError)",
+      "linkedAcceptanceCriteria": ["AC-004", "AC-005"]
+    },
+    {
+      "id": "FR-004",
+      "text": "ID tokens are verified by server/src/utils/oidc.ts: discovery and JWKS documents are cached for an hour with a one-per-minute refetch limit for unknown kids, only RS256 is accepted, and audience, expiry (2 minutes of skew), iat, issuer (including Microsoft multi-tenant issuer templates) and nonce are all checked; email trust follows identityFromClaims - Google needs email_verified, Microsoft needs a personal account, a single-tenant configuration or the xms_edov claim",
+      "linkedAcceptanceCriteria": ["AC-006", "AC-007"]
+    },
+    {
+      "id": "FR-005",
+      "text": "resolveSsoUser links a returning identity by (provider, subject), otherwise requires a provider-verified email, links to the account with that email or creates a verified account with a random password nobody knows and ssoOnly true; an unverified account is taken over (password, tokens and sessions dropped) because the provider proved the address; a second identity of the same provider answers account_conflict (ssoController.resolveSsoUser, the partial unique index on { sso.provider, sso.subject })",
+      "linkedAcceptanceCriteria": ["AC-008", "AC-009"]
+    },
+    {
+      "id": "FR-006",
+      "text": "An SSO identity whose account has two-factor authentication enabled receives a challenge in the fragment of the login page instead of a session, so both the password and the provider path go through the same second step (ssoController.ssoCallback, twoFactor.createChallenge)",
+      "linkedAcceptanceCriteria": ["AC-015"]
+    },
+    {
+      "id": "FR-007",
+      "text": "TOTP follows RFC 6238/4226 with Node crypto only: 20-byte base32 secrets, HMAC-SHA1, a 30-second step, 6 digits, a window of one step in each direction, timing-safe comparison of every candidate and a lastUsedStep guard so a code is accepted at most once (server/src/utils/totp.ts generateTotpSecret, verifyTotp, buildOtpauthUrl)",
+      "linkedAcceptanceCriteria": ["AC-014", "AC-018"]
+    },
+    {
+      "id": "FR-008",
+      "text": "Two-factor is set up in two steps: setup returns the secret and otpauth URL while storing the secret encrypted as pending, and enable requires the password plus a code, writes the encrypted secret, the bcrypt recovery-code hashes, enabledAt and the proving step, removes the pending secret and clears the lock; a serialised user only ever exposes { enabled, enabledAt } (twoFactorController.setupTwoFactor, enableTwoFactor, server/src/models/userModel.ts toJSON)",
+      "linkedAcceptanceCriteria": ["AC-016", "AC-017", "AC-018", "AC-020"]
+    },
+    {
+      "id": "FR-009",
+      "text": "The second sign-in step is a five-minute JWT signed with a key derived from the JWT secret under a distinct purpose, bound to a stored single-use nonce that is replaced on every new sign-in, limited to five wrong codes per challenge and five consecutive failures per account before a fifteen-minute lock (server/src/utils/twoFactor.ts createChallenge, readChallenge, verifySecondFactor, registerFailure; twoFactorController.completeTwoFactorLogin)",
+      "linkedAcceptanceCriteria": ["AC-010", "AC-011", "AC-012", "AC-013"]
+    },
+    {
+      "id": "FR-010",
+      "text": "Recovery codes are xxxx-xxxx values from a 31-symbol alphabet without look-alike characters, stored as bcrypt hashes and consumed by a conditional pull so a code works once and two parallel requests cannot both succeed; regeneration requires the password plus a current authenticator code (server/src/utils/recoveryCodes.ts, twoFactorController.regenerateRecoveryCodes)",
+      "linkedAcceptanceCriteria": ["AC-021", "AC-022", "AC-023"]
+    },
+    {
+      "id": "FR-011",
+      "text": "Disabling two-factor needs the password plus a code or a recovery code and is refused while any workspace the account belongs to has security.require2fa set, with code TWO_FACTOR_REQUIRED_BY_WORKSPACE; disabling clears the secret, the pending secret, the recovery codes, enabledAt, the used step and the lock, and deletes the open challenges (twoFactorController.disableTwoFactor, twoFactor.requiredByAnyWorkspace)",
+      "linkedAcceptanceCriteria": ["AC-024"]
+    },
+    {
+      "id": "FR-012",
+      "text": "The account reports and edits its linked sign-in methods: GET /api/profile/sso returns the linked providers, whether a password exists and which providers are available; DELETE /api/profile/sso/:provider refuses the only method of a passwordless account and otherwise pulls the link (ssoController.listSsoMethods, unlinkSsoMethod)",
+      "linkedAcceptanceCriteria": ["AC-025", "AC-026"]
+    },
+    {
+      "id": "FR-013",
+      "text": "Personal API tokens are generated as tm_ plus 40 uniform base62 characters, the plain value is returned once and only a keyed PBKDF2-SHA256 digest (10,000 iterations, API_TOKEN_PEPPER or JWT_SECRET) plus an 8-character prefix is stored; creation validates the name, at least one known scope, the scope subset with respect to the caller's permissions, the 10-active-token cap and the expiry window (server/src/utils/apiTokens.ts, tokenController.validateCreateToken, createToken, server/src/models/apiTokenModel.ts)",
+      "linkedAcceptanceCriteria": ["AC-027", "AC-028", "AC-029"]
+    },
+    {
+      "id": "FR-014",
+      "text": "Using a token runs through authenticateApiToken and requirePermission: the digest is looked up, revoked or expired tokens are refused with 401, the token must be used on a workspace route, and it is limited to its workspace and to its scopes while the role check still applies, with lastUsedAt written at most once a minute and token.created/token.revoked recorded in the activity log (server/src/middleware/authMiddleware.ts, permissionMiddleware.ts, tokenController.revokeToken)",
+      "linkedAcceptanceCriteria": ["AC-030", "AC-031", "AC-032", "AC-033"]
+    },
+    {
+      "id": "FR-015",
+      "text": "The client offers SSO only when the server reports providers, remembers the started sign-in per tab to defeat a crafted callback link, sanitises the redirect to an in-app path, maps every server error code to plain language and clears the fragment from the address bar and history before storing the session (client/src/features/sso/*, client/src/pages/SsoCompletePage.tsx)",
+      "linkedAcceptanceCriteria": ["AC-034"]
+    },
+    {
+      "id": "FR-016",
+      "text": "The client two-factor surfaces sanitise input (digits only, six characters; recovery codes normalised to xxxx-xxxx), show the secret in readable groups, produce a plain-text recovery file, and raise a blocking gate when the API answers TWO_FACTOR_REQUIRED for a workspace (client/src/features/account/lib/twoFactor.ts, components/TwoFactorCard.tsx, TwoFactorSetupDialog.tsx, RecoveryCodesDialog.tsx, client/src/components/TwoFactorRequiredGate.tsx, client/src/utils/twoFactorRequired.ts)",
+      "linkedAcceptanceCriteria": ["AC-035"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Every SSO, two-factor and API-token endpoint requires a valid session, the sensitive account endpoints also require the password, and personal API tokens are refused on all account and workspace-management routes so a leaked token cannot mint another one (CON-511)",
+      "linkedAcceptanceCriteria": ["AC-018", "AC-024", "AC-026", "AC-031"]
+    },
+    {
+      "id": "NFR-002",
+      "text": "Nothing that must stay secret is stored in readable form: the TOTP secret goes through secretBox (AES-256-GCM, HKDF from TWO_FACTOR_KEY, user id as AAD), recovery codes are bcrypt hashes, SSO state and challenge nonces are SHA-256 digests, and API tokens are keyed PBKDF2 digests (CON-112, CON-505)",
+      "linkedAcceptanceCriteria": ["AC-019", "AC-020", "AC-022", "AC-027", "AC-028"]
+    },
+    {
+      "id": "NFR-003",
+      "text": "Brute force is bounded on every step: /api/auth/login/2fa and /api/profile/2fa sit behind the sensitive rate limiter (20 requests per 15 minutes per IP), a challenge tolerates five wrong codes, and five consecutive failures lock second-step attempts for the account for fifteen minutes (CON-514)",
+      "linkedAcceptanceCriteria": ["AC-012", "AC-013"]
+    },
+    {
+      "id": "NFR-004",
+      "text": "No secret, code, provider response body or token is logged or echoed: SSO failures log the error name and message only and the browser receives a fixed code, the email helper logs one JSON line, and responses never include the TOTP secret, recovery-code hashes or a token digest (CON-501, CON-517)",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-016", "AC-020", "AC-028"]
+    },
+    {
+      "id": "NFR-005",
+      "text": "The behaviour is covered by Jest unit tests for the pure modules and integration tests against a real MongoDB for the flows (CON-402, CON-403, CON-404); commands are pnpm --filter server test, pnpm --filter server test:integration and pnpm --filter client test",
+      "linkedAcceptanceCriteria": ["AC-004", "AC-006", "AC-013", "AC-015", "AC-030"]
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "A start or callback URL names a provider that is not configured",
+      "expectedBehavior": "404 'This sign-in method is not available.' and no state row is created"
+    },
+    {
+      "id": "EC-002",
+      "description": "The provider cannot be reached while starting a sign-in",
+      "expectedBehavior": "502 'The sign-in provider could not be reached. Try again later.' after the failure is logged without secrets"
+    },
+    {
+      "id": "EC-003",
+      "description": "The state is replayed, expired or missing",
+      "expectedBehavior": "The single-use row is deleted by the first callback, so every later attempt redirects with sso_error=invalid_state and no session"
+    },
+    {
+      "id": "EC-004",
+      "description": "The person refuses consent at the provider",
+      "expectedBehavior": "Access is denied and the browser is returned to the login page with access_denied, distinguishable from a provider_error because the providerError parameter was present"
+    },
+    {
+      "id": "EC-005",
+      "description": "The phone clock drifts by one step",
+      "expectedBehavior": "The +/-1 step window accepts the code; a genuinely stale code answers 400 INVALID_CODE with advice to use the newest code, and too many wrong codes lock attempts for 15 minutes"
+    },
+    {
+      "id": "EC-006",
+      "description": "A ciphertext of one account's TOTP secret is moved to another account",
+      "expectedBehavior": "Decryption fails because the user id is additional authenticated data, so verification is treated as a missing second factor and never as a success"
+    },
+    {
+      "id": "EC-007",
+      "description": "A personal API token is used outside its intended reach",
+      "expectedBehavior": "403 for another workspace or a missing scope, 403 on account and token routes, and lastUsedAt is still recorded only once a minute"
+    },
+    {
+      "id": "EC-008",
+      "description": "API_TOKEN_PEPPER or the JWT secret is rotated",
+      "expectedBehavior": "Every API token digest changes, so all tokens stop working and must be recreated; sessions and encrypted two-factor secrets are affected by the same rotation"
+    },
+    {
+      "id": "EC-009",
+      "description": "A passwordless SSO account tries to unlink its only provider",
+      "expectedBehavior": "400 LAST_SIGN_IN_METHOD explaining that a password is needed first; after a password reset through email the unlink succeeds"
+    },
+    {
+      "id": "EC-010",
+      "description": "A member joins a workspace whose policy requires two-factor and has none",
+      "expectedBehavior": "Workspace routes answer 403 TWO_FACTOR_REQUIRED while the account routes that set two-factor up stay reachable, and access is restored as soon as two-factor is enabled"
+    },
+    {
+      "id": "EC-011",
+      "description": "Two parallel sign-in requests present the same authenticator code",
+      "expectedBehavior": "The conditional write on lastUsedStep and on the challenge row lets exactly one request win; the other answers that the challenge expired"
+    }
+  ],
+  "dependencies": [
+    { "name": "jsonwebtoken", "type": "library", "notes": "Signs the two-factor challenge and verifies ID-token structure (RS256 verification uses crypto key objects)" },
+    { "name": "bcryptjs", "type": "library", "notes": "Hashes recovery codes and checks the password before sensitive two-factor changes" },
+    { "name": "mongoose", "type": "library", "notes": "SsoState, TwoFactorChallenge and ApiToken models, including the TTL indexes on the transient collections" },
+    { "name": "express-validator", "type": "library", "notes": "validateCreateToken validates name, scopes and expiry on the token endpoint" },
+    { "name": "Google Identity (OpenID Connect)", "type": "service", "notes": "Discovery, authorization and token endpoints; needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET" },
+    { "name": "Microsoft Entra ID (OpenID Connect)", "type": "service", "notes": "Discovery, authorization and token endpoints plus the tenant setting; needs MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET" },
+    { "name": "Node crypto", "type": "internal", "notes": "TOTP (HMAC-SHA1), AES-256-GCM secret box, HKDF, PBKDF2 token digests and random tokens, so no third-party crypto dependency is added" },
+    { "name": "server/src/config/permissions.ts", "type": "internal", "notes": "The permission keys are the API-token scope catalogue" },
+    { "name": "server/src/utils/secretBox.ts", "type": "internal", "notes": "The only writer and reader of encrypted secrets (CON-112)" }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "An account can be pre-hijacked by registering an address with a password before the real owner signs in with the provider",
+      "mitigation": "The provider must vouch for the email, and an unverified account is taken over at that point: its password, tokens and sessions are dropped and ssoOnly is set"
+    },
+    {
+      "id": "RISK-002",
+      "description": "Rotating JWT_SECRET or losing TWO_FACTOR_KEY makes stored TOTP secrets unreadable",
+      "mitigation": "Both are declared and validated at boot in server/src/config/env.ts, and a failed decryption is treated as a missing factor rather than as a success; a dedicated TWO_FACTOR_KEY keeps the two rotations independent"
+    },
+    {
+      "id": "RISK-003",
+      "description": "A leaked API token removes the password requirement for automation",
+      "mitigation": "Tokens are bound to one workspace, limited to a subset of their owner's permissions, refused on account routes, capped at ten per user, expirable, revocable and stored only as a digest"
+    },
+    {
+      "id": "RISK-004",
+      "description": "An attacker who already has the password brute-forces the six-digit code",
+      "mitigation": "A challenge tolerates five wrong codes and is then deleted, five consecutive failures lock second-step attempts for the account for fifteen minutes, both two-factor routes sit behind the 20-per-15-minute sensitive limiter, and a code is accepted only once because the last used time step is stored"
+    },
+    {
+      "id": "RISK-005",
+      "description": "Provider metadata changes break discovery-based verification",
+      "mitigation": "Discovery and JWKS documents are cached for an hour with a bounded refetch on an unknown kid, and every failure maps to a fixed browser code instead of a stack trace"
+    }
+  ]
+}

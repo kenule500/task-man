@@ -1,0 +1,130 @@
+{
+  "feature": "tasks-core",
+  "title": "Tasks core: task lifecycle, hierarchy, collaboration and bulk work",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Teams need one validated record of work: create a task, keep it in the right place in the hierarchy, find it again among many, work on it together, and close it out. Without server-side rules the record drifts (dependency cycles, subtasks of subtasks, orphaned files, duplicate task keys) and no report or view can be trusted.",
+    "proposedSolution": "A workspace-scoped task API built from Express 5 routes that declare their express-validator chain and requirePermission area/action, controllers that orchestrate Mongoose models, and pure helpers for the rules that need neither HTTP nor the database (server/src/utils/taskGraph.ts, taskQuery.ts, taskNumbers.ts, recurrence.ts). The client mirrors the same semantics in one reusable feature module whose useTasks hook (client/src/features/tasks/hooks/useTasks.ts) is the single source of truth for every view, with optimistic updates, a delete undo window and a shared query cache.",
+    "targetAudience": "Workspace members and administrators who plan and run work in the list, board, calendar or timeline views of TaskMan.",
+    "assumptions": [
+      "The notification audience of a task event (assignees, watchers, mentions) is taken from the call sites of notifyTaskEvents in taskController.ts; server/src/utils/notify.ts was not read in full.",
+      "Action values in plan.json describe what this feature is responsible for; the repository has no feature-level commit history that would prove which commit introduced which line.",
+      "The integration tests run against MongoDB 7 as configured in .github/workflows/ci.yml, so operator behaviour such as $addToSet, $pull and the partial unique index on (workspace, number) is assumed to match that server version."
+    ],
+    "outOfScope": [
+      "Time tracking on a task (GET/POST /:id/time, POST /:id/timer/start|stop, DELETE /:id/time/:entryId in routes/taskRoutes.ts, controllers/timeController.ts) - a separate feature on the same router.",
+      "GitHub development links held in task.links (models/taskModel.ts, controllers/integrationController.ts, githubWebhookController.ts) - maintained by the integrations feature, only read here.",
+      "Sprint, project and release lifecycles that reconcileSprint/reconcileRelease and findOpenSprint call into; this feature only keeps a task's own references valid."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create and change tasks under server-enforced rules",
+      "role": "Workspace member",
+      "want": "create a task with a title, a due date and the optional details, and change any of those fields later",
+      "benefit": "the plan of record stays accurate without policing it by hand",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "Creating a task requires a non-empty title of at most 140 characters and a valid ISO 8601 deadline; a missing title answers 400 with the validation errors." },
+        { "id": "AC-002", "text": "A start date after the deadline is refused with the rule message \"Start date must be on or before the deadline\", and a deadline must be a parseable date." },
+        { "id": "AC-003", "text": "Only the fields in EDITABLE_FIELDS of taskController.ts can be changed through PUT/PATCH /:id, and a task id that is not in the requesting workspace answers 404, never a cross-workspace write." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Organise work with subtasks, epics and dependencies",
+      "role": "Workspace member",
+      "want": "break a task into one level of subtasks, group items under an epic and declare which tasks must finish first",
+      "benefit": "the order of work is explicit and the schedule can be trusted",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "A dependency must be a task of the same workspace, must not be the task itself and must not close a cycle (taskGraph.wouldCreateCycle); each violation answers 400 with its own message and nothing is saved." },
+        { "id": "AC-005", "text": "Subtasks stay one level deep: an epic cannot have subtasks, a subtask cannot have subtasks, a task that has subtasks cannot become one, and a task cannot be its own parent." },
+        { "id": "AC-006", "text": "A subtask follows its parent between project, sprint, epic and release, and a parent whose project or sprint changes pushes those values to its subtasks." },
+        { "id": "AC-007", "text": "Deleting a task removes it from the dependency lists and typed relations that point at it, clears the epic of the items it grouped, and deletes its subtasks with it." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Find a task with filters, sorting and the task key",
+      "role": "Workspace member",
+      "want": "list the tasks of the workspace with the filters I need and search by title, description or key",
+      "benefit": "I can reach the task I mean instead of scrolling",
+      "acceptanceCriteria": [
+        { "id": "AC-008", "text": "GET /tasks accepts status, search, project, label, assignee (me or a user id), epic (id or none), from and to (deadline), sort and up to five cf.<key> filters; unknown or oversized values fall back to the defaults instead of failing." },
+        { "id": "AC-009", "text": "Search matches title and description case-insensitively and also finds a task by number when the text looks like \"WEB-12\", \"#12\" or \"12\"." },
+        { "id": "AC-010", "text": "Every task of a workspace gets a sequential number reserved atomically, tasks created before numbers existed are backfilled oldest first, and the number is shown as \"<project key>-<number>\" (TM-12 without a project key)." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Collaborate on a task and follow its history",
+      "role": "Workspace member",
+      "want": "comment on a task, attach files, follow it and read what changed",
+      "benefit": "discussion and evidence live with the task instead of in chat",
+      "acceptanceCriteria": [
+        { "id": "AC-011", "text": "A comment is 1 to 2000 characters; only its author or a role holding settings:manage may delete it, and a comment that is not on the task answers 404." },
+        { "id": "AC-012", "text": "Attachments are stored in GridFS (bucket \"attachments\") behind an allow-list of MIME types with sanitized names, at most 20 per task, and deleting the task deletes its stored files." },
+        { "id": "AC-013", "text": "GET /:id/activity returns the task's field changes, comments and file events newest first, at most 100 per page, with a before cursor for the next (older) page." },
+        { "id": "AC-014", "text": "POST|DELETE /:id/watch adds or removes the signed-in user in task.watchers and answers with the watcher ids; it can never change another member's follow state." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Repeat, copy and bulk-edit work",
+      "role": "Workspace member",
+      "want": "let a task repeat when I complete it, copy a task, and apply one change to many tasks at once",
+      "benefit": "recurring chores and sprint hygiene take seconds instead of a checklist",
+      "acceptanceCriteria": [
+        { "id": "AC-015", "text": "Completing a recurring top-level task creates its next occurrence (from the old due date or from the completion day, per basis) and clears the rule on the completed task so a reopen cannot spawn a second copy; a subtask or epic cannot repeat." },
+        { "id": "AC-016", "text": "Duplicate creates \"Copy of <title>\" as a pending task with the source's content, estimate and custom values but no comments, attachments, links, dependencies or watchers, and checklist items start undone; subtasks can be copied with it." },
+        { "id": "AC-017", "text": "Bulk update and bulk delete accept at most 100 ids, check every task before saving any of them, and answer with the changed tasks or with the deleted ids plus the subtasks that went with them." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "Create a task through POST /api/workspaces/:slug/tasks with a required title (<=140) and deadline, the documented optional fields, workspace scoping, an atomically reserved task number and an activity entry.", "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-010"] },
+    { "id": "FR-002", "text": "Update a task through PUT/PATCH /api/workspaces/:slug/tasks/:id, applying only the allow-listed editable fields, keeping stage and status in sync, running the same rule checks as create and answering 404 for a task outside the workspace.", "linkedAcceptanceCriteria": ["AC-003"] },
+    { "id": "FR-003", "text": "Delete a task through DELETE /api/workspaces/:slug/tasks/:id together with its subtasks and GridFS attachments, pulling it out of dependants' dependency lists and typed relations and clearing the epic of the items it grouped.", "linkedAcceptanceCriteria": ["AC-007", "AC-012"] },
+    { "id": "FR-004", "text": "List the workspace's tasks through GET /api/workspaces/:slug/tasks with the supported query parameters (status, search, project, label, assignee, epic, from, to, sort, cf.<key>) parsed by taskQuery.parseTaskListQuery and ordered by taskQuery.buildTaskSort.", "linkedAcceptanceCriteria": ["AC-008", "AC-009"] },
+    { "id": "FR-005", "text": "Validate dependencies server-side (valid ids, same workspace, not itself, cycle-free) with the pure helper taskGraph.wouldCreateCycle before any write.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-006", "text": "Number tasks sequentially per workspace with an atomic $inc on Workspace.taskCounter (taskNumbers.reserveTaskNumbers) and backfill legacy tasks without a number (taskNumbers.ensureTaskNumbers) before the list is served.", "linkedAcceptanceCriteria": ["AC-010"] },
+    { "id": "FR-007", "text": "Keep the task hierarchy valid: one level of subtasks, no repeating subtasks, parent project/sprint/epic/release inherited, and POST /:id/move to make a task a subtask or promote it back to a top-level task.", "linkedAcceptanceCriteria": ["AC-005", "AC-006"] },
+    { "id": "FR-008", "text": "Spawn the next occurrence of a recurring task when it is completed (nextOccurrenceDates with basis due|completion) and clear the rule on the completed task.", "linkedAcceptanceCriteria": ["AC-015"] },
+    { "id": "FR-009", "text": "Duplicate a task through POST /:id/duplicate, optionally with its direct subtasks, as a new pending task that keeps content but not history.", "linkedAcceptanceCriteria": ["AC-016"] },
+    { "id": "FR-010", "text": "Let members comment on, attach files to and follow a task (POST/DELETE /:id/comments, POST/GET/DELETE /:id/attachments, POST|DELETE /:id/watch) with the documented limits and per-item ownership checks.", "linkedAcceptanceCriteria": ["AC-011", "AC-012", "AC-014"] },
+    { "id": "FR-011", "text": "Record task events in the workspace activity log and expose a task's own history through GET /:id/activity with a before cursor and a documented page limit.", "linkedAcceptanceCriteria": ["AC-013"] },
+    { "id": "FR-012", "text": "Apply one patch to up to 100 tasks (PATCH /tasks/bulk) and delete several tasks with their subtasks (POST /tasks/bulk-delete), validating every task before saving any.", "linkedAcceptanceCriteria": ["AC-017"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Workspace isolation: every task read and write filters by req.workspace._id, so a member of another workspace can neither see nor change the data (constitution CON-106).", "linkedAcceptanceCriteria": ["AC-003"] },
+    { "id": "NFR-002", "text": "Transport, authorization and validation stay separated: routes declare the path, the express-validator chain and requirePermission('tasks:read|write|delete'), and controllers do not re-implement authorization (constitution CON-105); the few per-item checks (comment author, attachment uploader) compare the session user with the stored owner.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "NFR-003", "text": "Dates are calendar days: YYYY-MM-DD on the wire, produced and parsed with client/src/features/tasks/lib/date.ts helpers, never with new Date('YYYY-MM-DD') for display (constitution CON-203).", "linkedAcceptanceCriteria": ["AC-002"] },
+    { "id": "NFR-004", "text": "Correct under concurrency and partial failure: task numbers come from an atomic $inc, watcher changes use $addToSet/$pull, and the client writes optimistically with a rollback plus a reload when the server performs a side effect (such as the next occurrence).", "linkedAcceptanceCriteria": ["AC-010", "AC-015"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "A dependency or assignee id that belongs to another workspace, or is not an id at all.", "expectedBehavior": "400 \"Dependencies must be tasks from this workspace\" or \"Assignees must be members of this workspace\"; nothing is written." },
+    { "id": "EC-002", "description": "The tab is closed inside the six-second delete undo window (DELETE_UNDO_MS).", "expectedBehavior": "The pagehide listener calls flushDeletes so the delete is sent before the page goes away; a failed request restores the task and shows the error." },
+    { "id": "EC-003", "description": "Loading tasks fails with 403 or 404 (wrong workspace, revoked membership).", "expectedBehavior": "The list is emptied, an error naming the workspace is shown, and the failed response is not cached (cacheableRef plus invalidate)." },
+    { "id": "EC-004", "description": "A background or live refresh answers while the user has unsaved optimistic edits.", "expectedBehavior": "The response is discarded because changesRef/busyRef moved since the request started; the user's version wins." },
+    { "id": "EC-005", "description": "A recurring task is completed, reopened and completed again.", "expectedBehavior": "No second occurrence: spawnNextOccurrence clears task.recurrence on the source as it creates the next one." },
+    { "id": "EC-006", "description": "A task created before task numbers existed is listed or searched by key.", "expectedBehavior": "ensureTaskNumbers fills the missing numbers oldest first (a concurrent backfill keeps its own number) and the search by number finds it." },
+    { "id": "EC-007", "description": "The list is filtered with assignee=me but the request carries no authenticated user.", "expectedBehavior": "The filter becomes { $in: [] }, which never widens the result set." },
+    { "id": "EC-008", "description": "Deleting a task other tasks depend on.", "expectedBehavior": "The dependants are kept and simply lose that dependency (cleanUpRemovedTasks pulls it); logged time entries of the deleted task are removed with it." }
+  ],
+  "dependencies": [
+    { "name": "mongodb (mongoose 9)", "type": "library", "notes": "Only datastore (constitution CON-104); operators $inc, $addToSet, $pull, $unset and aggregate pipelines are used." },
+    { "name": "express-validator", "type": "library", "notes": "Validation chains exported from the controllers and attached in routes/taskRoutes.ts." },
+    { "name": "workflow stages (server/src/utils/workflow.ts)", "type": "internal", "notes": "stageFor/workflowOf keep task.stage and task.status consistent on every write." },
+    { "name": "custom fields (server/src/utils/customFields.ts, customFieldsDb.ts)", "type": "internal", "notes": "planRequestCustom validates the custom part of a create/update against the workspace's field definitions." },
+    { "name": "GridFS (server/src/utils/gridfs.ts)", "type": "internal", "notes": "Task attachments and their cleanup on delete." },
+    { "name": "activity log (server/src/utils/activity.ts, models/activityModel.ts)", "type": "internal", "notes": "recordActivity writes the audit entries read back by the task history." },
+    { "name": "live updates (client/src/features/live, server/src/utils/changeCursor.ts)", "type": "internal", "notes": "useLiveRefresh(reload of the task list) keeps open views in step with teammates." },
+    { "name": "jest with @swc/jest", "type": "library", "notes": "Unit tests in server/src/__tests__ and integration tests in server/src/__integration__ (constitution CON-401, CON-402)." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "GET /tasks returns every task of the workspace in one response (no server-side pagination), which grows with the workspace.", "mitigation": "The aggregation is workspace-indexed (workspace + deadline/position/status/project/sprint indexes on the Task schema) and the board paginates client-side (BOARD_PAGE_SIZE = 10 in lib/pagination.ts); a paged endpoint would be a new version of this feature." },
+    { "id": "RISK-002", "description": "The delete cascade touches subtasks, GridFS files, dependencies, relations, epics and time entries, so an incomplete cascade leaves dangling references.", "mitigation": "One shared cleanUpRemovedTasks routine is used by single and bulk delete, and the cascade is covered by server/src/__tests__/taskController.test.ts and server/src/__integration__/tasks.test.ts." },
+    { "id": "RISK-003", "description": "A recurring task could spawn more than one occurrence if the rule stayed on the completed task.", "mitigation": "spawnNextOccurrence clears recurrence on the source, refuses subtasks, and swallows its own errors so a failed repeat cannot fail the completion." },
+    { "id": "RISK-004", "description": "Optimistic client updates can diverge from the stored task (stage/status sync, subtask regrouping, spawned occurrences).", "mitigation": "applyPatch mirrors the server rules, every failure rolls back to the previous task and shows the API message, and completions of recurring tasks or sprint moves trigger reload()." }
+  ]
+}

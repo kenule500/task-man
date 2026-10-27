@@ -1,0 +1,1589 @@
+{
+  "feature": "real-time-chat",
+  "title": "Real-time chat: workspace channels, messaging, presence and unified transport over Socket.IO",
+  "version": 1,
+  "overview": {
+    "problemStatement": "TaskMan models work (workspaces, projects, sprints, tasks, wiki pages) but has no place to talk about it, so discussion leaves the product and lands in email or a separate chat app, unlinked from the record it affects. The ingredients a conversation surface needs already exist but are disconnected: workspace-scoped projects, a permission catalogue, an in-app notification fan-out and a change feed. What is missing is a message store, a channel model, user-level presence, and a transport that delivers messages as they are written rather than up to ten seconds later.",
+    "proposedSolution": "A Socket.IO-backed chat subsystem that reuses workspace tenancy, RBAC and notifications. Channels are workspace-scoped and typed (one team and one general channel per workspace, one project channel per Project created and archived with it, plus direct channels between two members). Messages are stored in MongoDB, paginated by cursor and broadcast to members who may read the channel. Presence becomes user-level over socket connection state, alongside the existing task-scoped presence rows. Socket.IO becomes the primary transport for chat and for the existing task/project/wiki change feed, with the ten-second cursor poll retained as fallback for deployments that cannot hold a socket open. The client ships one reusable module, client/src/features/chat, imported through @/features/chat, plus a CHAT group in the sidebar.",
+    "targetAudience": "Workspace members (Developer, Team Member), Scrum Masters, Product Owners and workspace administrators across the five seeded system roles in server/src/config/permissions.ts.",
+    "assumptions": [
+      "The product mock shows 'Project #1' as a channel name; this spec reads it as the channel belonging to that project, so the channel name follows the project name rather than a literal string.",
+      "Chat presence is implemented at workspace level (who is connected) and read state per channel; the member count in the mock header is not derived from presence.",
+      "Only the Render service (render.yaml, node server/dist/server.js) can host a long-lived socket; the Vercel entry api/index.ts is a serverless function with maxDuration 30 and cannot.",
+      "Chat volume is assumed team-scale (hundreds of messages per channel per day), not community-scale; retention and index choices follow from that.",
+      "Message content needs no end-to-end encryption; transport and storage protect it via the existing HTTPS/HSTS and database guarantees."
+    ],
+    "outOfScope": [
+      "Voice and video calls, screen sharing and huddles.",
+      "Bot or webhook posting into channels; the separate outbound webhooks feature is unchanged.",
+      "Cross-workspace or federated chat, and any channel readable by more than one workspace.",
+      "Replacing the existing task-scoped 'Also viewing' presence (presenceModel.ts, PresenceBar.tsx); chat presence is additive.",
+      "End-to-end encryption, message translation and AI summarisation.",
+      "Push delivery for ordinary chat messages beyond reusing the existing web-push path; new push copy covers mentions and direct messages only."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Channels appear in a dedicated sidebar group",
+      "role": "Workspace member",
+      "want": "the channels I can read listed in a CHAT group next to the main navigation",
+      "benefit": "I can reach a conversation in one click",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "The sidebar renders a CHAT group between Main Menu and General listing only the team and general channels, and each item navigates to /{workspaceSlug}/chat/{channelId}. Project channels are not main-menu items; they are listed on the chat screen (AC-042)."
+        },
+        {
+          "id": "AC-002",
+          "text": "Only channels the requester may read are listed: a member without chat:read sees no CHAT group at all, and a project channel is visible only to members of that project plus holders of chat:moderate (FR-037, AC-038)."
+        },
+        {
+          "id": "AC-003",
+          "text": "Each workspace has exactly one team channel and one general channel; their names are fixed and not editable through any endpoint."
+        },
+        {
+          "id": "AC-034",
+          "text": "The two default channels carry distinct fixed purposes that the API returns and the client shows under the channel title: general is the workspace-wide space for announcements, broad discussion and the watercooler; team is the narrower space for internal team coordination, workflows, blockers and check-ins. The purpose is descriptive only - both remain writable by any caller holding chat:write, because this data model has no team or department entity to scope an audience to."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Project channels follow the project lifecycle",
+      "role": "Workspace member",
+      "want": "a project's channel to exist while the project exists and to stop accepting messages once the project is gone",
+      "benefit": "project conversation is always available and never orphaned",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-004",
+          "text": "Creating a project through POST /api/workspaces/:slug/projects creates its project channel in the same request, named after the project and carrying a reference to it; a project whose channel already exists does not produce a second channel."
+        },
+        {
+          "id": "AC-005",
+          "text": "Deleting a project through DELETE /api/workspaces/:slug/projects/:id archives its channel and its messages, exactly as deleteProject already cascades sprints and wiki pages; the channel becomes read-only, keeps its history, leaves main-menu navigation, and stays in the chat screen team-channel list for auditing (AC-043, EC-013)."
+        },
+        {
+          "id": "AC-006",
+          "text": "Projects that exist before this feature is deployed gain a channel on the next GET /api/workspaces/:slug/channels, through a backfill that mirrors syncProjectsFromTasks and tolerates a concurrent duplicate insert."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Send and receive messages live",
+      "role": "Channel member",
+      "want": "a message I send to appear for everyone in the channel immediately",
+      "benefit": "conversation feels synchronous",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-007",
+          "text": "A message sent over the socket is persisted before it is acknowledged to the sender and is delivered to every other connected member of that channel; the sender's own message is not echoed back to them twice."
+        },
+        {
+          "id": "AC-008",
+          "text": "A member without chat:write, or one who is not a member of the workspace, is refused both by the socket event and by the REST fallback, and no message row is written."
+        },
+        {
+          "id": "AC-009",
+          "text": "A message references its workspace, channel, author and optional parent message, and stores the channel's lastMessageAt so that channel ordering does not require scanning messages."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Read history without gaps or duplicates",
+      "role": "Channel member",
+      "want": "older messages loaded as I scroll up",
+      "benefit": "I can catch up without the page becoming slow",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-010",
+          "text": "GET /api/workspaces/:slug/chat/:channelId/messages returns at most 50 messages older than the supplied cursor, newest first per page, and paging with the returned cursor yields no duplicates and no skipped messages while new ones are arriving."
+        },
+        {
+          "id": "AC-011",
+          "text": "The message list loads the newest page on open, shows a loading state while paging, and preserves scroll position when older messages are prepended."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Reply in a thread",
+      "role": "Channel member",
+      "want": "to reply to a specific message in a side thread",
+      "benefit": "parallel discussions do not interleave",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-012",
+          "text": "Replying to a message stores the reply with a parent reference; the parent shows a reply count and the last replier."
+        },
+        {
+          "id": "AC-013",
+          "text": "The thread panel lists that parent's replies in order and accepts new replies without navigating away from the channel."
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Mention a teammate",
+      "role": "Channel member",
+      "want": "to @mention a teammate",
+      "benefit": "they are pulled into the conversation",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-014",
+          "text": "Typing @ offers the members of the workspace and inserts a mention that is stored as a reference to the mentioned user, not only as text."
+        },
+        {
+          "id": "AC-015",
+          "text": "A mentioned user receives an in-app notification through the existing notify path, and the notification opens the message."
+        }
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "React to a message",
+      "role": "Channel member",
+      "want": "to add an emoji reaction",
+      "benefit": "I can acknowledge something without writing a reply",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-016",
+          "text": "Adding a reaction I already gave removes it, and the resulting state is broadcast so all clients agree."
+        },
+        {
+          "id": "AC-017",
+          "text": "Reactions are aggregated per emoji with a count and the list of reactors, and a user has at most one reaction of a given emoji per message."
+        }
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Edit and delete my own messages",
+      "role": "Message author",
+      "want": "to correct or withdraw my message",
+      "benefit": "the record stays accurate",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-018",
+          "text": "A message author can edit their own message; the message keeps its original timestamp, gains an editedAt, and shows as edited."
+        },
+        {
+          "id": "AC-019",
+          "text": "A message author can delete their own message; the row is soft-deleted, its content and attachments are cleared, and the channel shows a tombstone instead of the text."
+        }
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Share a file",
+      "role": "Channel member",
+      "want": "to attach a file to a message",
+      "benefit": "I can share a screenshot or document in context",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-020",
+          "text": "Attachments use the existing upload pipeline and GridFS helpers, appear on the message with name, size and type, and are downloadable only by members who may read that channel."
+        },
+        {
+          "id": "AC-021",
+          "text": "An upload that exceeds the configured size limit or has a disallowed type is rejected with a validation error and no message is created."
+        }
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "See who is typing and what I have not read",
+      "role": "Channel member",
+      "want": "a typing indicator and an unread marker",
+      "benefit": "I know when to wait and what I missed",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-022",
+          "text": "While another member is composing, the channel shows a typing indicator naming them; it disappears after a short idle period or when the message arrives."
+        },
+        {
+          "id": "AC-023",
+          "text": "The last-read position is stored per user and channel, the sidebar shows an unread badge for channels with newer messages, and opening a channel clears it."
+        }
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Find and pin messages",
+      "role": "Channel member",
+      "want": "to search a channel's history and pin important messages",
+      "benefit": "decisions are not lost in scrollback",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-024",
+          "text": "Search within a channel matches message text case-insensitively for the current workspace only, returns paginated results, and never returns messages from a channel the requester cannot read."
+        },
+        {
+          "id": "AC-025",
+          "text": "A member with chat:write can pin and unpin a message; pinned messages are listed for the channel in pinned order."
+        }
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Direct messages",
+      "role": "Workspace member",
+      "want": "a private conversation with one teammate",
+      "benefit": "I can talk without an audience",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-026",
+          "text": "Starting a direct message with a member creates a direct channel between exactly those two users, or reuses the existing one, and the same pair never accumulates duplicate direct channels."
+        },
+        {
+          "id": "AC-027",
+          "text": "A direct channel's messages are readable only by its two participants; any other member, including an administrator, receives 404 rather than 403 so the channel's existence is not disclosed."
+        }
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Moderate and retain",
+      "role": "Workspace administrator",
+      "want": "to remove abusive messages and bound retention",
+      "benefit": "the workspace stays usable and compliant",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-028",
+          "text": "A member with chat:moderate can delete any message in the workspace; the action is recorded in the activity feed with actor and channel."
+        },
+        {
+          "id": "AC-029",
+          "text": "Messages older than the configured retention window are removed by a TTL index or a scheduled purge, and deleted or purged messages never reappear in search."
+        }
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Presence",
+      "role": "Channel member",
+      "want": "to see whether a teammate is online",
+      "benefit": "I know whether to expect a reply",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-030",
+          "text": "A connected member shows as online; closing the last connection marks them offline after a short grace period, and multiple tabs or devices for one user count as one presence."
+        },
+        {
+          "id": "AC-031",
+          "text": "Presence reflects a disconnect even when the socket closes uncleanly, because a periodic refresh also ages stale presence out."
+        }
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "One real-time transport, with a safe fallback",
+      "role": "Maintainer",
+      "want": "task and project updates to arrive over the same socket as chat",
+      "benefit": "the product has one real-time mechanism instead of two",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-032",
+          "text": "Task, project, sprint and wiki changes reach connected clients over the socket, and the existing useLiveChanges behaviour (permission-filtered, cursor-based, no event lost across a reconnect) is preserved."
+        },
+        {
+          "id": "AC-033",
+          "text": "When a socket cannot be established or drops, the client falls back to the existing cursor poll within one interval, and the UI reports the transport state rather than silently going stale."
+        }
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "The Team screen becomes the Members screen",
+      "role": "Workspace member",
+      "want": "the Team navigation item to be called Members at an address that says what it is",
+      "benefit": "the label matches the screen and existing links keep working",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-035",
+          "text": "The main navigation item is labelled Members and routes to /{workspaceSlug}/members; the previous /{workspaceSlug}/team path redirects to it so bookmarks and existing links still resolve."
+        },
+        {
+          "id": "AC-036",
+          "text": "Any in-app link that previously pointed at /{workspaceSlug}/team points at /{workspaceSlug}/members after the change, with no dead links left behind."
+        }
+      ]
+    },
+    {
+      "id": "US-017",
+      "title": "A team channel belongs to its project's members",
+      "role": "Project member",
+      "want": "a channel that only the people on my project can see",
+      "benefit": "internal coordination stays out of the workspace-wide conversation",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-037",
+          "text": "Each project owns exactly one channel of kind project. It is created in the same request that creates the project, and creating it twice does not produce a duplicate."
+        },
+        {
+          "id": "AC-038",
+          "text": "A project's members list is the sole source of its channel's audience. A caller who is not in that list receives 404 for the channel, never 403, so the channel's existence is not disclosed."
+        },
+        {
+          "id": "AC-039",
+          "text": "A caller holding chat:moderate, the capability the Product Owner role carries, may read and post in every team channel in the workspace, whether or not they are assigned to the project."
+        },
+        {
+          "id": "AC-040",
+          "text": "Assigning a user to a task in a project adds them to that project's members, so they can read and post in its channel without any separate invitation step; they lose access only when removed from the workspace."
+        }
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Team channels listed like a group-chat inbox",
+      "role": "Member",
+      "want": "my project conversations in one list beside the conversation",
+      "benefit": "I can move between projects the way I would in a group messenger",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-041",
+          "text": "The main-menu chat entries are only Team Chat (kind team) and General (kind general). Project channels are not main-menu navigation items."
+        },
+        {
+          "id": "AC-042",
+          "text": "The chat screen shows a team-channel list beside the conversation, each row carrying the channel's avatar, name, a last-message preview and its unread state, and selecting a row opens that channel."
+        },
+        {
+          "id": "AC-043",
+          "text": "The team-channel list contains only channels the caller may read, and when a caller may read none the list shows an explicit empty state rather than disappearing without explanation."
+        }
+      ]
+    },
+    {
+      "id": "US-019",
+      "title": "The Product Owner can rename and re-picture a team channel",
+      "role": "Product Owner",
+      "want": "to rename a team channel and give it an avatar",
+      "benefit": "it reads like a group conversation rather than a database record",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-044",
+          "text": "A caller holding chat:moderate may rename a team channel and set its avatar. The new name and avatar appear in the list for every member and are broadcast to open channel views."
+        },
+        {
+          "id": "AC-045",
+          "text": "A caller without chat:moderate receives 403 for both actions, and no name or avatar is changed."
+        },
+        {
+          "id": "AC-046",
+          "text": "A channel name falls back to the project name when no override has been set, and an override survives a project rename rather than being silently reset."
+        },
+        {
+          "id": "AC-047",
+          "text": "A channel avatar is an image uploaded through the existing uploadMiddleware size and content-type validation, stored in GridFS, and served only to callers who may read that channel. A rejected upload leaves the previous avatar intact."
+        }
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "A conversation reads like a group chat",
+      "role": "Channel member",
+      "want": "my own messages on one side and everyone else's on the other",
+      "benefit": "I can follow who said what at a glance",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-048",
+          "text": "The caller's own messages render right-aligned in a tinted bubble without their own avatar; every other member's messages render left-aligned with their avatar and name. Each bubble carries its time, the edited marker and the pinned mark."
+        }
+      ]
+    },
+    {
+      "id": "US-021",
+      "title": "Mentions behave like a chat app",
+      "role": "Channel member",
+      "want": "my own name kept out of the mention list and mentions highlighted in the message",
+      "benefit": "referencing people is quick and I can see who was addressed",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-049",
+          "text": "The mention suggestion list never contains the signed-in user, because mentioning yourself has no effect."
+        },
+        {
+          "id": "AC-052",
+          "text": "A mention that matches a member's name renders highlighted inside the message body. A token that does not match a known member, such as part of an email address, renders as ordinary text."
+        }
+      ]
+    },
+    {
+      "id": "US-022",
+      "title": "Send several attachments at once",
+      "role": "Channel member",
+      "want": "to attach more than one file to a message",
+      "benefit": "I can share a set of screenshots together",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-053",
+          "text": "The attachment picker accepts several files in one selection. Each uploads independently, so one rejected file does not discard the others, and every accepted file is attached to the message that is sent."
+        },
+        {
+          "id": "AC-054",
+          "text": "A message's attachments are stored with its name, size and type and are downloadable only by callers who may read the channel."
+        }
+      ]
+    },
+    {
+      "id": "US-023",
+      "title": "See at a glance where the new messages are",
+      "role": "Channel member",
+      "want": "an unread indicator on the default channels and the team list",
+      "benefit": "I know which conversation to open",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-050",
+          "text": "The chat screen lists New direct message first, then the member's direct conversations, then the team channels."
+        },
+        {
+          "id": "AC-055",
+          "text": "Team Chat and General in the main menu show an unread indicator while they hold messages newer than the member's last visit, cleared when the channel is opened. The state comes from the server, so it survives across devices."
+        }
+      ]
+    },
+    {
+      "id": "US-024",
+      "title": "Member counts tell the truth",
+      "role": "Channel member",
+      "want": "the member count to match the channel I am in",
+      "benefit": "I know who can see the conversation",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-051",
+          "text": "The count shown for a channel equals the number of people who can read it: workspace members for Team Chat and General, the project members for a team channel, and two for a direct conversation."
+        }
+      ]
+    },
+    {
+      "id": "US-025",
+      "title": "Direct messages are a section of the conversation panel",
+      "role": "Workspace member",
+      "want": "my private conversations listed as cards beside the team channels",
+      "benefit": "the whole side panel reads the same way",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-056",
+          "text": "The chat side panel renders exactly two labelled conversation sections, Direct messages above Team channels, and each readable conversation appears in exactly one of them according to its kind; the two default channels remain main-menu entries and are not repeated in either section."
+        },
+        {
+          "id": "AC-057",
+          "text": "A direct row carries the other participant's avatar and display name, the last message as an author-prefixed preview (Attachment when the body is empty, No messages yet when there is none), an unread dot while the conversation holds messages newer than the caller's last read, and an Archived marker only when the channel is archived; selecting the row opens /{workspaceSlug}/chat/{channelId}."
+        },
+        {
+          "id": "AC-058",
+          "text": "Direct and team rows render through one shared row component, so avatar size, name and preview typography, spacing, hover and active treatment, the unread dot and aria-current are identical; apart from the team-channel settings affordance (AC-044), the sections differ only in heading, loading copy, empty copy and footline."
+        },
+        {
+          "id": "AC-059",
+          "text": "The side panel obtains both sections in a single request; while it loads each section shows its own loading copy, and a section with no conversations shows its empty copy instead of being omitted - the direct empty state names the New direct message control it expects the member to use."
+        },
+        {
+          "id": "AC-060",
+          "text": "Starting a direct conversation adds its row to Direct messages in place and selects it, without a full page reload and without duplicating a row that already existed."
+        }
+      ]
+    },
+    {
+      "id": "US-026",
+      "title": "A direct conversation is named after the person",
+      "role": "Workspace member",
+      "want": "a direct conversation to carry the other person's name and picture",
+      "benefit": "I can recognise it without opening it",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-061",
+          "text": "A direct row's name and avatar come from the other participant and never from the stored channel name or the caller's own name; when that account cannot be resolved the row falls back to Direct message with the default avatar and still opens for the remaining participant."
+        }
+      ]
+    },
+    {
+      "id": "US-027",
+      "title": "The conversation list follows recent activity",
+      "role": "Workspace member",
+      "want": "the conversation with the newest message first and its preview up to date",
+      "benefit": "I can see where the conversation is without opening every row",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-062",
+          "text": "Each section is ordered by its most recent message, newest first, with a conversation that has no messages after those that do and then ordered by name; the order comes from the server, so two devices show the same list."
+        },
+        {
+          "id": "AC-063",
+          "text": "When a message arrives in a conversation that is not currently open, that row's preview and unread state update in place and the row moves to the top of its section, with no page reload and no duplicate row."
+        }
+      ]
+    },
+    {
+      "id": "US-028",
+      "title": "Unread counts are actionable",
+      "role": "Workspace member",
+      "want": "to see how many messages are waiting",
+      "benefit": "I can decide which conversation needs me",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-064",
+          "text": "A row with unread messages shows their number, capped at 9+, instead of a bare dot; the number clears when the conversation is opened and comes from the same read state as the main-menu badge."
+        }
+      ]
+    },
+    {
+      "id": "US-029",
+      "title": "The New direct message control is a first-class row",
+      "role": "Workspace member",
+      "want": "a control I cannot miss",
+      "benefit": "starting a private conversation is as obvious as opening one",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-065",
+          "text": "New direct message renders as a full-width row at least 44px tall with an icon and a visible label, styled as a peer of the conversation cards, and remains the first item above both sections; the teammate list it opens has rows of the same height."
+        },
+        {
+          "id": "AC-066",
+          "text": "The control is operable by keyboard, exposes an accessible name and aria-expanded, and its expanded list is a labelled list of teammates."
+        }
+      ]
+    },
+    {
+      "id": "US-030",
+      "title": "A group's member count matches its members",
+      "role": "Channel member",
+      "want": "the header count to name the people in the conversation",
+      "benefit": "I know who is in it",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-067",
+          "text": "The count for a team channel equals the number of people in that project's member list, including the project's creator; a chat:moderate holder who can read the channel without being a member is not counted."
+        },
+        {
+          "id": "AC-068",
+          "text": "The count for a direct conversation is exactly two, including immediately after it is opened from New direct message; no channel ever falls back to the workspace member count."
+        }
+      ]
+    },
+    {
+      "id": "US-031",
+      "title": "A direct conversation's header shows the person",
+      "role": "Workspace member",
+      "want": "the header of a private conversation to carry the other person's avatar and name",
+      "benefit": "I know who I am talking to",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-069",
+          "text": "A direct conversation's header shows the other participant's avatar and display name in place of the lock glyph, with their online state; a team or default channel keeps its channel avatar and name."
+        }
+      ]
+    },
+    {
+      "id": "US-032",
+      "title": "Search is a find bar, not a dropdown",
+      "role": "Channel member",
+      "want": "search to open as a bar above the conversation",
+      "benefit": "it feels like a tool rather than a popup",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-070",
+          "text": "Search opens as an inline bar between the channel header and the conversation, holding the input, a match counter, previous and next buttons and a close button; it spans the conversation width, never floats over or clips the message list, and no dropdown or popover is rendered. It opens from the header search button and from Ctrl/Cmd+F while the chat surface has focus, and Esc closes it."
+        }
+      ]
+    },
+    {
+      "id": "US-033",
+      "title": "Results are a navigable list",
+      "role": "Channel member",
+      "want": "the matches listed and selectable",
+      "benefit": "I can step through them instead of reading a clipped box",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-071",
+          "text": "While a query is active the conversation body shows the matches as a full-height, scrollable list; each row carries the author, the date and a snippet with every occurrence of the term highlighted, and exactly one row is selected at a time. The list is a labelled listbox and each row an option, and rows are also selectable by pointer."
+        },
+        {
+          "id": "AC-073",
+          "text": "The counter shows the selected position and the loaded count (3 of 12), with a trailing + while the server reported another page; when the selection moves past the last loaded row, the next page is fetched and appended without resetting the selection and without duplicates."
+        }
+      ]
+    },
+    {
+      "id": "US-034",
+      "title": "Arrow keys move through the matches",
+      "role": "Keyboard user",
+      "want": "to step through results without leaving the input",
+      "benefit": "searching stays one motion",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-072",
+          "text": "ArrowDown and ArrowUp move the selection one row and wrap at both ends; Enter opens the selected message; Shift+Enter moves to the previous match; focus stays in the input throughout and the selected row is announced through aria-activedescendant. Esc closes search and returns focus to the composer."
+        },
+        {
+          "id": "AC-075",
+          "text": "The bar and the list are operable by keyboard alone with a visible focus ring; the counter is announced politely when the selection changes, and the selected row is distinguishable without relying on colour alone."
+        }
+      ]
+    },
+    {
+      "id": "US-035",
+      "title": "Opening a result lands on the message",
+      "role": "Channel member",
+      "want": "the message to be there when I pick a result",
+      "benefit": "the search actually takes me to the conversation",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-074",
+          "text": "Opening a result closes search, scrolls that message into view and highlights it for a short time; if the message is not in the loaded pages, older pages are fetched until it is found (bounded to the current channel), and the bar shows a loading state until the jump completes. A message that no longer exists reports that it is gone and leaves search open."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "The system MUST model channels as workspace-scoped documents of kind team, general, project or direct, with a unique constraint on (workspace, kind, nameKey) for the first three kinds.",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-003"
+      ]
+    },
+    {
+      "id": "FR-002",
+      "text": "The system MUST seed one team and one general channel per workspace and MUST NOT allow either to be renamed or deleted.",
+      "linkedAcceptanceCriteria": [
+        "AC-003"
+      ]
+    },
+    {
+      "id": "FR-034",
+      "text": "The system MUST give both default channels a fixed description stating its purpose, MUST return that description to the client, and MUST refresh it on every seed pass so existing workspaces pick it up. The description is informational and MUST NOT restrict who may read or write either channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-034"
+      ]
+    },
+    {
+      "id": "FR-003",
+      "text": "The system MUST resolve channel visibility from the caller's permissions, the channel kind and, for a project channel, the caller's membership of that project - hiding a project channel from non-members while permitting holders of chat:moderate (FR-037).",
+      "linkedAcceptanceCriteria": [
+        "AC-002"
+      ]
+    },
+    {
+      "id": "FR-004",
+      "text": "The system MUST create a project channel inside the project creation flow and MUST reuse an existing channel for the same project instead of creating a duplicate.",
+      "linkedAcceptanceCriteria": [
+        "AC-004"
+      ]
+    },
+    {
+      "id": "FR-005",
+      "text": "The system MUST archive a project's channel and messages when that project is deleted, must leave the history readable, MUST keep the channel in the chat screen team-channel list as read-only for auditing, and MUST NOT delete message rows as part of the project cascade.",
+      "linkedAcceptanceCriteria": [
+        "AC-005"
+      ]
+    },
+    {
+      "id": "FR-006",
+      "text": "The system MUST backfill channels for pre-existing projects on channel list, tolerating a concurrent duplicate-key race.",
+      "linkedAcceptanceCriteria": [
+        "AC-006"
+      ]
+    },
+    {
+      "id": "FR-007",
+      "text": "The system MUST persist a message before acknowledging it to its author and MUST broadcast only after a successful write.",
+      "linkedAcceptanceCriteria": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "FR-008",
+      "text": "The system MUST authorize every socket event and every REST fallback with the same permission and workspace checks used by the HTTP API.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "FR-009",
+      "text": "The system MUST store lastMessageAt and lastMessageAuthor on the channel and MUST order the channel list by them.",
+      "linkedAcceptanceCriteria": [
+        "AC-009"
+      ]
+    },
+    {
+      "id": "FR-010",
+      "text": "The system MUST expose cursor-paginated message history with a page size of at most 50 and MUST provide a stable cursor that tolerates concurrent inserts.",
+      "linkedAcceptanceCriteria": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "FR-011",
+      "text": "The system MUST preserve scroll position and show explicit loading state when older pages are prepended.",
+      "linkedAcceptanceCriteria": [
+        "AC-011"
+      ]
+    },
+    {
+      "id": "FR-012",
+      "text": "The system MUST store threaded replies with a parent reference and MUST expose the reply count and last replier on the parent.",
+      "linkedAcceptanceCriteria": [
+        "AC-012"
+      ]
+    },
+    {
+      "id": "FR-013",
+      "text": "The system MUST render and accept thread replies in a side panel without navigating away from the channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-013"
+      ]
+    },
+    {
+      "id": "FR-014",
+      "text": "The system MUST store mentions as user references resolved against workspace members, reusing the existing mention resolution.",
+      "linkedAcceptanceCriteria": [
+        "AC-014"
+      ]
+    },
+    {
+      "id": "FR-015",
+      "text": "The system MUST notify mentioned users through the existing notification infrastructure rather than a parallel mechanism.",
+      "linkedAcceptanceCriteria": [
+        "AC-015"
+      ]
+    },
+    {
+      "id": "FR-016",
+      "text": "The system MUST treat a reaction as a toggle keyed by (message, user, emoji) so that a user holds at most one of each emoji per message.",
+      "linkedAcceptanceCriteria": [
+        "AC-016",
+        "AC-017"
+      ]
+    },
+    {
+      "id": "FR-017",
+      "text": "The system MUST allow a message author to edit their own message, MUST record editedAt, and MUST refuse edits by other users.",
+      "linkedAcceptanceCriteria": [
+        "AC-018"
+      ]
+    },
+    {
+      "id": "FR-018",
+      "text": "The system MUST soft-delete a message on author or moderator deletion, clearing content and attachment references while retaining the row for ordering and reply integrity.",
+      "linkedAcceptanceCriteria": [
+        "AC-019"
+      ]
+    },
+    {
+      "id": "FR-019",
+      "text": "The system MUST store attachments through the existing GridFS helpers and MUST verify channel read access before serving them.",
+      "linkedAcceptanceCriteria": [
+        "AC-020"
+      ]
+    },
+    {
+      "id": "FR-020",
+      "text": "The system MUST validate attachment size and content type before creating the message and MUST reject invalid uploads.",
+      "linkedAcceptanceCriteria": [
+        "AC-021"
+      ]
+    },
+    {
+      "id": "FR-021",
+      "text": "The system MUST broadcast typing state as an ephemeral event that is never persisted.",
+      "linkedAcceptanceCriteria": [
+        "AC-022"
+      ]
+    },
+    {
+      "id": "FR-022",
+      "text": "The system MUST persist a per-user, per-channel last-read position and MUST derive unread badges from it.",
+      "linkedAcceptanceCriteria": [
+        "AC-023"
+      ]
+    },
+    {
+      "id": "FR-023",
+      "text": "The system MUST provide channel-scoped search that is case-insensitive, workspace-bounded, paginated, and permission-filtered.",
+      "linkedAcceptanceCriteria": [
+        "AC-024"
+      ]
+    },
+    {
+      "id": "FR-024",
+      "text": "The system MUST allow pinning and unpinning by callers with chat:write and MUST expose a pinned-message list per channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-025"
+      ]
+    },
+    {
+      "id": "FR-025",
+      "text": "The system MUST model direct channels as direct kind with exactly two participants and MUST reuse an existing pair's channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-026"
+      ]
+    },
+    {
+      "id": "FR-026",
+      "text": "The system MUST answer 404 for a direct channel the caller does not participate in, never 403.",
+      "linkedAcceptanceCriteria": [
+        "AC-027"
+      ]
+    },
+    {
+      "id": "FR-027",
+      "text": "The system MUST allow a caller with chat:moderate to delete any workspace message and MUST record that in the activity feed.",
+      "linkedAcceptanceCriteria": [
+        "AC-028"
+      ]
+    },
+    {
+      "id": "FR-028",
+      "text": "The system MUST purge messages beyond the configured retention window and MUST exclude purged content from search.",
+      "linkedAcceptanceCriteria": [
+        "AC-029"
+      ]
+    },
+    {
+      "id": "FR-029",
+      "text": "The system MUST track user-level presence from socket connection state, counting one user once regardless of tab or device count.",
+      "linkedAcceptanceCriteria": [
+        "AC-030"
+      ]
+    },
+    {
+      "id": "FR-030",
+      "text": "The system MUST age out presence that did not refresh in time, so an unclean disconnect does not leave a user shown as online.",
+      "linkedAcceptanceCriteria": [
+        "AC-031"
+      ]
+    },
+    {
+      "id": "FR-031",
+      "text": "The system MUST deliver activity-feed changes over the socket while preserving per-permission filtering and cursor replay across reconnects.",
+      "linkedAcceptanceCriteria": [
+        "AC-032"
+      ]
+    },
+    {
+      "id": "FR-032",
+      "text": "The system MUST fall back to the existing cursor poll when the socket is unavailable and MUST surface the transport state to the user.",
+      "linkedAcceptanceCriteria": [
+        "AC-033"
+      ]
+    },
+    {
+      "id": "FR-033",
+      "text": "The system MUST register a chat permission area with chat:read, chat:write, chat:moderate and chat:dm, and MUST wire them into the seeded system roles without widening existing roles.",
+      "linkedAcceptanceCriteria": [
+        "AC-002",
+        "AC-008",
+        "AC-028"
+      ]
+    },
+    {
+      "id": "FR-035",
+      "text": "The system MUST maintain Project.members as a materialised audience populated automatically: assigning a user to a task belonging to that project MUST add them to the project's members, and they MUST gain access to its channel with no separate invitation step. Membership MUST NOT be revoked automatically when their tasks change, so a member is never silently cut out of an audited conversation. The materialised list is what authorization queries filter on, so access never requires a per-request task lookup.",
+      "linkedAcceptanceCriteria": [
+        "AC-038",
+        "AC-040"
+      ]
+    },
+    {
+      "id": "FR-036",
+      "text": "The system MUST create one project channel inside project creation and MUST reuse an existing channel for the same project instead of inserting a duplicate.",
+      "linkedAcceptanceCriteria": [
+        "AC-037"
+      ]
+    },
+    {
+      "id": "FR-037",
+      "text": "The system MUST authorize access to a project channel by the caller's presence in that project's members list, MUST answer 404 for a non-member rather than 403, and MUST allow any chat:moderate holder full access.",
+      "linkedAcceptanceCriteria": [
+        "AC-038",
+        "AC-039",
+        "AC-040"
+      ]
+    },
+    {
+      "id": "FR-038",
+      "text": "The system MUST restrict the main-menu chat entries to kinds team and general and MUST expose project channels only through the chat screen team-channel list.",
+      "linkedAcceptanceCriteria": [
+        "AC-041",
+        "AC-042"
+      ]
+    },
+    {
+      "id": "FR-039",
+      "text": "The system MUST return, for each team channel, the avatar, the display name, the last message preview and the caller's unread state, so the list renders in one request.",
+      "linkedAcceptanceCriteria": [
+        "AC-042"
+      ]
+    },
+    {
+      "id": "FR-040",
+      "text": "The system MUST let a chat:moderate holder rename a team channel and replace its avatar, MUST broadcast both changes, and MUST refuse them with 403 for every other caller.",
+      "linkedAcceptanceCriteria": [
+        "AC-044",
+        "AC-045"
+      ]
+    },
+    {
+      "id": "FR-041",
+      "text": "The system MUST store a per-channel name override and avatar separately from the project, MUST fall back to the project name when no override exists, and MUST keep an override when the project is renamed.",
+      "linkedAcceptanceCriteria": [
+        "AC-046"
+      ]
+    },
+    {
+      "id": "FR-042",
+      "text": "The system MUST serve a channel avatar only to callers who may read that channel, using the existing GridFS pipeline and upload validation.",
+      "linkedAcceptanceCriteria": [
+        "AC-047"
+      ]
+    },
+    {
+      "id": "FR-043",
+      "text": "The system MUST label the team directory Members, route it at /{workspaceSlug}/members, and redirect the previous /{workspaceSlug}/team path.",
+      "linkedAcceptanceCriteria": [
+        "AC-035",
+        "AC-036"
+      ]
+    },
+    {
+      "id": "FR-044",
+      "text": "The system MUST remove a user from every project's members when they leave the workspace, so a departed member cannot retain channel access.",
+      "linkedAcceptanceCriteria": [
+        "AC-040"
+      ]
+    },
+    {
+      "id": "FR-045",
+      "text": "The system MUST render the caller's own messages right-aligned without their own avatar and other members' messages left-aligned with avatar and name.",
+      "linkedAcceptanceCriteria": [
+        "AC-048"
+      ]
+    },
+    {
+      "id": "FR-046",
+      "text": "The system MUST exclude the signed-in user from the mention suggestion list.",
+      "linkedAcceptanceCriteria": [
+        "AC-049"
+      ]
+    },
+    {
+      "id": "FR-047",
+      "text": "The system MUST highlight a mention token in the message body when it matches a known member name, and MUST render a non-matching token as text.",
+      "linkedAcceptanceCriteria": [
+        "AC-052"
+      ]
+    },
+    {
+      "id": "FR-048",
+      "text": "The system MUST accept multiple attachment ids per message, MUST resolve each to its stored name, size and type, and MUST refuse an id that was not uploaded to that channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-053",
+        "AC-054"
+      ]
+    },
+    {
+      "id": "FR-049",
+      "text": "The system MUST order the chat side panel as New direct message, then direct conversations, then team channels.",
+      "linkedAcceptanceCriteria": [
+        "AC-050"
+      ]
+    },
+    {
+      "id": "FR-050",
+      "text": "The system MUST return, for each channel, whether it has messages newer than the caller's last visit, and the client MUST show that state on the default channels.",
+      "linkedAcceptanceCriteria": [
+        "AC-055"
+      ]
+    },
+    {
+      "id": "FR-051",
+      "text": "The system MUST return a per-channel member count derived from the channel kind: workspace members, project members, or the two direct participants.",
+      "linkedAcceptanceCriteria": [
+        "AC-051"
+      ]
+    },
+    {
+      "id": "FR-052",
+      "text": "The system MUST return the caller's direct conversations and readable team channels in a single response - GET /api/workspaces/:slug/chat/conversations returning { directs, teams } - each row carrying its display name, avatar URL, last-message preview, archived flag and the caller's unread state.",
+      "linkedAcceptanceCriteria": [
+        "AC-056",
+        "AC-057",
+        "AC-059"
+      ]
+    },
+    {
+      "id": "FR-053",
+      "text": "The system MUST render direct and team rows through one shared component, so the two sections cannot drift in layout, unread treatment or keyboard behaviour.",
+      "linkedAcceptanceCriteria": [
+        "AC-058"
+      ]
+    },
+    {
+      "id": "FR-054",
+      "text": "The system MUST derive a direct conversation's display name and avatar from the other participant, MUST NOT label a row with the caller's own name, and MUST fall back to a neutral Direct message row when that account cannot be resolved.",
+      "linkedAcceptanceCriteria": [
+        "AC-057",
+        "AC-061"
+      ]
+    },
+    {
+      "id": "FR-055",
+      "text": "The system MUST keep direct-channel authorization unchanged: a direct conversation is listed only for its two participants and every other caller receives 404.",
+      "linkedAcceptanceCriteria": [
+        "AC-056"
+      ]
+    },
+    {
+      "id": "FR-056",
+      "text": "The system MUST give each section a heading, a loading state and an empty state, and MUST NOT hide a section because it is empty.",
+      "linkedAcceptanceCriteria": [
+        "AC-059"
+      ]
+    },
+    {
+      "id": "FR-057",
+      "text": "The system MUST keep the New direct message control above both sections and MUST add a newly created conversation to Direct messages in place.",
+      "linkedAcceptanceCriteria": [
+        "AC-059",
+        "AC-060"
+      ]
+    },
+    {
+      "id": "FR-058",
+      "text": "The system MUST order both conversation sections by lastMessageAt descending, with never-used conversations last and ordered by name, and MUST include the row's unread count in the same response.",
+      "linkedAcceptanceCriteria": [
+        "AC-062",
+        "AC-064"
+      ]
+    },
+    {
+      "id": "FR-059",
+      "text": "The system MUST update the affected row's preview, unread count and position when a message arrives in a conversation that is not open, reusing the existing socket subscription rather than a new poller.",
+      "linkedAcceptanceCriteria": [
+        "AC-063"
+      ]
+    },
+    {
+      "id": "FR-060",
+      "text": "The system MUST return an unread count per conversation, not only a boolean, and the client MUST cap the rendered value at 9+.",
+      "linkedAcceptanceCriteria": [
+        "AC-064"
+      ]
+    },
+    {
+      "id": "FR-061",
+      "text": "The system MUST render New direct message as a row of at least 44px with an icon and label, as a peer of the conversation cards, and MUST keep it above both sections.",
+      "linkedAcceptanceCriteria": [
+        "AC-065"
+      ]
+    },
+    {
+      "id": "FR-062",
+      "text": "The system MUST make that control keyboard operable with an accessible name and aria-expanded, and MUST label its expanded teammate list.",
+      "linkedAcceptanceCriteria": [
+        "AC-066"
+      ]
+    },
+    {
+      "id": "FR-063",
+      "text": "The system MUST derive a channel's member count from its kind - project members including the creator, exactly two participants for direct, workspace members for the two defaults - and MUST NOT fall back to the workspace count for a direct conversation.",
+      "linkedAcceptanceCriteria": [
+        "AC-067",
+        "AC-068"
+      ]
+    },
+    {
+      "id": "FR-064",
+      "text": "The system MUST add the project's creator to Project.members when the project is created, idempotently, and MUST backfill the creator into existing projects once.",
+      "linkedAcceptanceCriteria": [
+        "AC-067"
+      ]
+    },
+    {
+      "id": "FR-065",
+      "text": "The system MUST render a direct conversation's header with the other participant's avatar and display name, never the caller's own identity and never a generic glyph.",
+      "linkedAcceptanceCriteria": [
+        "AC-069"
+      ]
+    },
+    {
+      "id": "FR-066",
+      "text": "The system MUST render search as an inline find bar with an input, a position counter, previous and next controls and a close control, and MUST NOT render search results in a dropdown or popover.",
+      "linkedAcceptanceCriteria": [
+        "AC-070"
+      ]
+    },
+    {
+      "id": "FR-067",
+      "text": "The system MUST render the matches as a full-height selectable list, one row per message, carrying the author, the date and a snippet with every occurrence of the term highlighted.",
+      "linkedAcceptanceCriteria": [
+        "AC-071"
+      ]
+    },
+    {
+      "id": "FR-068",
+      "text": "The system MUST implement the keyboard contract - ArrowDown/ArrowUp with wrapping, Enter to open, Shift+Enter for the previous match, Esc to close - while keeping focus in the search input.",
+      "linkedAcceptanceCriteria": [
+        "AC-072",
+        "AC-075"
+      ]
+    },
+    {
+      "id": "FR-069",
+      "text": "The system MUST fetch the next result page when the selection reaches the last loaded row and the server reported one, appending without duplicates and without resetting the selection.",
+      "linkedAcceptanceCriteria": [
+        "AC-073"
+      ]
+    },
+    {
+      "id": "FR-070",
+      "text": "The system MUST open the selected message by closing search, ensuring the message is loaded, scrolling it into view and highlighting it briefly, and MUST report when the message is no longer available.",
+      "linkedAcceptanceCriteria": [
+        "AC-074"
+      ]
+    },
+    {
+      "id": "FR-071",
+      "text": "The system MUST expose the list as a labelled listbox with option rows, keep the input as the active combobox with aria-activedescendant, and announce the counter through a polite live region.",
+      "linkedAcceptanceCriteria": [
+        "AC-075"
+      ]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Message delivery from write to connected recipients MUST be under 500 ms at p95 on a local network and under 1 s over the public internet.",
+      "linkedAcceptanceCriteria": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "NFR-002",
+      "text": "Message history queries MUST use an index that satisfies the cursor predicate, so paging cost does not grow with channel history.",
+      "linkedAcceptanceCriteria": [
+        "AC-010"
+      ]
+    },
+    {
+      "id": "NFR-003",
+      "text": "The chat UI MUST be operable by keyboard, MUST expose an accessible name for every control, and MUST announce incoming messages to assistive technology through a polite live region.",
+      "linkedAcceptanceCriteria": [
+        "AC-001",
+        "AC-007"
+      ]
+    },
+    {
+      "id": "NFR-004",
+      "text": "The chat UI MUST be mobile-first and MUST remain usable in the existing mobile tab bar layout.",
+      "linkedAcceptanceCriteria": [
+        "AC-001"
+      ]
+    },
+    {
+      "id": "NFR-005",
+      "text": "A socket connection MUST be authenticated with the existing JWT and MUST NOT be accepted for a session that has been revoked.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-006",
+      "text": "CON-511 Authentication: every socket handshake MUST be authenticated with a JWT bearer token validated by the existing auth middleware path, and a revoked session MUST terminate its open sockets.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-007",
+      "text": "CON-512 Authorization: every chat route MUST run protect then requirePermission('chat:<action>'), and every query MUST filter by req.workspace._id.",
+      "linkedAcceptanceCriteria": [
+        "AC-002",
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-008",
+      "text": "CON-513 Security headers: chat HTTP responses MUST inherit the application-wide Helmet middleware, and the socket upgrade MUST NOT bypass it.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-009",
+      "text": "CON-514 Rate limiting: chat endpoints MUST be covered by an explicit rate-limit policy, and socket events MUST be throttled per connection so a single client cannot flood a channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-008"
+      ]
+    },
+    {
+      "id": "NFR-010",
+      "text": "CON-515 Input validation: every chat route MUST declare an express-validator chain and every socket event MUST validate its payload before use.",
+      "linkedAcceptanceCriteria": [
+        "AC-021"
+      ]
+    },
+    {
+      "id": "NFR-011",
+      "text": "CON-516 NoSQL/Injection: chat queries MUST use cast ObjectIds and validated strings, and MUST NOT interpolate client input into query operators.",
+      "linkedAcceptanceCriteria": [
+        "AC-024"
+      ]
+    },
+    {
+      "id": "NFR-012",
+      "text": "CON-517 XSS: message content MUST be rendered as text or through the existing react-markdown path and MUST NOT use dangerouslySetInnerHTML.",
+      "linkedAcceptanceCriteria": [
+        "AC-007"
+      ]
+    },
+    {
+      "id": "NFR-013",
+      "text": "CON-519 Environment security: the socket origin allow-list MUST come from validated configuration in config/env.ts, not from a literal in the socket setup.",
+      "linkedAcceptanceCriteria": [
+        "AC-033"
+      ]
+    },
+    {
+      "id": "NFR-014",
+      "text": "CON-520 HTTPS/HSTS: in production the socket MUST be served over TLS, and the client MUST be configured against a wss: origin.",
+      "linkedAcceptanceCriteria": [
+        "AC-033"
+      ]
+    },
+    {
+      "id": "NFR-015",
+      "text": "A client that reconnects after a drop MUST be able to recover missed activity-feed events without gaps or duplicates, using the existing cursor.",
+      "linkedAcceptanceCriteria": [
+        "AC-032",
+        "AC-033"
+      ]
+    },
+    {
+      "id": "NFR-016",
+      "text": "Message storage MUST be bounded by a retention policy so that history growth cannot exhaust the database.",
+      "linkedAcceptanceCriteria": [
+        "AC-029"
+      ]
+    },
+    {
+      "id": "NFR-017",
+      "text": "Team-channel authorization MUST be part of the database query filter, not a post-query check, so a non-member cannot receive another project messages even if a broadcast is misrouted.",
+      "linkedAcceptanceCriteria": [
+        "AC-038"
+      ]
+    },
+    {
+      "id": "NFR-018",
+      "text": "Channel avatar uploads MUST reuse server/src/middleware/uploadMiddleware.ts and utils/gridfs.ts; no second upload surface MAY be introduced, and the existing size and content-type limits MUST apply unchanged.",
+      "linkedAcceptanceCriteria": [
+        "AC-047"
+      ]
+    },
+    {
+      "id": "NFR-019",
+      "text": "The team-channel list MUST resolve in a single request per open of the chat screen, without a query per channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-042"
+      ]
+    },
+    {
+      "id": "NFR-020",
+      "text": "Mention highlighting MUST be produced by segmenting the message text into React nodes; message bodies MUST NOT be injected as raw HTML, so a name containing markup cannot become script.",
+      "linkedAcceptanceCriteria": [
+        "AC-052"
+      ]
+    },
+    {
+      "id": "NFR-021",
+      "text": "The side panel MUST resolve both sections in one request per open of the chat screen and MUST NOT issue a request per conversation (extends NFR-019).",
+      "linkedAcceptanceCriteria": [
+        "AC-059"
+      ]
+    },
+    {
+      "id": "NFR-022",
+      "text": "Each section MUST be a labelled navigation landmark with a heading, the open conversation MUST carry aria-current=\"page\", and keyboard order MUST follow the visual order: New direct message, Direct messages, Team channels (CON-305).",
+      "linkedAcceptanceCriteria": [
+        "AC-058"
+      ]
+    },
+    {
+      "id": "NFR-023",
+      "text": "Ordering and unread counts MUST be computed in the existing list request, without a query per row, so NFR-019 and NFR-021 still hold.",
+      "linkedAcceptanceCriteria": [
+        "AC-062",
+        "AC-064"
+      ]
+    },
+    {
+      "id": "NFR-024",
+      "text": "The 44px control and teammate rows MUST keep the panel scrollable and usable at 320px width (CON-306).",
+      "linkedAcceptanceCriteria": [
+        "AC-065"
+      ]
+    },
+    {
+      "id": "NFR-025",
+      "text": "The live row update MUST reuse the socket the message list already subscribes to and MUST NOT add a polling loop.",
+      "linkedAcceptanceCriteria": [
+        "AC-063"
+      ]
+    },
+    {
+      "id": "NFR-026",
+      "text": "The result list MUST cap the number of rows it renders at once (windowing or a bounded list) so a broad term cannot freeze the panel, and MUST keep the selected row scrolled into view.",
+      "linkedAcceptanceCriteria": [
+        "AC-071",
+        "AC-073"
+      ]
+    },
+    {
+      "id": "NFR-027",
+      "text": "Snippet highlighting MUST segment the text into React nodes; the body MUST NOT be injected as HTML, so a message containing markup cannot become script.",
+      "linkedAcceptanceCriteria": [
+        "AC-071"
+      ]
+    },
+    {
+      "id": "NFR-028",
+      "text": "In-flight searches, page fetches and jumps MUST be cancelled when the query or the channel changes, and a late response MUST NOT render rows or scroll a message from another channel.",
+      "linkedAcceptanceCriteria": [
+        "AC-073",
+        "AC-074"
+      ]
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "Two members create a direct channel with each other at the same moment.",
+      "expectedBehavior": "The unique constraint resolves it and both clients receive the same channel."
+    },
+    {
+      "id": "EC-002",
+      "description": "A project is deleted while a member has its channel open.",
+      "expectedBehavior": "The channel view becomes read-only with an explicit project-deleted banner instead of failing to send silently."
+    },
+    {
+      "id": "EC-003",
+      "description": "A message is edited or deleted while another member is offline.",
+      "expectedBehavior": "The next history load reflects the current state and no client shows the stale body as live."
+    },
+    {
+      "id": "EC-004",
+      "description": "A user is removed from the workspace while holding an open socket.",
+      "expectedBehavior": "Their sockets are terminated and subsequent events are refused."
+    },
+    {
+      "id": "EC-005",
+      "description": "The socket connects but the user has no chat:read.",
+      "expectedBehavior": "The client shows no CHAT group and issues no chat requests."
+    },
+    {
+      "id": "EC-006",
+      "description": "The server restarts mid-conversation.",
+      "expectedBehavior": "Clients reconnect, replay from their cursor, and no message is lost or duplicated."
+    },
+    {
+      "id": "EC-007",
+      "description": "A message body is empty after trimming.",
+      "expectedBehavior": "The send is refused client-side and by the validator."
+    },
+    {
+      "id": "EC-008",
+      "description": "An attachment upload succeeds but message creation fails.",
+      "expectedBehavior": "The orphaned GridFS file is removed rather than leaked."
+    },
+    {
+      "id": "EC-009",
+      "description": "Search runs while messages are being purged.",
+      "expectedBehavior": "Results contain no purged rows and no duplicates across pages."
+    },
+    {
+      "id": "EC-010",
+      "description": "A message exceeds the body limit.",
+      "expectedBehavior": "Refused with a validation error naming the limit."
+    },
+    {
+      "id": "EC-011",
+      "description": "Presence refresh fails repeatedly.",
+      "expectedBehavior": "The member is shown as offline rather than indefinitely online."
+    },
+    {
+      "id": "EC-012",
+      "description": "A member opens the same channel in two tabs.",
+      "expectedBehavior": "Read state is shared and the unread badge clears in both."
+    },
+    {
+      "id": "EC-013",
+      "description": "A project is deleted while members have its channel open.",
+      "expectedBehavior": "The channel becomes read-only for everyone, shows the archived banner, and stays in the team-channel list for auditing."
+    },
+    {
+      "id": "EC-014",
+      "description": "A member is removed from a project while holding the channel open.",
+      "expectedBehavior": "Their next send is refused with 404 and the channel leaves their list on the next load."
+    },
+    {
+      "id": "EC-015",
+      "description": "A project has no members.",
+      "expectedBehavior": "Its channel still exists and is visible only to chat:moderate holders; it is never deleted for being empty."
+    },
+    {
+      "id": "EC-016",
+      "description": "A chat:moderate holder renames a team channel whose project is then deleted.",
+      "expectedBehavior": "The override is retained on the archived channel so audit history keeps the name it was known by."
+    },
+    {
+      "id": "EC-017",
+      "description": "A channel avatar upload is rejected.",
+      "expectedBehavior": "The previous avatar is kept and an error is shown; the channel is not left without an avatar."
+    },
+    {
+      "id": "EC-018",
+      "description": "A member types @ and their own name appears in the text but not in the suggestion list.",
+      "expectedBehavior": "The typed text is left as written and is highlighted like any other mention, but no self-notification is created."
+    },
+    {
+      "id": "EC-019",
+      "description": "A message references an attachment id uploaded to a different channel.",
+      "expectedBehavior": "That id is dropped and the message is stored with the remaining attachments, so no cross-channel file is exposed."
+    },
+    {
+      "id": "EC-020",
+      "description": "A channel has more unread messages than the badge can show.",
+      "expectedBehavior": "The badge reads 9+."
+    },
+    {
+      "id": "EC-021",
+      "description": "The other participant in a direct conversation is no longer in the workspace.",
+      "expectedBehavior": "The row shows a neutral Direct message name with the default avatar, and the conversation still opens with its history for the remaining participant; no other member's identity is substituted."
+    },
+    {
+      "id": "EC-022",
+      "description": "A member has no direct conversations.",
+      "expectedBehavior": "The Direct messages section renders its empty copy and the New direct message control stays reachable above it; the section is not collapsed."
+    },
+    {
+      "id": "EC-023",
+      "description": "A caller's chat:read is revoked while the panel is open.",
+      "expectedBehavior": "The next panel load is refused by the existing authorization check and the client hides the chat panel rather than rendering stale rows (extends EC-005)."
+    },
+    {
+      "id": "EC-024",
+      "description": "A project has a creator but no assigned tasks.",
+      "expectedBehavior": "Its channel reports 1 member and is readable by the creator, instead of reporting 0 and being invisible to them."
+    },
+    {
+      "id": "EC-025",
+      "description": "Messages arrive in two different conversations while the panel is open.",
+      "expectedBehavior": "Both rows update and the more recent conversation sorts first; neither row is duplicated."
+    },
+    {
+      "id": "EC-026",
+      "description": "A member's display name is longer than the row.",
+      "expectedBehavior": "The name truncates with an ellipsis and the row keeps its 44px height rather than wrapping to two lines."
+    },
+    {
+      "id": "EC-027",
+      "description": "A query matches nothing.",
+      "expectedBehavior": "The bar reads 0 of 0, both arrows are disabled, and the list shows No messages matched \"...\"."
+    },
+    {
+      "id": "EC-028",
+      "description": "The user types a new term while the next page of the previous term is still loading.",
+      "expectedBehavior": "The late page is discarded and only the new term's rows are shown."
+    },
+    {
+      "id": "EC-029",
+      "description": "The selected message was deleted between the search and the jump.",
+      "expectedBehavior": "Search stays open and the bar reports that the message is no longer available, with the next match still selectable."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "socket.io",
+      "type": "library",
+      "notes": "New server dependency attached to the existing HTTP server; unavailable on the serverless Vercel entry."
+    },
+    {
+      "name": "socket.io-client",
+      "type": "library",
+      "notes": "New client dependency."
+    },
+    {
+      "name": "Mongoose",
+      "type": "internal",
+      "notes": "Message, channel, reaction, read-state and presence collections."
+    },
+    {
+      "name": "express-validator",
+      "type": "internal",
+      "notes": "Validation chains for every chat REST fallback route."
+    },
+    {
+      "name": "Existing RBAC",
+      "type": "internal",
+      "notes": "permissions.ts, requirePermission middleware and utils/roleAccess.ts."
+    },
+    {
+      "name": "Existing notifications",
+      "type": "internal",
+      "notes": "utils/notify.ts and webPush.ts for mention and direct-message notifications."
+    },
+    {
+      "name": "Existing uploads",
+      "type": "internal",
+      "notes": "middleware/uploadMiddleware.ts and utils/gridfs.ts for attachments."
+    },
+    {
+      "name": "Existing change feed",
+      "type": "internal",
+      "notes": "utils/changeCursor.ts and controllers/changeController.ts retained as the fallback and replay source."
+    },
+    {
+      "name": "MongoDB",
+      "type": "external",
+      "notes": "Only datastore; new collections share the existing cluster."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "The Vercel API entry api/index.ts is a serverless function and cannot hold a WebSocket open, so socket delivery is unavailable on that deployment and chat plus live updates would silently degrade.",
+      "mitigation": "Keep the cursor poll as a first-class fallback (FR-032), report transport state in the UI (AC-033), and treat Vercel as polling-only until hosting changes."
+    },
+    {
+      "id": "RISK-002",
+      "description": "Moving the activity feed from pull to push changes where permission filtering happens; a mistake could deliver audit or project-change entries to a caller who may not see them.",
+      "mitigation": "Filter per socket audience explicitly (FR-031), reuse hiddenActions(permissions), and add a regression test per hidden action group."
+    },
+    {
+      "id": "RISK-003",
+      "description": "Sockets lose events while disconnected, so a pure push design can silently drop changes.",
+      "mitigation": "Retain cursor replay on reconnect (NFR-015) rather than assuming the socket is reliable."
+    },
+    {
+      "id": "RISK-004",
+      "description": "The live module is covered by eight existing test files that encode current merge and poller behaviour; rewriting them alongside a new chat feature makes a bisect ambiguous.",
+      "mitigation": "Land the transport change as its own reviewable commit sequence before chat UI work, and keep the poller tests for the fallback path."
+    },
+    {
+      "id": "RISK-005",
+      "description": "Rendering user-authored message text is the highest XSS-risk surface added by this feature.",
+      "mitigation": "Render as text or via the existing react-markdown path, add no dangerouslySetInnerHTML, and cover it in /sdrive:secure."
+    },
+    {
+      "id": "RISK-006",
+      "description": "The Render service is on the free plan, which suspends an idle instance, so sockets die on suspend.",
+      "mitigation": "Document the limitation, rely on reconnect plus cursor replay, and never treat socket availability as guaranteed."
+    }
+  ]
+}

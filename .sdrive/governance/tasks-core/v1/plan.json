@@ -1,0 +1,175 @@
+{
+  "feature": "tasks-core",
+  "version": 1,
+  "architecture": {
+    "approach": "Layered per the project constitution: router files declare the path, the express-validator chain and requirePermission('<area>:<action>'); controllers orchestrate and call pure helpers for every rule that needs neither HTTP nor the database (taskGraph, taskQuery, taskNumbers, recurrence, customFields, workflow); Mongoose models persist and own the schema-level limits. The workspace serves the same router twice - /api/workspaces/:slug/tasks directly and /api/tasks as an alias that resolves the active workspace and re-dispatches into the same router - so permissions, validation and responses cannot drift apart. On the client one feature module owns everything: tasksApi is the only place that talks to the API, useTasks is the single source of truth with optimistic updates and a delete undo window, and pure rules (date, filters, taskForm, taskKey, subtasks) live in lib/ with Jest tests.",
+    "components": [
+      { "name": "server/src/models/taskModel.ts", "action": "create", "description": "Task schema: status/priority/type enums, dates, hierarchy, dependencies, relations, labels, assignees, checklist, watchers, recurrence, comments, attachments, links, custom map, indexes and the pre-save hook that keeps completedAt in step with status." },
+      { "name": "server/src/controllers/taskController.ts", "action": "create", "description": "Validation chains, rule helpers (assertDateOrder, assertValidDependencies, assertValidAssignees, findValidParent, resolveEpicLink, reconcileSprint/reconcileRelease), getTasks/createTask/updateTask/deleteTask, cleanUpRemovedTasks, spawnNextOccurrence, duplicateTask and the watch toggles." },
+      { "name": "server/src/controllers/taskRelationController.ts", "action": "create", "description": "Typed links between tasks (relates, duplicates, clones with their inverse) plus blocks/blocked_by mapped onto dependencies, and moveTask for subtask conversion." },
+      { "name": "server/src/controllers/taskExtrasController.ts", "action": "create", "description": "Comments and GridFS attachments, including the per-item ownership checks for delete." },
+      { "name": "server/src/controllers/bulkTaskController.ts", "action": "create", "description": "One patch applied to up to 100 tasks (validated as a whole first) and bulk delete with the subtask cascade." },
+      { "name": "server/src/controllers/activityController.ts", "action": "modify", "description": "getTaskActivity serves one task's history with a before cursor; the workspace-wide audit log and its CSV export in the same file belong to the audit concern." },
+      { "name": "server/src/routes/taskRoutes.ts", "action": "create", "description": "The task router: every route protected, permission-scoped, with its validation chain and the bulk routes declared before /:id." },
+      { "name": "server/src/routes/activeTaskRoutes.ts", "action": "create", "description": "/api/tasks alias: resolves the active (or oldest) workspace slug and hands the request to the same router." },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "modify", "description": "Mounts the task router at /:slug/tasks." },
+      { "name": "server/src/app.ts", "action": "modify", "description": "Router mounting (including the /api/tasks alias), rate limits that tolerate board/calendar/timeline drag traffic, weak ETags with private no-cache and the /api/health check." },
+      { "name": "server/src/utils/taskGraph.ts", "action": "create", "description": "wouldCreateCycle and normalizeIds - the pure dependency-graph helpers." },
+      { "name": "server/src/utils/taskQuery.ts", "action": "create", "description": "parseTaskListQuery, buildTaskFilter, buildTaskSort, taskNumberFromSearch, normalizeLabels and the priority rank expression." },
+      { "name": "server/src/utils/taskNumbers.ts", "action": "create", "description": "reserveTaskNumbers (atomic $inc on Workspace.taskCounter) and ensureTaskNumbers (backfill)." },
+      { "name": "server/src/utils/recurrence.ts", "action": "create", "description": "recurrenceProblem/normalizeRecurrence/nextOccurrenceDates/describeRecurrence - recurrence validation and calendar-day date maths in UTC." },
+      { "name": "server/src/utils/activity.ts", "action": "reuse", "description": "recordActivity/diffFields/describeTaskChanges: the audit writer the task operations call." },
+      { "name": "server/src/models/activityModel.ts", "action": "reuse", "description": "Stored audit entries, their action list and retention window." },
+      { "name": "server/src/utils/gridfs.ts", "action": "reuse", "description": "Attachment storage and deleteFiles used by the delete cascade." },
+      { "name": "server/src/utils/customFields.ts", "action": "reuse", "description": "Custom-field coercion and diffing used by create/update." },
+      { "name": "server/src/utils/customFieldsDb.ts", "action": "reuse", "description": "planRequestCustom loads the workspace's field definitions for a request." },
+      { "name": "server/src/utils/workflow.ts", "action": "reuse", "description": "stageFor/workflowOf keep stage and status consistent on every task write." },
+      { "name": "server/src/middleware/authMiddleware.ts", "action": "reuse", "description": "protect resolves the JWT and the database session and attaches req.user." },
+      { "name": "server/src/middleware/permissionMiddleware.ts", "action": "reuse", "description": "requirePermission attaches req.workspace, req.role and req.permissions." },
+      { "name": "server/src/config/permissions.ts", "action": "reuse", "description": "Definition of tasks:read, tasks:write and tasks:delete per role." },
+      { "name": "server/src/middleware/uploadMiddleware.ts", "action": "reuse", "description": "Attachment upload handling and MIME allow-list used by uploadAttachmentFile." },
+      { "name": "client/src/features/tasks/api.ts", "action": "create", "description": "The only module that calls the task endpoints, including bulk, duplicate, watch, relations, move, activity, comments and attachments." },
+      { "name": "client/src/features/tasks/hooks/useTasks.ts", "action": "create", "description": "Single source of truth: stale-while-revalidate cache, optimistic updates with rollback, delete undo window, subtask regrouping, live refresh and reload after server-side side effects." },
+      { "name": "client/src/features/tasks/types.ts", "action": "create", "description": "Task, TaskInput, TaskPatch, TaskFilters and the user/comment/attachment shapes used by the API and the views." },
+      { "name": "client/src/features/tasks/lib/date.ts", "action": "create", "description": "Calendar-day helpers (toDateKey, parseDateKey, dateKeyOf, diffInDays, isOverdue) used by every date on a task." },
+      { "name": "client/src/features/tasks/lib/filters.ts", "action": "create", "description": "Client mirror of the list query: URL round-trip, matching, custom-field filters, sorting, grouping and the fractional drop position." },
+      { "name": "client/src/features/tasks/lib/taskKey.ts", "action": "create", "description": "Task keys: taskKey/resolveTaskKey/parseTaskKey/matchesKey and the shareable task link." },
+      { "name": "client/src/features/tasks/lib/subtasks.ts", "action": "create", "description": "Subtask indexing, counting and the flattened arrangement used by the list view." },
+      { "name": "client/src/features/tasks/lib/taskForm.ts", "action": "create", "description": "Form value normalisation and validation shared by the create/edit dialog and the tests." },
+      { "name": "client/src/features/tasks/lib/checklist.ts", "action": "create", "description": "Checklist progress helpers." },
+      { "name": "client/src/features/tasks/lib/relations.ts", "action": "create", "description": "Typed-link labels and the inverse mapping shown in the task detail dialog." },
+      { "name": "client/src/features/tasks/components/TaskFormDialog.tsx", "action": "create", "description": "Create/edit form built on the design-system dialog primitives, including dependencies, checklist, recurrence and custom fields." },
+      { "name": "client/src/features/tasks/components/TaskDetailDialog.tsx", "action": "create", "description": "Detail surface with inline edits, subtasks, relations, checklist, comments, attachments and history." },
+      { "name": "client/src/features/tasks/components/TaskComments.tsx", "action": "create", "description": "Comment list and composer with mention support." },
+      { "name": "client/src/features/tasks/components/TaskAttachments.tsx", "action": "create", "description": "Attachment list with upload progress and downloads as blobs." },
+      { "name": "client/src/features/tasks/components/TaskActivity.tsx", "action": "create", "description": "Paged activity feed of one task, rendered from lib/activityText.ts." },
+      { "name": "client/src/features/tasks/components/TaskChecklist.tsx", "action": "create", "description": "Checklist editor with progress." },
+      { "name": "client/src/features/tasks/components/TaskRelations.tsx", "action": "create", "description": "Typed links editor (add/remove relates, duplicates, clones, blocks)." },
+      { "name": "client/src/features/tasks/components/SubtaskList.tsx", "action": "create", "description": "Subtasks of a task with add, open and progress." },
+      { "name": "client/src/features/tasks/components/ConvertToSubtaskDialog.tsx", "action": "create", "description": "Pick a parent for a task, or promote it back to a top-level task (POST /:id/move)." },
+      { "name": "client/src/features/tasks/components/TaskWatchToggle.tsx", "action": "create", "description": "Follow/unfollow control bound to POST|DELETE /:id/watch." },
+      { "name": "client/src/features/tasks/components/ConfirmTaskDelete.tsx", "action": "create", "description": "Delete confirmation that reports what goes with the task (subtasks, files)." },
+      { "name": "client/src/features/tasks/components/BulkActionBar.tsx", "action": "create", "description": "Bar for the selection: set status/priority/sprint/assignees/labels or delete with confirmation." },
+      { "name": "client/src/features/tasks/index.ts", "action": "create", "description": "Public surface of the feature (constitution CON-110); other modules import '@/features/tasks' only." },
+      { "name": "client/src/pages/TaskPage.tsx", "action": "modify", "description": "Hosts the feature: loads useTasks, keeps filters and the view in the URL, wires the create/edit/delete/detail dialogs, bulk handlers and the CSV export." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Task",
+        "action": "create",
+        "fields": [
+          { "name": "number", "type": "number", "action": "add", "nullable": true },
+          { "name": "title", "type": "string (<=140)", "action": "add" },
+          { "name": "description", "type": "string (<=2000)", "action": "add" },
+          { "name": "status", "type": "enum pending|in-progress|completed", "action": "add" },
+          { "name": "stage", "type": "string (stage key, <=30)", "action": "add" },
+          { "name": "priority", "type": "enum low|medium|high", "action": "add" },
+          { "name": "type", "type": "enum story|task|bug|spike|epic", "action": "add" },
+          { "name": "storyPoints", "type": "number (0-100)", "action": "add", "nullable": true },
+          { "name": "estimateMinutes", "type": "number (0-100000)", "action": "add", "nullable": true },
+          { "name": "loggedMinutes", "type": "number", "action": "add" },
+          { "name": "project", "type": "string (project name, <=60)", "action": "add" },
+          { "name": "sprint", "type": "ObjectId ref Sprint", "action": "add", "nullable": true },
+          { "name": "parent", "type": "ObjectId ref Task", "action": "add", "nullable": true },
+          { "name": "epic", "type": "ObjectId ref Task", "action": "add", "nullable": true },
+          { "name": "release", "type": "ObjectId ref Release", "action": "add", "nullable": true },
+          { "name": "startDate", "type": "date", "action": "add", "nullable": true },
+          { "name": "deadline", "type": "date (required)", "action": "add" },
+          { "name": "position", "type": "number (fractional ordering)", "action": "add" },
+          { "name": "dependencies", "type": "ObjectId[] ref Task", "action": "add" },
+          { "name": "relations", "type": "{ type, task }[] (<=50, unique, no self)", "action": "add" },
+          { "name": "labels", "type": "string[] (<=10, unique, <=40 chars)", "action": "add" },
+          { "name": "assignees", "type": "ObjectId[] ref User (workspace members)", "action": "add" },
+          { "name": "checklist", "type": "{ text, done }[] (<=50)", "action": "add" },
+          { "name": "watchers", "type": "ObjectId[] ref User (<=500)", "action": "add" },
+          { "name": "recurrence", "type": "{ every, unit, basis }", "action": "add", "nullable": true },
+          { "name": "comments", "type": "{ author, text (<=2000), mentions, createdAt }[]", "action": "add" },
+          { "name": "attachments", "type": "{ fileId, originalName, mimetype, size, uploadedBy, uploadedAt }[] (<=20)", "action": "add" },
+          { "name": "custom", "type": "Map<string, mixed> keyed by custom-field key", "action": "add" },
+          { "name": "owner", "type": "ObjectId ref User", "action": "add" },
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "completedAt", "type": "date", "action": "add", "nullable": true }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "update",
+        "fields": [
+          { "name": "taskCounter", "type": "number (atomic $inc for task numbers)", "action": "add" }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "action", "type": "string (task.created|task.updated|task.deleted|task.duplicated|task.commented|...)", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change" },
+          { "name": "changes", "type": "{ field, from, to }[]", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "TimeEntry",
+        "action": "no_change",
+        "fields": [
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "GET /tasks aggregates the workspace's tasks with the filter built by taskQuery.buildTaskFilter, adds the priority rank, sorts (createdAt, deadline, priority or position) and populates only public user fields. A write goes: validate the body -> apply the rules (dates, dependencies, assignees, parent/epic/release/sprint, stage from the workflow, custom values) -> reserve a task number if needed -> save -> record activity -> notify assignees and watchers -> answer with the populated task. Only the fields in EDITABLE_FIELDS are ever set from a request, and every query is scoped to req.workspace._id. Completion of a recurring task additionally creates the next occurrence and clears the rule on the completed one, and deleting a task runs the shared cascade (subtasks, GridFS files, dependencies, relations, epics, time entries)."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-004", "FR-006", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-005", "NFR-002"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/tasks/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tasks/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-003"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/bulk", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-012"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/bulk-delete", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-012"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/duplicate", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/watch", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tasks/:id/watch", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/relations", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tasks/:id/relations/:relatedId", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/move", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks/:id/activity", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-011"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/comments", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tasks/:id/comments/:commentId", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010", "NFR-002"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/:id/attachments", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks/:id/attachments/:attachmentId", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tasks/:id/attachments/:attachmentId", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-003", "FR-010"] },
+    { "method": "GET", "path": "/api/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-004"] },
+    { "method": "POST", "path": "/api/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-001"] },
+    { "method": "PATCH", "path": "/api/tasks/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002"] },
+    { "method": "DELETE", "path": "/api/tasks/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-003"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "Every task query and write is filtered by req.workspace._id, which requirePermission derives from the :slug in the URL, so a member of another workspace cannot reach the data even with a valid task id (a foreign id answers 404 rather than leaking that the task exists)." },
+    { "requirementId": "NFR-002", "description": "tasks:read, tasks:write and tasks:delete are enforced by the route middleware from server/src/config/permissions.ts; the only per-item checks left in the controllers compare the stored owner (comment author, attachment uploader, task owner) with req.user._id. Public user fields are limited to name and avatarUrl, so no email, hash or token is ever returned with a task." },
+    { "requirementId": "NFR-003", "description": "Deadlines and start dates are validated as ISO 8601 by express-validator and stored as dates; the client only ever renders the calendar day through lib/date.ts, which avoids timezone shifts that would silently move a task to another day." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-004", "strategy": "Task numbers come from a single atomic $inc on the workspace document, so concurrent creates cannot collide or deadlock; backfilling is one bulkWrite with an idempotent filter (number does not exist)." },
+    { "requirementId": "NFR-001", "strategy": "The list is one aggregation over an index-prefixed workspace filter, and the same list is reused by every view through a shared query cache on the client, so switching views and revisiting a workspace costs no extra request." },
+    { "requirementId": "NFR-002", "strategy": "Drag-heavy interactions send small PATCH bodies (position, stage/status) instead of whole tasks, and the rate limiter keeps a separate budget for the live-update polls so board traffic does not lock the API for a team behind one IP." }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "Schema-first persistence; aggregate pipelines used for the sorted list." },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "Validation chains exported next to the controllers." },
+    { "name": "axios", "type": "library", "action": "no_change", "notes": "Client transport, wrapped by client/src/utils/api.ts (401 -> login, shared error messages)." },
+    { "name": "server/src/utils/workflow.ts", "type": "internal", "action": "no_change", "notes": "stage/status synchronisation on create and update." },
+    { "name": "server/src/utils/gridfs.ts", "type": "internal", "action": "no_change", "notes": "Attachment storage and deleteFiles." },
+    { "name": "mongodb", "type": "service", "action": "no_change", "notes": "The only datastore (CON-104); local MongoDB for development, hosted in deployment." }
+  ],
+  "risks": [
+    { "description": "The delete and update cascades touch several collections, so a partial failure could leave a dependency or relation pointing at a task that no longer exists.", "mitigation": "One shared cleanUpRemovedTasks routine, $pull-based updates that are safe to repeat, and integration tests (server/src/__integration__/tasks.test.ts, relations.test.ts) that assert the state after a delete." },
+    { "description": "Two ways into the same router (/api/tasks alias and /api/workspaces/:slug/tasks) could drift in behaviour.", "mitigation": "The alias only resolves the slug and re-dispatches to the same router, so permissions, validation and responses are literally the same code." },
+    { "description": "Client-side mirroring of server rules (applyPatch, matchesFilters, missingRequired) can fall behind the API.", "mitigation": "The mirrors live in lib/ with unit tests next to the server's own tests, and any rejected write rolls back and surfaces the API message instead of silently diverging." }
+  ]
+}

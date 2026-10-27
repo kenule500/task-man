@@ -1,0 +1,177 @@
+{
+  "feature": "automations-audit",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Activity log and rule engine",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Model the activity log",
+          "description": "Add server/src/models/activityModel.ts: the closed ACTIVITY_ACTIONS list, workspace/actor/action/summary, task/project/sprint references, the change sub-document (field 40, values 200), ip and userAgent, the four compound indexes, the 365-day TTL index and MAX_CHANGE_VALUE/ACTIVITY_RETENTION_DAYS.",
+          "linkedRequirements": ["FR-008", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Implement recordActivity and its pure helpers",
+          "description": "Add server/src/utils/activity.ts: formatChangeValue (dates as YYYY-MM-DD, lists comma-separated, capped), diffFields, auditLookup, the onActivity listener registry and recordActivity, which truncates summary/ip/user agent and never throws.",
+          "linkedRequirements": ["FR-008", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Model automation rules",
+          "description": "Add server/src/models/automationModel.ts: TRIGGER_TYPES, CONDITION_FIELDS, CONDITION_OPS, ACTION_TYPES, the caps (25 rules, 80-character name, 5 conditions, 5 actions, 40-character values, 500-character comments) and the (workspace, enabled, createdAt) index.",
+          "linkedRequirements": ["FR-001", "FR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Write the pure rule engine",
+          "description": "Add server/src/utils/automation/engine.ts: eventsFromActivity, matchesTrigger, matchesConditions and planActions over the rule and a task snapshot, including the MAX_LABELS cap, member-only assignment and the change list that mirrors the audit shape.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-006"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-005", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Validate rule input",
+          "description": "Add server/src/utils/automation/validate.ts: parseTrigger (allowed `to` values per trigger type), parseConditions (operator per field, allowed values) and parseActions (value kind per action), each returning a readable error.",
+          "linkedRequirements": ["FR-002"],
+          "linkedAcceptanceCriteria": ["AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.6",
+          "title": "Run rules from the activity stream",
+          "description": "Add server/src/utils/automation/register.ts: subscribe once per process, keep MAX_AUTOMATION_DEPTH and a per-request fired set, re-read the task per rule, skip epics and other projects, apply the plan in one update with completedAt sync and child backlogging, and record automation.ran plus task.updated.",
+          "linkedRequirements": ["FR-007", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T1.7",
+          "title": "Add the rule template catalog",
+          "description": "Add server/src/utils/automation/templates.ts with the seven ready-made recipes (bug priority, assignment on start, blocked label on completion, high-priority label, comment reopens, reviewed completes, assigned starts).",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T1.8",
+          "title": "Cover the engine and the log with unit tests",
+          "description": "Add server/src/__tests__/automationEngine.test.ts and server/src/__tests__/activity.test.ts for the pure matching/planning functions, diffFields and formatChangeValue.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-006", "FR-008"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-005", "AC-006", "AC-008"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Rule API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Implement the automation controller",
+          "description": "Add server/src/controllers/automationController.ts: validation chains, present() projection, workspace cap, checkAssignees against req.workspace.members, list/templates/create/update/delete, and activity recording for created/updated/deleted.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Declare the automation routes",
+          "description": "Add server/src/routes/automationRoutes.ts (templates before /:id) with protect + requirePermission('settings:manage') on every route and mount it at /:slug/automations in server/src/routes/workspaceRoutes.ts.",
+          "linkedRequirements": ["FR-001", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Audit API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Serve task history and the workspace log",
+          "description": "Add server/src/controllers/activityController.ts: getTaskActivity (tasks:read, task must exist in the workspace) and getWorkspaceActivity (settings:manage, area/actor/before filters, retentionDays and areas in the response), both cursor-paged with limit+1.",
+          "linkedRequirements": ["FR-009", "FR-010", "NFR-001", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Add the CSV export",
+          "description": "Implement toAuditCsv (quote every cell, double inner quotes, neutralise leading = + - @ tab CR), the format=csv branch with the 5000-row cap, BOM, dated filename and the audit.exported entry recorded before responding.",
+          "linkedRequirements": ["FR-011", "NFR-003", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-011"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Mount the audit routes",
+          "description": "Add GET /:slug/activity in server/src/routes/workspaceRoutes.ts (settings:manage) and GET /:id/activity in server/src/routes/taskRoutes.ts (tasks:read).",
+          "linkedRequirements": ["FR-009", "FR-010", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Cover rules and the log with integration tests",
+          "description": "Add server/src/__integration__/automations.test.ts (access, CRUD, running, workspace isolation) and server/src/__integration__/activity.test.ts (task activity, workspace log, filter behavior).",
+          "linkedRequirements": ["FR-001", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-006", "AC-009", "AC-010", "AC-011"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Client surfaces",
+      "dependencies": ["P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Build the automations feature module",
+          "description": "Add client/src/features/automations: api, useAutomations, lib/options (labels, trigger/condition/action options and value kinds), lib/draft (empty draft, draft from rule/template, validateDraft, toInput), lib/describe and the RuleBuilder/RuleList/RuleSwitch/TemplateGallery components.",
+          "linkedRequirements": ["FR-012", "FR-002"],
+          "linkedAcceptanceCriteria": ["AC-002", "AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Add the automations page",
+          "description": "Add client/src/pages/AutomationsPage.tsx using useAuthGuard + Sidebar, listing rules with their descriptions, toggling enabled, deleting with confirmation and opening the builder or a template.",
+          "linkedRequirements": ["FR-012"],
+          "linkedAcceptanceCriteria": ["AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Build the audit feature module",
+          "description": "Add client/src/features/audit: api (list, exportCsv, downloadBlob), useAuditLog, lib/filters (parse/write URL params, hasActiveFilters), lib/format (area/action labels, change descriptions, day grouping, entry links) and the table, list, filter bar, entry sheet, pagination and skeleton components.",
+          "linkedRequirements": ["FR-010", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Add the audit log page with CSV download",
+          "description": "Add client/src/pages/AuditLogPage.tsx: URL-persisted filters, day grouping, entry sheet, older/newer paging and the CSV download through a Blob, with the phone layout handled by useIsPhone.",
+          "linkedRequirements": ["FR-011", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-012"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

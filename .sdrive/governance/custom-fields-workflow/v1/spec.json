@@ -1,0 +1,133 @@
+{
+  "feature": "custom-fields-workflow",
+  "title": "Custom fields and workflow stages",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Every team tracks something the generic task form does not know (a budget, an environment, an external ticket) and every team splits its work differently (Ready, In review, Blocked). Hard-coding those columns or adding ad-hoc task fields would break the reports that depend on the three canonical statuses and would leave the extra data unvalidated and unfilterable.",
+    "proposedSolution": "Two workspace-level definitions with one set of rules on both sides of the wire. Custom fields (server/src/models/customFieldModel.ts, server/src/utils/customFields.ts) describe a typed value that a task stores under task.custom[key]; workflow stages (server/src/utils/workflow.ts) describe board columns, each mapped to one of the three status groups that reports and integrations rely on, with the task's stage kept in sync with its status on every write. The client mirrors the same rules in client/src/features/fields and client/src/features/workflow, both cached per workspace and shared by every view, with the administrative surfaces in the settings pages.",
+    "targetAudience": "Workspace administrators who define fields and stages, and workspace members who fill, filter and move work with them.",
+    "assumptions": [
+      "The reports that consume the canonical status groups (flow analytics, burndown, sprint report) were not opened; the requirement that stage changes never alter a report's meaning is taken from the constitution (CON-108) and from the comments in server/src/utils/workflow.ts.",
+      "The FieldDialog, CustomFieldInput and StageRow components were read at behaviour level; visual rules follow DESIGN.md and are not restated here.",
+      "Which project names a workspace has is owned by the projects feature; this feature only stores up to 50 project names per field and compares them as written."
+    ],
+    "outOfScope": [
+      "Saved views and the filter URL state machinery (client/src/features/views, features/tasks/lib/filters.ts) - reused here.",
+      "Project and release administration (features/projects, features/releases) - this feature only names projects on a field.",
+      "The burndown, velocity, cumulative flow and sprint reports themselves - they only consume the status groups."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Define custom fields for a workspace",
+      "role": "Workspace administrator",
+      "want": "add, rename, restyle, reorder, archive and delete typed fields that a task can carry",
+      "benefit": "the team can track its own information without touching the generic task form",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "Creating a field needs a name (1-40 characters) and one of the eight types (text, number, date, select, multiselect, checkbox, url, user); the key is slugged from the name (lower-case letters, digits and underscores, starting with a letter) or taken from `key` when it matches the pattern and is unused." },
+        { "id": "AC-002", "text": "Only select and multiselect accept options: at most 30, labels unique and at most 40 characters, each with a colour from the shared palette; `projects` limits the field to at most 50 project names (empty means every project), `required` marks it mandatory, and a new field is appended to the order." },
+        { "id": "AC-003", "text": "A workspace holds at most 30 active fields; renaming, recolouring, adding or removing options, changing projects or required and archiving are allowed, while the key and the type never change." },
+        { "id": "AC-004", "text": "Removing an option clears that choice from the tasks that stored it; an archived field keeps its values but rejects new ones (clearing with null is still accepted); unarchiving is refused when 30 fields are already active." },
+        { "id": "AC-016", "text": "The fields of a workspace are listed in display order (archived ones included) with key, name, type, options, projects, required, order and archived state, readable by anyone with tasks:read." },
+        { "id": "AC-017", "text": "The order can be replaced with PUT /fields/order: the listed ids come first in that order, an unknown id is refused, and fields left out keep their relative order after them." },
+        { "id": "AC-018", "text": "Deleting a field unsets its value on every task of the workspace and is audited with the key and the number of cleared values." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Fill custom values on tasks",
+      "role": "Workspace member",
+      "want": "set, change and clear the custom values of a task with an editor that matches the field's type",
+      "benefit": "the extra information is captured where the work happens and stays valid",
+      "acceptanceCriteria": [
+        { "id": "AC-005", "text": "On create, `custom` may only name fields of the workspace that apply to the task's project; an unknown key, a value for an archived field or a missing required field (checkboxes excluded, since unchecked is a value) is refused with the field's name." },
+        { "id": "AC-006", "text": "On update, `custom` merges: only the named keys change, null (or an empty text/list) clears a value, and required fields are not re-checked." },
+        { "id": "AC-007", "text": "Values are coerced per type and rejected with the field name: text trimmed to 500 characters, number finite, date a real YYYY-MM-DD calendar day, select one of the stored option ids, multiselect at most 20 unique option ids, checkbox a boolean, url http(s) up to 500 characters, user an id of a workspace member." },
+        { "id": "AC-008", "text": "A changed custom value is written to the task history as custom.<key> with option labels instead of raw ids, and the UI renders one editor per type in the task form and the detail dialog, and chips in the views." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Filter the task list by custom values",
+      "role": "Workspace member",
+      "want": "filter the list by a field value, including \"no value\", without writing a query",
+      "benefit": "I can slice the work by the team's own attributes",
+      "acceptanceCriteria": [
+        { "id": "AC-009", "text": "The list query accepts at most five cf.<key> filters (key matching the field slug, value a plain text up to 100 characters); the server matches the stored value exactly, `none` matches tasks without a value, numbers and checkboxes compare as text, and a multiselect matches when it contains the value." },
+        { "id": "AC-010", "text": "The task toolbar offers one filter per active, filterable field (select, multiselect, checkbox, user) with the field's own choices plus \"any\", \"none\" and the current value even when the field no longer has it, keeps the filter in the URL, and applies the same matching rules in memory." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Configure the workflow stages",
+      "role": "Workspace administrator",
+      "want": "name, colour and limit the board columns and move the tasks of a removed column somewhere known",
+      "benefit": "the board mirrors how the team actually works while the reports keep working",
+      "acceptanceCriteria": [
+        { "id": "AC-011", "text": "GET /workflow answers the workspace's stages in board order, or the default To do / In progress / Done when none were configured; a stage with no limit that is alone in its status group inherits the legacy per-status board limit." },
+        { "id": "AC-012", "text": "PUT /workflow validates between 1 and 12 stages with unique slug keys (up to 30 characters) and unique names (up to 30), a colour from the palette, a whole-number limit from 0 to 999, and at least one stage in each of the three status groups, then stores them on the workspace." },
+        { "id": "AC-013", "text": "Tasks of a removed stage move to moves[key] when that target is valid, otherwise to the first stage of the removed stage's group; a stage that changed status group takes its tasks' status with it (setting completedAt when they land in a completed group, clearing it otherwise), and a stale stage that does not match its status is reset." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Move tasks between stages",
+      "role": "Workspace member",
+      "want": "a card or a select to put a task in a stage and have its status follow",
+      "benefit": "the board and the reports never disagree about where a task is",
+      "acceptanceCriteria": [
+        { "id": "AC-014", "text": "An explicit `stage` in a task write wins and sets the status to that stage's group; a status-only change keeps the current stage when it belongs to the group and otherwise takes the group's first stage; an unknown stage writes nothing and answers \"Unknown stage\"." },
+        { "id": "AC-015", "text": "The board renders one column per stage with its name, colour and limit, a move sends `stage` once the workflow is loaded (never the placeholder status keys), and the status controls and badges show the stage's name when the workflow is loaded." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "List a workspace's custom fields in display order, archived ones included, through GET /api/workspaces/:slug/fields (tasks:read).", "linkedAcceptanceCriteria": ["AC-016"] },
+    { "id": "FR-002", "text": "Create a custom field through POST /api/workspaces/:slug/fields (settings:manage) with a name, one of the eight types, a slug key (derived or supplied), options for the choice types, projects, required and an appended order, respecting the 30-active-field cap.", "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"] },
+    { "id": "FR-003", "text": "Update a field through PATCH /api/workspaces/:slug/fields/:id (name, options added/renamed/recoloured/removed, projects, required, archived) without ever changing the key or the type, and clear the values of options that were removed.", "linkedAcceptanceCriteria": ["AC-003", "AC-004"] },
+    { "id": "FR-004", "text": "Replace the field order through PUT /api/workspaces/:slug/fields/order, listing the ids that come first and rejecting ids that belong to another workspace or do not exist.", "linkedAcceptanceCriteria": ["AC-017"] },
+    { "id": "FR-005", "text": "Delete a field through DELETE /api/workspaces/:slug/fields/:id and unset its value on every task of the workspace.", "linkedAcceptanceCriteria": ["AC-018"] },
+    { "id": "FR-006", "text": "Validate and persist the custom part of a task create or update against the workspace's field definitions (planRequestCustom: applicable fields only, per-type coercion, required fields on create, merge semantics with null to clear).", "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007", "AC-008"] },
+    { "id": "FR-007", "text": "Filter the task list by custom values: the server parses at most five cf.<key> parameters (buildTaskFilter) and the client mirrors the same matching rules in the toolbar and lib/filters.matchesCustom.", "linkedAcceptanceCriteria": ["AC-009", "AC-010"] },
+    { "id": "FR-008", "text": "Serve the workspace's workflow stages through GET /api/workspaces/:slug/workflow, falling back to the default three stages and honouring a legacy per-status WIP limit for a group's only stage.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "FR-009", "text": "Replace the workflow stages through PUT /api/workspaces/:slug/workflow with full validation, and move the tasks of removed stages to the requested or first stage of their group while resynchronising their status.", "linkedAcceptanceCriteria": ["AC-012", "AC-013"] },
+    { "id": "FR-010", "text": "Keep a task's stage and status consistent on every write (stageFor: explicit stage wins, otherwise the first stage of the status group, stale stages repaired) and reject an unknown stage.", "linkedAcceptanceCriteria": ["AC-014"] },
+    { "id": "FR-011", "text": "Show custom fields on tasks: an editor per type in the form and the detail dialog, chips in the views, one list column per active field, and form validation for required fields of the task's project.", "linkedAcceptanceCriteria": ["AC-008", "AC-010"] },
+    { "id": "FR-012", "text": "Show the workflow in the UI: board columns per stage with name, colour and WIP badge, stage badges in the status controls of the list and the detail dialog, and a settings editor that stages the list with a preview before saving.", "linkedAcceptanceCriteria": ["AC-015"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Workspace isolation: field definitions, stage definitions and every custom-value query are filtered by req.workspace._id, and clearing removed options or deleted fields only ever touches the current workspace (constitution CON-106).", "linkedAcceptanceCriteria": ["AC-016", "AC-018"] },
+    { "id": "NFR-002", "text": "The three canonical status groups stay the contract for reports and integrations: a stage is a refinement of one group, no stage may create a new group, and every group must keep at least one stage (constitution CON-108).", "linkedAcceptanceCriteria": ["AC-013", "AC-015"] },
+    { "id": "NFR-003", "text": "Business logic lives in pure modules with unit tests on both sides (server/src/utils/customFields.ts and workflow.ts, client/src/features/fields/lib and features/workflow/lib) so the two implementations can be compared rule by rule (constitution CON-109, CON-202).", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "NFR-004", "text": "Authorization is declared with the route: reading fields and stages needs tasks:read, while every definition change (create, update, reorder, delete, workflow update, board settings) needs settings:manage (constitution CON-105).", "linkedAcceptanceCriteria": ["AC-001", "AC-004"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "A requested field key is already used by another field of the workspace.", "expectedBehavior": "400 \"This key is already used by another field\"; a key derived from the name is made unique (story_size, story_size_2, ...)." },
+    { "id": "EC-002", "description": "Options are sent for a text, number, date, checkbox, url or user field.", "expectedBehavior": "400 \"Only select fields have options\"; on update an empty options list on such a type is ignored." },
+    { "id": "EC-003", "description": "A user field receives an id that is not a workspace member.", "expectedBehavior": "400 \"<field name>: must be a member of this workspace\"." },
+    { "id": "EC-004", "description": "A cf.<key> filter uses a key that is not a slug, more than five keys, or an empty value.", "expectedBehavior": "The parameter is ignored (key pattern, MAX_CUSTOM_FILTERS = 5, empty values skipped); an explicit \"none\" still matches tasks without a value." },
+    { "id": "EC-005", "description": "A workflow update leaves one status group without stages.", "expectedBehavior": "400 \"Every group needs at least one stage (<group> has none)\"; nothing is saved." },
+    { "id": "EC-006", "description": "The stage a task sits in is removed by a workflow update.", "expectedBehavior": "The task moves to moves[key] when that target exists, else to the first stage of the removed stage's group; a stale stage (status moved on) is reset to '' and re-derived from the status." },
+    { "id": "EC-007", "description": "An archived field is reactivated while 30 fields are already active.", "expectedBehavior": "400 \"A workspace can have at most 30 fields. Archive or delete one first.\"; the field stays archived." },
+    { "id": "EC-008", "description": "A value is written for an archived field.", "expectedBehavior": "400 \"<field name>: this field is archived\"; sending null to clear the old value is still accepted." },
+    { "id": "EC-009", "description": "A task in a completed stage is moved to a stage of another group (or the other way round).", "expectedBehavior": "The status follows the stage's group; completedAt is set when the task lands in a completed group and cleared otherwise." }
+  ],
+  "dependencies": [
+    { "name": "mongodb (mongoose 9)", "type": "library", "notes": "CustomField documents with a unique (workspace, key) index, the stages stored inside the workspace document, and updateMany with custom.<key> paths for clearing values." },
+    { "name": "express-validator", "type": "library", "notes": "Chains exported from customFieldController and workflowController and attached in the routers." },
+    { "name": "server/src/models/taskModel.ts", "type": "internal", "notes": "The stage and custom fields the definitions act on." },
+    { "name": "server/src/utils/taskQuery.ts", "type": "internal", "notes": "Parses cf.<key> parameters into a safe filter." },
+    { "name": "server/src/models/statusTransitionModel.ts", "type": "internal", "notes": "Status moves caused by stage changes are recorded by the flow tracking hook registered in app.ts (registerFlowTracking), not by this feature." },
+    { "name": "client/src/features/tasks/lib/filters.ts", "type": "internal", "notes": "Client mirror of the custom filter matching." },
+    { "name": "client/src/features/tasks/lib/listColumns.ts", "type": "internal", "notes": "One list column per active field." },
+    { "name": "react 19 + @/components/ui", "type": "library", "notes": "The field and stage editors are built from the existing shadcn Base UI primitives and the design-system components." },
+    { "name": "jest with @swc/jest", "type": "library", "notes": "Rule-for-rule unit tests on both sides plus integration tests against a real MongoDB." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "The client and the server implement the same validation twice, so a rule can drift and let the UI accept something the API refuses (or the other way round).", "mitigation": "Both live in pure modules with mirrored tests (server/src/__tests__/customFields.test.ts and workflow.test.ts against features/fields/__tests__/fields.test.ts and features/workflow/__tests__/stages.test.ts), the UI validates before saving and still surfaces the API message on rejection, and the field key is never renamed so stored values keep their meaning." },
+    { "id": "RISK-002", "description": "Changing a workflow can strand tasks in stages that no longer exist, which would hide them from the board.", "mitigation": "PUT /workflow plans the moves before saving (planStageMoves), falls back to the first stage of the group, resets stale stages and resynchronises status and completedAt; resolveStage on the client also repairs a stale stage for display." },
+    { "id": "RISK-003", "description": "Removing an option or deleting a field silently loses task data.", "mitigation": "Removals are explicit (options left out of the payload, DELETE for the whole field), the values are cleared in the same request, the change is audited with the affected count, and the settings UI asks before deleting." },
+    { "id": "RISK-004", "description": "Unbounded fields or options would bloat every task document.", "mitigation": "30 active fields per workspace, 30 options per field, 50 projects per field, 500 characters per text value, 20 values per multiselect and 5 filters per query, all enforced by both the schema and the validators." }
+  ]
+}

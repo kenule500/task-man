@@ -1,0 +1,370 @@
+{
+  "feature": "workspaces-rbac",
+  "title": "Workspaces, membership and role-based access control",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Every TaskMan feature hangs off a workspace, and a workspace is only useful if the server can answer two questions on each request: is this person a member, and does their role allow this action? Without one enforced pipeline, authorization drifts into individual controllers and into client-supplied identifiers, which allows members to see or change another workspace's data or to grant themselves more access.",
+    "proposedSolution": "Workspaces own a members array of { user, roleId, joinedAt }. Every workspace route runs protect and then requirePermission('<area>:<action>'), which loads the workspace by slug plus membership, resolves the role, and attaches req.workspace, req.role and req.permissions (server/src/middleware/permissionMiddleware.ts). Permissions come from a single catalogue (server/src/config/permissions.ts) and roles are either the five seeded system roles or workspace-local custom roles. Role assignment goes exclusively through server/src/utils/roleAccess.ts, which blocks cross-workspace role ids, non-string ids and any grant above the actor's own permissions unless the actor owns the workspace.",
+    "targetAudience": "Workspace owners and admins who manage people and settings, every member who needs to know what they may do, and the API itself, which must never read or write across workspaces (CON-106).",
+    "assumptions": [
+      "The five system roles and their permission sets in server/src/config/permissions.ts are the contractual definition of owner, admin, developer, member and read-only access; custom roles are defined per workspace on top of that catalogue.",
+      "The permission catalogue is closed: adding a new area or action means editing server/src/config/permissions.ts and the client mirror in client/src/features/developers/lib/catalog.ts, not inventing keys at runtime.",
+      "Workspace 'admin' is expressed through permissions rather than a role name: a role that holds settings:manage and users:write behaves like an admin whoever it belongs to.",
+      "The demo workspace and its seeded accounts are created by server/src/scripts/seed.ts and are not described as requirements here (CON-506)."
+    ],
+    "outOfScope": [
+      "Two-factor authentication itself (setup, codes, recovery) and single sign-on, documented as the sso-2fa feature; only the workspace policy switch and the enforcement point are covered here.",
+      "Task, project, sprint, workflow and report permissions beyond the fact that their routes call requirePermission with a catalogue key.",
+      "Organisation-level or cross-workspace administration: no such concept exists in the codebase.",
+      "Billing, seat counting and workspace deletion, which are not implemented."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create a workspace and be its Product Owner",
+      "role": "signed-in user starting a team",
+      "want": "create a workspace from a name and own it from the first second",
+      "benefit": "I can invite people and configure the workspace immediately",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "POST /api/workspaces creates the workspace with the creator as owner and as a member holding the Product Owner system role, generates a unique slug and a 12-hex invite code, and sets it as the creator's active workspace"
+        },
+        {
+          "id": "AC-002",
+          "text": "A missing, empty, non-string or over-60-character name is answered with 400 rather than 500"
+        },
+        {
+          "id": "AC-003",
+          "text": "Two workspaces with the same name receive distinct slugs, and a name without ASCII letters falls back to a generic slug"
+        },
+        {
+          "id": "AC-004",
+          "text": "GET /api/workspaces returns only the workspaces the caller belongs to, with name, slug, owner and populated member names and role names, and without invite codes or account secrets"
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Join a workspace with an invite code",
+      "role": "teammate who received a code",
+      "want": "join a workspace by entering its code and get a safe default role",
+      "benefit": "I get access to the team's work without an admin having to hand-craft my role",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-005",
+          "text": "POST /api/workspaces/join requires a code matching /^[A-F0-9]{12}$/i and answers 404 for a well-formed but unknown code, without pointing at any workspace"
+        },
+        {
+          "id": "AC-006",
+          "text": "Joining stores the default Viewer system role, whatever roleId the request body carries, so a client cannot choose its own access level"
+        },
+        {
+          "id": "AC-007",
+          "text": "Joining a workspace the caller is already a member of answers 400"
+        },
+        {
+          "id": "AC-008",
+          "text": "A successful join adds the workspace to the user's list and makes it active, and the previous invite code stops working once it is regenerated"
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Invite a teammate by email with a role",
+      "role": "owner or member with users:write",
+      "want": "invite an address with a chosen role and have the invitation expire on its own",
+      "benefit": "the invitee joins with exactly the access I intended",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-009",
+          "text": "POST /api/workspaces/:slug/invitations normalises the email, stores only the hash of the acceptance token with a 3-day expiry, emails the accept link and never returns the token"
+        },
+        {
+          "id": "AC-010",
+          "text": "Creating an invitation requires users:write and validates both the email shape and the roleId"
+        },
+        {
+          "id": "AC-011",
+          "text": "A role id belonging to another workspace answers 404, and a non-owner cannot invite with more permission than they hold or with the Product Owner role"
+        },
+        {
+          "id": "AC-012",
+          "text": "Inviting an address again expires the earlier pending invitation, and inviting somebody who is already a member answers 400"
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Manage members, roles and access",
+      "role": "workspace owner or member with users:write",
+      "want": "see who is in the workspace, move people between roles, remove them, and know the server enforces what my role allows",
+      "benefit": "membership stays intentional and nobody can promote themselves",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-013",
+          "text": "GET /api/workspaces/:slug/members requires users:read and returns members sorted by system-role seniority (custom roles last) then by name, exposing only id, name, email, avatar, job title, role and joinedAt"
+        },
+        {
+          "id": "AC-014",
+          "text": "PUT /api/workspaces/:slug/members/:userId/role requires users:write and refuses a caller targeting their own membership with 400"
+        },
+        {
+          "id": "AC-015",
+          "text": "The workspace owner's role can never be changed, and a non-owner can neither grant a role whose permissions exceed their own nor hand out Product Owner"
+        },
+        {
+          "id": "AC-016",
+          "text": "DELETE /api/workspaces/:slug/members/:userId requires users:write, refuses to remove the owner or the caller, and on success unassigns that member's tasks, pulls the workspace from their list and clears their activeWorkspace when it pointed there"
+        },
+        {
+          "id": "AC-017",
+          "text": "DELETE /api/workspaces/:slug/members/me lets a member leave with the same cleanup and answers 409 for the workspace owner"
+        },
+        {
+          "id": "AC-029",
+          "text": "requirePermission answers 401 for an anonymous caller, 400 when no workspace slug is present, 403 for a non-member, for a role missing the required permission and for a membership without a roleId, and attaches req.workspace, req.role and req.permissions on success"
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Define custom roles from the permission catalogue",
+      "role": "owner configuring access levels",
+      "want": "create, edit and delete workspace-local roles built from the catalogue of permissions",
+      "benefit": "the team can express its own access levels without code changes",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-018",
+          "text": "GET /api/workspaces/:slug/roles requires users:read and lists the system roles plus the workspace's own custom roles, system roles first"
+        },
+        {
+          "id": "AC-019",
+          "text": "Creating, updating and deleting a custom role requires settings:manage; the name is required, at most 60 characters and unique per workspace, and the description is at most 280 characters"
+        },
+        {
+          "id": "AC-020",
+          "text": "Unknown permission keys are rejected with 400, and a non-owner cannot create or update a role holding a permission they do not have themselves"
+        },
+        {
+          "id": "AC-021",
+          "text": "System roles and roles of another workspace can never be modified or deleted, a malformed or unknown role id answers 404 rather than 500, and a role still assigned to a member answers 409 on delete"
+        },
+        {
+          "id": "AC-022",
+          "text": "GET /api/roles/permissions serves the permission catalogue grouped by area to any logged-in user"
+        },
+        {
+          "id": "AC-030",
+          "text": "On boot the five system roles are upserted idempotently and every member without a roleId is repaired: legacy role strings map to their system role, otherwise the workspace owner becomes Product Owner and anyone else becomes Viewer"
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Control workspace settings and the two-factor policy",
+      "role": "owner or member with settings:manage",
+      "want": "rename the workspace, rotate the invite code, and require two-factor authentication for members",
+      "benefit": "the workspace stays recognisable and access to it stays strong",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-023",
+          "text": "GET /api/workspaces/:slug hides member email addresses unless the caller holds users:read, and hides the invite code unless the caller holds users:write or settings:manage"
+        },
+        {
+          "id": "AC-024",
+          "text": "PUT /api/workspaces/:slug requires settings:manage and renames the workspace with the trimmed name (60 characters maximum) while keeping the slug unchanged"
+        },
+        {
+          "id": "AC-025",
+          "text": "POST /api/workspaces/:slug/invite-code requires settings:manage and returns a new 12-hex code"
+        },
+        {
+          "id": "AC-026",
+          "text": "Turning require2fa on answers 400 with code OWN_TWO_FACTOR_REQUIRED when the caller does not have two-factor authentication enabled themselves, and require2fa must be a real boolean"
+        },
+        {
+          "id": "AC-027",
+          "text": "While the policy is on, a member without two-factor authentication receives 403 with code TWO_FACTOR_REQUIRED on workspace routes, while their account routes stay reachable so they can enable it"
+        },
+        {
+          "id": "AC-028",
+          "text": "Renaming the workspace and changing the policy each write a workspace.updated activity entry, and regenerating the invite code writes workspace.invite_code_regenerated"
+        },
+        {
+          "id": "AC-031",
+          "text": "The web app resolves the caller's permissions from GET /api/auth/currentuser through PermissionProvider/usePermissions, and management screens hide or disable actions the caller cannot perform"
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "POST /api/workspaces creates a workspace from a trimmed name (60 characters maximum) with a unique slug and a 12-hex invite code, adds the creator as owner and member with the Product Owner system role, and makes it the creator's active workspace (server/src/controllers/workspaceController.ts createWorkspace, generateSlug, generateInviteCode)",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"]
+    },
+    {
+      "id": "FR-002",
+      "text": "GET /api/workspaces lists the caller's workspaces with populated member names and roles, PUT /api/workspaces/:slug/activate switches the active workspace for members only, and GET /api/workspaces/:slug returns the workspace to members with member emails and the invite code removed unless the caller holds users:read and settings:manage (workspaceController.getMyWorkspaces, switchWorkspace, getWorkspaceBySlug, permissionsOf)",
+      "linkedAcceptanceCriteria": ["AC-004", "AC-023"]
+    },
+    {
+      "id": "FR-003",
+      "text": "POST /api/workspaces/join validates the code shape, looks the workspace up by invite code, refuses a second join, and always adds the default Viewer role resolved through findDefaultRole rather than from the request body (workspaceController.joinWorkspace)",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007", "AC-008"]
+    },
+    {
+      "id": "FR-004",
+      "text": "requirePermission('<area>:<action>') resolves the slug from params or query, loads the workspace with the caller among its members, resolves their role, enforces the workspace two-factor policy, narrows permissions to API-token scopes when a token is used, and attaches req.workspace, req.role and req.permissions (server/src/middleware/permissionMiddleware.ts)",
+      "linkedAcceptanceCriteria": ["AC-027", "AC-029"]
+    },
+    {
+      "id": "FR-005",
+      "text": "GET /api/workspaces/:slug/members returns the member list projected to public fields and sorted by role seniority then name, using roleRank from server/src/utils/roleAccess.ts (workspaceController.getWorkspaceMembers)",
+      "linkedAcceptanceCriteria": ["AC-013"]
+    },
+    {
+      "id": "FR-006",
+      "text": "PUT /api/workspaces/:slug/members/:userId/role refuses self-changes and owner changes, resolves the target role through findAssignableRole, applies the canGrantRole privilege ceiling to both the current and the requested role, then saves and records member.role_changed (server/src/controllers/memberController.ts changeMemberRole)",
+      "linkedAcceptanceCriteria": ["AC-014", "AC-015"]
+    },
+    {
+      "id": "FR-007",
+      "text": "DELETE /api/workspaces/:slug/members/:userId and DELETE /api/workspaces/:slug/members/me remove a membership under the same owner and privilege rules, pull the removed user from the workspace's task assignees and from their own workspace list, and clear a stale activeWorkspace (memberController.removeMember, leaveWorkspace)",
+      "linkedAcceptanceCriteria": ["AC-016", "AC-017"]
+    },
+    {
+      "id": "FR-008",
+      "text": "Invitations are created, listed, cancelled, previewed by token, accepted and declined: the token is stored hashed with a 3-day expiry, the earlier pending invitation for an address is expired, accept claims the row atomically, checks that the signed-in address matches, re-resolves the role and adds the member once (server/src/controllers/invitationController.ts, server/src/models/invitationModel.ts)",
+      "linkedAcceptanceCriteria": ["AC-009", "AC-010", "AC-011", "AC-012"]
+    },
+    {
+      "id": "FR-009",
+      "text": "Custom roles are listed, created, updated and deleted behind settings:manage with catalogue validation (getInvalidPermissions), a per-workspace unique name (hasRoleNameConflict), a system-role guard and an in-use guard on delete (roleController, server/src/utils/roleHelpers.ts)",
+      "linkedAcceptanceCriteria": ["AC-018", "AC-019", "AC-020", "AC-021"]
+    },
+    {
+      "id": "FR-010",
+      "text": "GET /api/roles/permissions returns the permission catalogue grouped by area for the role editor (roleController.listPermissions, server/src/config/permissions.ts)",
+      "linkedAcceptanceCriteria": ["AC-022"]
+    },
+    {
+      "id": "FR-011",
+      "text": "PUT /api/workspaces/:slug renames the workspace and toggles security.require2fa, refusing to enable the policy for an unprotected caller, while POST /api/workspaces/:slug/invite-code rotates the code, and each change is recorded in the activity log (workspaceController.updateWorkspace, regenerateInviteCode, validateUpdateWorkspace)",
+      "linkedAcceptanceCriteria": ["AC-024", "AC-025", "AC-026", "AC-028"]
+    },
+    {
+      "id": "FR-012",
+      "text": "seedSystemRoles upserts the five system roles on every boot and repairMemberRoles gives a roleId to any member lacking one, mapping legacy role strings and falling back to Product Owner for the owner and Viewer for everyone else (server/src/utils/seedRoles.ts, called from server/src/app.ts ensureReady)",
+      "linkedAcceptanceCriteria": ["AC-030"]
+    },
+    {
+      "id": "FR-013",
+      "text": "The web app loads the caller's identity, role, permissions and actions from GET /api/auth/currentuser for the slug taken from the URL, exposes can() and hasRole(), and the management screens (members, roles, workspace settings, security card) render read-only when the matching permission is absent (client/src/context/PermissionProvider.tsx, client/src/hooks/usePermissions.ts, client/src/features/workspace/)",
+      "linkedAcceptanceCriteria": ["AC-031"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Authorization is server-side and uniform: every workspace route is declared as protect then requirePermission('<area>:<action>'), controllers take the workspace from req.workspace and every workspace-scoped query filters by req.workspace._id, so no route can read or write across workspaces (CON-106, CON-512)",
+      "linkedAcceptanceCriteria": ["AC-013", "AC-016", "AC-023", "AC-029"]
+    },
+    {
+      "id": "NFR-002",
+      "text": "Roles are only ever resolved or granted through server/src/utils/roleAccess.ts (findAssignableRole, canGrantRole, findDefaultRole) and the role documents themselves are produced by server/src/utils/seedRoles.ts, keeping the privilege ceiling in one reviewable place (CON-107)",
+      "linkedAcceptanceCriteria": ["AC-006", "AC-011", "AC-015", "AC-030"]
+    },
+    {
+      "id": "NFR-003",
+      "text": "Role ids are validated as ObjectId strings before any query, so payloads such as { \"$ne\": null } or numbers are refused without touching the database, and malformed identifiers answer 404 instead of a cast error (CON-516)",
+      "linkedAcceptanceCriteria": ["AC-014", "AC-020", "AC-021"]
+    },
+    {
+      "id": "NFR-004",
+      "text": "The matrix is covered by Jest unit tests for the middleware and the access rules plus integration tests against a real MongoDB for the end-to-end permission behaviour (CON-402, CON-403, CON-404); commands are pnpm --filter server test and pnpm --filter server test:integration",
+      "linkedAcceptanceCriteria": ["AC-013", "AC-015", "AC-021", "AC-027"]
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "A role endpoint is called with a malformed id such as 'not-an-id'",
+      "expectedBehavior": "The handler answers 404 'Custom role not found' rather than a Mongoose CastError 500 (findCustomRoleOr404, roleAccess.findAssignableRole)"
+    },
+    {
+      "id": "EC-002",
+      "description": "The invited custom role is deleted between sending and accepting the invitation",
+      "expectedBehavior": "Accepting answers 409 and asks for a new invitation, because the role is re-resolved at accept time"
+    },
+    {
+      "id": "EC-003",
+      "description": "A membership exists without a roleId (legacy data)",
+      "expectedBehavior": "requirePermission answers 403 'No role assigned in this workspace'; getCurrentUser self-heals the entry and repairMemberRoles fixes it on the next boot"
+    },
+    {
+      "id": "EC-004",
+      "description": "Two requests accept the same invitation at the same time",
+      "expectedBehavior": "The conditional findOneAndUpdate claims the row once, so only one request adds the member and the other answers 400"
+    },
+    {
+      "id": "EC-005",
+      "description": "The invite code is regenerated while a colleague is joining with the old one",
+      "expectedBehavior": "The old code no longer matches and the join answers 404 'Invalid invite code'"
+    },
+    {
+      "id": "EC-006",
+      "description": "A custom role that is still assigned to a member is deleted",
+      "expectedBehavior": "409 explaining the role is in use; after the member is moved the deletion succeeds"
+    },
+    {
+      "id": "EC-007",
+      "description": "The workspace owner tries to leave, or somebody tries to remove or demote them",
+      "expectedBehavior": "Leaving answers 409, removal and role changes answer 403, so a workspace can never lose its owner"
+    },
+    {
+      "id": "EC-008",
+      "description": "Two workspaces define a custom role with the same name",
+      "expectedBehavior": "Both are allowed: uniqueness is per workspace through the partial index on { workspaceId, name } where isSystem is false"
+    },
+    {
+      "id": "EC-009",
+      "description": "A personal API token is used against a workspace it does not belong to, or for a permission outside its scopes",
+      "expectedBehavior": "403 'This API token belongs to another workspace' or 'This API token does not have the required scope', and req.permissions is narrowed to the token scopes"
+    }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "notes": "Workspace, Role and Invitation schemas, including the partial unique indexes on role names" },
+    { "name": "express-validator", "type": "library", "notes": "Validation chains for workspace updates and invitation creation" },
+    { "name": "express-rate-limit", "type": "library", "notes": "The sensitive limiter covers /api/workspaces/join and /api/invitations" },
+    { "name": "MongoDB", "type": "service", "notes": "Stores workspaces, memberships, roles and invitations" },
+    { "name": "server/src/config/permissions.ts", "type": "internal", "notes": "The permission catalogue, the five system roles, deriveActions and hasPermission" },
+    { "name": "server/src/utils/roleAccess.ts", "type": "internal", "notes": "findAssignableRole, canGrantRole, findDefaultRole and roleRank"}, 
+    { "name": "server/src/utils/seedRoles.ts", "type": "internal", "notes": "Idempotent system-role seeding and the member-role repair pass" },
+    { "name": "server/src/utils/activity.ts", "type": "internal", "notes": "recordActivity writes the audit entries for member, role, invitation and workspace changes" }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "Privilege escalation: a member changes their own role or grants a role above their own access",
+      "mitigation": "Self-changes are refused, the owner role is untouchable, and canGrantRole compares both the held and the requested permission sets unless the actor owns the workspace"
+    },
+    {
+      "id": "RISK-002",
+      "description": "A new workspace route forgets requirePermission and becomes readable by any member or by nobody",
+      "mitigation": "The route table in server/src/routes/workspaceRoutes.ts declares the permission next to the path, and permissionMiddleware.test.ts plus rbac.test.ts fail when the pipeline changes"
+    },
+    {
+      "id": "RISK-003",
+      "description": "Cross-workspace leakage through a query that omits the workspace filter",
+      "mitigation": "Every controller reads the workspace from req.workspace, requirePermission resolves it from membership only, and CON-106 makes the filter a review rule"
+    },
+    {
+      "id": "RISK-004",
+      "description": "Invite codes are shared beyond the intended audience",
+      "mitigation": "Codes are 12 hex characters, grant only the read-only Viewer role, can be rotated by settings:manage, and the join endpoint sits behind the sensitive rate limiter"
+    }
+  ]
+}

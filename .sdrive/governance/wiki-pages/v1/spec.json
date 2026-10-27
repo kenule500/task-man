@@ -1,0 +1,130 @@
+{
+  "feature": "wiki-pages",
+  "title": "Workspace and project wiki pages",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Knowledge about a workspace or a project had nowhere to live: decisions were spread across task descriptions and comments, they could not be structured, they could not be found again, and two people editing the same text silently overwrote each other. Teams also wanted to point at the tasks a document is about without copying links by hand.",
+    "proposedSolution": "A Markdown wiki per workspace, optionally scoped to a project, stored in two collections: Page (tree node with title, slug, Markdown content, position, parent, an optimistic-concurrency version and an archived flag) and PageVersion (a snapshot of the text before each edit, pruned to the newest twenty). server/src/utils/pages.ts holds the pure rules (slugify, uniqueSlug, extractTaskKeys, depthOf, subtreeHeight, isSelfOrDescendant, canMoveUnder, snippetAround, escapeRegex) and server/src/controllers/pageController.ts applies them, so depth, cycles, search snippets and task-key mentions are decided by tested functions. Reads and writes are served by server/src/routes/pageRoutes.ts under /api/workspaces/:slug/pages with a dedicated 400 kB JSON limit (server/src/app.ts) and tasks:read/write/delete permissions. The client (client/src/features/wiki) renders Markdown with react-markdown + remark-gfm and a custom task-key plugin, offers a keyboard-operable tree, an editor with a Markdown toolbar, a conflict dialog for the 409 case and a version history sheet.",
+    "targetAudience": "Workspace members who document processes and decisions, project teams that keep a project-scoped wiki beside the tasks, and the task-key links that let a reader jump from a document to the work it describes.",
+    "assumptions": [
+      "Pages are plain Markdown; there is no rich-text or block editor and no asset pipeline for page images (remote images are rendered as links, see MarkdownView.tsx). `assumption: true`",
+      "The wiki tree is loaded whole per workspace or project (titles only); no virtualised loader exists for very large wikis. `assumption: true`",
+      "Restoring a version is implemented as a new edit, so a page's version number never goes backwards (pageController.ts#restoreVersion). `assumption: true`"
+    ],
+    "outOfScope": [
+      "Real-time collaborative editing (operational transform or CRDT); concurrent edits are handled by the version check and the conflict dialog.",
+      "Page-level permissions inside a workspace; access is the workspace permission tasks:read/write/delete, scoped to the page's project where applicable.",
+      "Attachments or images hosted inside a page; attachments belong to tasks and are stored in GridFS (server/src/utils/gridfs.ts)."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Write and organise pages",
+      "role": "workspace member",
+      "want": "to create a page with a title and Markdown, nest it under a parent and keep it in a project or in the workspace wiki",
+      "benefit": "knowledge is structured where the work is, instead of scattered in comments",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "GET /api/workspaces/:slug/pages returns the tree rows of the workspace wiki, or of one project with ?project=Name (404 for an unknown project), without page content; POST creates a page from title (1..120), optional content (up to 100 000 characters), optional project and optional parent, and derives a unique slug for that wiki." },
+        { "id": "AC-002", "text": "A parent must belong to the same wiki and the resulting depth must not exceed MAX_PAGE_DEPTH 3, otherwise the request is refused with a readable rule error; a page can never be its own parent." },
+        { "id": "AC-003", "text": "A new page is appended after its siblings (position = last sibling + 1, 0 when it is the first) and the creation is recorded as page.created with the project when one is set." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Edit without losing someone else's work",
+      "role": "workspace member",
+      "want": "my save to be refused if the page moved on, and the previous text to be kept",
+      "benefit": "nobody's writing disappears silently",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "PATCH /api/workspaces/:slug/pages/:id requires the version the client edited: a stale version answers 409 with the message that someone else changed the page and the latest page in the body, and a request whose title/content/archived do not differ from the stored page is answered with the current page without creating a version." },
+        { "id": "AC-005", "text": "An accepted edit snapshots the previous title/content/version into PageVersion, increments the page version, sets updatedBy, keeps only the newest MAX_PAGE_VERSIONS (20) snapshots and records page.updated with the fields that changed." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Move and delete pages",
+      "role": "workspace member",
+      "want": "to reorder and re-nest pages, and to delete one without losing its children",
+      "benefit": "the wiki stays tidy as it grows",
+      "acceptanceCriteria": [
+        { "id": "AC-006", "text": "POST /api/workspaces/:slug/pages/:id/move accepts { parent, index } and refuses a move under the page itself or one of its descendants, or one that would push the subtree past three levels (canMoveUnder), and answers with the whole tree of that wiki." },
+        { "id": "AC-007", "text": "DELETE /api/workspaces/:slug/pages/:id removes the page and its version history while its children move up one level, and records page.deleted." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "See and restore earlier versions",
+      "role": "workspace member",
+      "want": "the last twenty versions of a page, their text, and a way to bring one back",
+      "benefit": "a bad edit can be undone and the reasoning behind a change can be read",
+      "acceptanceCriteria": [
+        { "id": "AC-008", "text": "GET /:id/versions returns the live version number plus the newest twenty summaries (version, title, editor, createdAt) and GET /:id/versions/:version returns one version with its Markdown, or 404 when that version is unknown." },
+        { "id": "AC-009", "text": "POST /:id/restore/:version writes that text back as a new edit, so the text replaced by the restore stays in the history, and answers the restored page with its new version number." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Find a page and the tasks it mentions",
+      "role": "workspace member",
+      "want": "to search the wiki by text and to have task keys in a page link to the real tasks",
+      "benefit": "I reach the right document and the right task from either side",
+      "acceptanceCriteria": [
+        { "id": "AC-010", "text": "GET /:id/search?q= searches titles and content case-insensitively with the query escaped (never used as a pattern, escapeRegex), returns one hit per page with a snippet around the match and an empty list (200) when the query is shorter than two characters." },
+        { "id": "AC-011", "text": "Task keys written in the Markdown are resolved against real tasks of the same workspace by project key and number and returned as mentions on a full page read; keys that match no existing task are simply absent from that list." }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Read and author pages in the app",
+      "role": "workspace member",
+      "want": "a wiki screen with a tree, rendered Markdown, an editor with formatting help and a clear conflict message",
+      "benefit": "I can read and write documentation without leaving TaskMan",
+      "acceptanceCriteria": [
+        { "id": "AC-012", "text": "Markdown is rendered as GitHub-flavoured through react-markdown: raw HTML is never rendered, external links open in a new tab with rel=\"noopener noreferrer\", headings inside the page shift one level below the page title, remote images render as links and task keys become links to the task." },
+        { "id": "AC-013", "text": "The tree is keyboard operable (arrows move a page up/down/indent/outdent within the depth limit, Enter/Escape for the row actions), the editor offers a Markdown toolbar, a 409 shows a conflict dialog offering the latest text, and the project workspace renders the same wiki scoped to that project." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "Pages can be listed as a tree (titles only) for the workspace wiki or for one project, and created with a title, optional Markdown, project and parent, appending the page after its siblings.", "linkedAcceptanceCriteria": ["AC-001", "AC-003"] },
+    { "id": "FR-002", "text": "A page gets a URL-friendly slug derived from its title, unique inside the workspace and project, with the next free suffix chosen when taken and a retry with a random suffix when a concurrent insert wins the race.", "linkedAcceptanceCriteria": ["AC-001"] },
+    { "id": "FR-003", "text": "Nesting is limited to three levels and cycles are impossible: depth and subtree height are computed from the tree map and canMoveUnder refuses a move under the page itself or a descendant, or one that would exceed the limit.", "linkedAcceptanceCriteria": ["AC-002", "AC-006"] },
+    { "id": "FR-004", "text": "Edits are guarded by optimistic concurrency: the client sends the version it edited, a mismatch answers 409 with the latest page, and a no-op edit does not create a version.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-005", "text": "The previous text is snapshotted before each accepted edit, snapshots are pruned to the newest twenty per page, and versions can be listed, read individually and restored as a new edit.", "linkedAcceptanceCriteria": ["AC-005", "AC-008", "AC-009"] },
+    { "id": "FR-006", "text": "A page can be moved to a new parent and index, and deleted so that its children move up one level while its history is removed with it.", "linkedAcceptanceCriteria": ["AC-006", "AC-007"] },
+    { "id": "FR-007", "text": "Wiki search covers titles and content with an escaped, case-insensitive match, a two-character minimum and a snippet that shows the match in context, optionally scoped to one project.", "linkedAcceptanceCriteria": ["AC-010"] },
+    { "id": "FR-008", "text": "Task keys written in Markdown are extracted (at most 50, distinct, in order) and resolved against the workspace's projects and tasks so a full page read carries the mention list that the reader turns into links.", "linkedAcceptanceCriteria": ["AC-011", "AC-012"] },
+    { "id": "FR-009", "text": "The client wiki module provides tree and navigation components, the document reader, the Markdown toolbar editor, a conflict dialog for 409 responses, a version history sheet with restore, a task mention picker and the tree/depth helpers shared by the page and the project tab.", "linkedAcceptanceCriteria": ["AC-013", "AC-012"] },
+    { "id": "FR-010", "text": "The project workspace embeds the same wiki scoped to the project (ProjectWikiTab), gated by the caller's task write permission.", "linkedAcceptanceCriteria": ["AC-013", "AC-001"] },
+    { "id": "FR-011", "text": "Page creation, edits and deletions are recorded in the workspace activity log as page.created, page.updated and page.deleted with the changed fields.", "linkedAcceptanceCriteria": ["AC-003", "AC-005", "AC-007"] },
+    { "id": "FR-012", "text": "The pages path gets its own JSON body limit of 400 kB, mounted before the general 100 kB parser, so a large document is accepted exactly where it is expected.", "linkedAcceptanceCriteria": ["AC-001"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Every page query filters by req.workspace._id and every route is permission scoped: tasks:read for listing, reading, searching and history, tasks:write for create, edit, move and restore, tasks:delete for deletion (CON-106, CON-512).", "linkedAcceptanceCriteria": ["AC-001", "AC-007"] },
+    { "id": "NFR-002", "text": "Stored Markdown can never become markup: raw HTML is not rendered and unsafe URL schemes are dropped by react-markdown's default transform, external links carry rel=\"noopener noreferrer\", and no dangerouslySetInnerHTML exists in the client (CON-517).", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "NFR-003", "text": "Content stays bounded: titles 120 characters, content 100 000 characters, a 400 kB JSON body for this path, three nesting levels and twenty retained versions per page.", "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-005"] },
+    { "id": "NFR-004", "text": "Everything non-visual is pure and tested in one place per side: server/src/utils/pages.ts (slug, depth, subtree, move legality, mentions, snippet, escaping) and client/src/features/wiki/lib (tree, markdown edits, mentions), each with a Jest test beside it (CON-109, CON-202, CON-404).", "linkedAcceptanceCriteria": ["AC-002", "AC-006", "AC-010"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "Two pages with the same title are created at the same moment in one wiki.", "expectedBehavior": "The slug lookup picks the next free suffix (-2, -3 …), and a duplicate-key error from the unique index is retried with a random suffix (up to three attempts) instead of failing the request." },
+    { "id": "EC-002", "description": "A page edited in two tabs, or by two people, and saved by both.", "expectedBehavior": "The second save answers 409 with the latest page and the client shows the conflict dialog offering to load that text; nothing of the other edit is lost because the snapshot was taken before the accepted change." },
+    { "id": "EC-003", "description": "Deleting a page that has children.", "expectedBehavior": "The children move up one level (their parent becomes the deleted page's parent) and remain in the tree; the deleted page's versions are removed with it." },
+    { "id": "EC-004", "description": "Moving a page under itself, under one of its descendants, or to a place that would push the subtree past three levels.", "expectedBehavior": "Refused with a rule error (400) before anything is written; canMoveUnder is the single decision point." },
+    { "id": "EC-005", "description": "Searching with an empty or one-character query.", "expectedBehavior": "200 with an empty list; the client keeps the previous results until the query is long enough." },
+    { "id": "EC-006", "description": "A task key written in a page that matches no task (deleted task, or a key from another project).", "expectedBehavior": "The key is not part of the mentions list, so it renders as plain text while the rest of the page keeps working." }
+  ],
+  "dependencies": [
+    { "name": "react-markdown", "type": "library", "notes": "Renders the page Markdown; escapes raw HTML and applies its default URL transform (client/src/features/wiki/components/MarkdownView.tsx)." },
+    { "name": "remark-gfm", "type": "library", "notes": "GitHub-flavoured Markdown: tables, task lists, strikethrough." },
+    { "name": "remarkTaskKeys", "type": "internal", "notes": "Custom remark plugin (client/src/features/wiki/lib/mentions.ts) that turns resolved task keys into links." },
+    { "name": "server/src/utils/workflow.ts + taskModel", "type": "internal", "notes": "Not used for pages, but mentions link to tasks whose status vocabulary comes from there." },
+    { "name": "Mongoose indexes", "type": "internal", "notes": "Unique (workspace, project, slug) and (workspace, project, parent, position) for the tree; unique (page, version) for snapshots." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "Two editors overwriting each other's text.", "mitigation": "The version check on every edit, a 409 that carries the latest page, a snapshot of the outgoing text, and a client conflict dialog." },
+    { "id": "RISK-002", "description": "A deeply nested or self-referencing tree from a crafted move.", "mitigation": "canMoveUnder (cycle check plus depth budget) is used for both create and move and is unit tested." },
+    { "id": "RISK-003", "description": "Rendering untrusted Markdown could enable script injection or a tracking image.", "mitigation": "Raw HTML is not rendered, unsafe URL schemes are dropped by react-markdown, links get noopener/noreferrer, and images are rendered as links so no remote request is made from a page." },
+    { "id": "RISK-004", "description": "Version history growing without bound.", "mitigation": "Only the newest twenty snapshots per page are kept (pruneVersions runs after every snapshot) and history is deleted with the page." }
+  ]
+}

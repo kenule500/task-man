@@ -1,0 +1,314 @@
+{
+  "feature": "releases",
+  "version": 1,
+  "architecture": {
+    "approach": "Retroactive plan of the implemented design. A Release document belongs to a project and is managed by a permission-guarded router mounted at /api/workspaces/:slug/releases; tasks point at a release through task.release, and the assignment rules are shared with the task controller (resolveRelease/reconcileRelease) rather than duplicated. Progress and the release notes are computed by a pure module (server/src/utils/releaseNotes.ts) from the release's tasks, so nothing is denormalised onto the release document. On the client the releases module owns the project tab, the release page, the dialogs and the task field, and the roadmap reuses its own axis helpers to draw release milestones.",
+    "components": [
+      {
+        "name": "server/src/models/releaseModel.ts",
+        "action": "create",
+        "description": "Release document with workspace and project, name and lower-cased nameKey, description, startDate, releaseDate, status, releasedAt and createdBy, plus the unique { workspace, project, nameKey } index."
+      },
+      {
+        "name": "server/src/utils/releaseNotes.ts",
+        "action": "create",
+        "description": "Pure helpers: summarizeProgress, isReleaseOverdue, NOTE_GROUPS, taskKey and buildReleaseNotes (Markdown plus groups)."
+      },
+      {
+        "name": "server/src/controllers/releaseController.ts",
+        "action": "create",
+        "description": "Validation chains and the handlers listReleases, getRelease, createRelease, updateRelease, deleteRelease, releaseRelease and getReleaseNotes, with the conflict and date rules."
+      },
+      {
+        "name": "server/src/routes/releaseRoutes.ts",
+        "action": "create",
+        "description": "Router for /api/workspaces/:slug/releases: protect plus projects:read (list, detail, notes) or projects:write (create, update, delete, release)."
+      },
+      {
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "description": "Mounts the releases router at /:slug/releases."
+      },
+      {
+        "name": "server/src/models/taskModel.ts",
+        "action": "modify",
+        "description": "The release field on a task (ObjectId ref Release, null by default) with the { workspace, release } index."
+      },
+      {
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "description": "resolveRelease and reconcileRelease implement the assignment rules, and the bulk update reuses them."
+      },
+      {
+        "name": "client/src/features/releases/types.ts",
+        "action": "create",
+        "description": "ReleaseStatus, GroupTotals, ReleaseProgress, Release, ReleaseTask, ReleaseDetail, ReleaseNotes, ReleaseInput, ReleasePatch and MoveOpenTo."
+      },
+      {
+        "name": "client/src/features/releases/api.ts",
+        "action": "create",
+        "description": "releasesApi: list, get, notes, create, update, remove and release through the shared axios instance."
+      },
+      {
+        "name": "client/src/features/releases/hooks/useReleases.ts",
+        "action": "create",
+        "description": "Workspace releases through the query cache, with create/update/remove/release refreshing the list and readable errors."
+      },
+      {
+        "name": "client/src/features/releases/hooks/useRelease.ts",
+        "action": "create",
+        "description": "One release with its project and tasks, for the release page."
+      },
+      {
+        "name": "client/src/features/releases/hooks/useReleaseStatus.ts",
+        "action": "create",
+        "description": "Archive and reopen with a busy id and toasts."
+      },
+      {
+        "name": "client/src/features/releases/lib/progress.ts",
+        "action": "create",
+        "description": "releasePercent, describeReleaseProgress, formatReleaseDates, describeReleaseDue, suggestReleaseDates, suggestReleaseName, releaseOptionsFor, groupReleaseTasks, upcomingReleases, RELEASE_STATUS_META and NO_RELEASE_VALUE."
+      },
+      {
+        "name": "client/src/features/releases/lib/notesMarkdown.ts",
+        "action": "create",
+        "description": "parseNotesMarkdown (plain data blocks) and splitNoteItem (task key plus title)."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleasesTab.tsx",
+        "action": "create",
+        "description": "The Releases tab of a project: unreleased, released and archived sections, archive toggle and the create action."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseCard.tsx",
+        "action": "create",
+        "description": "One release with its status tag, dates, progress and the actions available to a writer."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseFormDialog.tsx",
+        "action": "create",
+        "description": "Create and edit form with the suggested version name and dates and the date-order validation."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseNowDialog.tsx",
+        "action": "create",
+        "description": "Asks where the unfinished tasks go (next release, no release, keep) and is skipped when everything is done."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseDialogs.tsx",
+        "action": "create",
+        "description": "Dialog state and routing for create, edit, release and delete."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseNotesPanel.tsx",
+        "action": "create",
+        "description": "Renders the parsed notes as text with a copy-the-Markdown action."
+      },
+      {
+        "name": "client/src/features/releases/components/ReleaseStatusTag.tsx",
+        "action": "create",
+        "description": "Status tag with the meta from lib/progress.ts."
+      },
+      {
+        "name": "client/src/features/releases/components/TaskReleaseField.tsx",
+        "action": "create",
+        "description": "The release select of the task form, built from releaseOptionsFor."
+      },
+      {
+        "name": "client/src/features/releases/components/TaskReleaseLabel.tsx",
+        "action": "create",
+        "description": "The release name of a task as a link to its page, or None."
+      },
+      {
+        "name": "client/src/features/releases/components/TaskReleaseDetail.tsx",
+        "action": "create",
+        "description": "Release row of the task details block."
+      },
+      {
+        "name": "client/src/pages/ReleasePage.tsx",
+        "action": "create",
+        "description": "Release screen: breadcrumbs, status, dates, due line, progress ring, grouped tasks, notes panel and the release/archive/reopen/edit/delete actions."
+      },
+      {
+        "name": "client/src/pages/ProjectDetailPage.tsx",
+        "action": "modify",
+        "description": "The Releases tab hosts ReleasesTab and reloads the tasks after a change."
+      },
+      {
+        "name": "client/src/pages/RoadmapPage.tsx",
+        "action": "modify",
+        "description": "Feeds the dated releases of the selected project into releaseMarkers and navigates to the release page when a marker is chosen."
+      },
+      {
+        "name": "client/src/features/planning/lib/roadmap.ts",
+        "action": "modify",
+        "description": "Adds ReleaseMarker, releaseMarkers and describeReleaseMarker to the roadmap model."
+      }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Release",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "project", "type": "ObjectId ref Project", "action": "no_change" },
+          { "name": "name", "type": "String (1-60, version label such as v1.2.0)", "action": "no_change" },
+          { "name": "nameKey", "type": "String (lower-cased name, unique per project)", "action": "no_change" },
+          { "name": "description", "type": "String (max 2000)", "action": "no_change" },
+          { "name": "startDate", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "releaseDate", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "status", "type": "enum unreleased|released|archived", "action": "no_change" },
+          { "name": "releasedAt", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "createdBy", "type": "ObjectId ref User", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "release", "type": "ObjectId ref Release", "action": "no_change", "nullable": true },
+          { "name": "project", "type": "String (project name, kept in step with the release's project)", "action": "no_change" },
+          { "name": "parent", "type": "ObjectId ref Task", "action": "no_change", "nullable": true },
+          { "name": "status", "type": "enum pending|in-progress|completed", "action": "no_change" },
+          { "name": "storyPoints", "type": "Number", "action": "no_change", "nullable": true },
+          { "name": "number", "type": "Number (task key suffix)", "action": "no_change", "nullable": true },
+          { "name": "type", "type": "enum task|story|bug|spike|epic", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String (join key with task.project)", "action": "no_change" },
+          { "name": "key", "type": "String (task key prefix)", "action": "no_change" },
+          { "name": "color", "type": "String", "action": "no_change" },
+          { "name": "icon", "type": "String", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "action", "type": "String (release.created, release.updated, release.released, release.deleted, task.updated)", "action": "no_change" },
+          { "name": "project", "type": "ObjectId ref Project", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change", "nullable": true },
+          { "name": "changes", "type": "Array of { field, from, to } (release moves and other field diffs)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "A release is created inside a project with a unique name and optional dates. Tasks join it by writing task.release: the release must be unreleased and belong to the task's project (a task without a project adopts the release's project), subtasks follow their parent and epics are refused; a task that later changes project loses its release. Progress is derived, not stored: the release's top-level non-epic tasks are grouped into pending, in-progress and completed with counts and story points, and an unreleased release past its date is flagged overdue. Releasing sets status released and releasedAt through a conditional update and then either keeps, removes or re-homes the unfinished tasks (with their subtasks) in another unreleased release of the same project, recording every moved task. The notes are generated on request from the completed tasks, and deleting a release only clears the link on its tasks."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/releases",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-004", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/releases",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-001", "FR-002", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/releases/:id",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-005", "FR-006", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/releases/:id",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-003", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/releases/:id",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-008", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/releases/:id/release",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-007", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/releases/:id/notes",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-009", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/tasks/:id",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-011", "NFR-001"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/tasks/bulk",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-011", "NFR-001"]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "description": "Workspace isolation (CON-106): findRelease looks up the id together with workspace: req.workspace._id, projects and tasks of a release are resolved with the same id, and the release of a task is validated against the caller's workspace, so another workspace's versions are neither listed nor linkable. Request ids are cast with mongoose.isValidObjectId and never interpolated into a raw query (CON-516)."
+    },
+    {
+      "requirementId": "NFR-002",
+      "description": "Authorisation runs before the handler (CON-512): releaseRoutes applies protect and then requirePermission('projects:read') for list, detail and notes and requirePermission('projects:write') for create, update, delete and the release action; the client hides those actions unless the role holds projects:write."
+    },
+    {
+      "requirementId": "NFR-004",
+      "description": "Output safety (CON-517): the notes are plain Markdown that the client parses into data blocks and renders as text, so a task title containing markup stays text; no dangerouslySetInnerHTML is used in the releases module."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "strategy": "listReleases loads the releases, then all of their tasks with one query over the release ids and groups them in memory instead of querying per release; only the progress-relevant fields (status, storyPoints, release) are selected."
+    },
+    {
+      "requirementId": "NFR-003",
+      "strategy": "Release notes and progress are pure functions over an in-memory task list, so the handlers only fetch and serialise and the rules are unit tested without a database (CON-407)."
+    }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "Release documents and the unique { workspace, project, nameKey } index behind the duplicate-name rule." },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "validateListReleases, validateCreateRelease, validateUpdateRelease and validateReleaseAction." },
+    { "name": "server/src/utils/activity.ts", "type": "internal", "action": "no_change", "notes": "Audit entries for the release lifecycle and for every moved task." },
+    { "name": "server/src/controllers/taskController.ts", "type": "internal", "action": "no_change", "notes": "resolveRelease/reconcileRelease and the shared error handling." },
+    { "name": "client/src/features/planning", "type": "internal", "action": "update", "notes": "The roadmap axis model gains ReleaseMarker and releaseMarkers." }
+  ],
+  "risks": [
+    {
+      "description": "Releasing moves tasks server-side while the client task list is a separate cache.",
+      "mitigation": "The releases tab and the release page call onTasksChanged after a release or a delete, reloading the task list as a sprint completion does."
+    },
+    {
+      "description": "Notes reflect the release's current tasks, so a task removed after shipping disappears from them.",
+      "mitigation": "Removing is an explicit, audited action and the panel always shows the live state; the copy action lets a shipped note be kept outside the app."
+    },
+    {
+      "description": "A release can be left with no tasks at all after deletions or project moves.",
+      "mitigation": "reconcileRelease drops the release from a task that changes project, deleting a release reports how many tasks were unassigned, and the notes show the empty placeholder."
+    }
+  ]
+}

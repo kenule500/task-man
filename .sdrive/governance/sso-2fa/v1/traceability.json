@@ -1,0 +1,174 @@
+{
+  "feature": "sso-2fa",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": ["AC-001"],
+      "planSection": "architecture.components (config/sso.ts, ssoController.listProviders) / apiContracts GET /api/auth/sso/providers",
+      "taskIds": ["T1.1"],
+      "testIds": ["TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": ["AC-002", "AC-003"],
+      "planSection": "apiContracts GET /api/auth/sso/:provider/start / dataModel.entities (SsoState)",
+      "taskIds": ["T1.2"],
+      "testIds": ["TEST-005", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": ["AC-004", "AC-005"],
+      "planSection": "apiContracts GET /api/auth/sso/:provider/callback / securityConsiderations NFR-004",
+      "taskIds": ["T2.1"],
+      "testIds": ["TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": ["AC-006", "AC-007"],
+      "planSection": "architecture.components (utils/oidc.ts) / securityConsiderations NFR-004",
+      "taskIds": ["T2.2"],
+      "testIds": ["TEST-004", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": ["AC-008", "AC-009"],
+      "planSection": "architecture.components (resolveSsoUser) / dataModel.entities (User.sso, User.ssoOnly)",
+      "taskIds": ["T2.3"],
+      "testIds": ["TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": ["AC-015"],
+      "planSection": "dataModel.flowDescription / apiContracts GET /api/auth/sso/:provider/callback",
+      "taskIds": ["T2.4"],
+      "testIds": ["TEST-006", "TEST-018"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": ["AC-014", "AC-018"],
+      "planSection": "architecture.components (utils/totp.ts)",
+      "taskIds": ["T3.1"],
+      "testIds": ["TEST-001", "TEST-007"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": ["AC-016", "AC-017", "AC-018", "AC-020"],
+      "planSection": "apiContracts GET|POST /api/profile/2fa / dataModel.entities (User.twoFactor)",
+      "taskIds": ["T4.1", "T4.2"],
+      "testIds": ["TEST-002", "TEST-007", "TEST-013"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": ["AC-010", "AC-011", "AC-012", "AC-013"],
+      "planSection": "architecture.components (utils/twoFactor.ts) / apiContracts POST /api/auth/login/2fa",
+      "taskIds": ["T3.2", "T3.3"],
+      "testIds": ["TEST-007", "TEST-018"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": ["AC-021", "AC-022", "AC-023"],
+      "planSection": "architecture.components (utils/recoveryCodes.ts) / apiContracts POST /api/profile/2fa/recovery-codes",
+      "taskIds": ["T4.3"],
+      "testIds": ["TEST-007", "TEST-012"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": ["AC-024"],
+      "planSection": "apiContracts POST /api/profile/2fa/disable / securityConsiderations NFR-001",
+      "taskIds": ["T4.4", "T7.4"],
+      "testIds": ["TEST-007", "TEST-019"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": ["AC-025", "AC-026"],
+      "planSection": "apiContracts GET /api/profile/sso, DELETE /api/profile/sso/:provider",
+      "taskIds": ["T5.1"],
+      "testIds": ["TEST-006", "TEST-011"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-013",
+      "acceptanceCriteriaIds": ["AC-027", "AC-028", "AC-029"],
+      "planSection": "apiContracts GET|POST /api/workspaces/:slug/tokens / dataModel.entities (ApiToken)",
+      "taskIds": ["T6.1", "T6.2", "T7.5"],
+      "testIds": ["TEST-003", "TEST-008", "TEST-014", "TEST-015"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-014",
+      "acceptanceCriteriaIds": ["AC-030", "AC-031", "AC-032", "AC-033"],
+      "planSection": "architecture.components (authMiddleware.authenticateApiToken, permissionMiddleware) / apiContracts DELETE /api/workspaces/:slug/tokens/:id",
+      "taskIds": ["T6.3", "T6.4"],
+      "testIds": ["TEST-003", "TEST-008"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-015",
+      "acceptanceCriteriaIds": ["AC-034"],
+      "planSection": "architecture.components (client/src/features/sso/*, client/src/pages/SsoCompletePage.tsx)",
+      "taskIds": ["T7.1", "T7.2"],
+      "testIds": ["TEST-009", "TEST-010", "TEST-016", "TEST-017"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-016",
+      "acceptanceCriteriaIds": ["AC-035"],
+      "planSection": "architecture.components (client/src/features/account/*, TwoFactorRequiredGate)",
+      "taskIds": ["T7.3", "T7.4"],
+      "testIds": ["TEST-012", "TEST-013", "TEST-018", "TEST-019"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": ["AC-018", "AC-024", "AC-026", "AC-031"],
+      "planSection": "securityConsiderations NFR-001 / performanceConsiderations NFR-001",
+      "taskIds": ["T4.2", "T6.3", "T8.5"],
+      "testIds": ["TEST-007", "TEST-008", "TEST-011"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": ["AC-019", "AC-020", "AC-022", "AC-027", "AC-028"],
+      "planSection": "securityConsiderations NFR-002 / performanceConsiderations NFR-002",
+      "taskIds": ["T6.1", "T8.4"],
+      "testIds": ["TEST-002", "TEST-003", "TEST-007"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": ["AC-012", "AC-013"],
+      "planSection": "securityConsiderations NFR-003 / performanceConsiderations NFR-003",
+      "taskIds": ["T3.2", "T8.3"],
+      "testIds": ["TEST-001", "TEST-007"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": ["AC-005", "AC-016", "AC-020", "AC-028"],
+      "planSection": "securityConsiderations NFR-004 / performanceConsiderations NFR-004",
+      "taskIds": ["T8.4"],
+      "testIds": ["TEST-002", "TEST-006", "TEST-007"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-005",
+      "acceptanceCriteriaIds": ["AC-004", "AC-006", "AC-013", "AC-015", "AC-030"],
+      "planSection": "securityConsiderations NFR-005",
+      "taskIds": ["T8.1", "T8.2", "T8.6"],
+      "testIds": ["TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005", "TEST-006", "TEST-007", "TEST-008", "TEST-009", "TEST-010", "TEST-011", "TEST-012", "TEST-013", "TEST-014", "TEST-015", "TEST-016", "TEST-017", "TEST-018", "TEST-019"],
+      "status": "complete"
+    }
+  ]
+}

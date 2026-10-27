@@ -1,0 +1,151 @@
+{
+  "feature": "sso-2fa",
+  "version": 1,
+  "architecture": {
+    "approach": "Three credential paths share one rule: the secret never travels and is never stored in a readable form. OIDC stays a pure module (server/src/utils/oidc.ts) with an injectable fetch, so the whole verification logic is unit tested against a fake provider without network access (CON-109). Two-factor keeps the cryptography in server/src/utils/totp.ts (Node crypto, no dependency), the encryption in server/src/utils/secretBox.ts (AES-256-GCM, HKDF, AAD = user id, CON-112) and the state machine in server/src/utils/twoFactor.ts, which is the only module that challenges, verifies and locks. API tokens are digests plus scopes from the day they are created, so a leaked database is useless without the server key. The controllers stay thin: they validate with express-validator, call the utility, and answer with fixed codes that the client maps to language.",
+    "components": [
+      { "name": "server/src/config/sso.ts", "action": "reuse", "description": "readSsoProviders (a provider is enabled only with both client id and secret), the Google/Microsoft definitions, tenant sanitisation, getApiPublicUrl and callbackUrl" },
+      { "name": "server/src/utils/oidc.ts", "action": "reuse", "description": "Discovery and JWKS caching, PKCE, authorization URL, code exchange, ID-token verification (RS256/aud/exp/iat/iss/azp/nonce), identityFromClaims trust rules" },
+      { "name": "server/src/utils/safeRedirect.ts", "action": "reuse", "description": "safeRedirectPath allows only relative in-app paths (no absolute URL, //host, backslash or control characters)" },
+      { "name": "server/src/utils/totp.ts", "action": "reuse", "description": "base32 encode/decode, HOTP/TOTP generation, verifyTotp with a +/-1 step window, timing-safe comparison and the lastUsedStep replay guard, buildOtpauthUrl" },
+      { "name": "server/src/utils/secretBox.ts", "action": "reuse", "description": "encryptSecret/decryptSecret with AES-256-GCM, an HKDF-SHA256 key from TWO_FACTOR_KEY (or JWT_SECRET) and the user id as additional authenticated data" },
+      { "name": "server/src/utils/recoveryCodes.ts", "action": "reuse", "description": "generateRecoveryCodes, normalizeRecoveryCode, hashRecoveryCodes (bcrypt) and findRecoveryCodeHash (compares every hash)" },
+      { "name": "server/src/utils/twoFactor.ts", "action": "reuse", "description": "createChallenge/readChallenge (separate signing key, hashed nonce), verifySecondFactor, registerFailure, isLocked, requiredByAnyWorkspace, MAX_CHALLENGE_ATTEMPTS, LOCK_MS" },
+      { "name": "server/src/utils/apiTokens.ts", "action": "reuse", "description": "generateApiToken (tm_ + 40 base62, prefix, keyed PBKDF2 digest), hashApiToken, isApiTokenFormat, isTokenUsable, scopesWithinPermissions, expiryFromDays, LAST_USED_WRITE_INTERVAL_MS" },
+      { "name": "server/src/utils/tokens.ts", "action": "reuse", "description": "hashToken and getBearerToken shared with the session feature" },
+      { "name": "server/src/controllers/ssoController.ts", "action": "reuse", "description": "listProviders, startSso, ssoCallback with the fixed SsoErrorCode set, resolveSsoUser, listSsoMethods, unlinkSsoMethod" },
+      { "name": "server/src/controllers/twoFactorController.ts", "action": "reuse", "description": "getTwoFactorStatus, setupTwoFactor, enableTwoFactor, disableTwoFactor, regenerateRecoveryCodes, completeTwoFactorLogin, loadAuthorizedUser, rejectSecondFactor" },
+      { "name": "server/src/controllers/tokenController.ts", "action": "reuse", "description": "validateCreateToken, listTokens, createToken, revokeToken" },
+      { "name": "server/src/routes/ssoRoutes.ts", "action": "reuse", "description": "GET /providers, /:provider/start and /:provider/callback, mounted at /api/auth/sso before /api/auth" },
+      { "name": "server/src/routes/authRoutes.ts", "action": "reuse", "description": "POST /login/2fa wired to completeTwoFactorLogin" },
+      { "name": "server/src/routes/profileRoutes.ts", "action": "reuse", "description": "The /2fa and /sso endpoints, each behind protect and rejectApiToken" },
+      { "name": "server/src/routes/tokenRoutes.ts", "action": "reuse", "description": "GET/POST/DELETE /api/workspaces/:slug/tokens with protect, rejectApiToken and requirePermission('tasks:read')" },
+      { "name": "server/src/models/ssoStateModel.ts", "action": "reuse", "description": "Pending sign-in: stateHash (unique), provider, codeVerifier, nonce, optional redirect, expiresAt with a TTL index and SSO_STATE_TTL_MS of 10 minutes" },
+      { "name": "server/src/models/twoFactorChallengeModel.ts", "action": "reuse", "description": "user, unique nonceHash, attempts counter and expiresAt with a TTL index" },
+      { "name": "server/src/models/apiTokenModel.ts", "action": "reuse", "description": "workspace, user, name, prefix, tokenHash (unique, select false), scopes, expiresAt, lastUsedAt, revokedAt" },
+      { "name": "server/src/models/userModel.ts", "action": "reuse", "description": "twoFactor (secretEncrypted, pendingSecretEncrypted, recoveryCodeHashes, enabledAt, lastUsedStep, failedAttempts, lockedUntil - all select false where secret), sso links, ssoOnly, the partial unique index on (provider, subject) and the toJSON transform" },
+      { "name": "server/src/middleware/authMiddleware.ts", "action": "reuse", "description": "protect dispatches tm_ tokens to authenticateApiToken (workspace routes only, digest lookup, throttled lastUsedAt) and rejects invalid ones with 401; rejectApiToken guards account routes" },
+      { "name": "server/src/middleware/permissionMiddleware.ts", "action": "reuse", "description": "Enforces the token's workspace and scopes on top of the role's permissions and narrows req.permissions to the scopes" },
+      { "name": "server/src/app.ts", "action": "reuse", "description": "Mounts /api/auth/sso before /api/auth, and puts login/2fa and profile/2fa behind the sensitive limiter" },
+      { "name": "client/src/features/sso/api.ts", "action": "reuse", "description": "ssoApi.providers/methods/unlink and ssoStartUrl (a full-page navigation, not an XHR)" },
+      { "name": "client/src/features/sso/lib.ts", "action": "reuse", "description": "ERROR_MESSAGES for the fixed codes, safeAppPath, parseSsoFragment, clearFragment, markSsoPending/consumeSsoPending, storedUserFromProfile" },
+      { "name": "client/src/features/sso/components/SsoButtons.tsx", "action": "reuse", "description": "One button per configured provider, with the pending marker set on click; renders nothing when no provider is configured" },
+      { "name": "client/src/features/sso/components/ConnectedSignIn.tsx", "action": "reuse", "description": "Lists linked methods and unlinks one, showing the LAST_SIGN_IN_METHOD explanation" },
+      { "name": "client/src/pages/AuthPage.tsx", "action": "reuse", "description": "Password step, the two-factor step, the sso_error message and the challenge handed over from an SSO sign-in" },
+      { "name": "client/src/pages/SsoCompletePage.tsx", "action": "reuse", "description": "Reads the fragment once, clears it, requires a sign-in started in this tab, loads the profile and routes on" },
+      { "name": "client/src/components/auth/TwoFactorStep.tsx", "action": "reuse", "description": "The second-step form (authenticator code or recovery code) with back navigation" },
+      { "name": "client/src/features/account/lib/twoFactor.ts", "action": "reuse", "description": "sanitizeCode, isCompleteCode, formatSecret, normalizeRecoveryInput, isCompleteRecoveryCode, recoveryCodesFile" },
+      { "name": "client/src/features/account/components/TwoFactorCard.tsx", "action": "reuse", "description": "Status card with enable/disable/regenerate actions and the recovery-codes panel" },
+      { "name": "client/src/features/account/components/TwoFactorSetupDialog.tsx", "action": "reuse", "description": "QR/secret step then the confirming code plus password" },
+      { "name": "client/src/features/account/components/RecoveryCodesDialog.tsx", "action": "reuse", "description": "Shows the codes once with copy and download" },
+      { "name": "client/src/features/developers/hooks/useTokens.ts", "action": "reuse", "description": "Lists, creates and revokes tokens for the workspace in view" },
+      { "name": "client/src/features/developers/lib/catalog.ts", "action": "reuse", "description": "The scope catalogue mirroring server/src/config/permissions.ts, with grantableScopes and defaultScopes" },
+      { "name": "client/src/pages/DevelopersPage.tsx", "action": "reuse", "description": "Tokens and webhooks sections for the workspace" }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "FR-013", "FR-014", "FR-015", "FR-016", "NFR-001", "NFR-002", "NFR-003", "NFR-004", "NFR-005"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "User",
+        "action": "no_change",
+        "fields": [
+          { "name": "twoFactor.enabled", "type": "boolean (default false)", "action": "no_change" },
+          { "name": "twoFactor.secretEncrypted", "type": "string (secretBox ciphertext, select false)", "action": "no_change", "nullable": true },
+          { "name": "twoFactor.pendingSecretEncrypted", "type": "string (secretBox ciphertext, select false)", "action": "no_change", "nullable": true },
+          { "name": "twoFactor.recoveryCodeHashes", "type": "string[] of bcrypt hashes (select false)", "action": "no_change", "nullable": true },
+          { "name": "twoFactor.enabledAt", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "twoFactor.lastUsedStep", "type": "number (last accepted TOTP step)", "action": "no_change", "nullable": true },
+          { "name": "twoFactor.failedAttempts", "type": "number (default 0)", "action": "no_change" },
+          { "name": "twoFactor.lockedUntil", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "sso", "type": "array of { provider: google|microsoft, subject, email, linkedAt } (partial unique index on provider+subject)", "action": "no_change", "nullable": true },
+          { "name": "ssoOnly", "type": "boolean (default false: no password the user knows)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "SsoState",
+        "action": "no_change",
+        "fields": [
+          { "name": "stateHash", "type": "string (unique SHA-256 hash)", "action": "no_change" },
+          { "name": "provider", "type": "enum google|microsoft", "action": "no_change" },
+          { "name": "codeVerifier", "type": "string (PKCE verifier)", "action": "no_change" },
+          { "name": "nonce", "type": "string (ID-token nonce)", "action": "no_change" },
+          { "name": "redirect", "type": "string (validated in-app path, max 300)", "action": "no_change", "nullable": true },
+          { "name": "expiresAt", "type": "Date (TTL index, SSO_STATE_TTL_MS = 10 min)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "TwoFactorChallenge",
+        "action": "no_change",
+        "fields": [
+          { "name": "user", "type": "ObjectId (ref User, indexed)", "action": "no_change" },
+          { "name": "nonceHash", "type": "string (unique SHA-256 hash)", "action": "no_change" },
+          { "name": "attempts", "type": "number (default 0)", "action": "no_change" },
+          { "name": "expiresAt", "type": "Date (TTL index)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "ApiToken",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId (ref Workspace)", "action": "no_change" },
+          { "name": "user", "type": "ObjectId (ref User)", "action": "no_change" },
+          { "name": "name", "type": "string (max 60)", "action": "no_change" },
+          { "name": "prefix", "type": "string (8 display characters, max 12)", "action": "no_change" },
+          { "name": "tokenHash", "type": "string (unique PBKDF2 digest, select false)", "action": "no_change" },
+          { "name": "scopes", "type": "string[] of permission keys", "action": "no_change" },
+          { "name": "expiresAt", "type": "Date (null = never)", "action": "no_change", "nullable": true },
+          { "name": "lastUsedAt", "type": "Date (written at most once a minute)", "action": "no_change", "nullable": true },
+          { "name": "revokedAt", "type": "Date", "action": "no_change", "nullable": true }
+        ]
+      }
+    ],
+    "flowDescription": "Single sign-on: /start loads the discovery document, creates a PKCE verifier, a state and a nonce, writes an SsoState row holding only the state hash with a ten-minute expiry, and redirects the browser to the provider. The provider returns to /callback, which deletes the state row (single use), exchanges the code with the verifier, verifies the ID token, and resolves the account: an already linked (provider, subject) wins, otherwise the provider-verified email links or creates the account with a random unknown password and ssoOnly true. A session is either issued directly and handed over in the URL fragment of /sso/complete, or, when two-factor is on, replaced by a challenge in the fragment of the login page. Two-factor sign-in: the password step writes a TwoFactorChallenge row (hashed nonce, five minutes, TTL) and returns a signed challenge; the second step verifies the authenticator code or a recovery code with conditional writes so a code or a code hash is consumed exactly once, then issues the session. Token creation: the plain token is returned once while the ApiToken row keeps the digest, the display prefix, the scopes, the workspace and the expiry; using the token resolves the row by digest, checks workspace and scopes on top of the owner's role, and revokes or expires it by looking at revokedAt and expiresAt on every request."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/auth/sso/providers", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-001"] },
+    { "method": "GET", "path": "/api/auth/sso/:provider/start", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-002"] },
+    { "method": "GET", "path": "/api/auth/sso/:provider/callback", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-003", "FR-004", "FR-005", "FR-006"] },
+    { "method": "POST", "path": "/api/auth/login/2fa", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-009"] },
+    { "method": "GET", "path": "/api/profile/2fa", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/profile/2fa/setup", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/profile/2fa/enable", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/profile/2fa/disable", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-011"] },
+    { "method": "POST", "path": "/api/profile/2fa/recovery-codes", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "GET", "path": "/api/profile/sso", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-012"] },
+    { "method": "DELETE", "path": "/api/profile/sso/:provider", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-012"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tokens", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-013"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tokens", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-013"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tokens/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-014"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "Account endpoints live behind protect and rejectApiToken, so a personal API token gets 403 on /api/profile/2fa and /api/profile/sso; authenticateApiToken additionally refuses a token when the request has no workspace slug, which keeps tokens out of every account and workspace-management route (CON-511)." },
+    { "requirementId": "NFR-002", "description": "Only reversible-when-needed secrets are encrypted, and they are encrypted with authenticated encryption: AES-256-GCM with an HKDF-SHA256 key and the user id as AAD, so a ciphertext from another account fails to decrypt. Everything that only needs verification is a digest: SHA-256 for SSO state and challenge nonces, bcrypt for recovery codes, keyed PBKDF2-SHA256 for API tokens (CON-112)." },
+    { "requirementId": "NFR-003", "description": "The password step, the second step and the two-factor account routes sit behind the sensitive limiter (20 per 15 minutes per IP, GET exempt so a page can load). Above that, a challenge allows five wrong codes, and five consecutive failures across challenges set twoFactor.lockedUntil for fifteen minutes (CON-514)." },
+    { "requirementId": "NFR-004", "description": "SSO failures log only the error name and message and the browser always receives one of the fixed SsoErrorCode values; the user schema marks every two-factor secret and hash as select: false and the toJSON transform reduces twoFactor to { enabled, enabledAt }; token listing projects an explicit field set that excludes tokenHash (CON-501, CON-517)." },
+    { "requirementId": "NFR-005", "description": "totp.test.ts verifies the RFC vectors, the window and the replay guard; secretBox.test.ts verifies tamper and cross-context failure; apiTokens.test.ts verifies the format, digests and scope subsetting; oidc.test.ts and ssoRedirect.test.ts cover verification and redirect safety; the integration suites drive the SSO, two-factor and token flows end to end (CON-402, CON-404)." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-002", "strategy": "Token digests use PBKDF2 with 10,000 iterations: a few milliseconds per authenticated request, while a leaked digest stays expensive to attack offline. Generating a token is a single digest computation at creation time." },
+    { "requirementId": "NFR-003", "strategy": "Challenge rows carry a TTL index and are replaced on every new sign-in (deleteMany per user), so the collection stays at roughly one row per account mid-sign-in; SSO state rows expire after ten minutes by the same mechanism." },
+    { "requirementId": "NFR-004", "strategy": "Discovery and JWKS documents are cached for an hour, and an unknown kid triggers at most one refetch per minute, so token verification normally costs one cached crypto verification instead of an HTTP round trip." },
+    { "requirementId": "NFR-001", "strategy": "authenticateApiToken writes lastUsedAt at most once a minute per token, so a busy script does not turn every read into a write." }
+  ],
+  "dependencies": [
+    { "name": "jsonwebtoken", "type": "library", "action": "no_change", "notes": "Two-factor challenge signing/verification and ID-token header decoding" },
+    { "name": "bcryptjs", "type": "library", "action": "no_change", "notes": "Recovery-code hashing/comparison and the password check before sensitive changes" },
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "SsoState, TwoFactorChallenge and ApiToken models with TTL and unique indexes" },
+    { "name": "Node crypto", "type": "internal", "action": "no_change", "notes": "TOTP, AES-256-GCM, HKDF, PBKDF2 and random token generation, avoiding new crypto dependencies" },
+    { "name": "Google Identity", "type": "service", "action": "no_change", "notes": "OIDC provider; enabled by GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET" },
+    { "name": "Microsoft Entra ID", "type": "service", "action": "no_change", "notes": "OIDC provider with the MICROSOFT_TENANT setting" },
+    { "name": "MongoDB", "type": "service", "action": "no_change", "notes": "Users, transient SSO/challenge rows and API tokens" },
+    { "name": "server/src/utils/secretBox.ts", "type": "internal", "action": "no_change", "notes": "The only writer/reader of encrypted secrets (CON-112)" },
+    { "name": "server/src/config/permissions.ts", "type": "internal", "action": "no_change", "notes": "Supplies the API-token scope catalogue" }
+  ],
+  "risks": [
+    { "description": "An SSO identity is used to take over an account whose email was never proved", "mitigation": "A provider-verified email is required; an unverified account is taken over explicitly (password, tokens and sessions dropped) and a second identity of the same provider is refused as account_conflict" },
+    { "description": "Rotating JWT_SECRET or losing TWO_FACTOR_KEY makes stored TOTP secrets unreadable", "mitigation": "A dedicated TWO_FACTOR_KEY keeps rotations independent, both are validated at boot, and a failed decryption is treated as a missing factor rather than a success" },
+    { "description": "A leaked API token is used for automation beyond its intent", "mitigation": "One workspace, scopes limited to the owner's permissions, refusal on account routes, ten tokens maximum, optional expiry, immediate revocation and digest-only storage" },
+    { "description": "Provider metadata changes break SSO verification", "mitigation": "Discovery/JWKS caching with a bounded refetch, explicit claim checks and fixed browser error codes instead of stack traces" }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "feature": "integrations-webhooks",
+  "title": "GitHub integration, outbound webhooks and personal API tokens",
+  "version": 1,
+  "overview": {
+    "problemStatement": "TaskMan held the work but nothing else could see it: pull requests, commits and branches were not connected to the tasks they implement, other tools had no way to be told what changed inside a workspace, and scripts had no credential of their own — a member either used their browser session or nothing. Each of those needs the opposite direction of trust: GitHub must be able to call TaskMan without a login, TaskMan must be able to call arbitrary third-party URLs, and a machine credential must be narrower than the person who created it.",
+    "proposedSolution": "Three cooperating surfaces. (1) The GitHub integration stores a per-workspace secret on the workspace document, exposes the receiver URL and settings to settings:manage holders (server/src/controllers/integrationController.ts) and receives deliveries on the public POST /api/integrations/github/:slug (server/src/controllers/githubWebhookController.ts), which authenticates them with an HMAC-SHA256 signature of the raw body and turns them into task links and status transitions using the pure helpers in server/src/utils/githubEvents.ts. (2) Outbound webhooks subscribe to the workspace's own activity stream: server/src/utils/webhooks/register.ts listens through onActivity and posts a signed JSON payload to each matching webhook, logging every attempt in WebhookDelivery and switching a webhook off after repeated failures. (3) Personal API tokens (server/src/controllers/tokenController.ts, utils/apiTokens.ts) are presented as a bearer token, looked up by a keyed PBKDF2 digest in middleware/authMiddleware.ts and then narrowed to their scopes by middleware/permissionMiddleware.ts.",
+    "targetAudience": "Workspace administrators who wire repositories and external tools to a workspace, integration receivers that implement the outbound webhook contract, and developers who automate the API with a personal token.",
+    "assumptions": [
+      "GitHub calls the receiver with an organisation-level or repository-level webhook that carries a secret; TaskMan only verifies the signature, it never calls the GitHub API, so no GitHub token is stored. `assumption: true`",
+      "There is no retry scheduler: a failed delivery is only logged, and re-sending it is a manual action through the redeliver endpoint (client/src/features/developers/components/DeliveriesDialog.tsx). `assumption: true`",
+      "The client targets GitHub only; the settings card and its API are GitHub-specific (client/src/features/integrations). `assumption: true`"
+    ],
+    "outOfScope": [
+      "A GitHub App installation flow, or any call from TaskMan to the GitHub API (no GitHub credential is stored or refreshed).",
+      "Automatic retry with backoff for failed webhook deliveries; only manual redelivery exists.",
+      "OAuth-style scopes for third-party apps; API tokens are issued per user and per workspace with the workspace permission keys as scopes."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Connect a workspace to GitHub",
+      "role": "workspace administrator",
+      "want": "to switch the GitHub integration on, copy the receiver URL and secret, regenerate the secret, choose whether deliveries may move task statuses, and switch it off again",
+      "benefit": "pull requests and commits show up on the right tasks without anyone copying links by hand",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "GET /api/workspaces/:slug/integrations/github requires settings:manage and returns enabled, webhookUrl, autoTransition and connectedAt, with the secret included only while the integration is enabled; every answer carries Cache-Control: no-store because the body can contain the secret." },
+        { "id": "AC-002", "text": "Enabling generates a 64-hex secret and a connectedAt timestamp and keeps an existing secret when the integration is already on; disabling switches it off and forgets the secret and timestamp; regenerating replaces the secret and answers 409 when the integration is not enabled; each of those changes records an integration.updated activity entry." },
+        { "id": "AC-003", "text": "PATCH /api/workspaces/:slug/integrations/github accepts only a boolean autoTransition and records a change (field autoTransition, from/to) only when the value actually flips." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Turn GitHub deliveries into task links",
+      "role": "workspace administrator",
+      "want": "pull request, push, branch and ping deliveries to link to the tasks they mention, and to move those tasks along when configured",
+      "benefit": "the board reflects the repository without a human in the loop",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "POST /api/integrations/github/:slug is public and is authenticated only by the X-Hub-Signature-256 HMAC of the raw body: a wrong signature answers 401, an unknown or disabled slug answers 404 after the same verification work on a decoy secret, invalid JSON answers 400, event ping answers 200 pong, and an event with nothing to link answers 202 Ignored." },
+        { "id": "AC-005", "text": "Task keys are extracted from titles, bodies and commit messages in upper case and from branch names case-insensitively (at most 10 keys per text, at most 50 commits); a link is stored only when its URL is https://github.com without credentials or an explicit port; the transition table moves pending → in-progress for a start and pending/in-progress → completed for a complete, never reopening a completed task." },
+        { "id": "AC-006", "text": "A delivery upserts the link on each resolved task (a merged pull request is never moved back, and the task's link cap is respected) and, when autoTransition is on, applies the transition and records a task.updated activity entry naming GitHub as the source and without an actor; the response reports how many links were written." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Subscribe external tools to workspace changes",
+      "role": "workspace administrator",
+      "want": "to register URLs that receive a signed JSON post for the events I choose, see what was delivered, rotate the signing secret and send a test",
+      "benefit": "my other tools stay in step with the workspace instead of being polled",
+      "acceptanceCriteria": [
+        { "id": "AC-007", "text": "GET/POST/PATCH/DELETE /api/workspaces/:slug/webhooks require settings:manage and reject personal API tokens (rejectApiToken); a workspace holds at most 10 webhooks; a name of at most 60 and a URL of at most 2000 characters are required, and the URL is accepted only when the SSRF guard approves it, otherwise 400 with the guard's reason." },
+        { "id": "AC-008", "text": "A signing secret (whsec_ prefix) is generated on create and returned only in that answer and after a rotation, never by list or update; rotating invalidates the previous value immediately; a test ping is delivered and its result returned; the last 50 deliveries are listed newest first; a delivery is re-sent with the same body and id and the next attempt number." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Make delivery trustworthy for the receiver",
+      "role": "integration developer",
+      "want": "a signature I can verify, a bounded request, and a delivery log that shows what happened",
+      "benefit": "I can trust the payload and debug my own receiver",
+      "acceptanceCriteria": [
+        { "id": "AC-009", "text": "A delivery posts the JSON body with Content-Type, User-Agent TaskMan-Webhooks/1, X-TaskMan-Event, X-TaskMan-Delivery and X-TaskMan-Signature of the form sha256=<hex HMAC of the raw body>; it times out after 5 s, never follows a redirect and discards the response body." },
+        { "id": "AC-010", "text": "Every attempt is logged with status, response status, duration, error and the sent body (up to 8 KB); a success resets failureCount and refreshes lastDeliveryAt, a failure increments it, a webhook is switched off after 20 consecutive failures, and deliveries expire after 14 days." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Automate the API with a personal token",
+      "role": "workspace member",
+      "want": "to create a token that carries only the scopes I choose, see its prefix and last use, and revoke it",
+      "benefit": "scripts and CLI use stop depending on my password or browser session",
+      "acceptanceCriteria": [
+        { "id": "AC-011", "text": "POST /api/workspaces/:slug/tokens requires tasks:read, accepts a name (1..60), one or more scopes that are real permission keys and a subset of the caller's own permissions (otherwise 403), an optional expiry of at most 365 days in the future, and at most 10 active tokens per user; the created token value is returned only in that answer, while stored data keeps a display prefix and a keyed digest." },
+        { "id": "AC-012", "text": "A personal token is accepted only on workspace routes and is bound to the workspace it was created in and to its scopes: another workspace or a scope it does not carry is refused (403), and the token routes and webhook routes refuse tokens entirely, so a leaked token cannot mint another one." }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Manage all of it from the app",
+      "role": "workspace administrator or developer",
+      "want": "a developers screen for tokens and webhooks, and a GitHub card in workspace settings",
+      "benefit": "I never have to hand-craft a request to configure the integration",
+      "acceptanceCriteria": [
+        { "id": "AC-013", "text": "The developers page offers a token dialog (grantable scopes grouped, expiry options including never, one-time reveal and copy), a token list with prefix, scopes, expiry, last use and revoke; and a webhook dialog (name, URL, event groups), a webhook list with active toggle, rotate, test, deliveries and redeliver; and the workspace settings GitHub card enables, copies the secret, toggles autoTransition, regenerates and disables." },
+        { "id": "AC-014", "text": "The event catalog lists every activity event grouped by area with human labels, describes an event selection as \"All events\" or a list, and the snippets panel shows a curl example and a Node snippet that verifies X-TaskMan-Signature against the raw body." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "The GitHub integration settings are readable and changeable by settings:manage holders: read returns enabled/webhookUrl/autoTransition/connectedAt plus the secret while enabled, enable keeps an existing secret, disable forgets it, regenerate replaces it, and every change is audited as integration.updated.", "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"] },
+    { "id": "FR-002", "text": "The public GitHub receiver authenticates a delivery by an HMAC-SHA256 signature of the raw body in constant time, spends the same verification work on a decoy secret for unknown or disabled slugs, and distinguishes ping, unhandled events and malformed bodies by status code.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-003", "text": "GitHub deliveries are planned by pure helpers: task keys extracted per surface (case rules differ for branch names), URLs restricted to https://github.com, and a transition table (start, complete) that never reopens a completed task.", "linkedAcceptanceCriteria": ["AC-005"] },
+    { "id": "FR-004", "text": "A delivery applies its plan to the workspace's tasks: links are upserted atomically with merged treated as final and the task link cap enforced, transitions run only when autoTransition is on, and each transition is recorded as an audited task.updated entry attributed to GitHub.", "linkedAcceptanceCriteria": ["AC-006"] },
+    { "id": "FR-005", "text": "Workspace webhooks can be listed, created, updated and deleted by settings:manage holders, never through a personal API token, with a 10-webhook cap and SSRF validation on both create and URL changes (resetting the failure counter when the URL changes).", "linkedAcceptanceCriteria": ["AC-007"] },
+    { "id": "FR-006", "text": "A webhook's signing secret can be rotated (returned once), a test ping can be delivered on demand, the most recent 50 deliveries can be listed, and a previous delivery can be re-sent with its stored body, id and the next attempt number.", "linkedAcceptanceCriteria": ["AC-008"] },
+    { "id": "FR-007", "text": "Outbound delivery signs the raw body, sets the event and delivery headers, uses a 5 s timeout with redirects disabled and the response body discarded, logs every attempt with its outcome and duration, resets or increments the failure counter, auto-disables a webhook after 20 consecutive failures and expires deliveries after 14 days.", "linkedAcceptanceCriteria": ["AC-009", "AC-010"] },
+    { "id": "FR-008", "text": "Outbound target URLs are validated without network access (scheme, credentials, port for the environment, blocked IP literals) and the resolved addresses are classified so private, loopback, link-local, CGNAT, multicast and unique-local destinations are refused, while development allows http on a short port list.", "linkedAcceptanceCriteria": ["AC-007"] },
+    { "id": "FR-009", "text": "Personal API tokens can be created (name, scopes within the caller's own permissions, expiry ≤ 365 days or none, at most 10 active per user), listed with their display prefix, scopes, expiry and last use, and revoked by their owner or by any settings:manage holder in the workspace.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "FR-010", "text": "A personal token is authenticated by format check then lookup on a keyed PBKDF2-SHA256 digest, is restricted to workspace routes, is bound to its workspace and to its scopes (the effective permissions are the intersection of the role and the scopes), refreshes lastUsedAt at most once a minute, and is refused on token, webhook and account routes with rejectApiToken.", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "FR-011", "text": "The client developers area provides the token section (create dialog with grantable scopes, expiry choices and one-time reveal; list with revoke), the webhook section (dialog, list with toggle, rotate, test, deliveries and redeliver) and the event/scope catalogs plus curl and signature-verification snippets.", "linkedAcceptanceCriteria": ["AC-013", "AC-014"] },
+    { "id": "FR-012", "text": "The workspace settings screen hosts the GitHub integration card that reflects the server's view (enabled, receiver URL, secret, autoTransition, connectedAt) and drives enable, regenerate, autoTransition and disable.", "linkedAcceptanceCriteria": ["AC-013", "AC-001"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Every workspace surface here is gated by settings:manage or tasks:read after protect, all queries filter by req.workspace._id, and a personal token is additionally bound to one workspace and to its own scopes (CON-106, CON-512).", "linkedAcceptanceCriteria": ["AC-001", "AC-007", "AC-012"] },
+    { "id": "NFR-002", "text": "Credentials are never recoverable from storage or logs: API token values are only ever held in memory, the database keeps a keyed PBKDF2 digest plus an 8-character display prefix, webhook secrets are generated with crypto.randomBytes and excluded from every query unless explicitly selected, and secrets are returned only in the answer that creates or rotates them (CON-505, CON-519).", "linkedAcceptanceCriteria": ["AC-008", "AC-011"] },
+    { "id": "NFR-003", "text": "Outbound requests are guarded and bounded: the target must pass the SSRF rules before it is stored and again before it is dialled, the connection uses the checked address, redirects are not followed, the response body is discarded and every attempt has a 5 s timeout and an 8 KB stored body limit.", "linkedAcceptanceCriteria": ["AC-009", "AC-010"] },
+    { "id": "NFR-004", "text": "Transport limits apply: the GitHub receiver gets a 1 MB raw-body parser mounted only on its own path before express.json, the general API limiter and the Helmet/CORS defaults stay in place, and every mutating route carries an express-validator chain (CON-513, CON-514, CON-515).", "linkedAcceptanceCriteria": ["AC-004", "AC-007", "AC-011"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "A delivery arrives for a slug that does not exist or whose integration is disabled.", "expectedBehavior": "The signature is verified against a decoy secret and the answer is a plain 404, so valid and invalid slugs are indistinguishable in timing and status." },
+    { "id": "EC-002", "description": "An event TaskMan does not handle, or a handled event that mentions no task key.", "expectedBehavior": "202 with message Ignored; nothing is written, no activity entry is created." },
+    { "id": "EC-003", "description": "A merged pull request later receives a reopened/updated delivery.", "expectedBehavior": "upsertTaskLink refuses to move a merged link back (it only refreshes fields for links whose state is not merged) while the transition table never reopens a completed task." },
+    { "id": "EC-004", "description": "The receiving server answers with a redirect.", "expectedBehavior": "The delivery is recorded as a failure with \"Redirect (3xx) not followed\" and the failure counter increases." },
+    { "id": "EC-005", "description": "A webhook receiver is down for a long time, or the administrator edits the URL, or re-enables a disabled webhook.", "expectedBehavior": "After 20 consecutive failures the webhook is switched off automatically; changing the URL or re-enabling resets failureCount to 0." },
+    { "id": "EC-006", "description": "A token was created with scopes the owner no longer has, or is used against another workspace.", "expectedBehavior": "The effective permissions are the intersection of the current role and the token scopes, and requirePermission refuses a workspace different from the token's workspace (403)." }
+  ],
+  "dependencies": [
+    { "name": "GitHub webhook deliveries", "type": "external", "notes": "The receiver expects GitHub's X-Hub-Signature-256 header and the repository or organisation webhook secret configured by the administrator." },
+    { "name": "Node crypto", "type": "library", "notes": "HMAC-SHA256 for GitHub verification and webhook signing; PBKDF2-SHA256 and randomBytes/base62 for API tokens." },
+    { "name": "node:dns / node:net / node:http(s)", "type": "library", "notes": "Address resolution and the outbound POST with a custom lookup (server/src/utils/webhooks/{ssrf,deliver}.ts)." },
+    { "name": "server/src/utils/activity.ts#onActivity", "type": "internal", "notes": "The outbound dispatcher subscribes through this registry (registerWebhooks in server/src/app.ts)." },
+    { "name": "server/src/config/env.ts", "type": "internal", "notes": "Supplies clientUrl/isProduction for receiver URLs and the link in payloads." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "An outbound webhook could be pointed at internal infrastructure (SSRF) or at a port that reaches something unexpected.", "mitigation": "checkWebhookUrl validates scheme, credentials, port and IP literals before storing; resolvePublicAddresses classifies the resolved address and the socket lookup only returns approved addresses; redirects are not followed in production rules." },
+    { "id": "RISK-002", "description": "A leaked API token could be used to mint further credentials or to edit the workspace security surface.", "mitigation": "Tokens are refused on token, webhook and account routes (rejectApiToken), are bound to one workspace and to their scopes, and expire at most 365 days after creation." },
+    { "id": "RISK-003", "description": "A noisy workspace could flood a receiver with deliveries, because each recorded activity triggers a post per matching webhook.", "mitigation": "Event selection per webhook, a 5 s timeout per delivery, at most 10 webhooks per workspace, a 14-day delivery log and automatic disablement after 20 consecutive failures." },
+    { "id": "RISK-004", "description": "The GitHub receiver is public and unauthenticated apart from the signature.", "mitigation": "The raw body is verified in constant time before parsing, a wrong signature is a 401, malformed JSON a 400, and only tasks in the matching workspace are ever touched." }
+  ]
+}

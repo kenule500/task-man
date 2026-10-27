@@ -1,0 +1,154 @@
+{
+  "feature": "integrations-webhooks",
+  "version": 1,
+  "architecture": {
+    "approach": "Three cooperating surfaces share one idea: a credential that is verified before any work happens, and a per-workspace scope that decides what the caller may touch. Inbound, GitHub posts to a public receiver whose raw body is HMAC-verified before it is parsed; the delivery is then planned by pure helpers and applied to the workspace's tasks. Outbound, the feature subscribes to the existing activity stream (another listener on server/src/utils/activity.ts#onActivity) and posts a signed JSON payload to the subscribed URLs, logging every attempt. For machines, personal API tokens are presented like any other bearer token and resolved in protect() to the owner, after which requirePermission narrows the effective permissions to the intersection of the workspace role and the token scopes and refuses another workspace.",
+    "components": [
+      { "name": "server/src/controllers/integrationController.ts", "action": "create", "description": "GitHub settings: view (secret only while enabled, Cache-Control no-store), enable, regenerate, PATCH autoTransition, disable; each change recorded as integration.updated." },
+      { "name": "server/src/controllers/githubWebhookController.ts", "action": "create", "description": "The public receiver: signature verification with a decoy secret for unknown slugs, ping/unhandled/malformed answers, link upsert and optional transition, audited without an actor." },
+      { "name": "server/src/utils/githubEvents.ts", "action": "create", "description": "Pure helpers: safeGithubUrl, extractTaskKeys (case rules per surface), TRANSITIONS/nextStatus and the payload-to-plan function." },
+      { "name": "server/src/routes/integrationRoutes.ts", "action": "create", "description": "POST /github/:slug, public by design; mounted at /api/integrations in app.ts." },
+      { "name": "server/src/models/webhookModel.ts", "action": "create", "description": "Webhook schema: URL, secret (select: false), events ('*' or activity names), active, failureCount, lastDeliveryAt; caps MAX_WEBHOOKS_PER_WORKSPACE 10 and AUTO_DISABLE_AFTER_FAILURES 20." },
+      { "name": "server/src/models/webhookDeliveryModel.ts", "action": "create", "description": "Delivery log: event, deliveryId, status, attempt, responseStatus, durationMs, error, requestBody (8 KB) and a 14-day TTL index." },
+      { "name": "server/src/utils/webhooks/payload.ts", "action": "create", "description": "generateWebhookSecret (whsec_ + 32 URL-safe chars), signBody/verifySignature, matchesEvent and buildPayload with a byte budget that keeps the stored body re-sendable." },
+      { "name": "server/src/utils/webhooks/ssrf.ts", "action": "create", "description": "checkWebhookUrl (scheme/credentials/port/IP literal rules) and isBlockedAddress/resolvePublicAddresses with IPv4 and IPv6 classification; production ports 80/443, development adds 8080/3000." },
+      { "name": "server/src/utils/webhooks/deliver.ts", "action": "create", "description": "sendWebhookRequest with a 5 s timeout, custom lookup, redirects disabled; deliverToWebhook logs the attempt and maintains failureCount/auto-disable." },
+      { "name": "server/src/utils/webhooks/register.ts", "action": "create", "description": "payloadForActivity and dispatchActivity, subscribed once per process through registerWebhooks()." },
+      { "name": "server/src/controllers/webhookController.ts", "action": "create", "description": "Webhook CRUD with the SSRF check and the workspace cap, one-time secret, rotate, test ping, delivery list and redeliver." },
+      { "name": "server/src/routes/webhookRoutes.ts", "action": "create", "description": "Mounted at /api/workspaces/:slug/webhooks behind protect + rejectApiToken + settings:manage." },
+      { "name": "server/src/models/apiTokenModel.ts", "action": "create", "description": "ApiToken schema: workspace, user, name, display prefix, digest (select: false, unique), scopes, expiresAt, lastUsedAt, revokedAt." },
+      { "name": "server/src/utils/apiTokens.ts", "action": "create", "description": "Token generation (tm_ + base62 without modulo bias), PBKDF2 keyed digest, format check, scope helpers, expiry helpers and the caps (10 active, 365 days, name 60)." },
+      { "name": "server/src/controllers/tokenController.ts", "action": "create", "description": "listTokens, createToken (scope subset check, cap, expiry) and revokeToken (own, or any with settings:manage), with token.created/token.revoked activity." },
+      { "name": "server/src/routes/tokenRoutes.ts", "action": "create", "description": "Mounted at /api/workspaces/:slug/tokens behind protect + rejectApiToken + tasks:read." },
+      { "name": "server/src/middleware/authMiddleware.ts", "action": "modify", "description": "protect() recognises a personal token, resolves it by digest to its owner, throttles lastUsedAt writes, restricts it to workspace routes and attaches req.apiToken; adds rejectApiToken." },
+      { "name": "server/src/middleware/permissionMiddleware.ts", "action": "modify", "description": "Binds a token to its workspace, refuses permissions outside its scopes, and sets req.permissions to the intersection of the role and the scopes." },
+      { "name": "server/src/models/workspaceModel.ts", "action": "modify", "description": "Stores integrations.github (enabled, secret with select: false, autoTransition, connectedAt)." },
+      { "name": "server/src/app.ts", "action": "modify", "description": "Mounts the raw-body parser for /api/integrations/github before express.json, mounts the integration router and calls registerWebhooks()." },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "modify", "description": "Adds the five GitHub integration routes (settings:manage) and mounts the webhook and token routers." },
+      { "name": "client/src/features/developers/", "action": "create", "description": "Tokens and webhooks UI: api, hooks (useTokens, useWebhooks), lib (scope/event catalog, snippets) and the dialogs/lists/sections." },
+      { "name": "client/src/features/integrations/", "action": "create", "description": "GitHubIntegrationCard plus its api and types." },
+      { "name": "client/src/pages/DevelopersPage.tsx", "action": "create", "description": "Screen hosting the tokens and webhooks sections." },
+      { "name": "client/src/pages/WorkspaceSettingsPage.tsx", "action": "modify", "description": "Hosts the GitHub integration card." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Webhook",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "name", "type": "String 1..60", "action": "add" },
+          { "name": "url", "type": "String max 2000 (SSRF-checked)", "action": "add" },
+          { "name": "secret", "type": "String select:false (whsec_…)", "action": "add" },
+          { "name": "events", "type": "String[] ('*' or activity action names)", "action": "add" },
+          { "name": "active", "type": "Boolean (default true)", "action": "add" },
+          { "name": "createdBy", "type": "ObjectId ref User", "action": "add" },
+          { "name": "lastDeliveryAt", "type": "Date", "action": "add", "nullable": true },
+          { "name": "failureCount", "type": "Number (min 0, auto-disable at 20)", "action": "add" }
+        ]
+      },
+      {
+        "name": "WebhookDelivery",
+        "action": "create",
+        "fields": [
+          { "name": "webhook", "type": "ObjectId ref Webhook", "action": "add" },
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "event", "type": "String max 60", "action": "add" },
+          { "name": "deliveryId", "type": "String (uuid)", "action": "add" },
+          { "name": "status", "type": "String enum success|failed", "action": "add" },
+          { "name": "attempt", "type": "Number (min 1)", "action": "add" },
+          { "name": "responseStatus", "type": "Number", "action": "add", "nullable": true },
+          { "name": "durationMs", "type": "Number", "action": "add" },
+          { "name": "error", "type": "String max 300", "action": "add" },
+          { "name": "requestBody", "type": "String max 8192", "action": "add" },
+          { "name": "createdAt", "type": "Date (TTL 14 days)", "action": "add" }
+        ]
+      },
+      {
+        "name": "ApiToken",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "user", "type": "ObjectId ref User", "action": "add" },
+          { "name": "name", "type": "String 1..60", "action": "add" },
+          { "name": "prefix", "type": "String max 12 (display only)", "action": "add" },
+          { "name": "tokenHash", "type": "String unique select:false (PBKDF2 keyed digest)", "action": "add" },
+          { "name": "scopes", "type": "String[] (permission keys)", "action": "add" },
+          { "name": "expiresAt", "type": "Date", "action": "add", "nullable": true },
+          { "name": "lastUsedAt", "type": "Date", "action": "add", "nullable": true },
+          { "name": "revokedAt", "type": "Date", "action": "add", "nullable": true }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "update",
+        "fields": [
+          { "name": "integrations.github.enabled", "type": "Boolean", "action": "add" },
+          { "name": "integrations.github.secret", "type": "String select:false (64 hex)", "action": "add" },
+          { "name": "integrations.github.autoTransition", "type": "Boolean (default true)", "action": "add" },
+          { "name": "integrations.github.connectedAt", "type": "Date", "action": "add", "nullable": true }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "update",
+        "fields": [
+          { "name": "links", "type": "[{ kind, url, state, title, author, updatedAt }] (max MAX_TASK_LINKS)", "action": "no_change" },
+          { "name": "status", "type": "String (transitions only, never reopening completed)", "action": "no_change" },
+          { "name": "completedAt", "type": "Date (set by a completing transition)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Inbound: GitHub POSTs to /api/integrations/github/:slug with X-Hub-Signature-256; the raw body parser mounted on that path in app.ts keeps the bytes intact; the controller looks the workspace up by slug with the integration enabled, verifies the HMAC (or a decoy for unknown slugs) and then plans the delivery. Each planned item is applied with upsertTaskLink (atomic refresh-or-push, merged treated as final, link cap enforced) and, when autoTransition is on, transitionTask, which only moves a task whose status is in the transition's from-list and writes a task.updated activity entry without an actor. Outbound: every recorded activity is offered to dispatchActivity, which loads the workspace's active webhooks with their secret, filters by event, builds one payload (workspace slug, actor name, summary, task key and url, changes) and posts it per webhook with deliverToWebhook, which signs the body, dials only the checked address, logs the attempt and maintains the failure counter until auto-disablement. Tokens: create generates tm_ + 40 base62 characters, stores the display prefix and the PBKDF2 digest, and returns the value once; later requests resolve the digest to the token, then permissionMiddleware binds it to its workspace and intersects the role permissions with the token scopes. The Task and Workspace rows above are marked update/no_change because this feature writes fields that those models already define (Task.links/status/completedAt and Workspace.integrations.github) rather than introducing them."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/integrations/github", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-012", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/integrations/github/enable", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/integrations/github/regenerate-secret", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-002"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/integrations/github/disable", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-002"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/integrations/github", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001"] },
+    { "method": "POST", "path": "/api/integrations/github/:slug", "action": "create", "authenticationRequired": false, "linkedRequirements": ["FR-002", "FR-003", "FR-004", "NFR-004"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/webhooks", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/webhooks", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "FR-008", "NFR-002"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/webhooks/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "FR-008"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/webhooks/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/webhooks/:id/rotate-secret", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "NFR-002"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/webhooks/:id/test", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "FR-007"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/webhooks/:id/deliveries", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "FR-007"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/webhooks/:id/deliveries/:deliveryId/redeliver", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tokens", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tokens", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009", "NFR-002"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/tokens/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "GitHub settings, webhooks and (for revocation) tokens run behind protect + requirePermission; the webhook and token routers additionally mount rejectApiToken so a leaked token cannot rewrite the integration surface. permissionMiddleware refuses a token whose workspace differs from the requested one and filters role permissions down to the token scopes." },
+    { "requirementId": "NFR-002", "description": "Token values exist only in the create answer; storage keeps a PBKDF2-SHA256 digest salted with API_TOKEN_PEPPER (or JWT_SECRET) plus an 8-character display prefix, and lookup is by digest so no secret comparison happens in application code. Webhook and GitHub secrets are generated with crypto.randomBytes and held in fields declared select:false, so no ordinary query returns them." },
+    { "requirementId": "NFR-003", "description": "checkWebhookUrl rejects non-http(s) schemes, embedded credentials, unexpected ports and blocked IP literals; resolvePublicAddresses classifies IPv4 and IPv6 (including IPv4-mapped, NAT64 and 6to4 forms) and the socket lookup only ever returns approved addresses, so DNS rebinding between the check and the dial does not reach an internal host." },
+    { "requirementId": "NFR-004", "description": "The GitHub receiver alone gets a 1 MB raw-body parser mounted before express.json so the signature is computed over the untouched bytes; the general apiLimiter/liveLimiter and Helmet/CORS settings from app.ts remain in force for every other route; each mutating route declares express-validator rules." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-003", "strategy": "Outbound deliveries are capped at 5 s each and run in parallel (Promise.allSettled) so one slow receiver cannot serialise a request; the response body is discarded instead of buffered." },
+    { "requirementId": "NFR-001", "strategy": "Webhook and token lists are bounded by their caps (10 and 10 active), and the delivery list is capped at 50 rows sorted by createdAt, all served by the (webhook, createdAt) and (webhook, deliveryId) indexes." },
+    { "requirementId": "NFR-002", "strategy": "Token digests use PBKDF2 with 10 000 iterations, which costs a few milliseconds per authenticated request (documented trade-off in apiTokens.ts), while a leaked digest stays costly to attack offline." },
+    { "requirementId": "NFR-004", "strategy": "lastUsedAt is written at most once a minute per token, so a busy integration does not turn every call into a write." }
+  ],
+  "dependencies": [
+    { "name": "express.raw", "type": "internal", "action": "add", "notes": "Raw body parser for /api/integrations/github so the GitHub HMAC is computed over the exact bytes." },
+    { "name": "node:crypto", "type": "library", "action": "no_change", "notes": "createHmac/timingSafeEqual for signatures, pbkdf2Sync and randomBytes for tokens." },
+    { "name": "node:dns / node:net / node:http / node:https", "type": "library", "action": "no_change", "notes": "Address resolution and the guarded outbound POST." },
+    { "name": "API_TOKEN_PEPPER / JWT_SECRET", "type": "external", "action": "no_change", "notes": "Server key for token digests; rotating it invalidates every existing token." },
+    { "name": "GitHub webhook secret", "type": "external", "action": "no_change", "notes": "Configured by the administrator on the GitHub side and pasted nowhere: the receiver verifies with the stored workspace secret." }
+  ],
+  "risks": [
+    { "description": "SSRF through a webhook URL (including a hostname that resolves to a private address, or a redirect).", "mitigation": "Static URL rules plus address classification, the socket lookup pinned to approved addresses, and redirects recorded as failures instead of followed." },
+    { "description": "A leaked or over-scoped personal token.", "mitigation": "Digest-only storage, per-workspace binding, effective permissions intersected with the scopes, rejectApiToken on the credential surfaces, a 10-token cap and a maximum lifetime of 365 days." },
+    { "description": "The public GitHub receiver could be used to probe which slugs exist.", "mitigation": "Unknown or disabled slugs run the same HMAC comparison against a decoy secret and answer the same 404 as a real-but-wrong-signature path." },
+    { "description": "Delivery storms from noisy workspaces or a receiver that is down.", "mitigation": "Per-webhook event selection, 10-webhook cap, 5 s timeout, delivery log retention and automatic disablement after 20 consecutive failures." }
+  ]
+}

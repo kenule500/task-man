@@ -1,0 +1,114 @@
+{
+  "feature": "automations-audit",
+  "version": 1,
+  "architecture": {
+    "approach": "One append-only activity log drives both halves of the feature. Every audited write path ends in recordActivity(req, input), which stores an Activity document and then hands the entry to the registered listeners (server/src/utils/activity.ts#onActivity). The automation engine is one of those listeners: it turns the recorded change list into events with pure functions (server/src/utils/automation/engine.ts#eventsFromActivity), matches them against the enabled rules of the workspace, plans the actions purely and applies them with a single Task.updateOne, recording both automation.ran and a task.updated entry — which can chain into further rules until the depth limit stops it. Reads are two thin controllers: a task history for tasks:read and a workspace log for settings:manage, the latter also producing the CSV export. The client keeps rule management (client/src/features/automations) and log review (client/src/features/audit) as separate feature modules behind two pages.",
+    "components": [
+      { "name": "server/src/models/activityModel.ts", "action": "create", "description": "Activity schema: workspace, actor, one of the closed ACTIVITY_ACTIONS names, summary, task/project/sprint references, change list, ip/userAgent, five compound indexes and a 365-day TTL index." },
+      { "name": "server/src/models/automationModel.ts", "action": "create", "description": "Automation schema: trigger/conditions/actions sub-documents with enums and caps, project scope, enabled flag, runCount, lastRunAt, createdBy and the (workspace, enabled, createdAt) index." },
+      { "name": "server/src/utils/activity.ts", "action": "create", "description": "recordActivity plus the pure helpers formatChangeValue, diffFields, auditLookup and the listener registry (onActivity)." },
+      { "name": "server/src/utils/automation/engine.ts", "action": "create", "description": "Pure rule logic: eventsFromActivity, matchesTrigger, matchesConditions, planActions and the ActionPlan type." },
+      { "name": "server/src/utils/automation/validate.ts", "action": "create", "description": "parseTrigger, parseConditions and parseActions over the task vocabularies, returning a value or a readable error." },
+      { "name": "server/src/utils/automation/register.ts", "action": "create", "description": "Subscribes the engine to the activity log once per process, enforces MAX_AUTOMATION_DEPTH and the per-request fired set, and writes the plan with completedAt/children/counters handled." },
+      { "name": "server/src/utils/automation/templates.ts", "action": "create", "description": "Seven ready-made recipes served to the client." },
+      { "name": "server/src/controllers/automationController.ts", "action": "create", "description": "express-validator chains plus list/templates/create/update/delete, the workspace rule cap and the member check for assign actions." },
+      { "name": "server/src/controllers/activityController.ts", "action": "create", "description": "getTaskActivity, getWorkspaceActivity and toAuditCsv (quoting, formula neutralisation, BOM, dated filename, self-recording export)." },
+      { "name": "server/src/routes/automationRoutes.ts", "action": "create", "description": "Mounted at /api/workspaces/:slug/automations; every route runs protect then requirePermission('settings:manage')." },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "modify", "description": "Adds GET /:slug/activity (settings:manage) and mounts the automations router." },
+      { "name": "server/src/routes/taskRoutes.ts", "action": "modify", "description": "Adds GET /:id/activity for tasks:read." },
+      { "name": "server/src/app.ts", "action": "modify", "description": "Calls registerAutomations() once at startup, next to registerWebhooks()." },
+      { "name": "client/src/features/automations/", "action": "create", "description": "Feature module: api, hooks/useAutomations, lib (options, draft validation, describes) and components (RuleBuilder, RuleList, RuleSwitch, TemplateGallery)." },
+      { "name": "client/src/features/audit/", "action": "create", "description": "Feature module: api (list + CSV blob + downloadBlob), hooks/useAuditLog, lib (filters in the URL, action/area labels, day grouping, entry links) and components (table, list, filter bar, entry sheet, pagination, skeleton)." },
+      { "name": "client/src/pages/AutomationsPage.tsx", "action": "create", "description": "Screen that lists rules, opens the builder and uses the template gallery." },
+      { "name": "client/src/pages/AuditLogPage.tsx", "action": "create", "description": "Screen for the workspace log with filters, paging and the CSV download." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Activity",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "actor", "type": "ObjectId ref User", "action": "add", "nullable": true },
+          { "name": "action", "type": "String enum (ACTIVITY_ACTIONS, 48 names)", "action": "add" },
+          { "name": "summary", "type": "String max 200", "action": "add" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "add", "nullable": true },
+          { "name": "project", "type": "ObjectId ref Project", "action": "add", "nullable": true },
+          { "name": "sprint", "type": "ObjectId ref Sprint", "action": "add", "nullable": true },
+          { "name": "changes", "type": "[{ field, from, to }] (field max 40, values max 200)", "action": "add" },
+          { "name": "ip", "type": "String max 64", "action": "add", "nullable": true },
+          { "name": "userAgent", "type": "String max 200", "action": "add", "nullable": true },
+          { "name": "createdAt", "type": "Date (TTL 365 days)", "action": "add" }
+        ]
+      },
+      {
+        "name": "Automation",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "name", "type": "String 1..80", "action": "add" },
+          { "name": "enabled", "type": "Boolean (default true)", "action": "add" },
+          { "name": "project", "type": "String max 60 ('' = every project)", "action": "add" },
+          { "name": "trigger", "type": "{ type: enum, to: String max 40 }", "action": "add" },
+          { "name": "conditions", "type": "[{ field, op, value }] (max 5)", "action": "add" },
+          { "name": "actions", "type": "[{ type, value }] (1..5)", "action": "add" },
+          { "name": "runCount", "type": "Number (min 0)", "action": "add" },
+          { "name": "lastRunAt", "type": "Date", "action": "add", "nullable": true },
+          { "name": "createdBy", "type": "ObjectId ref User", "action": "add", "nullable": true }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "update",
+        "fields": [
+          { "name": "status", "type": "String (written by set_status/move actions)", "action": "no_change" },
+          { "name": "priority", "type": "String (written by set_priority)", "action": "no_change" },
+          { "name": "labels", "type": "String[] (written by add_label/remove_label)", "action": "no_change" },
+          { "name": "assignees", "type": "ObjectId[] (written by assign actions)", "action": "no_change" },
+          { "name": "sprint", "type": "ObjectId|null (cleared by move_to_backlog)", "action": "no_change" },
+          { "name": "completedAt", "type": "Date (kept in sync because updateOne skips hooks)", "action": "no_change" },
+          { "name": "comments", "type": "[{ author, text, mentions, createdAt }] ($push for add_comment)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Write path → audit: a controller or listener calls recordActivity(req, { action, summary, task, project, sprint, changes }); the entry is stored with the actor, the request IP and the user agent, truncated to the model limits, and then handed to every listener in order. Automation: the engine listener ignores actions other than task.created, task.updated and task.commented, derives events from the change list, loads the enabled rules of the workspace ordered by creation, and for each match re-reads the task (so an earlier rule's change is visible), skips epics and project-mismatched tasks, evaluates the conditions, plans the actions, and applies one Task.updateOne that also syncs completedAt, backlogs the children when the sprint is cleared, increments runCount and records automation.ran plus task.updated. Task history reads filter by workspace and task; the workspace log filters by workspace plus area/actor/before; the CSV branch adds the export to the log itself before answering. The Task entity above is listed as update/no_change for its fields because this feature writes fields that the task model already defines (status, priority, labels, assignees, sprint, completedAt, comments); it does not define them."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/automations", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-001"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/automations/templates", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-003", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/automations", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-002"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/automations/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-002"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/automations/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-001"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/activity", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010", "FR-011", "NFR-001", "NFR-004"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks/:id/activity", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009", "NFR-001"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "Rules and the workspace log sit behind requirePermission('settings:manage'); a task's history needs only tasks:read. Every query adds workspace: req.workspace._id, and a rule id that belongs to another workspace simply does not match (404)." },
+    { "requirementId": "NFR-002", "description": "recordActivity wraps storage and listener notification in try/catch and logs failures, so an audit problem cannot turn a successful edit into an error; each rule is applied inside its own try/catch and a failing rule only logs." },
+    { "requirementId": "NFR-003", "description": "Retention and truncation are enforced in the model (TTL 365 days, summary 200, change values 200, ip 64, user agent 200) and in the controllers (limit caps 100, export cap 5000)." },
+    { "requirementId": "NFR-004", "description": "Only whitelisted values reach the database: the area filter is used only when it is one of the known area names (then inside an anchored, escaped-free prefix regex on a controlled vocabulary) and the actor filter is applied only to a string that mongoose.isValidObjectId accepts. Query objects are built as literals, never from raw user input." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-001", "strategy": "Both list endpoints fetch limit+1 rows in one query and populate only the user fields they render (name, avatar), so paging costs one round-trip." },
+    { "requirementId": "NFR-003", "strategy": "Compound indexes (workspace+createdAt, workspace+task+createdAt, workspace+actor+createdAt, workspace+action+createdAt) match the three filter shapes the log offers, and the TTL index removes old entries without a job." },
+    { "requirementId": "NFR-002", "strategy": "Rule execution re-reads the task only when a trigger matched, skips rules without plans (no writes, no counters) and stops at depth 3, so the common request costs one Automation.find." },
+    { "requirementId": "NFR-004", "strategy": "The CSV export runs one capped query (5000 rows, actor populated) and streams a string; it is the only place where a large result is materialised and it is explicitly capped." }
+  ],
+  "dependencies": [
+    { "name": "server/src/utils/activity.ts#onActivity", "type": "internal", "action": "add", "notes": "Listener registry that the automation engine and the webhook dispatcher share." },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "Validation chains on the automation routes, with the deeper rule parsing delegated to utils/automation/validate.ts." },
+    { "name": "Mongoose (MongoDB)", "type": "internal", "action": "no_change", "notes": "Activity and Automation models, including the TTL and compound indexes." }
+  ],
+  "risks": [
+    { "description": "A rule that fires on its own change can loop.", "mitigation": "MAX_AUTOMATION_DEPTH 3 and a per-request fired set of (rule, task) pairs; both live in register.ts and are exercised by the integration tests." },
+    { "description": "Automation changes could be mistaken for human edits when reading the trail.", "mitigation": "Automation writes both automation.ran (with the rule name) and a task.updated entry whose summary names the automation." },
+    { "description": "Assign actions could reference a member who left the workspace.", "mitigation": "checkAssignees refuses such a rule on write, and planActions only assigns ids from the current member list at run time." },
+    { "description": "The CSV export could be used to smuggle spreadsheet formulas.", "mitigation": "csvCell prefixes any value starting with = + - @ tab or carriage return with an apostrophe and quotes every cell." }
+  ]
+}

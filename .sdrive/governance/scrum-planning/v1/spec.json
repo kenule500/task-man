@@ -1,0 +1,306 @@
+{
+  "feature": "scrum-planning",
+  "title": "Scrum planning: projects, sprints, backlog, roadmap, workload and sprint reports",
+  "version": 1,
+  "overview": {
+    "problemStatement": "A team that works in sprints needs somewhere to keep the backlog, plan and run a sprint, see whether the sprint is on track, review what was committed versus delivered, and look at more than one sprint at once. Without that, sprint scope lives in spreadsheets and nobody can tell why a sprint missed its goal. TaskMan already had tasks, boards and a workflow, but no project/sprint container and no scrum reporting on top of it.",
+    "proposedSolution": "Projects (server/src/models/projectModel.ts) and Sprints (server/src/models/sprintModel.ts) are workspace-scoped Mongoose documents behind the permission-guarded router server/src/routes/projectRoutes.ts under /api/workspaces/:slug/projects. The project page (client/src/features/projects/components/ProjectWorkspace.tsx) holds the Sprints, Backlog, Epics, Releases, Wiki and Overview tabs, where a task is planned into a sprint by setting its sprint field. Reporting is built from data that already exists: the sprint report (server/src/controllers/reportController.ts) rebuilds the sprint scope from the recorded sprint moves in the activity log, while burndown, velocity, the roadmap and the workload view are pure client helpers under features/projects/lib and features/planning/lib.",
+    "targetAudience": "Scrum Masters, product owners and delivery teams working in two-week sprints inside a TaskMan workspace, plus engineering managers who read the velocity, roadmap and workload views.",
+    "assumptions": [
+      "The codebase has no working-day calendar: sprint dates are consecutive calendar days, so weekends and public holidays are included in the burndown span, the velocity order and the roadmap axis.",
+      "Velocity, burndown and workload read story points only (task.storyPoints); the time-tracking estimate (task.estimateMinutes) is not used by these views, so a team that estimates in hours sees item counts instead of points.",
+      "A task points at its project by name (task.project is text) while sprints are linked by ObjectId (task.sprint); the project name is therefore the join key between tasks and projects in every planning view.",
+      "Planning is a workspace-level capability: there is no per-project membership or per-sprint role, so anyone holding projects:write in the workspace can plan and run sprints in every project of that workspace."
+    ],
+    "outOfScope": [
+      "Capacity planning per person per sprint (planned points); the workload view compares committed points against one capacity number per person kept in the browser.",
+      "Cross-project sprint planning and a programme-level backlog; a sprint belongs to exactly one project.",
+      "Editing past sprint history or correcting the activity log retroactively.",
+      "Automatic sprint roll-over on a schedule; starting and completing a sprint is always an explicit action."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Plan and start a sprint in a project",
+      "role": "Scrum Master",
+      "want": "create a sprint with a name, a goal and dates and start it when the team is ready",
+      "benefit": "the team works against one agreed sprint window instead of an open-ended list of tasks",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "A sprint is created in a project with a name and start and end dates; the goal is optional, stored, and shown on the sprint card and on the sprint report."
+        },
+        {
+          "id": "AC-002",
+          "text": "A sprint whose end date is before its start date is refused with HTTP 400 and the message 'The sprint must end on or after its start date'."
+        },
+        {
+          "id": "AC-003",
+          "text": "Starting a planned sprint sets its status to active and stamps startedAt; if the project already has an active sprint, the request is refused with HTTP 409 'Complete the active sprint of this project first'."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Keep a backlog and plan work into a sprint",
+      "role": "team member",
+      "want": "see the project's unplanned work in a backlog and move the right items into a sprint",
+      "benefit": "the sprint contains only what the team has agreed to pull in",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-004",
+          "text": "The project page shows Sprints, Backlog, Epics, Releases, Wiki and Overview tabs, and the Backlog tab lists the project's tasks that have no sprint."
+        },
+        {
+          "id": "AC-005",
+          "text": "Completing the active sprint moves every unfinished task either to the backlog (the default) or to a planned sprint of the same project that the caller selected."
+        },
+        {
+          "id": "AC-006",
+          "text": "Deleting a sprint returns its tasks to the backlog (the sprint is cleared) and deletes no task."
+        },
+        {
+          "id": "AC-007",
+          "text": "A task is planned into a sprint by setting its sprint field through the task endpoints; the sprint must belong to the same workspace and must not be completed, the task takes the sprint's project, and changing a task's project clears its sprint."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "See whether the running sprint is on track",
+      "role": "Scrum Master",
+      "want": "a burndown of the remaining work and the velocity of previous sprints",
+      "benefit": "I can tell early that a sprint is behind and adjust scope before the end date",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-008",
+          "text": "The burndown shows the remaining work at the end of each day from the sprint start to its end date, measured in story points when any top-level item of the sprint is estimated and otherwise in task counts, against an ideal straight line, with no remaining value for days that have not happened yet."
+        },
+        {
+          "id": "AC-009",
+          "text": "Velocity lists completed sprints oldest first with the points each delivered, and reports the average of the last three as a number, or null before the first completed sprint."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Review what a sprint committed and delivered",
+      "role": "Scrum Master",
+      "want": "a report that separates committed work, work added after the start, work removed and work carried over",
+      "benefit": "the retrospective can discuss scope change with numbers instead of opinions",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-010",
+          "text": "The sprint report returns the committed, completed, notCompleted, added and removed buckets with their items and a summary of item counts and story points for each bucket."
+        },
+        {
+          "id": "AC-011",
+          "text": "A task first moved into the sprint after it was started counts as added and not as committed; a task moved out when the sprint was completed counts as not completed rather than removed; a task finished after the sprint was closed is not counted as delivered."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Look at several sprints and epics at once on the roadmap",
+      "role": "product owner",
+      "want": "epics plotted over time with the sprint windows and the release milestones next to them",
+      "benefit": "I can see which epics land in which sprint window and where the release dates sit",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-012",
+          "text": "The roadmap lists epics per active project with the earliest start and the latest end date over the epic and its items, a percent complete and a health of done, overdue, in-progress or upcoming."
+        },
+        {
+          "id": "AC-013",
+          "text": "The roadmap draws a month or week axis with sprint bands and, for one selected project, milestone markers for its dated non-archived releases; every epic row and marker has a text alternative for screen readers."
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Balance a sprint or a date range across the team",
+      "role": "Scrum Master",
+      "want": "story points and item counts per assignee against a capacity I can set",
+      "benefit": "I can spot who is overloaded before the sprint starts",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-014",
+          "text": "The workload view aggregates story points and item counts per assignee for a sprint or for a date range, optionally limited to one project."
+        },
+        {
+          "id": "AC-015",
+          "text": "A capacity between 1 and 200 points is kept per workspace in the browser and reused on the next visit; a person above it is marked over capacity with the surplus and a whole-percent usage."
+        },
+        {
+          "id": "AC-016",
+          "text": "Tasks without assignees are grouped under Unassigned; a task with several assignees counts for each of them while the scope totals count it once."
+        },
+        {
+          "id": "AC-017",
+          "text": "Each capacity bar exposes a text alternative such as '13 of 10 points, 4 items, over capacity by 3'."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "Projects are workspace-scoped containers (server/src/models/projectModel.ts): the name is trimmed and limited to 60 characters, the unique index { workspace, nameKey } allows one project per name and workspace, key defaults to projectKeyFrom(name) and must match /^[A-Z0-9]{2,6}$/, and GET /api/workspaces/:slug/projects creates a project for every task.project name that has none yet (syncProjectsFromTasks).",
+      "linkedAcceptanceCriteria": ["AC-004"]
+    },
+    {
+      "id": "FR-002",
+      "text": "Creating or editing a sprint requires a name, an ISO-8601 startDate and an ISO-8601 endDate (validateCreateSprint and validateUpdateSprint in server/src/controllers/projectController.ts); assertSprintDates refuses an end before the start with 400 'The sprint must end on or after its start date'. Sprint names are limited to 60 and goals to 300 characters.",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002"]
+    },
+    {
+      "id": "FR-003",
+      "text": "Only a planned sprint can be started (400 otherwise) and a project can have at most one active sprint (409 'Complete the active sprint of this project first'). startSprint and completeSprint use a conditional findOneAndUpdate, so a duplicate request that loses the race returns 409 'This sprint was changed by someone else' instead of changing state twice.",
+      "linkedAcceptanceCriteria": ["AC-003"]
+    },
+    {
+      "id": "FR-004",
+      "text": "completeSprint stores completedAt and completedPoints (the sum of storyPoints over the sprint's completed top-level tasks, parent: null), moves every task that is still not completed to moveOpenTo - the backlog (default) or a planned sprint of the same project - and writes a task.updated activity entry with a sprint change for each carried-over task. It responds with { sprint, movedTasks }.",
+      "linkedAcceptanceCriteria": ["AC-005"]
+    },
+    {
+      "id": "FR-005",
+      "text": "deleteSprint clears sprint on its tasks, records a task.updated activity entry with a sprint change for each of them and then removes the sprint; no task is deleted.",
+      "linkedAcceptanceCriteria": ["AC-006"]
+    },
+    {
+      "id": "FR-006",
+      "text": "A task joins a sprint through the task endpoints (POST/PATCH/PUT /api/workspaces/:slug/tasks). findOpenSprint requires the sprint to be in the same workspace and not completed, reconcileSprint sets the task's project to the sprint's project, and a task whose project no longer matches its sprint's project loses the sprint. Epics cannot be planned into a sprint ('Epics cannot be planned in a sprint').",
+      "linkedAcceptanceCriteria": ["AC-007"]
+    },
+    {
+      "id": "FR-007",
+      "text": "GET /api/workspaces/:slug/projects/:projectId/sprints/:sprintId/report returns the sprint metadata plus the committed, completed, notCompleted, added and removed buckets with a summary of counts and story points. It rebuilds each task's membership from the recorded sprint moves in the activity log (classifySprintScope in server/src/controllers/reportController.ts) and treats the moves logged at sprint completion as carry-over rather than removal.",
+      "linkedAcceptanceCriteria": ["AC-010", "AC-011"]
+    },
+    {
+      "id": "FR-008",
+      "text": "buildBurndown (client/src/features/projects/lib/burndown.ts) keeps the top-level non-epic tasks of one sprint, uses story points when any of them is estimated and otherwise one per task, and returns the remaining work at the end of each day between the sprint start and end (at most 120 days) with an ideal straight line and null after the last known day.",
+      "linkedAcceptanceCriteria": ["AC-008"]
+    },
+    {
+      "id": "FR-009",
+      "text": "sprintVelocities (client/src/features/projects/lib/velocity.ts) lists the completed sprints ordered by completedAt or endDate with the completedPoints they delivered, and averageVelocity returns the mean of the last three sprints rounded to one decimal, or null when there is none.",
+      "linkedAcceptanceCriteria": ["AC-009"]
+    },
+    {
+      "id": "FR-010",
+      "text": "buildRoadmap (client/src/features/planning/lib/roadmap.ts) groups the epics of non-archived projects, rolls up the earliest start and the latest end over the epic and its items (epicProgress), computes a percent complete with a points-or-items basis and a health of done, overdue, in-progress or upcoming; buildAxis, placeSpan, sprintBands and releaseMarkers lay the epics, sprint bands and release milestones on a month or week axis, and describeEpic and describeReleaseMarker give the text alternatives.",
+      "linkedAcceptanceCriteria": ["AC-012", "AC-013"]
+    },
+    {
+      "id": "FR-011",
+      "text": "tasksInScope and aggregateWorkload (client/src/features/planning/lib/workload.ts) take the top-level non-epic tasks of a sprint or of a date range (optionally one project, overlapping on start date and deadline) and group them per assignee with item and point totals per status, an unassigned bucket, the unestimated item count, usage as a whole percent of capacity and the surplus when over it. capacity.ts stores the capacity per workspace in localStorage under taskman.workload.capacity.<slug>, and describeLoad produces the text alternative.",
+      "linkedAcceptanceCriteria": ["AC-014", "AC-015", "AC-016", "AC-017"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Every project, sprint, task and activity query of this feature filters by req.workspace._id (CON-106). findProject and findSprint in projectController.ts and the report controller scope by workspace id, so an id from another workspace resolves to 404 and never returns data.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-002",
+      "text": "The routes are permission scoped (CON-105, CON-512): server/src/routes/projectRoutes.ts runs protect and then requirePermission('projects:read'), 'projects:write' or 'projects:delete' per route, and the sprint report route on server/src/routes/workspaceRoutes.ts requires projects:read. The client gates planning actions with usePermissions (can('projects:write')).",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-003",
+      "text": "Pure planning logic lives in a lib/ (client) or utils/ (server) module with a Jest test (CON-109, CON-202, CON-402): capacity.ts, roadmap.ts, sprintReport.ts, workload.ts, burndown.ts and sprintStats.ts are covered by the tests under client/src/features/planning/__tests__ and client/src/features/projects/__tests__.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-004",
+      "text": "Dates are calendar days (CON-203): sprints are created and edited with YYYY-MM-DD values and every date read on the client goes through @/features/tasks/lib/date (parseDateKey, toDateKey, dateKeyOf) rather than new Date('YYYY-MM-DD'), including the roadmap axis, the burndown days and the suggested sprint dates.",
+      "linkedAcceptanceCriteria": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "A project is created with a name that another project of the workspace already uses.",
+      "expectedBehavior": "The unique index { workspace, nameKey } rejects it and the API answers 409 'A project with this name already exists'. Two list requests that sync the same task project names at the same moment are tolerated: the duplicate key error of the losing bulkWrite is swallowed because the project exists either way."
+    },
+    {
+      "id": "EC-002",
+      "description": "Two people start the same planned sprint at the same moment.",
+      "expectedBehavior": "Only one conditional update matches status 'planned'; the loser receives 409 'This sprint was changed by someone else' and the sprint ends up with a single startedAt."
+    },
+    {
+      "id": "EC-003",
+      "description": "A sprint was completed without ever being started (startedAt undefined) and is then reported.",
+      "expectedBehavior": "classifySprintScope treats everything pointing at the sprint as committed and nothing as added, because without a start time there is no 'after the start'."
+    },
+    {
+      "id": "EC-004",
+      "description": "A task of the sprint is marked completed after the sprint was already completed.",
+      "expectedBehavior": "The task is not counted as delivered: 'completed' requires status completed and a completedAt at or before the sprint's completedAt; it lands in notCompleted with the rest of the carried-over work."
+    },
+    {
+      "id": "EC-005",
+      "description": "A project with tasks, sprints and wiki pages is deleted.",
+      "expectedBehavior": "Its tasks are kept but lose project and sprint (project becomes an empty string, sprint null), its sprints are deleted, and its wiki pages and page versions are removed with it."
+    },
+    {
+      "id": "EC-006",
+      "description": "An epic has no items or no story points, so no dates can be rolled up.",
+      "expectedBehavior": "epicProgress falls back to the epic's own start and deadline, the percent complete is computed on items when there are no points, and describeEpic says 'no items yet' instead of a fraction."
+    },
+    {
+      "id": "EC-007",
+      "description": "A sprint older than the activity retention window is reported.",
+      "expectedBehavior": "Activity rows are deleted by the TTL index on Activity (ACTIVITY_RETENTION_DAYS = 365), so the buckets can no longer be rebuilt from history: only the tasks still pointing at the sprint are classified, using their creation date against the sprint's startedAt."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "mongoose",
+      "type": "library",
+      "notes": "Project, Sprint and Task documents; the unique index on the project nameKey carries the duplicate-name rule."
+    },
+    {
+      "name": "express-validator",
+      "type": "library",
+      "notes": "validateCreateProject, validateUpdateProject, validateCreateSprint, validateUpdateSprint and validateCompleteSprint chains declared on projectRoutes.ts."
+    },
+    {
+      "name": "server/src/utils/activity.ts",
+      "type": "internal",
+      "notes": "recordActivity and diffFields produce the sprint.created/started/completed/deleted entries and the task.updated sprint moves the report reads."
+    },
+    {
+      "name": "client/src/features/tasks",
+      "type": "internal",
+      "notes": "useTasks is the single source of truth for the tasks the planning views aggregate; lib/date provides the calendar-day helpers."
+    },
+    {
+      "name": "client/src/features/projects",
+      "type": "internal",
+      "notes": "useProjects loads projects with their sprints and exposes the sprint mutations; BurndownChart, VelocityChart and sprintStats are reused by the reports pages."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "The sprint report's committed/added/removed split depends on the activity stream, so a sprint move that was never recorded as a 'sprint' change is invisible to it.",
+      "mitigation": "Every sprint move goes through the task or sprint controllers, which call recordActivity; the report also documents the fallback for missing history (tasks still pointing at the sprint, creation date versus startedAt)."
+    },
+    {
+      "id": "RISK-002",
+      "description": "Tasks reference their project by name, so a project rename must cascade to tasks, wiki pages and custom fields or work silently leaves the project.",
+      "mitigation": "updateProject performs all three updates in the same request using a case-insensitive collation that matches the stored names."
+    },
+    {
+      "id": "RISK-003",
+      "description": "Burndown and workload fall back from story points to item counts when nothing is estimated, which can make the same sprint look different in two views.",
+      "mitigation": "Both helpers return a unit field ('points' or 'tasks') and the components label the axis or the sentence with it, so the basis is never implied."
+    }
+  ]
+}

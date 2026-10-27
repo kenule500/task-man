@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-10-19T14:05:27.749Z",
+  "checks": {
+    "channelList": {
+      "hasTeamChat": true,
+      "hasGeneral": true,
+      "teamRows": 3,
+      "directRows": 1
+    },
+    "conversation": {
+      "hasSeededMessage": true,
+      "hasMention": true,
+      "transport": "Live",
+      "composerPresent": true
+    },
+    "screenshot1024": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-1024.png",
+    "emptyState": true,
+    "screenshotEmpty": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-empty-1024.png",
+    "loadingState": true,
+    "screenshotLoading": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-loading-1024.png",
+    "errorState": true,
+    "screenshotError": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-error-1024.png",
+    "recovered": true,
+    "findWidget": {
+      "open": true,
+      "results": 1,
+      "counter": "1 of 1"
+    },
+    "screenshotFind": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-find-1024.png",
+    "findClosed": true,
+    "findKeyboard": {
+      "focusStayedInInput": true,
+      "activeDescendant": "chat-search-option-6ad621b6c5dbef5957377048"
+    },
+    "findJump": true,
+    "thread": {
+      "open": true,
+      "hasReply": true
+    },
+    "screenshotThread1024": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-thread-1024.png",
+    "screenshotThread760": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-thread-760.png",
+    "thread760": {
+      "visible": true,
+      "overlay": "absolute"
+    },
+    "phoneComposer": {
+      "present": true,
+      "bottom": 571,
+      "viewport": 700,
+      "aboveFold": true
+    },
+    "screenshotPhoneConversation": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-320-conversation.png",
+    "phoneList": {
+      "backControl": true,
+      "teamRows": 3,
+      "noHorizontalOverflow": true,
+      "listScroll": [
+        {
+          "scrollWidth": 319,
+          "clientWidth": 319
+        },
+        {
+          "scrollWidth": 319,
+          "clientWidth": 319
+        },
+        {
+          "scrollWidth": 320,
+          "clientWidth": 320
+        }
+      ]
+    },
+    "screenshotPhoneList": "C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\.sdrive\\reports\\browser\\chat-320-list.png"
+  },
+  "errors": [
+    "network:  XHR",
+    "network:  XHR"
+  ]
+}

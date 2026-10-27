@@ -1,0 +1,342 @@
+{
+  "feature": "auth-sessions",
+  "title": "Account authentication and revocable sessions",
+  "version": 1,
+  "overview": {
+    "problemStatement": "TaskMan must prove who a person is before any workspace data is shown, and must let an account owner cut off access from a device that is lost, stolen or no longer trusted. Email + password accounts are the default path, so registration, address proof and password recovery all have to be safe against replay and against leaking which addresses exist.",
+    "proposedSolution": "Passwords are bcrypt-hashed (salt rounds 10) in server/src/models/userModel.ts; registration, resend, and password recovery use single-use tokens whose SHA-256 hash is the only thing stored (server/src/utils/tokens.ts). A successful sign-in mints a 7-day JWT carrying a unique jti and a Session row keyed by the token hash (server/src/controllers/authController.ts issueSession, server/src/models/sessionModel.ts). The protect middleware re-checks that session on every request, so logout, password reset and the signed-in devices screen can invalidate a token server-side before it expires.",
+    "targetAudience": "Everyone with a TaskMan account: new signups who must prove their address, returning members who use several devices, and workspace owners who need a reliable way to end a session.",
+    "assumptions": [
+      "Email delivery goes through Resend when RESEND_API_KEY is set, otherwise SMTP when EMAIL_HOST is set; with neither, only a development build prints the message to the console and a production build throws (server/src/utils/sendEmail.ts).",
+      "The documented session lifetime is bounded by the 7-day JWT expiry, and MongoDB removes the Session row about one day after that through the TTL index (expireAfterSeconds 8 days) in server/src/models/sessionModel.ts.",
+      "Local password accounts remain the default path for team members; OIDC sign-in is documented separately as the sso-2fa feature.",
+      "DEV_AUTO_VERIFY=true is a local convenience flag (read with process.env in authController.isDevAutoVerify) that skips the verification email; production behaviour assumes it is unset."
+    ],
+    "outOfScope": [
+      "Single sign-on with Google and Microsoft, two-factor authentication and personal API tokens, which are documented as the sso-2fa feature.",
+      "Workspace roles and permissions: GET /api/auth/currentuser reports them, but they are defined and enforced by the workspaces-rbac feature.",
+      "Password strength meters, breach-list checks and forced rotation: the only implemented rule is a minimum length of 8 characters (MIN_PASSWORD_LENGTH in server/src/controllers/authController.ts).",
+      "Profile editing, avatars and notification preferences in server/src/controllers/profileController.ts, which share the router but are not part of authentication."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create an account with my email address",
+      "role": "person signing up for the first time",
+      "want": "register with my name, email and a password, and receive a verification email",
+      "benefit": "my address is proven before the account can be used",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "POST /api/auth/signup creates an unverified account and answers 201 with the id, name, email and a requiresVerification flag, and never with the password or any token"
+        },
+        {
+          "id": "AC-002",
+          "text": "A password shorter than 8 characters is rejected with 400, while exactly 8 characters is accepted"
+        },
+        {
+          "id": "AC-003",
+          "text": "Signing up with an address that already has an account answers 400 'User already exists' instead of creating a second account"
+        },
+        {
+          "id": "AC-004",
+          "text": "An invalid email, a missing name, a name longer than 80 characters or a non-string value is answered with 400 and never with a 500"
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Prove my email address before signing in",
+      "role": "new account owner",
+      "want": "open the link that was emailed to me and have the account marked verified",
+      "benefit": "the address on the account is one I control",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-005",
+          "text": "GET /api/auth/verify-email/:token marks the account verified and clears the token, and the same link cannot be used twice"
+        },
+        {
+          "id": "AC-006",
+          "text": "Signing in before the address is verified answers 403 with requiresVerification true and issues no session"
+        },
+        {
+          "id": "AC-007",
+          "text": "POST /api/auth/resend-verification answers identically for unknown, already verified and unverified addresses, so it cannot be used to discover accounts"
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Sign in and stay signed in for a working week",
+      "role": "registered user",
+      "want": "exchange my email and password for a token that the server can revoke",
+      "benefit": "I stay signed in across days, and losing a device is recoverable",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-008",
+          "text": "A successful login returns a token plus the summary fields the web app stores (id, name, email, onboardingComplete, activeWorkspace, activeWorkspaceSlug, workspaces) and no sensitive fields"
+        },
+        {
+          "id": "AC-009",
+          "text": "A wrong password and an unknown address are answered with the same 401 'Invalid email or password'"
+        },
+        {
+          "id": "AC-010",
+          "text": "A NoSQL operator payload such as { \"$gt\": \"\" } in the email field is rejected by validation before any query runs"
+        },
+        {
+          "id": "AC-011",
+          "text": "The issued JWT carries a unique jti and expires in 7 days, and the Session row stores only the SHA-256 hash of that token"
+        },
+        {
+          "id": "AC-012",
+          "text": "A request whose token belongs to an invalidated or missing session answers 401 'Session expired or invalidated. Please log in again.'"
+        },
+        {
+          "id": "AC-013",
+          "text": "POST /api/auth/logout invalidates only the session that made the request, so two sign-ins from the same second are unaffected"
+        },
+        {
+          "id": "AC-026",
+          "text": "GET /api/auth/currentuser returns the caller's identity plus workspace, role, permissions and derived actions for the requested workspaceSlug, and answers 403 when the caller is not a member"
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Reset a password I have forgotten",
+      "role": "account owner who cannot sign in",
+      "want": "request a link by email and set a new password",
+      "benefit": "I regain access without involving an administrator",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-014",
+          "text": "POST /api/auth/forgot-password answers 200 with the same generic message whether or not the address exists, and sends nothing to an unknown address"
+        },
+        {
+          "id": "AC-015",
+          "text": "An expired reset token is rejected, and only the most recent link for an account is honoured"
+        },
+        {
+          "id": "AC-016",
+          "text": "A completed reset invalidates every session on the account and clears the ssoOnly flag"
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "See the sessions on my account and change my password",
+      "role": "account owner on several devices",
+      "want": "list where I am signed in, end one session or all others, and change my password",
+      "benefit": "a device I no longer control cannot reach my workspace",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-017",
+          "text": "GET /api/profile/sessions lists the account's active sessions, the current one first, with user agent, IP and timestamps and never with token material"
+        },
+        {
+          "id": "AC-018",
+          "text": "DELETE /api/profile/sessions/:id signs out one device, which can no longer call the API, and 404s an unknown or foreign id"
+        },
+        {
+          "id": "AC-019",
+          "text": "POST /api/profile/sessions/revoke-others signs out every other device and keeps the session that made the request"
+        },
+        {
+          "id": "AC-020",
+          "text": "One account can never see or revoke the sessions of another account"
+        },
+        {
+          "id": "AC-021",
+          "text": "PUT /api/profile/password rejects a wrong current password with 401 and changes nothing"
+        },
+        {
+          "id": "AC-022",
+          "text": "A successful password change keeps the session that made the request and revokes every other session of the account"
+        }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Finish onboarding and get a first workspace",
+      "role": "newly registered user",
+      "want": "save my onboarding answers and have a workspace created with me as its Product Owner",
+      "benefit": "I can start planning work straight after signing up",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-023",
+          "text": "POST /api/auth/onboarding stores the answers with a completedAt timestamp, creates a workspace whose slug is derived from the name and assigns the Product Owner system role, defaulting the name to \"<name>'s Workspace\""
+        },
+        {
+          "id": "AC-024",
+          "text": "A second onboarding call is idempotent and returns the existing workspace instead of creating another one"
+        },
+        {
+          "id": "AC-025",
+          "text": "A non-string or over-long workspaceName, or an onboarding answer longer than 80 characters, is answered with 400 rather than 500"
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "POST /api/auth/signup creates an account from name, email and password, normalises the email to lower case, refuses a duplicate address and answers with a summary that omits the password and tokens (server/src/controllers/authController.ts registerUser, validateSignup)",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003", "AC-004"]
+    },
+    {
+      "id": "FR-002",
+      "text": "Email verification stores only the hash of a 32-byte random token with a 24-hour expiry, emails a link built from CLIENT_URL, and answers the same generic message when the address is unknown or already verified (authController.verifyEmail, resendVerification; server/src/utils/tokens.ts createSecureToken)",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007"]
+    },
+    {
+      "id": "FR-003",
+      "text": "A verified account with the right password is issued a JWT signed with the configured jwtSecret, carrying a random jti and a 7-day expiry, together with a Session document that points at the user, user agent, IP address and the SHA-256 hash of the token only (authController.generateToken, createSession, issueSession)",
+      "linkedAcceptanceCriteria": ["AC-008", "AC-011"]
+    },
+    {
+      "id": "FR-004",
+      "text": "Login failures are uniform: validation errors and a wrong password both produce 401 'Invalid email or password', unknown accounts and operator payloads cannot be distinguished, and the email lookups are written as { email: { $eq: String(email) } } so a payload object cannot be cast into a query operator",
+      "linkedAcceptanceCriteria": ["AC-009", "AC-010"]
+    },
+    {
+      "id": "FR-005",
+      "text": "The protect middleware verifies the bearer JWT, then requires a Session row matching the token hash with isValid true, refreshes lastLoggedIn at most once every 5 minutes and attaches the user document without the password (server/src/middleware/authMiddleware.ts)",
+      "linkedAcceptanceCriteria": ["AC-012"]
+    },
+    {
+      "id": "FR-006",
+      "text": "POST /api/auth/logout reads the bearer token, marks exactly that session invalid and always answers 200 'Logged out successfully' (authController.logoutUser)",
+      "linkedAcceptanceCriteria": ["AC-013"]
+    },
+    {
+      "id": "FR-007",
+      "text": "POST /api/auth/forgot-password stores a hashed reset token with a 1-hour expiry and answers 200 with the same wording for known and unknown addresses; POST /api/auth/reset-password/:token consumes it once and sets the new password (authController.forgotPassword, resetPassword)",
+      "linkedAcceptanceCriteria": ["AC-014", "AC-015"]
+    },
+    {
+      "id": "FR-008",
+      "text": "Credential changes end sessions that must end: a completed reset invalidates every session of the account and clears ssoOnly, and a password change from Settings keeps the current session while revoking the others (authController.resetPassword, profileController.changePassword)",
+      "linkedAcceptanceCriteria": ["AC-016", "AC-021", "AC-022"]
+    },
+    {
+      "id": "FR-009",
+      "text": "The signed-in devices API lists only the caller's active sessions with a current flag, revokes one session by id, or revokes all others while keeping the calling session (server/src/controllers/profileController.ts listSessions, revokeSession, revokeOtherSessions with activeSessionFilter)",
+      "linkedAcceptanceCriteria": ["AC-017", "AC-018", "AC-019", "AC-020"]
+    },
+    {
+      "id": "FR-010",
+      "text": "POST /api/auth/onboarding records the onboarding answers, is idempotent once a workspace exists, generates a unique slug and a 12-hex invite code, assigns the Product Owner system role to the creator and sets the workspace active (authController.saveOnboarding, generateSlug)",
+      "linkedAcceptanceCriteria": ["AC-023", "AC-024", "AC-025"]
+    },
+    {
+      "id": "FR-011",
+      "text": "GET /api/auth/currentuser resolves the signed-in identity together with the requested workspace, the caller's role, the role's permissions and the derived action list, and self-heals a membership without roleId by assigning Product Owner to the workspace owner and Viewer to anyone else (authController.getCurrentUser, deriveActions)",
+      "linkedAcceptanceCriteria": ["AC-026"]
+    },
+    {
+      "id": "FR-012",
+      "text": "The web app keeps the token and the user summary in one place (client/src/utils/session.ts), clears the in-memory query cache and the service-worker API cache on any new login or logout, and the shared axios client clears the session and redirects to /login?expired=1 on a 401 that is not an auth call (client/src/utils/api.ts)",
+      "linkedAcceptanceCriteria": ["AC-027"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Authentication traffic is rate limited: the whole /api/auth area is capped at 100 requests per 15 minutes per IP, and login, forgot-password, resend-verification, password change and the two-factor routes share a stricter 20-per-15-minute limiter (server/src/app.ts authLimiter, sensitiveLimiter), satisfying CON-511 and CON-514",
+      "linkedAcceptanceCriteria": ["AC-009", "AC-014", "AC-021"]
+    },
+    {
+      "id": "NFR-002",
+      "text": "No credential or token is stored in a form that can be replayed or read back: passwords are bcrypt hashes, and verification, reset and session tokens exist in the database only as SHA-256 digests (server/src/models/userModel.ts pre-save hook, server/src/utils/tokens.ts hashToken), satisfying CON-505 and CON-511",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-011", "AC-014"]
+    },
+    {
+      "id": "NFR-003",
+      "text": "Every mutating auth route declares an express-validator chain (validateSignup, validateLogin, validateForgotPassword, validateResetPassword, validateResendVerification) and controllers cast user input with String() before querying, so malformed payloads answer 400 instead of crashing with a 500 (CON-515, CON-516)",
+      "linkedAcceptanceCriteria": ["AC-002", "AC-004", "AC-010", "AC-025"]
+    },
+    {
+      "id": "NFR-004",
+      "text": "The behaviour above is covered by Jest unit tests for the pure helpers and by integration tests against a real MongoDB for the flows (CON-402, CON-403, CON-404); the commands are pnpm --filter server test and pnpm --filter server test:integration",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-012", "AC-015", "AC-017", "AC-018", "AC-022"]
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "A verification link is opened after its 24-hour expiry, or a second time",
+      "expectedBehavior": "GET /api/auth/verify-email/:token answers 400 explaining the link was already used or expired and pointing at login and a fresh link"
+    },
+    {
+      "id": "EC-002",
+      "description": "A reset link is requested twice and the older one is used",
+      "expectedBehavior": "The second request overwrites the stored hash, so only the newest link works (verified by passwordReset.test.ts 'only honours the most recent reset link')"
+    },
+    {
+      "id": "EC-003",
+      "description": "Two logins happen within the same second and one of them logs out",
+      "expectedBehavior": "The jti on each JWT plus the token hash on the session make the two sessions distinct, so logout kills exactly one of them"
+    },
+    {
+      "id": "EC-004",
+      "description": "The email provider is down or not configured",
+      "expectedBehavior": "The account is still created; the failure is logged, the verification link is printed only when NODE_ENV is not production, and a production process without a provider throws instead of silently dropping mail"
+    },
+    {
+      "id": "EC-005",
+      "description": "A session row is older than the JWT lifetime",
+      "expectedBehavior": "The token can no longer be verified by JWT expiry, the row is excluded from the signed-in devices list by activeSessionFilter, and the TTL index removes it about a day later"
+    },
+    {
+      "id": "EC-006",
+      "description": "A revoked session replays its token",
+      "expectedBehavior": "protect finds no session with isValid true and answers 401 'Session expired or invalidated. Please log in again.'"
+    },
+    {
+      "id": "EC-007",
+      "description": "A request sends a number, object or null as the password on signup or reset",
+      "expectedBehavior": "The validator rejects the payload with 400 and the controller never calls bcrypt with a non-string value"
+    },
+    {
+      "id": "EC-008",
+      "description": "An account resets its password while another device is signed in",
+      "expectedBehavior": "The other device's session is invalidated by resetPassword and its next request answers 401, sending the browser to /login?expired=1"
+    }
+  ],
+  "dependencies": [
+    { "name": "jsonwebtoken", "type": "library", "notes": "Signs the 7-day session JWT with a jti (server/src/controllers/authController.ts)" },
+    { "name": "bcryptjs", "type": "library", "notes": "Password hashing with 10 salt rounds and comparison in userModel.matchPassword" },
+    { "name": "express-validator", "type": "library", "notes": "Validation chains exported from authController and attached in routes/authRoutes.ts" },
+    { "name": "express-rate-limit", "type": "library", "notes": "authLimiter, apiLimiter and sensitiveLimiter in server/src/app.ts" },
+    { "name": "mongoose", "type": "library", "notes": "User and Session models, including the Session TTL index" },
+    { "name": "nodemailer", "type": "library", "notes": "SMTP transport used when EMAIL_HOST is configured" },
+    { "name": "Resend HTTP API", "type": "service", "notes": "Preferred email provider; needs RESEND_API_KEY and a verified domain for arbitrary recipients" },
+    { "name": "SMTP provider", "type": "service", "notes": "Fallback provider configured with EMAIL_HOST, EMAIL_PORT, EMAIL_USER and EMAIL_PASS" },
+    { "name": "MongoDB", "type": "service", "notes": "Stores the users and the revocable session rows" },
+    { "name": "server/src/config/env.ts", "type": "internal", "notes": "Validates JWT_SECRET, MONGO_URI, CLIENT_URL and the rate-limit and proxy settings before the app starts" }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "Verification and reset emails are filtered as spam, so an account can never be activated",
+      "mitigation": "A resend endpoint exists, the account still works after a later verification, and the development console prints the link when no provider is configured"
+    },
+    {
+      "id": "RISK-002",
+      "description": "Session documents accumulate and make the authenticated lookup slow",
+      "mitigation": "The index on { token: 1 } makes the hash lookup unique and the TTL index (8 days) deletes expired rows"
+    },
+    {
+      "id": "RISK-003",
+      "description": "A database copy is replayed against the API",
+      "mitigation": "Only SHA-256 token hashes are stored, passwords are bcrypt hashes, and every session can be invalidated from the users own settings"
+    },
+    {
+      "id": "RISK-004",
+      "description": "Rate limiting keys on the wrong address behind a reverse proxy, weakening brute-force protection",
+      "mitigation": "app.set('trust proxy', config.trustProxy) is applied when the environment declares a proxy depth (server/src/app.ts, server/src/config/env.ts)"
+    }
+  ]
+}

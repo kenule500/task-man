@@ -1,0 +1,169 @@
+{
+  "feature": "import-export",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Parsers and shared helpers",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Define the neutral import shape",
+          "description": "Add server/src/utils/importers/types.ts: IMPORT_SOURCES, MAX_IMPORT_ITEMS, MAX_IMPORT_CONTENT, IMPORT_LIMITS, ImportItem/ImportComment/ImportChecklistItem/ParsedImport and ImportParseError.",
+          "linkedRequirements": ["FR-002", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Write the CSV reader and sheet helpers",
+          "description": "Add server/src/utils/importers/csv.ts (delimiter detection, quoted-field reader, headerKey) and sheet.ts (readSheet, columnsOf with aliases, firstCell/allCells, WarningBag, plural, uniqueExternalId).",
+          "linkedRequirements": ["FR-002", "FR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Write the text and suggestion helpers",
+          "description": "Add server/src/utils/importers/text.ts: cleanText (control/zero-width/bidi stripping and cutting), parseCalendarDate, parseDateTime, normalizePriority, parseStoryPoints, splitList, looksLikeEmail, suggestStatus and suggestType.",
+          "linkedRequirements": ["FR-003", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Write the three source parsers",
+          "description": "Add genericCsv.ts (columns by name, template export), trello.ts (board JSON: lists, cards, labels, members, due dates, checklists, comments; archived cards skipped) and jira.ts (issue type, status, assignee, sprint, story points, parent/epic, comments), plus links.ts for parent resolution and index.ts as the parseImport dispatcher.",
+          "linkedRequirements": ["FR-002", "FR-003"],
+          "linkedAcceptanceCriteria": ["AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Cover the parsers with unit tests",
+          "description": "Add server/src/__tests__/importers/{csv,helpers,jira,trello}.test.ts with fixtures.ts for the CSV reader and sheet helpers, the Jira and Trello mappings and the text helpers.",
+          "linkedRequirements": ["FR-002", "FR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Preview API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Implement the preview endpoint",
+          "description": "Add validatePreviewImport and previewImport to server/src/controllers/importController.ts: parse, load members, tally statuses/types/people/labels/sprints, expose the workflow stages, preview the first 20 items, collect up to 50 warnings (including the item-limit warning) and write nothing.",
+          "linkedRequirements": ["FR-001", "FR-003", "NFR-001", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Declare the import routes and the body limit",
+          "description": "Add server/src/routes/importRoutes.ts with the preview and commit routes behind protect + tasks:write, mount it at /:slug/import in server/src/routes/workspaceRoutes.ts, and add the 3 MB JSON parser for that path in server/src/app.ts.",
+          "linkedRequirements": ["FR-001", "NFR-001", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Commit API",
+      "dependencies": ["P1", "P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Read and validate the mapping",
+          "description": "Add readMapping with entriesOf (own entries as plain data), the 2000-entry limit, project existing-by-name or new name/key, statusMap validated against the workspace stage keys, userMap against members (or null) and typeMap against the task types.",
+          "linkedRequirements": ["FR-004", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Resolve and check the target project",
+          "description": "In commitImport: require projects:write for a new project, resolve an existing project (must exist in the workspace and not be archived) or refuse a taken name with 409, and refuse an empty file or one over the item limit before any write.",
+          "linkedRequirements": ["FR-004", "FR-005", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-004"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Create the tasks in batches",
+          "description": "Reserve task numbers, map statuses through stageFor/workflowOf, normalise labels, write calendar-day dates, limit assignees to mapped members, carry comments/checklists/links within their caps, count every dropped value in the warning counters, and insert in batches of 500.",
+          "linkedRequirements": ["FR-006", "FR-008", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Handle sprints",
+          "description": "Match sprint names to the project's existing sprints or create the missing ones (at most 30, 14 days each) only when the mapping asks for it and the caller may create them, adding a warning when the role cannot.",
+          "linkedRequirements": ["FR-007", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Make the commit atomic and audited",
+          "description": "Collect the created ids (tasks, sprints, a newly created project), delete them again on any failure, map ConflictError to 409, record import.completed with source/created/skipped/sprints and answer the result payload.",
+          "linkedRequirements": ["FR-009", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T3.6",
+          "title": "Cover the import API with integration tests",
+          "description": "Add server/src/__integration__/import.test.ts: preview, commit from CSV, Jira and Trello, the rules and limits (item cap, project conflict, mapping validation) and permissions/isolation.",
+          "linkedRequirements": ["FR-001", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "NFR-001", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-003", "AC-004", "AC-005", "AC-006"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Client wizard",
+      "dependencies": ["P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Build the import API, types and wizard hook",
+          "description": "Add client/src/features/import/{api,types,index}.ts and hooks/useImportWizard.ts with WIZARD_STEPS (source, upload, map, review, import), file reading, preview call, step navigation, the import call and the result state.",
+          "linkedRequirements": ["FR-010"],
+          "linkedAcceptanceCriteria": ["AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Write the sources, template and mapping helpers",
+          "description": "Add lib/sources.ts (SOURCES guidance, formatBytes, checkImportFile, readFileText), lib/template.ts (CSV_TEMPLATE_HEADERS, csvTemplate, downloadTextFile with a BOM) and lib/mapping.ts (stageForGroup, initialMapping, mappingProblems, hasMappingProblems, buildCommitMapping, projectNameFromFile, peopleSummary).",
+          "linkedRequirements": ["FR-011", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Build the wizard steps and the page",
+          "description": "Add SourceStep, UploadStep, MapStep, ReviewStep, ResultStep, ImportWizard and MapSelect, and host them on client/src/pages/ImportPage.tsx with useAuthGuard, the workspace projects and the caller's project permission.",
+          "linkedRequirements": ["FR-010", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Cover the wizard with tests",
+          "description": "Add client/src/features/import/__tests__/lib.test.ts (sources, template, mapping helpers) and ImportWizard.test.tsx (steps, validation, preview, import and result).",
+          "linkedRequirements": ["FR-010", "FR-011", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-008", "AC-009"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

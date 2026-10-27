@@ -1,0 +1,113 @@
+{
+  "feature": "import-export",
+  "version": 1,
+  "architecture": {
+    "approach": "Split the risky part from the writing part. Preview parses the uploaded text with a source-specific parser and answers a description of the file plus suggestions, so a user can see the result before anything exists; commit takes the same text plus a mapping and creates the tasks in one project. All parsing lives under server/src/utils/importers/ as pure modules over text (CSV reader, sheet/alias helpers, text cleaning and suggestions, and one parser per source), all of which produce a single neutral shape (ImportItem) so the controller never knows which tool the file came from. The controller resolves the workspace's own vocabulary — workflow stages for statuses, members for people, task types, labels — and writes in batches with reserved task numbers, keeping the whole request all-or-nothing by deleting what it created if anything fails. The client wizard mirrors the two calls: it reads the file in the browser, shows the preview, builds the mapping with pre-filled suggestions, and only sends the commit from the review step.",
+    "components": [
+      { "name": "server/src/utils/importers/types.ts", "action": "create", "description": "The neutral shape: IMPORT_SOURCES, MAX_IMPORT_ITEMS 2000, MAX_IMPORT_CONTENT 2 000 000, IMPORT_LIMITS (one cap per text field), ImportItem/ParsedImport/ImportParseError." },
+      { "name": "server/src/utils/importers/csv.ts", "action": "create", "description": "Delimiter detection (comma, semicolon, tab) and a quoted-field CSV reader plus headerKey normalisation." },
+      { "name": "server/src/utils/importers/sheet.ts", "action": "create", "description": "readSheet/columnsOf/firstCell/allCells with column aliases, a WarningBag for collecting messages, and uniqueExternalId for rows without an id." },
+      { "name": "server/src/utils/importers/text.ts", "action": "create", "description": "cleanText (strips control, zero-width and bidi characters, cuts to a limit), parseCalendarDate/parseDateTime, normalizePriority, parseStoryPoints, splitList, looksLikeEmail, suggestStatus and suggestType." },
+      { "name": "server/src/utils/importers/genericCsv.ts", "action": "create", "description": "The generic spreadsheet parser (title/description/status/priority/type/labels/assignee_email/due_date/start_date/story_points/parent_id/id) plus the CSV template the client downloads." },
+      { "name": "server/src/utils/importers/trello.ts", "action": "create", "description": "Trello board JSON parser: lists become statuses, cards become items with labels, members, due dates, checklists and comments; archived cards are skipped." },
+      { "name": "server/src/utils/importers/jira.ts", "action": "create", "description": "Jira CSV parser: issue type, status, assignee, sprint, story points, parent and epic links, comments." },
+      { "name": "server/src/utils/importers/links.ts", "action": "create", "description": "resolveLinks turns parent/epic external ids into the parent references a task can store." },
+      { "name": "server/src/utils/importers/index.ts", "action": "create", "description": "parseImport dispatcher (trello|jira|csv) with the BOM strip and the empty-file guard, re-exporting the helpers the controller uses." },
+      { "name": "server/src/controllers/importController.ts", "action": "create", "description": "validatePreviewImport/validateCommitImport, previewImport (describe only), commitImport (mapping, permissions, batches, sprints, rollback, activity) and the mapping reader that treats entries as plain data." },
+      { "name": "server/src/routes/importRoutes.ts", "action": "create", "description": "POST preview and commit behind protect + tasks:write with their validator chains." },
+      { "name": "server/src/app.ts", "action": "modify", "description": "express.json({ limit: '3mb' }) for /api/workspaces/:slug/import, mounted before the general 100 kB parser." },
+      { "name": "server/src/routes/workspaceRoutes.ts", "action": "modify", "description": "Mounts the import router at /:slug/import." },
+      { "name": "client/src/features/import/", "action": "create", "description": "Feature module: api, types, hooks/useImportWizard (five steps), lib/sources (per-source guidance, formatBytes, checkImportFile, readFileText), lib/mapping (initialMapping, mappingProblems, buildCommitMapping, peopleSummary, projectNameFromFile), lib/template (CSV template + download) and the step components." },
+      { "name": "client/src/pages/ImportPage.tsx", "action": "create", "description": "Screen hosting the wizard with the workspace projects and permissions it needs." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "title", "type": "String (cut to IMPORT_LIMITS.title 140)", "action": "no_change" },
+          { "name": "description", "type": "String (cut to 2000)", "action": "no_change" },
+          { "name": "status", "type": "String (mapped through the workspace workflow)", "action": "no_change" },
+          { "name": "type", "type": "String (mapped through the import typeMap)", "action": "no_change" },
+          { "name": "priority", "type": "String", "action": "no_change" },
+          { "name": "labels", "type": "String[] (normalizeLabels, max 10)", "action": "no_change" },
+          { "name": "assignees", "type": "ObjectId[] (only members present in userMap)", "action": "no_change" },
+          { "name": "dueDate", "type": "Date (calendar day, YYYY-MM-DD)", "action": "no_change" },
+          { "name": "startDate", "type": "Date (calendar day)", "action": "no_change" },
+          { "name": "storyPoints", "type": "Number", "action": "no_change" },
+          { "name": "parent", "type": "ObjectId (from parent_id or a Jira parent)", "action": "no_change" },
+          { "name": "sprint", "type": "ObjectId (mapped or created sprint)", "action": "no_change" },
+          { "name": "project", "type": "String (the target project name)", "action": "no_change" },
+          { "name": "comments", "type": "[{ author, text, createdAt }] (when includeComments)", "action": "no_change" },
+          { "name": "checklist", "type": "[{ text, done }] (up to 50 items)", "action": "no_change" },
+          { "name": "links", "type": "[{ kind, url }] (from the source, capped)", "action": "no_change" },
+          { "name": "number", "type": "Number (from reserveTaskNumbers)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String 1..MAX_PROJECT_NAME 60", "action": "no_change" },
+          { "name": "nameKey", "type": "String (lower-cased name, unique per workspace)", "action": "no_change" },
+          { "name": "key", "type": "String /^[A-Z0-9]{2,6}$/ (given or derived from the name)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Sprint",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String (≤ MAX_SPRINT_NAME)", "action": "no_change" },
+          { "name": "startDate", "type": "Date (import date)", "action": "no_change" },
+          { "name": "endDate", "type": "Date (import date + 14 days)", "action": "no_change" },
+          { "name": "status", "type": "String ('planned' default)", "action": "no_change" },
+          { "name": "project", "type": "String (the target project name)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "action", "type": "String ('import.completed' already in ACTIVITY_ACTIONS)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Preview: validate source and content, parse through parseImport (BOM stripped, empty file refused), load the workspace members, tally statuses/columns, types, people (matched by email or name through matchMember), labels and sprints, offer the workspace's workflow stages, add a top warning when the file exceeds the item limit, and answer the first 20 items with their assignees, dates, labels, parents, comments and checklist counts. Commit: parse again, refuse more than 2000 items, read the mapping as plain data (project existing-by-name or new, statusMap of raw → stage key, userMap of raw → member id or null, typeMap of raw → task type, createSprints, includeComments), enforce projects:write for a new project and for creating sprints, check the existing project (must exist and not be archived) or the new name (409 when taken), reserve task numbers, insert in batches of 500 with mapped statuses through stageFor, normalized labels, calendar-day dates, capped comments/checklists/links and a warning counter for every dropped value, create or match the sprint names, and finish with an import.completed activity entry and the result payload. On any error the collections created during the request are deleted again, in reverse order of creation (tasks, then sprints, then a project created by this request). All four entity rows above are no_change because the import writes existing fields of existing models; only the parsers and the controller are new."
+  },
+  "apiContracts": [
+    { "method": "POST", "path": "/api/workspaces/:slug/import/preview", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-002", "FR-003", "NFR-001", "NFR-003"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/import/commit", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "NFR-001", "NFR-002", "NFR-004"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "Both routes run protect then requirePermission('tasks:write'); every query adds workspace: req.workspace._id, projects and sprints are resolved inside that workspace, and creating a project or a sprint is refused with 403 for a caller without projects:write, so an import cannot restructure a workspace the caller cannot manage." },
+    { "requirementId": "NFR-002", "description": "Every imported string goes through cleanText, which strips control characters, zero-width and bidirectional marks and cuts the value to IMPORT_LIMITS/model caps, so an export cannot smuggle invisible characters into task text or bypass a schema limit." },
+    { "requirementId": "NFR-003", "description": "The endpoints are bounded by design: 2000 items, 1..2 000 000 characters of content, a 3 MB JSON body mounted only on this path, 500-document batches, 30 new sprints and 2000 mapping entries, all of which are refused with a readable message rather than accepted and truncated." },
+    { "requirementId": "NFR-004", "description": "Mapping objects are read through entriesOf, which iterates own entries so prototype keys (constructor, __proto__) are treated as ordinary data, values are validated against members, workflow stage keys and the task vocabularies before use, no user string is interpolated into a query, and the commit rolls back everything it created if any step fails." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-003", "strategy": "Parsing is linear in the file size and capped at 2 000 000 characters; the preview only serialises the first 20 items and capped tallies, so the response stays small for a 2000-item file." },
+    { "requirementId": "NFR-003", "strategy": "Writes are grouped into batches of 500 documents, task numbers are reserved once instead of per document, and sprints are created at most 30 times per import, which keeps a full 2000-item import to a small number of round-trips." },
+    { "requirementId": "NFR-002", "strategy": "Text cleaning happens once per field while parsing, so the commit path never re-scans stored text and the insert path only maps already-sanitised values." },
+    { "requirementId": "NFR-001", "strategy": "Member, project and stage lookups are loaded once per request (loadMembers, one Project query, workflowOf from the workspace document) rather than per item, so a mapping decision costs no extra query." }
+  ],
+  "dependencies": [
+    { "name": "server/src/utils/workflow.ts", "type": "internal", "action": "no_change", "notes": "workflowOf/stageFor map imported list names onto the workspace's stages." },
+    { "name": "server/src/utils/taskNumbers.ts", "type": "internal", "action": "no_change", "notes": "reserveTaskNumbers allocates the numbers used by the batch inserts." },
+    { "name": "server/src/utils/taskQuery.ts", "type": "internal", "action": "no_change", "notes": "normalizeLabels keeps imported labels consistent with the workspace rules." },
+    { "name": "express.json({ limit: '3mb' })", "type": "internal", "action": "add", "notes": "Path-specific parser for the import endpoints." },
+    { "name": "Trello / Jira / spreadsheet exports", "type": "external", "action": "no_change", "notes": "The uploads the user obtains from those tools; the parsers read their standard shapes." }
+  ],
+  "risks": [
+    { "description": "A large or hostile file exhausting memory or leaving a partial backlog.", "mitigation": "Hard caps on items/characters/body size, parse-before-write, batches of 500 and a rollback of everything the failed request created." },
+    { "description": "Silent data loss while mapping an unfamiliar export.", "mitigation": "Counters and warnings (skipped, noDue, badDates, invalid, commentsAsImporter) surfaced in both the preview and the result, plus a review step in the wizard." },
+    { "description": "Mapping keys reaching the object prototype.", "mitigation": "entriesOf reads own entries as plain data, and every value is validated against members, stage keys or the task vocabularies." },
+    { "description": "Two imports running at once in the same project.", "mitigation": "Task numbers are reserved up front, project creation is guarded by the unique (workspace, nameKey) index (409 on collision) and each batch insert is independent, so a duplicate project fails cleanly instead of half-creating one." }
+  ]
+}

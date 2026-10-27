@@ -1,0 +1,291 @@
+{
+  "feature": "time-tracking",
+  "title": "Time tracking: timers, manual entries, task time and a weekly timesheet with CSV export",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Tasks carry a story-point estimate, but nobody could see how much time the work actually took, who spent it and on which day. Without that, estimates never improve, a weekly report has to be assembled by hand, and a team cannot tell a ten-minute fix from a two-day investigation. Time had to be captured with as little friction as possible, next to the work itself, and it had to be exportable for whoever needs the figures outside the app.",
+    "proposedSolution": "A TimeEntry document (server/src/models/timeEntryModel.ts) records one stretch of work on a task: whole minutes, a start, an optional end and a note, with a running flag for the caller's open timer. Minutes are logged by hand (minutes or a start and an end) or produced by a timer that is started and stopped from the task or from the header pill. The task's loggedMinutes is resynchronised from its stopped entries on every change, so the task list stays correct. GET /api/workspaces/:slug/time returns the timesheet with totals per person, day and task, and /time/export.csv writes the same rows as RFC 4180 CSV with a formula-injection guard.",
+    "targetAudience": "Individual contributors who log their own time and run a timer while they work, and team leads or workspace administrators who review a week for one person or the whole team and export it.",
+    "assumptions": [
+      "Time is recorded in whole minutes; there is no second-level precision, and a timer that is stopped at once still counts one minute.",
+      "The day a timesheet groups by is the UTC calendar day of the entry's start (dayKey slices the ISO string), while the weekly grid on the client groups by the viewer's local calendar day.",
+      "The running timer is deliberately kept out of every total: a timesheet and its export only contain stopped entries, and the open timer is reported separately.",
+      "A timer left running overnight keeps counting up to a single day (1440 minutes) and is then capped rather than growing without bound."
+    ],
+    "outOfScope": [
+      "Approval workflows for timesheets, and locking a period once it has been reviewed.",
+      "Billing rates, billable/non-billable flags and invoicing; the export is plain CSV.",
+      "Time estimates in hours as a first-class citizen: the estimate is stored as minutes but shown parsed, and no reporting compares it across tasks.",
+      "Absence, holiday or capacity calendars."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Log time on a task by hand",
+      "role": "team member",
+      "want": "record the minutes I spent, with an optional start time and a note",
+      "benefit": "the work I did is visible on the task even when I forgot to run a timer",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "A manual entry is created from either a number of minutes (1 to 1440) with an optional start time and note, or from a start and an end time; the entry is stored stopped and the response returns it together with the task's new loggedMinutes."
+        },
+        {
+          "id": "AC-002",
+          "text": "When a start and an end are given, the length must be at least one minute and at most 1440 minutes; otherwise the request is refused with HTTP 400 and a message stating that limit."
+        },
+        {
+          "id": "AC-003",
+          "text": "Minutes outside 1 to 1440 and a note longer than 200 characters are refused with HTTP 400 by the validation chain."
+        },
+        {
+          "id": "AC-004",
+          "text": "A start time more than one day in the future is refused with HTTP 400 'You cannot log time more than a day ahead'."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Run a timer while I work",
+      "role": "team member",
+      "want": "start a timer on the task I am working on and stop it when I switch",
+      "benefit": "I do not have to remember how long I worked",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-005",
+          "text": "Starting a timer creates a running entry (endedAt null, minutes 0) and answers with it; starting again on the same task returns the entry that is already running instead of creating a second one."
+        },
+        {
+          "id": "AC-006",
+          "text": "A user has at most one running timer per workspace: starting a timer while another one runs stops and logs the previous entry first and returns both the new entry and the stopped one."
+        },
+        {
+          "id": "AC-007",
+          "text": "Stopping the timer on a task ends it at the current time, capped at 1440 minutes after it started, and logs at least one minute."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "See logged time against the estimate on a task",
+      "role": "team member",
+      "want": "the estimate, the logged total, my running timer and the individual entries on the task",
+      "benefit": "I can tell whether the task is over or under its estimate without leaving the task",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-008",
+          "text": "The task time endpoint returns the estimate in minutes (or null), the task's loggedMinutes, the caller's running entry (or null) and up to 500 entries newest first with the user who logged them."
+        },
+        {
+          "id": "AC-009",
+          "text": "Deleting an entry is allowed for its author, and for a role holding settings:manage; anyone else receives HTTP 403 'You can only delete your own time entries'. After logging, stopping or deleting, the task's loggedMinutes equals the sum of its stopped entries."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Review a week of time",
+      "role": "team lead",
+      "want": "a timesheet for a date range, per person or for the whole workspace, with totals",
+      "benefit": "I can see where the week went and who worked on what",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-010",
+          "text": "The timesheet returns the entries of the range with totals overall and per user, per day and per task; a caller without settings:manage only ever receives their own entries."
+        },
+        {
+          "id": "AC-011",
+          "text": "A project filter limits the timesheet to entries on tasks of that project, and the response says truncated when more entries exist than the page limit, returning the newest 5000."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Export a timesheet as CSV",
+      "role": "team lead",
+      "want": "download the same figures as a CSV file",
+      "benefit": "I can hand the numbers to a spreadsheet or an invoicing process",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-012",
+          "text": "The export answers as text/csv with a UTF-8 byte-order mark, one row per entry and the columns Date, User, Task key, Task, Project, Started, Ended, Minutes, Hours and Note, offered for download with the workspace slug and the day in the filename."
+        },
+        {
+          "id": "AC-013",
+          "text": "The export honours the same filters as the timesheet (from, to, user, project), accepts at most 20000 entries, and every field is quoted with inner quotes doubled; text a spreadsheet could run as a formula gets a leading apostrophe."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "server/src/models/timeEntryModel.ts stores one stretch of work: workspace, task, user, startedAt, endedAt (null while running), whole minutes (0 while running, min 0), a note of at most 200 characters and a running flag, plus the indexes { workspace, user, startedAt } and { task }. A partial unique index on { workspace, user } with partialFilterExpression { running: true } makes a second running timer impossible, even when two start requests race.",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-006"]
+    },
+    {
+      "id": "FR-002",
+      "text": "POST /api/workspaces/:slug/tasks/:id/time (addTimeEntry) logs by hand: either minutes (1..1440, with an optional startedAt that defaults to now minus those minutes) or startedAt together with endedAt, whose length must be 1..1440 minutes (400 otherwise). validateTimeEntry is a custom chain that requires either minutes or both timestamps, caps the note at 200 characters, and the handler refuses a start more than a day ahead. It answers 201 with { entry, loggedMinutes }.",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003", "AC-004"]
+    },
+    {
+      "id": "FR-003",
+      "text": "POST /api/workspaces/:slug/tasks/:id/timer/start (startTimer) returns the entry already running on that task if there is one; otherwise it stops and logs any timer the caller has running elsewhere in the workspace and creates a running entry (endedAt null, minutes 0) for that task, answering 201 with { entry, stopped }.",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-006"]
+    },
+    {
+      "id": "FR-004",
+      "text": "POST /api/workspaces/:slug/tasks/:id/timer/stop (stopTimer) ends the caller's running timer on that task. timerEnd caps the end at start + MAX_TIMER_MINUTES (1440) and minutesBetween returns the rounded whole minutes, at least 1 and at most the cap. A stop without a running timer answers 404 'No timer is running on this task'.",
+      "linkedAcceptanceCriteria": ["AC-007"]
+    },
+    {
+      "id": "FR-005",
+      "text": "syncLogged aggregates the minutes of the stopped entries of a task and writes them to the task's loggedMinutes after every log, stop and delete, returning the new total in the response. deleteTimeEntry allows the author or a holder of settings:manage (403 otherwise), and logs a time.deleted activity entry with the removed duration.",
+      "linkedAcceptanceCriteria": ["AC-009"]
+    },
+    {
+      "id": "FR-006",
+      "text": "GET /api/workspaces/:slug/tasks/:id/time (getTaskTime) returns estimateMinutes (null when unset), the task's loggedMinutes, the caller's running entry (or null) and at most 500 entries newest first, each with the user populated from PUBLIC_USER_FIELDS.",
+      "linkedAcceptanceCriteria": ["AC-008"]
+    },
+    {
+      "id": "FR-007",
+      "text": "GET /api/workspaces/:slug/time (getTimesheet) filters stopped entries by startedAt between from and to (a bare YYYY-MM-DD 'to' covers the whole day), by user only for a caller holding settings:manage (everyone else is forced to their own id) and by project through the ids of that project's tasks, then returns entries with the task key and the totals overall, by user (with names), by day (UTC) and by task, plus truncated when more than the 5000-row limit exists. Invalid filters answer 400.",
+      "linkedAcceptanceCriteria": ["AC-010", "AC-011"]
+    },
+    {
+      "id": "FR-008",
+      "text": "GET /api/workspaces/:slug/time/running (getRunningTimer) returns the caller's running entry, populated with the task key, or { entry: null } when no timer runs, so the header pill and the task dialog share one source of truth.",
+      "linkedAcceptanceCriteria": ["AC-005"]
+    },
+    {
+      "id": "FR-009",
+      "text": "GET /api/workspaces/:slug/time/export.csv (exportTimesheet) uses the same filter logic with a 20000-row limit and writes text/csv with a UTF-8 byte-order mark, the header Date, User, Task key, Task, Project, Started, Ended, Minutes, Hours, Note and one row per entry; csvCell quotes every field, doubles inner quotes and prefixes a leading apostrophe to text starting with =, +, -, @, tab or carriage return, and the file is named timesheet-<slug>-<day>.csv.",
+      "linkedAcceptanceCriteria": ["AC-012", "AC-013"]
+    },
+    {
+      "id": "FR-010",
+      "text": "The client keeps the caller's running timer in one store (client/src/features/time/timerStore.ts) with subscribeTimer/getTimerSnapshot, refreshTimer, selectWorkspace and startTimer/stopTimer, and fires the taskman:time-changed window event after any change. TimerPill renders it in the app header with the task key, the elapsed clock and a stop button, and does nothing without a timer or tasks:read.",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-006"]
+    },
+    {
+      "id": "FR-011",
+      "text": "TaskTimeSection in the task dialog shows the editable estimate (parseDuration accepts '2h 30m', '90m', '1.5h', '1:30' or a bare number of minutes, capped at MAX_ESTIMATE_MINUTES = 100000), the logged total, the progress bar against the estimate, the entries with who logged them, the start and stop controls, the LogTimePopover for a manual entry and deletion of an entry; useTaskTime and useRunningTimer reload on the time-changed event and when the window regains focus.",
+      "linkedAcceptanceCriteria": ["AC-003", "AC-008", "AC-009"]
+    },
+    {
+      "id": "FR-012",
+      "text": "TimesheetPage shows one ISO week at a time: startOfIsoWeek/weekDayKeys/shiftWeekStart navigate Monday-based calendar-day weeks, weekRange converts the week to the ISO instants the API filters on, buildWeekGrid turns the entries into task rows by local day with row and day totals, a manager can pick a person (settings:manage) while everyone else sees their own time, and Export CSV downloads the blob from /time/export.csv.",
+      "linkedAcceptanceCriteria": ["AC-010", "AC-012", "AC-013"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Every time query is scoped to one workspace (CON-106): TimeEntry reads and writes carry workspace: req.workspace._id, the task is looked up with workspace: workspaceOf(req)._id, and the project filter resolves task ids inside that workspace only.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-002",
+      "text": "The routes are permission scoped (CON-512): the task time routes on server/src/routes/taskRoutes.ts use tasks:read (read) and tasks:write (log, timer, delete), and the timesheet, running timer and export routes on server/src/routes/timeRoutes.ts use tasks:read. Seeing other people's time and deleting someone else's entry additionally requires settings:manage, which is checked in the controller (CON-105 keeps it out of the route table because the rule depends on the entry's author).",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-003",
+      "text": "The arithmetic is pure and unit tested (CON-109, CON-202, CON-402): server/src/utils/timeTracking.ts (minutesBetween, timerEnd, dayKey, parseRangeBound, summarizeEntries, formatMinutes, csvCell, toCsvRows) and the client helpers client/src/features/time/lib/duration.ts and lib/timesheet.ts have Jest suites.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-004",
+      "text": "Calendar-day handling follows CON-203: the API accepts a bare YYYY-MM-DD range bound (a 'to' bound covers that whole UTC day) and the client builds its week from local calendar-day keys through @/features/tasks/lib/date, mapping each entry back to a day with localDayKey instead of constructing a Date from a day string.",
+      "linkedAcceptanceCriteria": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "Two start requests for the same user and workspace arrive at the same moment.",
+      "expectedBehavior": "The partial unique index on { workspace, user } with running: true lets only one running entry exist; the loser fails on the index instead of leaving two timers behind."
+    },
+    {
+      "id": "EC-002",
+      "description": "A stop is requested for a task with no running timer.",
+      "expectedBehavior": "HTTP 404 'No timer is running on this task'; a concurrent stop that loses the race gets the same answer because the update is conditional on running: true."
+    },
+    {
+      "id": "EC-003",
+      "description": "A timer is left running for days (a forgotten tab).",
+      "expectedBehavior": "It is capped at 1440 minutes: timerEnd limits the end to start + one day and minutesBetween caps the value, so a forgotten timer cannot produce an absurd entry."
+    },
+    {
+      "id": "EC-004",
+      "description": "A manual entry has an end before its start or spans more than a day.",
+      "expectedBehavior": "HTTP 400 'The end must be after the start, at most 1440 minutes later'."
+    },
+    {
+      "id": "EC-005",
+      "description": "A manual entry starts more than a day in the future.",
+      "expectedBehavior": "HTTP 400 'You cannot log time more than a day ahead'."
+    },
+    {
+      "id": "EC-006",
+      "description": "An entry refers to a task or user that was deleted after the time was logged.",
+      "expectedBehavior": "The row is dropped from the timesheet (loadSheet filters entries without a populated task or user), so totals never count work that no longer exists; the export therefore omits it as well."
+    },
+    {
+      "id": "EC-007",
+      "description": "A workspace has more entries in the range than the page limit.",
+      "expectedBehavior": "The timesheet returns the newest 5000 (TIMESHEET_LIMIT) and sets truncated: true so the UI can say the list is incomplete; the export accepts up to 20000 (EXPORT_LIMIT) and is cut silently beyond that."
+    },
+    {
+      "id": "EC-008",
+      "description": "A timer is running while the timesheet is requested.",
+      "expectedBehavior": "The open timer is never part of the totals or the export (the filter is running: { $ne: true }); it is reported by /time/running instead."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "server/src/utils/activity.ts",
+      "type": "internal",
+      "notes": "recordActivity writes the time.logged and time.deleted entries; auditLookup resolves the task title for the summary."
+    },
+    {
+      "name": "client/src/features/tasks",
+      "type": "internal",
+      "notes": "Task list and detail supply the estimate field and the task dialog the time section renders in; lib/date gives the calendar-day helpers."
+    },
+    {
+      "name": "client/src/utils/api.ts",
+      "type": "internal",
+      "notes": "CON-207: timeApi goes through the shared axios instance so errors and the 401 redirect stay consistent."
+    },
+    {
+      "name": "mongoose",
+      "type": "library",
+      "notes": "TimeEntry documents, the partial unique index and the aggregate that sums the stopped minutes of a task."
+    },
+    {
+      "name": "express-validator",
+      "type": "library",
+      "notes": "validateTimeEntry is declared on the route in server/src/routes/taskRoutes.ts."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "loggedMinutes is denormalised onto the task, so a write that bypasses the controller (a script, or a delete performed directly in the database) leaves the task total stale.",
+      "mitigation": "Every path that changes entries (log, stop, delete) calls syncLogged and returns the recomputed total, and syncLogged always recomputes from the entries rather than incrementing."
+    },
+    {
+      "id": "RISK-002",
+      "description": "The running timer depends on the browser staying alive; a closed tab leaves the timer open until it is stopped or capped at one day.",
+      "mitigation": "The cap bounds the damage, the header pill and the task dialog show the running timer wherever the user goes, and starting another timer stops the previous one."
+    },
+    {
+      "id": "RISK-003",
+      "description": "UTC days on the server and local days on the client can disagree for entries logged close to midnight, so a row can appear under a different day in the grid than in the totals by day.",
+      "mitigation": "The grid groups by the viewer's local calendar day (localDayKey) while server totals group by UTC day; both are documented here and the weekly range is built from local week boundaries so the entries are in scope either way."
+    }
+  ]
+}

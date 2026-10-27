@@ -1,0 +1,293 @@
+{
+  "feature": "sso-2fa",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Single sign-on configuration and sign-in start",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Read the provider configuration and expose what is enabled",
+          "description": "readSsoProviders enables a provider only when both client id and secret are set, sanitises MICROSOFT_TENANT to one URL-safe segment, and listProviders returns id/label pairs only.",
+          "linkedRequirements": ["FR-001"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Start a sign-in with state, PKCE and a nonce",
+          "description": "startSso fetches discovery, creates the PKCE pair, state and nonce, stores only the state hash with the verifier, nonce, validated redirect and a ten-minute expiry, and redirects with Cache-Control: no-store (safeRedirectPath for the redirect, 502 when the provider is unreachable).",
+          "linkedRequirements": ["FR-002"],
+          "linkedAcceptanceCriteria": ["AC-002", "AC-003"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Callback, token verification and account resolution",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Finish the round trip and map every failure to a fixed code",
+          "description": "ssoCallback deletes the pending state first (single use), always exchanges the code with the PKCE verifier, and redirects to /login with one of the fixed SsoErrorCode values; the session token travels in the URL fragment of /sso/complete.",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Verify ID tokens and decide which claims to trust",
+          "description": "oidc.ts caches discovery and JWKS, accepts only RS256 keys from the discovered set, checks audience, expiry, iat, issuer (including Microsoft tenant templates), azp and nonce, and identityFromClaims applies the Google/Microsoft email trust rules.",
+          "linkedRequirements": ["FR-004"],
+          "linkedAcceptanceCriteria": ["AC-006", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Resolve, link or create the account",
+          "description": "resolveSsoUser links by (provider, subject), requires a provider-verified email otherwise, links or creates a verified ssoOnly account with a random password, takes over an unverified account, and refuses a second identity of the same provider.",
+          "linkedRequirements": ["FR-005"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Send two-factor accounts to the challenge step",
+          "description": "An SSO identity whose account has two-factor on receives a challenge in the fragment of the login page instead of a session, so both sign-in paths share one second step.",
+          "linkedRequirements": ["FR-006"],
+          "linkedAcceptanceCriteria": ["AC-015"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Two-factor at sign-in",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Implement TOTP on Node crypto only",
+          "description": "base32 encode/decode, HOTP/TOTP generation, a +/-1 step window, a comparison that visits every candidate step, a lastUsedStep replay guard and the otpauth URL builder.",
+          "linkedRequirements": ["FR-007"],
+          "linkedAcceptanceCriteria": ["AC-014", "AC-018"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Challenge, verify and lock the second step",
+          "description": "createChallenge writes a hashed single-use nonce with a five-minute expiry and signs a separate-purpose JWT; completeTwoFactorLogin verifies the code or a recovery code with conditional writes, counts challenge attempts, deletes the challenge after five wrong codes and locks the account for fifteen minutes after repeated failures.",
+          "linkedRequirements": ["FR-009"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-011", "AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Wire the password step to the challenge",
+          "description": "loginUser answers { twoFactorRequired: true, challenge } instead of a session when the account has two-factor on, and POST /api/auth/login/2fa completes it via completeTwoFactorLogin.",
+          "linkedRequirements": ["FR-009"],
+          "linkedAcceptanceCriteria": ["AC-010", "AC-011"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Enrolment, recovery codes and disabling",
+      "dependencies": ["P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Expose the status and start a setup",
+          "description": "getTwoFactorStatus reports enabled, enabledAt and recoveryCodesRemaining; setupTwoFactor returns a base32 secret and otpauth URL while storing the secret encrypted as pending, refusing when already on.",
+          "linkedRequirements": ["FR-008"],
+          "linkedAcceptanceCriteria": ["AC-016", "AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Enable with the password and a proving code",
+          "description": "enableTwoFactor requires the password plus a valid code, stores the encrypted secret, records the proving step as used, drops the pending secret and returns ten recovery codes exactly once (conditional update so a second tab cannot win).",
+          "linkedRequirements": ["FR-008", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-018", "AC-020"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Accept and regenerate recovery codes",
+          "description": "Recovery codes are generated from an alphabet without look-alike characters, hashed with bcrypt and consumed by a conditional pull; regeneration requires the password plus a current authenticator code and invalidates the previous codes.",
+          "linkedRequirements": ["FR-010"],
+          "linkedAcceptanceCriteria": ["AC-021", "AC-022", "AC-023"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Disable two-factor unless a workspace requires it",
+          "description": "disableTwoFactor requires the password plus a code or a recovery code, refuses with TWO_FACTOR_REQUIRED_BY_WORKSPACE while any workspace requires it, and clears every two-factor field and the open challenges.",
+          "linkedRequirements": ["FR-011"],
+          "linkedAcceptanceCriteria": ["AC-024"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P5",
+      "name": "Linked sign-in methods",
+      "dependencies": ["P2"],
+      "tasks": [
+        {
+          "id": "T5.1",
+          "title": "List and unlink provider identities",
+          "description": "listSsoMethods reports the linked providers, whether a password exists and which providers are configured; unlinkSsoMethod pulls one link and refuses the only method of a passwordless account with LAST_SIGN_IN_METHOD.",
+          "linkedRequirements": ["FR-012"],
+          "linkedAcceptanceCriteria": ["AC-025", "AC-026"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P6",
+      "name": "Personal API tokens",
+      "dependencies": ["P5"],
+      "tasks": [
+        {
+          "id": "T6.1",
+          "title": "Generate tokens and store only a digest",
+          "description": "generateApiToken returns tm_ plus 40 uniform base62 characters with an 8-character display prefix and a keyed PBKDF2-SHA256 digest; validateCreateToken checks the name, scope keys, scope subset, the ten-token cap and the expiry window.",
+          "linkedRequirements": ["FR-013", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-027", "AC-029"],
+          "completed": true
+        },
+        {
+          "id": "T6.2",
+          "title": "List and create tokens without ever returning them again",
+          "description": "listTokens projects an explicit field set that excludes the digest and shows only the caller's tokens; createToken returns the plain value once and records token.created.",
+          "linkedRequirements": ["FR-013"],
+          "linkedAcceptanceCriteria": ["AC-027", "AC-028"],
+          "completed": true
+        },
+        {
+          "id": "T6.3",
+          "title": "Enforce the token's workspace and scopes on every request",
+          "description": "protect dispatches tm_ tokens to authenticateApiToken (digest lookup, usable check, workspace route required, throttled lastUsedAt) and requirePermission adds the workspace and scope checks on top of the role's permissions.",
+          "linkedRequirements": ["FR-014", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-030", "AC-031", "AC-033"],
+          "completed": true
+        },
+        {
+          "id": "T6.4",
+          "title": "Revoke a token",
+          "description": "revokeToken lets the owner revoke their own token or a settings:manage holder revoke any token in the workspace, sets revokedAt and records token.revoked; revoked and expired tokens are refused on use.",
+          "linkedRequirements": ["FR-014"],
+          "linkedAcceptanceCriteria": ["AC-032", "AC-033"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P7",
+      "name": "Client surfaces",
+      "dependencies": ["P4", "P6"],
+      "tasks": [
+        {
+          "id": "T7.1",
+          "title": "Offer provider buttons and complete the hand-off",
+          "description": "SsoButtons renders one button per configured provider and marks the pending sign-in per tab; SsoCompletePage reads the fragment once, clears it from the address bar and history, requires a sign-in started in this tab, loads the profile and stores the session.",
+          "linkedRequirements": ["FR-015"],
+          "linkedAcceptanceCriteria": ["AC-034"],
+          "completed": true
+        },
+        {
+          "id": "T7.2",
+          "title": "Map server error codes to plain language",
+          "description": "lib.ssoErrorMessage covers every SsoErrorCode plus not_started, unknown codes fall back to a generic message, and safeAppPath restricts the redirect to an in-app path.",
+          "linkedRequirements": ["FR-015"],
+          "linkedAcceptanceCriteria": ["AC-034"],
+          "completed": true
+        },
+        {
+          "id": "T7.3",
+          "title": "Build the two-factor settings and recovery UI",
+          "description": "TwoFactorCard, TwoFactorSetupDialog, RecoveryCodesDialog and the TwoFactorStep form, with sanitised code input, grouped secret display, normalised recovery codes and a downloadable recovery file.",
+          "linkedRequirements": ["FR-016"],
+          "linkedAcceptanceCriteria": ["AC-035"],
+          "completed": true
+        },
+        {
+          "id": "T7.4",
+          "title": "Gate a workspace that requires two-factor",
+          "description": "The axios client raises TWO_FACTOR_REQUIRED_EVENT on a 403 with that code and TwoFactorRequiredGate shows a blocking screen with a link to Security settings; the workspace security card warns the admin before enabling the policy.",
+          "linkedRequirements": ["FR-016", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-035", "AC-024"],
+          "completed": true
+        },
+        {
+          "id": "T7.5",
+          "title": "Build the developer token screens",
+          "description": "DevelopersPage with useTokens, CreateTokenDialog, TokenList and SecretReveal: scopes limited by catalog.grantableScopes, read scopes preselected, and the secret shown once.",
+          "linkedRequirements": ["FR-013"],
+          "linkedAcceptanceCriteria": ["AC-027", "AC-028"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P8",
+      "name": "Hardening and quality gates",
+      "dependencies": ["P7"],
+      "tasks": [
+        {
+          "id": "T8.1",
+          "title": "Unit test the pure modules",
+          "description": "totp.test.ts, secretBox.test.ts, apiTokens.test.ts, oidc.test.ts and ssoRedirect.test.ts cover the RFC vectors, the encryption context binding, token format and digests, token verification and redirect safety.",
+          "linkedRequirements": ["NFR-005"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-006", "AC-014"],
+          "completed": true
+        },
+        {
+          "id": "T8.2",
+          "title": "Integration test the flows",
+          "description": "sso.test.ts (a fake provider), twoFactor.test.ts and apiTokens.test.ts drive SSO sign-in, linking, the second step, recovery codes, the workspace policy and token use over HTTP against a real database.",
+          "linkedRequirements": ["NFR-005"],
+          "linkedAcceptanceCriteria": ["AC-013", "AC-015", "AC-030"],
+          "completed": true
+        },
+        {
+          "id": "T8.3",
+          "title": "Bound brute force at both steps",
+          "description": "Both two-factor routes sit behind sensitiveLimiter, a challenge tolerates five wrong codes, and five consecutive failures set lockedUntil for fifteen minutes.",
+          "linkedRequirements": ["NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T8.4",
+          "title": "Keep secrets out of storage, logs and responses",
+          "description": "secretBox for the shared secret, bcrypt for recovery codes, SHA-256 for state and challenge nonces, PBKDF2 for tokens, select: false on every secret field, a toJSON reduction of twoFactor, and logFailure that prints only the error name and message.",
+          "linkedRequirements": ["NFR-002", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-019", "AC-020", "AC-022", "AC-028"],
+          "completed": true
+        },
+        {
+          "id": "T8.5",
+          "title": "Require a real session for account endpoints",
+          "description": "protect plus rejectApiToken on every /api/profile/2fa and /api/profile/sso route, and password confirmation before enabling, disabling or regenerating codes (CON-511).",
+          "linkedRequirements": ["NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-018", "AC-024", "AC-026", "AC-031"],
+          "completed": true
+        },
+        {
+          "id": "T8.6",
+          "title": "Run the repository quality gates",
+          "description": "pnpm --filter server typecheck && pnpm --filter server test, pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter client lint, pnpm --filter client build, plus the browser checks on the sign-in, security and developers screens (CON-402, CON-703).",
+          "linkedRequirements": ["NFR-005"],
+          "linkedAcceptanceCriteria": ["AC-034", "AC-035"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

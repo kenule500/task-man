@@ -1,0 +1,2737 @@
+{
+  "feature": "real-time-chat",
+  "status": "fail",
+  "checkedAt": "2026-10-19T14:25:40.055Z",
+  "summary": {
+    "matched": 42,
+    "missing": 155,
+    "renamed": 0,
+    "extra": 277
+  },
+  "items": {
+    "matched": [
+      {
+        "type": "component",
+        "name": "server/src/models/chatChannelModel.ts",
+        "action": "create",
+        "file": "server/src/models/chatChannelModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/chatMessageModel.ts",
+        "action": "create",
+        "file": "server/src/models/chatMessageModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/chatReactionModel.ts",
+        "action": "create",
+        "file": "server/src/models/chatReactionModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/chatReadModel.ts",
+        "action": "create",
+        "file": "server/src/models/chatReadModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/chatPresenceModel.ts",
+        "action": "create",
+        "file": "server/src/models/chatPresenceModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "create",
+        "file": "server/src/utils/chatAccess.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatQuery.ts",
+        "action": "create",
+        "file": "server/src/utils/chatQuery.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatMentions.ts",
+        "action": "create",
+        "file": "server/src/utils/chatMentions.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatValidation.ts",
+        "action": "create",
+        "file": "server/src/utils/chatValidation.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatRetention.ts",
+        "action": "create",
+        "file": "server/src/utils/chatRetention.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/realtime/bus.ts",
+        "action": "create",
+        "file": "server/src/realtime/bus.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "create",
+        "file": "server/src/controllers/chatChannelController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "create",
+        "file": "server/src/controllers/chatMessageController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "create",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/realtime/socket.ts",
+        "action": "create",
+        "file": "server/src/realtime/socket.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/realtime/chatEvents.ts",
+        "action": "create",
+        "file": "server/src/realtime/chatEvents.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/realtime/activityEvents.ts",
+        "action": "create",
+        "file": "server/src/realtime/activityEvents.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/server.ts",
+        "action": "modify",
+        "file": "server/src/server.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/app.ts",
+        "action": "modify",
+        "file": "server/src/app.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/config/permissions.ts",
+        "action": "modify",
+        "file": "server/src/config/permissions.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/config/env.ts",
+        "action": "modify",
+        "file": "server/src/config/env.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/projectController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/projectController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/notificationModel.ts",
+        "action": "modify",
+        "file": "server/src/models/notificationModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/activityModel.ts",
+        "action": "modify",
+        "file": "server/src/models/activityModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/activity.ts",
+        "action": "modify",
+        "file": "server/src/utils/activity.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/emailTemplates.ts",
+        "action": "modify",
+        "file": "server/src/utils/emailTemplates.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/projectModel.ts",
+        "action": "modify",
+        "file": "server/src/models/projectModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "create",
+        "file": "server/src/utils/projectMembers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/taskController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/workspaceController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/workspaceController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "modify",
+        "file": "server/src/utils/chatAccess.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/chatChannelController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "modify",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "modify",
+        "file": "server/src/utils/projectMembers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/gridfs.ts",
+        "action": "modify",
+        "file": "server/src/utils/gridfs.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/chatMessageController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/chatChannelController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/chatChannelController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "modify",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/projectController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/projectController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "modify",
+        "file": "server/src/utils/projectMembers.ts"
+      }
+    ],
+    "missing": [
+      {
+        "type": "component",
+        "name": "client/src/utils/api.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "vercel.json",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/index.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/api.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/types.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatChannels.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatMessages.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatSocket.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/messages.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/mentions.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/reactions.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/readState.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/MessageList.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/Composer.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ThreadPanel.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/Panels.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/pages/ChatPage.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/components/MobileTabBar.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/App.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/live",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChannelSettingsDialog.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/types.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/App.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/Composer.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/mentions.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ConversationSection.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/DirectMessageList.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/NewDirectMessage.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChannelList.tsx",
+        "action": "delete"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/types.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/index.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/conversations.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SearchBar.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SearchResults.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/search.ts",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/Panels.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/MessageList.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/index.ts",
+        "action": "modify"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/channels",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/members",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/direct",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/replies",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/reactions",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/reactions/:emoji",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/pin",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/api/workspaces/:slug/chat/:channelId/messages/:messageId/pin",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/pins",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/search",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/read",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/attachments",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/attachments/:attachmentId",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/teams",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/api/workspaces/:slug/chat/:channelId",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/:channelId/avatar",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/avatar",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/conversations",
+        "action": "create"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/channels",
+        "action": "modify"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/chat/direct",
+        "action": "modify"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/chat/:channelId/search",
+        "action": "modify"
+      },
+      {
+        "type": "entity",
+        "name": "ChatChannel",
+        "action": "update"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "kind",
+        "fieldType": "string (team|general|project|direct)",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "name",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "nameKey",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "description",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "project",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "participants",
+        "fieldType": "ObjectId[]",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "archived",
+        "fieldType": "boolean",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "lastMessageAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "lastMessageAuthor",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "createdAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "updatedAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "nameOverride",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "avatarFileId",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "avatarType",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "ChatMessage",
+        "action": "create"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "channel",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "author",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "body",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "parent",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "mentions",
+        "fieldType": "ObjectId[]",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "attachments",
+        "fieldType": "object[]",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "replyCount",
+        "fieldType": "number",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "lastReplyAuthor",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "editedAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "deletedAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "pinnedAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "pinnedBy",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "createdAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "ChatReaction",
+        "action": "create"
+      },
+      {
+        "type": "field",
+        "entity": "ChatReaction",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatReaction",
+        "name": "message",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatReaction",
+        "name": "user",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatReaction",
+        "name": "emoji",
+        "fieldType": "string",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatReaction",
+        "name": "createdAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "ChatRead",
+        "action": "create"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "channel",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "user",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "lastReadAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "lastReadMessage",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "ChatPresence",
+        "action": "create"
+      },
+      {
+        "type": "field",
+        "entity": "ChatPresence",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatPresence",
+        "name": "user",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatPresence",
+        "name": "connections",
+        "fieldType": "number",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "ChatPresence",
+        "name": "seenAt",
+        "fieldType": "Date",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "Project",
+        "action": "update"
+      },
+      {
+        "type": "field",
+        "entity": "Project",
+        "name": "name",
+        "fieldType": "string",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "Project",
+        "name": "workspace",
+        "fieldType": "ObjectId",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "Project",
+        "name": "archived",
+        "fieldType": "boolean",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "Project",
+        "name": "members",
+        "fieldType": "ObjectId[]",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "Notification",
+        "action": "update"
+      },
+      {
+        "type": "field",
+        "entity": "Notification",
+        "name": "type",
+        "fieldType": "string enum",
+        "action": "modify"
+      },
+      {
+        "type": "field",
+        "entity": "Notification",
+        "name": "task",
+        "fieldType": "ObjectId",
+        "action": "modify"
+      },
+      {
+        "type": "field",
+        "entity": "Notification",
+        "name": "channel",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "field",
+        "entity": "Notification",
+        "name": "message",
+        "fieldType": "ObjectId",
+        "action": "add"
+      },
+      {
+        "type": "entity",
+        "name": "Activity",
+        "action": "update"
+      },
+      {
+        "type": "field",
+        "entity": "Activity",
+        "name": "action",
+        "fieldType": "string enum",
+        "action": "modify"
+      },
+      {
+        "type": "dependency",
+        "name": "socket.io",
+        "action": "add"
+      },
+      {
+        "type": "dependency",
+        "name": "socket.io-client",
+        "action": "add"
+      },
+      {
+        "type": "dependency",
+        "name": "express-rate-limit",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "express-validator",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "mongoose",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "existing RBAC",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "existing notifications",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "existing uploads",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "existing change feed",
+        "action": "no_change"
+      }
+    ],
+    "renamed": [],
+    "extra": [
+      {
+        "type": "component",
+        "name": "server/src/controllers/activityController.ts",
+        "file": "server/src/controllers/activityController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/authController.ts",
+        "file": "server/src/controllers/authController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/automationController.ts",
+        "file": "server/src/controllers/automationController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/boardSettingsController.ts",
+        "file": "server/src/controllers/boardSettingsController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/bulkTaskController.ts",
+        "file": "server/src/controllers/bulkTaskController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/changeController.ts",
+        "file": "server/src/controllers/changeController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/customFieldController.ts",
+        "file": "server/src/controllers/customFieldController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/flowController.ts",
+        "file": "server/src/controllers/flowController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/githubWebhookController.ts",
+        "file": "server/src/controllers/githubWebhookController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/importController.ts",
+        "file": "server/src/controllers/importController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/integrationController.ts",
+        "file": "server/src/controllers/integrationController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/invitationController.ts",
+        "file": "server/src/controllers/invitationController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/memberController.ts",
+        "file": "server/src/controllers/memberController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/notificationController.ts",
+        "file": "server/src/controllers/notificationController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/pageController.ts",
+        "file": "server/src/controllers/pageController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/profileController.ts",
+        "file": "server/src/controllers/profileController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/releaseController.ts",
+        "file": "server/src/controllers/releaseController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/reportController.ts",
+        "file": "server/src/controllers/reportController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/roleController.ts",
+        "file": "server/src/controllers/roleController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/savedViewController.ts",
+        "file": "server/src/controllers/savedViewController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/ssoController.ts",
+        "file": "server/src/controllers/ssoController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/taskExtrasController.ts",
+        "file": "server/src/controllers/taskExtrasController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/taskRelationController.ts",
+        "file": "server/src/controllers/taskRelationController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/timeController.ts",
+        "file": "server/src/controllers/timeController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/tokenController.ts",
+        "file": "server/src/controllers/tokenController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/twoFactorController.ts",
+        "file": "server/src/controllers/twoFactorController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/webhookController.ts",
+        "file": "server/src/controllers/webhookController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/workflowController.ts",
+        "file": "server/src/controllers/workflowController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/apiTokenModel.ts",
+        "file": "server/src/models/apiTokenModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/automationModel.ts",
+        "file": "server/src/models/automationModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/customFieldModel.ts",
+        "file": "server/src/models/customFieldModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/invitationModel.ts",
+        "file": "server/src/models/invitationModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/pageModel.ts",
+        "file": "server/src/models/pageModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/pageVersionModel.ts",
+        "file": "server/src/models/pageVersionModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/presenceModel.ts",
+        "file": "server/src/models/presenceModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/pushSubscriptionModel.ts",
+        "file": "server/src/models/pushSubscriptionModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/releaseModel.ts",
+        "file": "server/src/models/releaseModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/roleModel.ts",
+        "file": "server/src/models/roleModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/savedViewModel.ts",
+        "file": "server/src/models/savedViewModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/sessionModel.ts",
+        "file": "server/src/models/sessionModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/sprintModel.ts",
+        "file": "server/src/models/sprintModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/ssoStateModel.ts",
+        "file": "server/src/models/ssoStateModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/statusTransitionModel.ts",
+        "file": "server/src/models/statusTransitionModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/taskModel.ts",
+        "file": "server/src/models/taskModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/timeEntryModel.ts",
+        "file": "server/src/models/timeEntryModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/twoFactorChallengeModel.ts",
+        "file": "server/src/models/twoFactorChallengeModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/userModel.ts",
+        "file": "server/src/models/userModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/webhookDeliveryModel.ts",
+        "file": "server/src/models/webhookDeliveryModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/webhookModel.ts",
+        "file": "server/src/models/webhookModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/models/workspaceModel.ts",
+        "file": "server/src/models/workspaceModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/activeTaskRoutes.ts",
+        "file": "server/src/routes/activeTaskRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/authRoutes.ts",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/automationRoutes.ts",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/changeRoutes.ts",
+        "file": "server/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/fieldRoutes.ts",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/importRoutes.ts",
+        "file": "server/src/routes/importRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/integrationRoutes.ts",
+        "file": "server/src/routes/integrationRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/invitationRoutes.ts",
+        "file": "server/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/notificationRoutes.ts",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/pageRoutes.ts",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/profileRoutes.ts",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/projectRoutes.ts",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/releaseRoutes.ts",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/roleRoutes.ts",
+        "file": "server/src/routes/roleRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/ssoRoutes.ts",
+        "file": "server/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/taskRoutes.ts",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/timeRoutes.ts",
+        "file": "server/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/tokenRoutes.ts",
+        "file": "server/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/webhookRoutes.ts",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/workflowRoutes.ts",
+        "file": "server/src/routes/workflowRoutes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/apiTokens.ts",
+        "file": "server/src/utils/apiTokens.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/changeCursor.ts",
+        "file": "server/src/utils/changeCursor.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/controllerHelpers.ts",
+        "file": "server/src/utils/controllerHelpers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/customFields.ts",
+        "file": "server/src/utils/customFields.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/customFieldsDb.ts",
+        "file": "server/src/utils/customFieldsDb.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/githubEvents.ts",
+        "file": "server/src/utils/githubEvents.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/invitationHelpers.ts",
+        "file": "server/src/utils/invitationHelpers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/notify.ts",
+        "file": "server/src/utils/notify.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/oidc.ts",
+        "file": "server/src/utils/oidc.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/pages.ts",
+        "file": "server/src/utils/pages.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/recoveryCodes.ts",
+        "file": "server/src/utils/recoveryCodes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/recurrence.ts",
+        "file": "server/src/utils/recurrence.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/releaseNotes.ts",
+        "file": "server/src/utils/releaseNotes.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/requestHelpers.ts",
+        "file": "server/src/utils/requestHelpers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/roleAccess.ts",
+        "file": "server/src/utils/roleAccess.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/roleHelpers.ts",
+        "file": "server/src/utils/roleHelpers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/safeRedirect.ts",
+        "file": "server/src/utils/safeRedirect.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/savedViewQuery.ts",
+        "file": "server/src/utils/savedViewQuery.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/secretBox.ts",
+        "file": "server/src/utils/secretBox.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/seedRoles.ts",
+        "file": "server/src/utils/seedRoles.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/sendEmail.ts",
+        "file": "server/src/utils/sendEmail.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/taskGraph.ts",
+        "file": "server/src/utils/taskGraph.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/taskNumbers.ts",
+        "file": "server/src/utils/taskNumbers.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/taskQuery.ts",
+        "file": "server/src/utils/taskQuery.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/timeTracking.ts",
+        "file": "server/src/utils/timeTracking.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/tokens.ts",
+        "file": "server/src/utils/tokens.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/totp.ts",
+        "file": "server/src/utils/totp.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/twoFactor.ts",
+        "file": "server/src/utils/twoFactor.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/webPush.ts",
+        "file": "server/src/utils/webPush.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/workflow.ts",
+        "file": "server/src/utils/workflow.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/workspaceHelpers.ts",
+        "file": "server/src/utils/workspaceHelpers.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/health",
+        "file": "server/src/app.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/signup",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/login",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/login/2fa",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/logout",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/currentuser",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/verify-email/:token",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/resend-verification",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/forgot-password",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/reset-password/:token",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/onboarding",
+        "file": "server/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/templates",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/presence",
+        "file": "server/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/presence",
+        "file": "server/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/presence",
+        "file": "server/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/channels",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/conversations",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/teams",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/avatar",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/:channelId/avatar",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/chat/:channelId",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/members",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/direct",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/attachments/:attachmentId",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/:channelId/messages",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/messages",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/:channelId/messages/:messageId/replies",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/chat/:channelId/messages/:messageId",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/chat/:channelId/messages/:messageId",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/messages/:messageId/reactions",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/chat/:channelId/messages/:messageId/reactions/:emoji",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/messages/:messageId/pin",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/chat/:channelId/messages/:messageId/pin",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/:channelId/pins",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/chat/:channelId/search",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/read",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/chat/:channelId/attachments",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/order",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/preview",
+        "file": "server/src/routes/importRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/commit",
+        "file": "server/src/routes/importRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/github/:slug",
+        "file": "server/src/routes/integrationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:token",
+        "file": "server/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:token/accept",
+        "file": "server/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:token/decline",
+        "file": "server/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/push/public-key",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/push/subscribe",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/push/unsubscribe",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/read-all",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/read",
+        "file": "server/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/search",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/move",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/versions",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/versions/:version",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/restore/:version",
+        "file": "server/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/notifications",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/password",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/2fa",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/setup",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/enable",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/disable",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/recovery-codes",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/sso",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/sso/:provider",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/sessions",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/sessions/revoke-others",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/sessions/:id",
+        "file": "server/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id/sprints/:sprintId",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints/:sprintId/start",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints/:sprintId/complete",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/sprints/:sprintId",
+        "file": "server/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/release",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/notes",
+        "file": "server/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/permissions",
+        "file": "server/src/routes/roleRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/providers",
+        "file": "server/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:provider/start",
+        "file": "server/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:provider/callback",
+        "file": "server/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/bulk",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/bulk-delete",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:id",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/duplicate",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/watch",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/watch",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/relations",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/relations/:relatedId",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/move",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/activity",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/time",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/time",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/timer/start",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/timer/stop",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/time/:entryId",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/comments",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/comments/:commentId",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/attachments",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/attachments/:attachmentId",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/attachments/:attachmentId",
+        "file": "server/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/running",
+        "file": "server/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/export.csv",
+        "file": "server/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/rotate-secret",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/test",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/deliveries",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/deliveries/:deliveryId/redeliver",
+        "file": "server/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/workflowRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/",
+        "file": "server/src/routes/workflowRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/join",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/activate",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/members",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/invite-code",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/board-settings",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/board-settings",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/integrations/github",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/enable",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/regenerate-secret",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/disable",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:slug/integrations/github",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/invitations",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/invitations",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/invitations/:id",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/members/:userId/role",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/members/me",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/members/:userId",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/roles",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/roles",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/roles/:id",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/roles/:id",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/activity",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/views",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/views",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:slug/views/:id",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/views/:id",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/projects/:projectId/sprints/:sprintId/report",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/reports/flow",
+        "file": "server/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "etag",
+        "file": "server/src/__tests__/httpCaching.test.ts"
+      }
+    ]
+  }
+}

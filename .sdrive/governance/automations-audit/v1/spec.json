@@ -1,0 +1,116 @@
+{
+  "feature": "automations-audit",
+  "title": "Automation rules and the workspace audit trail",
+  "version": 1,
+  "overview": {
+    "problemStatement": "Teams repeated the same small task edits by hand (triaging bugs to high priority, clearing the \"blocked\" label when work finishes, moving reviewed items to completed) and had no durable, reviewable record of who changed what. Without a rule engine the repetition never stops, and without an audit trail a workspace cannot answer \"who moved this task and when\" after a task has been renamed or deleted.",
+    "proposedSolution": "Every change already goes through a small number of write paths, so the feature hangs off one append-only activity log. server/src/utils/activity.ts#recordActivity stores an Activity document (server/src/models/activityModel.ts) and then notifies subscribers; server/src/utils/automation/register.ts subscribes the rule engine, which derives events from the recorded changes (server/src/utils/automation/engine.ts), matches them against the enabled rules of the workspace (server/src/models/automationModel.ts) and applies the planned actions in one update. Workspace administrators manage rules through server/src/controllers/automationController.ts under /api/workspaces/:slug/automations, read the log through server/src/controllers/activityController.ts under /api/workspaces/:slug/activity and /api/workspaces/:slug/tasks/:id/activity, and export it as CSV. The client ships a rule builder (client/src/features/automations) and an audit log page (client/src/pages/AuditLogPage.tsx).",
+    "targetAudience": "Workspace owners and administrators who define and review automation rules and audit the workspace, and every member whose task changes are recorded in the activity trail.",
+    "assumptions": [
+      "Rules run inside the API request that produced the change: no worker, queue or cron exists in this project (.sdrive/context/architecture-context.md), so a rule only fires while that request is alive. `assumption: true`",
+      "Because the audit log stores the number of assignees rather than their ids, the task.assigned trigger treats \"the same or a larger count\" as someone having been added (documented in engine.ts#eventsFromActivity). `assumption: true`"
+    ],
+    "outOfScope": [
+      "Scheduled or time-based triggers (\"every Friday\", \"if stale for 3 days\"); only the six TRIGGER_TYPES are supported.",
+      "Branching control flow inside a rule (if/else, loops); actions are applied in order to the same task.",
+      "Exporting the audit log to anything other than CSV, and keeping audit entries longer than ACTIVITY_RETENTION_DAYS (365)."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Define automation rules for the workspace",
+      "role": "workspace administrator",
+      "want": "to create, edit, enable/disable and delete \"when … if … then …\" rules, or start from a ready-made recipe",
+      "benefit": "repetitive triage happens by itself and stays consistent across the team",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "GET, POST, PATCH and DELETE /api/workspaces/:slug/automations require settings:manage and answer 404 for a rule id that does not belong to the workspace; every rule is returned with trigger, conditions, actions, runCount, lastRunAt and its creator." },
+        { "id": "AC-002", "text": "A rule is refused with a readable message when the trigger type is unknown, a trigger value is not allowed for its type, a condition field/operator pair is invalid, there are more than five conditions or actions, or a name is empty or longer than 80 characters." },
+        { "id": "AC-003", "text": "GET /api/workspaces/:slug/automations/templates returns the ready-made recipes defined in server/src/utils/automation/templates.ts, which the client copies into the rule builder." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Have rules react to what happens in the workspace",
+      "role": "workspace administrator",
+      "want": "my enabled rules to act on the tasks the trigger describes, honouring their conditions",
+      "benefit": "the board stays correct without anyone remembering the house rules",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "Events are derived from the recorded change: task.created and task.commented map directly, and a task.updated entry yields task.status_changed, task.priority_changed, task.labeled (only labels actually added) and task.assigned (a same-or-larger assignee count) events." },
+        { "id": "AC-005", "text": "A trigger matches when its type matches and, if a value was set, when the status, priority or added label equals it case-insensitively; every condition must hold; a rule limited to a project only runs for tasks in that project and never on an epic." },
+        { "id": "AC-006", "text": "Planned actions are applied in order to a copy of the task and written with one update: status (with completedAt kept in sync), priority, labels (capped by MAX_LABELS), assignments limited to workspace members, sprint cleared for the backlog, comments pushed authored by the actor; runCount is incremented, lastRunAt set, and automation.ran plus a task.updated entry are recorded." },
+        { "id": "AC-007", "text": "Rules may start other rules, but a request runs at most three levels deep and each (rule, task) pair fires at most once per request, so a rule cycle cannot loop forever." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "See the history of a task",
+      "role": "workspace member",
+      "want": "a newest-first history of a task's field changes, comments and files",
+      "benefit": "I can understand how a task reached its current state without asking around",
+      "acceptanceCriteria": [
+        { "id": "AC-008", "text": "Every audited write appends one Activity entry carrying the workspace, actor, action name, human-readable summary, the task/project/sprint it concerns, field changes and the request IP and user agent, truncated to the model limits, and never fails the request it audits." },
+        { "id": "AC-009", "text": "GET /api/workspaces/:slug/tasks/:id/activity requires tasks:read, answers 404 when the task does not exist in the workspace, and returns at most 100 entries (default 50) newest first with a nextBefore cursor." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Review the workspace audit log",
+      "role": "workspace administrator",
+      "want": "the whole workspace log, filtered by area and actor, and to know how long entries are kept",
+      "benefit": "I can investigate a change, answer compliance questions and understand the retention promise",
+      "acceptanceCriteria": [
+        { "id": "AC-010", "text": "GET /api/workspaces/:slug/activity requires settings:manage and returns a page (default 50, max 100) with nextBefore, retentionDays and the list of areas; area only accepts a known area name and actor only a valid ObjectId, both ignored otherwise." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Export the audit log",
+      "role": "workspace administrator",
+      "want": "to download the filtered log as CSV",
+      "benefit": "I can hand the record to an auditor or keep it after the retention window",
+      "acceptanceCriteria": [
+        { "id": "AC-011", "text": "The same endpoint with format=csv returns up to 5000 rows as RFC 4180 CSV (every cell quoted, inner quotes doubled, cells starting with = + - @ tab or carriage return prefixed with an apostrophe), a UTF-8 BOM and a filename of audit-<slug>-<date>.csv, and records the export itself as audit.exported." },
+        { "id": "AC-012", "text": "The client audit page keeps its filters in the URL, groups entries by day, opens one entry in a detail sheet, pages older/newer, and downloads the CSV through a Blob without exposing the access token in a link." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "Automation rules can be listed, created, updated and deleted per workspace by users holding settings:manage, with a workspace limit of 25 rules, a name of at most 80 characters and creator/runCount/lastRunAt metadata.", "linkedAcceptanceCriteria": ["AC-001", "AC-002"] },
+    { "id": "FR-002", "text": "Triggers, conditions and actions are validated against closed vocabularies in server/src/utils/automation/validate.ts: allowed operators per condition field, allowed values per trigger/action, at most five conditions and five actions, label values of at most 40 characters and comments of at most 500.", "linkedAcceptanceCriteria": ["AC-002"] },
+    { "id": "FR-003", "text": "A catalog of ready-made rule templates is served to the client so a rule can be created from a known recipe.", "linkedAcceptanceCriteria": ["AC-003"] },
+    { "id": "FR-004", "text": "Automation events are derived purely from an activity entry: creation and comments map directly, and updates are decomposed into status, priority, newly added labels and assignments.", "linkedAcceptanceCriteria": ["AC-004"] },
+    { "id": "FR-005", "text": "Trigger matching (with the optional narrowed value) and condition evaluation are pure functions over the event and a task snapshot, where conditions are ANDed and a rule without conditions always matches.", "linkedAcceptanceCriteria": ["AC-005"] },
+    { "id": "FR-006", "text": "Action application is planned purely against a copy of the task so later actions see earlier results, label adds are de-duplicated case-insensitively, assignments are limited to current workspace members and label adds respect the task model's label cap.", "linkedAcceptanceCriteria": ["AC-006"] },
+    { "id": "FR-007", "text": "A plan is written to the task in one update with completedAt kept in sync, children moved out of the sprint when the task is sent to the backlog, run counters updated, and both automation.ran and a task.updated entry recorded so the change can chain into other rules.", "linkedAcceptanceCriteria": ["AC-006", "AC-007"] },
+    { "id": "FR-008", "text": "Activity entries are appended by every audited write path through recordActivity, with pure helpers (formatChangeValue, diffFields, auditLookup) for building the change list, and listeners are awaited in registration order.", "linkedAcceptanceCriteria": ["AC-008"] },
+    { "id": "FR-009", "text": "A task's history is served to anyone with tasks:read, newest first, paginated by a before cursor with a limit cap of 100.", "linkedAcceptanceCriteria": ["AC-009"] },
+    { "id": "FR-010", "text": "The workspace audit log is served to settings:manage holders with area and actor filters, a before cursor, a limit cap of 100 and metadata (retentionDays, areas) that lets the client build its filter bar.", "linkedAcceptanceCriteria": ["AC-010"] },
+    { "id": "FR-011", "text": "The workspace audit log can be exported as CSV (up to 5000 matching rows) with RFC 4180 quoting, spreadsheet-formula neutralisation, a UTF-8 BOM and a dated filename, and the export is itself recorded as audit.exported.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "FR-012", "text": "The client provides the rule management screen (list with enable switch, rule builder with draft validation and templates, delete confirmation) and the audit log screen (URL-persisted filters, day grouping, entry sheet with change details, older/newer paging, CSV download).", "linkedAcceptanceCriteria": ["AC-012", "AC-003"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Rule and audit queries are always filtered by req.workspace._id and gated by permissions: settings:manage for rules, rules templates, the workspace log and its export; tasks:read for a single task's history (CON-106, CON-512).", "linkedAcceptanceCriteria": ["AC-001", "AC-009", "AC-010"] },
+    { "id": "NFR-002", "text": "Audit and automation work can never fail the user's request: recordActivity catches its own errors, listener failures are logged and skipped, and each rule runs in its own try/catch (CON-105).", "linkedAcceptanceCriteria": ["AC-008"] },
+    { "id": "NFR-003", "text": "The trail is bounded: entries expire after 365 days, summaries are truncated to 200 characters, change values to 200, the page caps are 50 (default) and 100 (max), and one export is capped at 5000 rows.", "linkedAcceptanceCriteria": ["AC-010", "AC-011"] },
+    { "id": "NFR-004", "text": "Input that reaches a query is whitelisted or cast before use, never interpolated: only an area name from the known list is used inside the anchored action regex, and the actor filter is only applied for a valid ObjectId (CON-516).", "linkedAcceptanceCriteria": ["AC-010", "AC-011"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "An action assigns a user who is not (or is no longer) a member of the workspace.", "expectedBehavior": "The rule builder refuses the value on save (checkAssignees), and at run time planActions only assigns ids present in the current member list, so the action is silently skipped instead of adding a stranger." },
+    { "id": "EC-002", "description": "Two rules react to each other's changes (a cycle).", "expectedBehavior": "The per-request state stops at MAX_AUTOMATION_DEPTH 3 and never fires the same (rule, task) pair twice, so the cycle terminates and the request still answers normally." },
+    { "id": "EC-003", "description": "One update changes several watched fields at once (status and priority, or labels).", "expectedBehavior": "eventsFromActivity emits one event per change, so every matching rule type is evaluated in the same pass." },
+    { "id": "EC-004", "description": "The feature a log entry points at was deleted (task, project or sprint), or a change has no before/after value.", "expectedBehavior": "The entry stays readable: the summary text is stored on the entry and missing change values render as an en dash in the CSV and in the entry sheet." },
+    { "id": "EC-005", "description": "Export requested for a filter that matches nothing.", "expectedBehavior": "The response is the header row only (still a valid RFC 4180 CSV with a BOM) and the export is recorded with 0 entries." }
+  ],
+  "dependencies": [
+    { "name": "server/src/utils/activity.ts listeners", "type": "internal", "notes": "The engine and the outbound webhook dispatcher subscribe through onActivity; the automation engine registers itself with registerAutomations() in server/src/app.ts." },
+    { "name": "server/src/utils/workflow.ts", "type": "internal", "notes": "Status vocabulary used by trigger and action validation (TASK_STATUSES) and by the client labels." },
+    { "name": "server/src/models/taskModel.ts", "type": "internal", "notes": "Task field names, statuses, priorities, types and MAX_LABELS enforced while planning label actions." },
+    { "name": "Mongoose (MongoDB) indexes", "type": "internal", "notes": "Activity indexes for workspace/createdAt, task, actor and action, plus the 365-day TTL index." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "A rule that keeps re-triggering itself could multiply writes during one request.", "mitigation": "Depth limit 3 plus a per-request fired set keyed by rule and task, both in server/src/utils/automation/register.ts." },
+    { "id": "RISK-002", "description": "Automation changes could look like user edits in the trail.", "mitigation": "Automation writes record automation.ran with the rule name and a task.updated entry whose summary states the automation that caused it." },
+    { "id": "RISK-003", "description": "A growing audit log could slow the workspace down.", "mitigation": "Purpose-built compound indexes (workspace+createdAt, task, actor, action), a 365-day TTL index, capped pages and a capped CSV export." }
+  ]
+}

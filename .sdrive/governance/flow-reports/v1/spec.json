@@ -1,0 +1,254 @@
+{
+  "feature": "flow-reports",
+  "title": "Flow reports: cumulative flow, cycle and lead time, throughput and aging work in progress",
+  "version": 1,
+  "overview": {
+    "problemStatement": "A board shows the state of the work now, but says nothing about how work moves: how long a task takes from start to done, how much is piling up in a column, how many items the team finishes per week, and which items have been in progress for far longer than usual. Without those figures a team cannot tell whether a change to its process helped, and it cannot see a stuck item before it becomes a late delivery.",
+    "proposedSolution": "Every status move is recorded once as a StatusTransition row by the flow tracking listener (server/src/utils/flow/register.ts, wired up in server/src/app.ts), and GET /api/workspaces/:slug/reports/flow rebuilds the whole report from those rows plus the tasks (server/src/controllers/flowController.ts, server/src/utils/flow/metrics.ts): a cumulative flow diagram day by day, cycle time from the first move into in-progress to completion, lead time from creation to completion with p50/p85/p95 percentiles, completions per ISO week, and the list of items still in progress ordered by age against the 85th percentile. The client (client/src/features/flow) renders it as the Flow tab of the Reports page with filters and text alternatives for every chart.",
+    "targetAudience": "Scrum Masters, team leads and delivery managers who review how work flows through the board, and process improvers looking for bottlenecks in the workflow.",
+    "assumptions": [
+      "Flow metrics are rebuilt from recorded transitions, so a task's history starts when flow tracking started recording; work done before that has no transitions and only its creation date and current status are known.",
+      "Days are UTC calendar days on the server (dayKey slices the ISO string) while the client builds its range from the same UTC day keys, so a report is not aligned to the viewer's local midnight.",
+      "Cycle time runs from the first entry into in-progress to the last completion, so a task that went straight from pending to completed has no cycle time at all.",
+      "Status transitions are only recorded for top-level, non-epic tasks; subtasks and epics are not part of the flow metrics."
+    ],
+    "outOfScope": [
+      "Forecasting and Monte Carlo simulation based on the percentiles.",
+      "Per-person flow metrics; cycle and lead time are reported for the whole scope, not per assignee.",
+      "Historic backfill of transitions for tasks that moved before flow tracking existed.",
+      "Server-side chart images or scheduled report delivery; the report is fetched on demand."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Read flow metrics for a period",
+      "role": "Scrum Master",
+      "want": "a report for a date range that defaults to the last 30 days and can reach back further",
+      "benefit": "I can review how work flowed without building anything myself",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "Without date parameters the report covers the last 30 days ending today and answers with the range it used (from, to and the number of days)."
+        },
+        {
+          "id": "AC-002",
+          "text": "Dates that are not real calendar days written as YYYY-MM-DD, or a start after the end, or a range longer than 180 days are refused with HTTP 400 and a message naming the problem."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Narrow the report to a project or a sprint",
+      "role": "Scrum Master",
+      "want": "to filter the metrics by project or by sprint",
+      "benefit": "I can look at one team's flow instead of the whole workspace",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-003",
+          "text": "A project filter (project name, at most 60 characters) or a sprint filter (24-hexadecimal sprint id) limits both the tasks measured and the transitions read, so the report only describes that scope."
+        },
+        {
+          "id": "AC-004",
+          "text": "A query value that is not a single string, such as an array or a nested object, is refused with HTTP 400 'Invalid <name>' rather than being cast."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "See where work is piling up",
+      "role": "Scrum Master",
+      "want": "a cumulative flow diagram of the range",
+      "benefit": "a widening band shows me which step of the workflow is the bottleneck",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-005",
+          "text": "The report returns, for every day of the range, how many tasks were pending, in progress and completed at the end of that day, and the chart stacks them with completed at the base and pending on top."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Compare cycle time and lead time",
+      "role": "Scrum Master",
+      "want": "median, 85th and 95th percentile times to finish",
+      "benefit": "I can promise dates with a figure instead of a feeling",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-006",
+          "text": "Cycle time (last move into in-progress to completion) and lead time (creation to completion) are computed over the tasks finished inside the range, and each returns the count, the average and the p50, p85 and p95 percentiles in days, or null values when nothing finished."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Check throughput and spot ageing work",
+      "role": "team lead",
+      "want": "completions per week and the list of items still in progress by age",
+      "benefit": "I can see whether the team is speeding up and which item needs attention today",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-007",
+          "text": "Throughput is reported per ISO week of the range with the week label (for example 2026-W41), the Monday that starts it and the number of tasks completed in it."
+        },
+        {
+          "id": "AC-008",
+          "text": "Aging work in progress lists every task still in progress, oldest first, with the number of days since it entered in progress and the assignees who are on it."
+        },
+        {
+          "id": "AC-009",
+          "text": "A range with no tasks at all shows an explicit empty state instead of blank charts, and a range with no completed task says so in the chart's text alternative."
+        },
+        {
+          "id": "AC-010",
+          "text": "Each item in progress is classed against the 85th percentile of cycle time as On track, Watch (over half of it), Over p85 or No baseline, and the summary shows how many items are over p85."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "GET /api/workspaces/:slug/reports/flow (server/src/controllers/flowController.ts) returns range { from, to, days }, the canonical statuses, cfd (one entry per day with pending, inProgress and completed counts at the end of that UTC day), cycleTime and leadTime (count, average, p50, p85, p95 and the measured points), aging (task, key, title, project, assignees, since, days) and throughput (ISO week, the Monday it starts on and the count).",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-005"]
+    },
+    {
+      "id": "FR-002",
+      "text": "The query is parsed strictly: project is a single string of at most 60 characters, sprint must match /^[a-f0-9]{24}$/i, from and to must be real day keys (parseDayKey), from must not be after to, the range may span at most MAX_FLOW_RANGE_DAYS (180) days, and every rejected value produces 400 with a message rather than a cast.",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-004"]
+    },
+    {
+      "id": "FR-003",
+      "text": "Status moves are recorded by the flow tracking listener: registerFlowTracking subscribes to the activity stream once per process (server/src/app.ts) and trackStatusTransition writes a StatusTransition row (workspace, task, project name, sprint, type, from, to, at, actor) for every task.created and status-changing task.updated of a top-level non-epic task. The report reads the transitions of the range and, when the scope is filtered, only those of the tasks in scope.",
+      "linkedAcceptanceCriteria": ["AC-003", "AC-005", "AC-006"]
+    },
+    {
+      "id": "FR-004",
+      "text": "buildTimelines rebuilds the states each task went through: a task without transitions starts at its creation date in its current status, a first transition that carries a from starts in that status, and a current status the log does not end with is appended at the task's last update, so old or partly unrecorded data is backfilled instead of dropped. cumulativeFlow then emits one CfdDay per day of the range with the counts pending, inProgress and completed at the end of that day.",
+      "linkedAcceptanceCriteria": ["AC-005"]
+    },
+    {
+      "id": "FR-005",
+      "text": "cycleTimes and leadTimes only keep the tasks whose last completion falls inside the range: cycle time runs from the first step in in-progress to that completion, lead time from creation (or the first recorded step, whichever is earlier) to that completion. TimeStats carries count, average and the p50, p85 and p95 percentiles from percentile() (nearest rank of the ascending list), with null figures when nothing finished.",
+      "linkedAcceptanceCriteria": ["AC-006"]
+    },
+    {
+      "id": "FR-006",
+      "text": "throughput groups the completions of the range into ISO weeks with isoWeekLabel (for example 2026-W41), reporting the Monday that starts each week and the number of tasks completed in it, including the weeks with no completion.",
+      "linkedAcceptanceCriteria": ["AC-007"]
+    },
+    {
+      "id": "FR-007",
+      "text": "agingWip returns the tasks that are still in progress at the end of the range, oldest first, with the day they entered in progress and the days elapsed; the controller resolves only those assignees and returns name and avatarUrl from PUBLIC_USER_FIELDS.",
+      "linkedAcceptanceCriteria": ["AC-008"]
+    },
+    {
+      "id": "FR-008",
+      "text": "The client flow module (client/src/features/flow) offers the range presets 14, 30, 90 and 180 days with 30 as the default, project and sprint selects, and the charts CumulativeFlowChart, TimeScatterChart, ThroughputChart and AgingWipList. lib/flow.ts supplies axisScale, stackBands, cfdMax, agingLevel, countOverP85, isEmptyReport and the describeCfd/describeStats text alternatives, and the panel is mounted as the Flow tab of the Reports page (?tab=flow) only when the role holds projects:read.",
+      "linkedAcceptanceCriteria": ["AC-003", "AC-009", "AC-010"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "The whole report is scoped to one workspace (CON-106): the task query, the project key lookup, the transition query and the assignee lookup all carry workspace: req.workspace._id, so a project or sprint filter can only narrow within that workspace.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-002",
+      "text": "The endpoint is served behind protect and requirePermission('projects:read') (CON-512) on server/src/routes/workspaceRoutes.ts, so a role without project access cannot read flow figures.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-003",
+      "text": "All metric arithmetic lives in a pure, dependency-free module (server/src/utils/flow/metrics.ts) with a Jest unit test (CON-109, CON-202, CON-402), and the client presentation helpers live in client/src/features/flow/lib/flow.ts with their own test.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-004",
+      "text": "The report is bounded: the range is capped at 180 days, only top-level non-epic tasks are loaded with an explicit field selection, the transition query is limited to the end of the range, and assignee profiles are fetched only for the tasks in the aging list (CON-106 and the request pipeline in the architecture context).",
+      "linkedAcceptanceCriteria": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "A range longer than 180 days is requested.",
+      "expectedBehavior": "HTTP 400 with 'The date range can span at most 180 days'; the client only offers 14, 30, 90 and 180 day presets, so it never builds such a request."
+    },
+    {
+      "id": "EC-002",
+      "description": "from is later than to.",
+      "expectedBehavior": "HTTP 400 'The start date must not be after the end date'."
+    },
+    {
+      "id": "EC-003",
+      "description": "A date that is not a real calendar day is used, for example 2026-02-31.",
+      "expectedBehavior": "HTTP 400 'Dates must be real days written as YYYY-MM-DD'; parseDayKey checks that the parsed date round-trips to the same key."
+    },
+    {
+      "id": "EC-004",
+      "description": "A filter value is not a plain string, for example ?from[]=2026-01-01 or ?sprint=abc.",
+      "expectedBehavior": "HTTP 400 'Invalid from' / 'Invalid sprint'; queryString rejects arrays and objects and the sprint pattern is checked before any ObjectId is built."
+    },
+    {
+      "id": "EC-005",
+      "description": "Nothing was completed in the range.",
+      "expectedBehavior": "cycleTime and leadTime return count 0 with null figures, the scatter plot says 'no completed tasks in this range', and a range with no tasks at all shows the empty state because isEmptyReport is true."
+    },
+    {
+      "id": "EC-006",
+      "description": "There is no p85 baseline to judge ageing work with.",
+      "expectedBehavior": "agingLevel returns 'unknown' and the item is tagged 'No baseline'; the count of items over p85 is 0 instead of every item being flagged."
+    },
+    {
+      "id": "EC-007",
+      "description": "Subtasks, epics or tasks without a project key take part in the scope.",
+      "expectedBehavior": "Subtasks and epics are excluded from the task query (parent: null, type not 'epic') so work is not counted twice; a task without a number gets an empty key and the project key lookup falls back to the prefix 'TM' when the project has no key."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "server/src/utils/activity.ts",
+      "type": "internal",
+      "notes": "onActivity is the stream registerFlowTracking subscribes to; RecordedActivity carries changes[{ field, from, to }]."
+    },
+    {
+      "name": "server/src/models/statusTransitionModel.ts",
+      "type": "internal",
+      "notes": "The transition rows the report replays, indexed by { workspace, at } and { workspace, task, at }."
+    },
+    {
+      "name": "client/src/features/tasks",
+      "type": "internal",
+      "notes": "Statuses, task types and the PUBLIC user shape the client types mirror; lib/date supplies the calendar-day helpers."
+    },
+    {
+      "name": "client/src/features/projects",
+      "type": "internal",
+      "notes": "useProjects supplies the project list and the sprints shown in the flow filters."
+    },
+    {
+      "name": "server/src/utils/workflow.ts",
+      "type": "internal",
+      "notes": "CON-108: custom board columns map onto the canonical pending / in-progress / completed statuses the flow metrics measure, so a workspace with a custom workflow keeps working reports."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "Flow figures depend on recorded transitions; if tracking is not registered in a process (for example a script that writes tasks directly), moves are missing and cycle times compute from incomplete history.",
+      "mitigation": "registerFlowTracking is called at application start in server/src/app.ts together with the automation and webhook listeners, and the report degrades gracefully (creation date and current status remain available)."
+    },
+    {
+      "id": "RISK-002",
+      "description": "A long range over a busy workspace loads every transition of the scope, which grows with the number of moves rather than the number of tasks.",
+      "mitigation": "The range is capped at 180 days and, when a project or sprint filter is present, transitions are restricted to the ids of the tasks in scope."
+    },
+    {
+      "id": "RISK-003",
+      "description": "Percentiles are computed on small samples, so a p85 of three completed tasks can be read as a commitment.",
+      "mitigation": "Every TimeStats carries its count and the UI states how many tasks were measured and says 'No finished work yet' when there are none."
+    }
+  ]
+}

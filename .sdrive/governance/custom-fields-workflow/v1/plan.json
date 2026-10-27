@@ -1,0 +1,139 @@
+{
+  "feature": "custom-fields-workflow",
+  "version": 1,
+  "architecture": {
+    "approach": "Two workspace-level definitions, each owned by one pure module that both sides of the wire mirror. Custom fields: a CustomField document per workspace (unique key), validated by server/src/utils/customFields.ts (coerceFieldValue, planCustomValues, slugFromName) and stored on the task as task.custom[key]; the client mirrors the rules in client/src/features/fields/lib/fields.ts and caches the list per workspace. Workflow stages: an array on the workspace document (workflow.stages) validated by server/src/utils/workflow.ts, where each stage is a refinement of one of the three canonical status groups, and the task's stage and status are resolved together by stageFor on every write; the client mirrors the resolution in client/src/features/workflow/lib/stages.ts and caches the stages per workspace. Definitions change only with settings:manage, values are read with tasks:read, and every cascading effect (clearing removed options, moving tasks off a removed stage, deleting a field) happens inside the same request.",
+    "components": [
+      { "name": "server/src/models/customFieldModel.ts", "action": "create", "description": "CustomField schema: workspace, immutable slug key, name, type, options (id/label/colour), projects, required, order, archived, the type and colour constants and the caps (30 active fields, 30 options, 50 projects, 40-character names)." },
+      { "name": "server/src/utils/customFields.ts", "action": "create", "description": "Pure rules: isFieldKey/fieldPath, fieldAppliesTo, coerceFieldValue for the eight types, planCustomValues (merge, required on create, archived fields), plainCustom, describeCustomChanges and slugFromName/newOptionId." },
+      { "name": "server/src/utils/customFieldsDb.ts", "action": "create", "description": "loadFieldDefs (workspace fields in display order) and planRequestCustom, which validates a request's custom part against them and the workspace's member ids." },
+      { "name": "server/src/controllers/customFieldController.ts", "action": "create", "description": "Validation chains, listFields, createField (key slugging, active cap, order), updateField (options diff and clearing removed choices, projects, required, archive), reorderFields and deleteField (unset the values, audit the count)." },
+      { "name": "server/src/routes/fieldRoutes.ts", "action": "create", "description": "Mounted at /api/workspaces/:slug/fields: tasks:read to list, settings:manage for every change, with /order before /:id." },
+      { "name": "server/src/utils/workflow.ts", "action": "create", "description": "Pure rules: defaultWorkflow, validateWorkflow, firstStageOf, stageFor (explicit stage wins, status falls back to the group's first stage), workflowOf (default plus legacy per-status limits) and planStageMoves." },
+      { "name": "server/src/controllers/workflowController.ts", "action": "create", "description": "getWorkflow and updateWorkflow: validation, moves for removed stages, status and completedAt resynchronisation, stale-stage repair, audit diff and clearing the legacy board limits." },
+      { "name": "server/src/routes/workflowRoutes.ts", "action": "create", "description": "Mounted at /api/workspaces/:slug/workflow: GET with tasks:read, PUT with settings:manage." },
+      { "name": "server/src/models/workspaceModel.ts", "action": "modify", "description": "Adds workflow.stages (validated 1-12, keys, names, groups, colours, limits) next to the legacy boardSettings.wipLimits." },
+      { "name": "server/src/models/taskModel.ts", "action": "modify", "description": "Adds the stage field (workflow stage key) and the custom map that holds the field values." },
+      { "name": "server/src/controllers/taskController.ts", "action": "reuse", "description": "Applies stageFor on create and update, calls planRequestCustom for the custom part, describes custom changes in the activity and rejects an unknown stage with \"Unknown stage\"." },
+      { "name": "server/src/utils/taskQuery.ts", "action": "reuse", "description": "Parses cf.<key> parameters (at most five, slug keys) into the task list filter." },
+      { "name": "server/src/controllers/boardSettingsController.ts", "action": "reuse", "description": "The legacy per-status WIP limits that workflowOf still honours for a group's only stage." },
+      { "name": "server/src/utils/activity.ts", "action": "reuse", "description": "recordActivity writes field.created/updated/deleted and workflow.updated entries." },
+      { "name": "client/src/features/fields/types.ts", "action": "create", "description": "FIELD_TYPES, FIELD_COLORS, FieldOption, CustomValue(s)(Input), CustomField, CustomFieldInput and CustomFieldPatch." },
+      { "name": "client/src/features/fields/lib/fields.ts", "action": "create", "description": "Pure rules mirroring the server: field type metadata, appliesToProject, fieldsForProject, isEmptyValue, optionLabel, valueText, knownValues, diffCustom, createCustom, missingRequired, moveItem, validateFieldDraft, optionsPayload and draftOf." },
+      { "name": "client/src/features/fields/lib/fieldFilters.ts", "action": "create", "description": "filterableFields and filterOptions for the toolbar, with the \"any\", \"none\", yes/no and member choices plus withCustomFilter and canAddCustomFilter." },
+      { "name": "client/src/features/fields/hooks/useCustomFields.ts", "action": "create", "description": "One cache per workspace (useSyncExternalStore) shared by every view, with create/update/remove/reorder that publish the server's answer." },
+      { "name": "client/src/features/fields/hooks/useFieldMembers.ts", "action": "create", "description": "Workspace members for the user fields." },
+      { "name": "client/src/features/fields/api.ts", "action": "create", "description": "The five field endpoints." },
+      { "name": "client/src/features/fields/components/CustomFieldInput.tsx", "action": "create", "description": "The editor for one field, per type." },
+      { "name": "client/src/features/fields/components/CustomFieldValue.tsx", "action": "create", "description": "Read-only rendering: option chips, safe links, Yes/No for checkboxes, member names for user fields." },
+      { "name": "client/src/features/fields/components/TaskCustomFields.tsx", "action": "create", "description": "The task's field block: applicable fields only, saves on blur/change, null to clear, read-only without write access, renders nothing when the workspace has no fields." },
+      { "name": "client/src/features/fields/components/TaskFormCustomFields.tsx", "action": "create", "description": "The same fields inside the create/edit form, with the required check for the chosen project." },
+      { "name": "client/src/features/fields/components/TaskCustomChips.tsx", "action": "create", "description": "Filled values as chips (plus a summary of the rest) for the list and board cards." },
+      { "name": "client/src/features/fields/components/FieldDialog.tsx", "action": "create", "description": "Create/edit a field: name, type, options with colours, projects, required, archive." },
+      { "name": "client/src/features/fields/components/FieldListItem.tsx", "action": "create", "description": "One row in the fields settings page with its type, projects and actions." },
+      { "name": "client/src/features/workflow/types.ts", "action": "create", "description": "WorkflowStage, StageColor, STAGE_COLORS and WorkflowUpdate." },
+      { "name": "client/src/features/workflow/lib/stages.ts", "action": "create", "description": "The client mirror: DEFAULT_STAGES, STATUS_STAGES, STAGE_COLOR_META, resolveStage, groupByStage, quickMoveFor, stagePatch, stageKeyFor, validateStages and moveStages." },
+      { "name": "client/src/features/workflow/hooks/useWorkflow.ts", "action": "create", "description": "One cached stage list per workspace, save() that publishes the answer, and cachedWorkflow() for code outside React such as optimistic updates." },
+      { "name": "client/src/features/workflow/api.ts", "action": "create", "description": "GET and PUT /workspaces/:slug/workflow." },
+      { "name": "client/src/features/workflow/components/StageBadges.tsx", "action": "create", "description": "StageBadge, StageDot and TaskStageBadge used by the board and the list." },
+      { "name": "client/src/features/workflow/components/StageRow.tsx", "action": "create", "description": "One editable stage row in the settings editor (name, group, colour, limit)." },
+      { "name": "client/src/features/workflow/components/BoardPreview.tsx", "action": "create", "description": "Preview of the staged workflow before saving." },
+      { "name": "client/src/features/workflow/components/DeleteStageDialog.tsx", "action": "create", "description": "Asks where the tasks of a removed stage should go (moves[key])." },
+      { "name": "client/src/pages/CustomFieldsPage.tsx", "action": "create", "description": "Settings page: list fields, create/edit dialog, reorder with move buttons, archive and delete behind a confirmation that warns the values are removed." },
+      { "name": "client/src/pages/WorkflowSettingsPage.tsx", "action": "create", "description": "Settings page: edit the stages with a preview, add/remove/reorder, set limits and save through useWorkflow." },
+      { "name": "client/src/features/tasks/lib/listColumns.ts", "action": "reuse", "description": "Turns each active field into a list column (customColumns, visibleColumns, sortByColumn)." },
+      { "name": "client/src/features/tasks/lib/filters.ts", "action": "reuse", "description": "Client mirror of the custom filter matching (matchesCustom, cf.<key> parameters, MAX_CUSTOM_FILTERS) and the filters key kept in the URL." },
+      { "name": "client/src/features/tasks/views/BoardView.tsx", "action": "reuse", "description": "Renders the stage columns and sends the stage patch." },
+      { "name": "client/src/features/tasks/components/TaskSelects.tsx", "action": "reuse", "description": "Status selects grouped by status group with the stage names." },
+      { "name": "server/src/utils/flow/register.ts", "action": "reuse", "description": "Records the status transitions of a stage change for the flow analytics (registered in app.ts)." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "CustomField",
+        "action": "create",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "key", "type": "string (slug, unique per workspace, immutable)", "action": "add" },
+          { "name": "name", "type": "string (<=40)", "action": "add" },
+          { "name": "type", "type": "enum text|number|date|select|multiselect|checkbox|url|user", "action": "add" },
+          { "name": "options", "type": "{ id, label (<=40), color }[] (<=30, ids unique)", "action": "add" },
+          { "name": "projects", "type": "string[] (<=50 project names, empty = every project)", "action": "add" },
+          { "name": "required", "type": "boolean", "action": "add" },
+          { "name": "order", "type": "number", "action": "add" },
+          { "name": "archived", "type": "boolean (at most 30 not archived per workspace)", "action": "add" }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "update",
+        "fields": [
+          { "name": "stage", "type": "string (workflow stage key, <=30)", "action": "add" },
+          { "name": "custom", "type": "Map<string, mixed> keyed by custom-field key", "action": "add" }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "update",
+        "fields": [
+          { "name": "workflow.stages", "type": "{ key, name, group, color, wipLimit }[] (1-12, one stage per group at least)", "action": "add" },
+          { "name": "boardSettings.wipLimits", "type": "{ pending, 'in-progress', completed } (legacy per-status limits)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "StatusTransition",
+        "action": "no_change",
+        "fields": [
+          { "name": "from", "type": "enum status or null", "action": "no_change" },
+          { "name": "to", "type": "enum status", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Definitions: a field goes through validateCreateField/validateUpdateField, then the controller slugs the key, enforces the 30-active cap, stores the document and audits it; removing an option or deleting a field runs updateMany over the workspace's tasks with the custom.<key> path to unset or pull the lost choice. Stages live inside the workspace document: PUT /workflow validates the whole list, plans the moves of removed stages, updates the affected tasks in an order that keeps status and completedAt truthful, resynchronises the tasks of a stage that changed group, resets stale stages, clears the legacy board limits and audits the diff. A task write resolves stage and status together through stageFor and validates the custom part through planRequestCustom before the document is saved.     On the client, both definitions are cached per workspace and shared by every view; the settings pages stage their edits locally and publish the server's answer into the same cache."
+      },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/fields", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-001", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/fields", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-002", "NFR-004"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/fields/order", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-004", "NFR-001"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/fields/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-003", "NFR-004"] },
+    { "method": "DELETE", "path": "/api/workspaces/:slug/fields/:id", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "NFR-001"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/workflow", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-008", "NFR-002"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/workflow", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-009", "NFR-002", "NFR-004"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/board-settings", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/board-settings", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008", "NFR-004"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-006", "FR-010"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-006", "FR-010"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/bulk", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-010"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "Field documents, stage lists and the updateMany calls that clear values are all filtered by the workspace of the request (req.workspace._id); reorderFields also verifies that every id in the body is an ObjectId that belongs to the workspace, and taskQuery.buildTaskFilter only ever writes custom.<key> paths whose key matched the field slug pattern, so a request cannot address another workspace's data or another document's field." },
+    { "requirementId": "NFR-004", "description": "Reading definitions needs tasks:read; creating, renaming, reordering, archiving, deleting a field and replacing the workflow or the board settings need settings:manage, enforced by requirePermission in the routers. The settings pages additionally hide their actions from members without it, which is a courtesy, not the boundary." },
+    { "requirementId": "NFR-002", "description": "A stage can only ever belong to pending, in-progress or completed, and the workflow must keep at least one stage per group, so no configuration can introduce a fourth bucket or leave a report without data for a status." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-003", "strategy": "Custom values are read from the task document itself (no join), the field definitions are loaded once per request in planRequestCustom and cached per workspace on the client, and the stages travel with the workspace document that requirePermission already loads." },
+    { "requirementId": "NFR-001", "strategy": "Clearing values is one updateMany per removed option (or per deleted field) over an index-prefixed workspace filter instead of a per-task loop; reordering writes only the rows whose order actually changed." },
+    { "requirementId": "NFR-004", "strategy": "The list view resolves the columns and the filter choices from the cached definitions, so opening the toolbar or switching views costs no extra request." }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "CustomField collection with the unique (workspace, key) index; stages embedded in the workspace." },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "Validation chains for the field and workflow bodies." },
+    { "name": "react", "type": "library", "action": "no_change", "notes": "The caches use useSyncExternalStore so every view on screen sees a saved change at once." },
+    { "name": "client/src/features/tasks", "type": "internal", "action": "no_change", "notes": "lib/filters.ts, lib/listColumns.ts, the board view and the status selects consume the definitions." },
+    { "name": "server/src/utils/flow/register.ts", "type": "internal", "action": "no_change", "notes": "Flow analytics record the status moves that a stage change causes." },
+    { "name": "mongodb", "type": "service", "action": "no_change", "notes": "The only datastore (CON-104)." }
+  ],
+  "risks": [
+    { "description": "Duplicated client/server validation can drift and accept different values on each side.", "mitigation": "Both implementations are pure modules with mirrored unit tests (customFields.test.ts / workflow.test.ts against fields.test.ts / stages.test.ts), the client validates before saving and still shows the API message, and field types and the field key can never be changed after creation, so stored values keep their meaning." },
+    { "description": "A workflow change can strand tasks in stages that no longer exist, hiding them from the board.", "mitigation": "planStageMoves runs before the save and falls back to the first stage of the group, stale stages are reset, status and completedAt are resynchronised, and resolveStage repairs the display for anything that was written earlier." },
+    { "description": "Deleting an option or a field loses task data without the user noticing.", "mitigation": "The values are cleared in the same request, the audit entry records how many were cleared, and the settings UI warns before deleting a field." },
+    { "description": "Unbounded definitions would grow every task document.", "mitigation": "Explicit caps in the model and the validators: 30 active fields, 30 options, 50 projects per field, 500-character text, 20 multiselect values and 5 filters per query." }
+  ]
+}

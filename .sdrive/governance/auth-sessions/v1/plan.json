@@ -1,0 +1,108 @@
+{
+  "feature": "auth-sessions",
+  "version": 1,
+  "architecture": {
+    "approach": "Transport, authorization, orchestration and persistence stay separated (CON-103, CON-105): server/src/routes/authRoutes.ts declares the path, its express-validator chain and the middleware order; server/src/controllers/authController.ts orchestrates; server/src/models/*.ts persist. A JWT proves the sign-in, but the database Session is the authority: protect only attaches a user when a session row matching the token hash is still valid, which is what makes logout, password reset and the devices screen effective before the token expires. Pure token helpers live in server/src/utils/tokens.ts so they can be unit tested without Express or MongoDB (CON-109).",
+    "components": [
+      { "name": "server/src/routes/authRoutes.ts", "action": "reuse", "description": "POST /signup, /login, /logout, /resend-verification, /forgot-password, /reset-password/:token, /onboarding; GET /verify-email/:token and /currentuser, each with its validation chain and protect where required" },
+      { "name": "server/src/controllers/authController.ts", "action": "reuse", "description": "registerUser, verifyEmail, resendVerification, loginUser, getCurrentUser, forgotPassword, resetPassword, saveOnboarding, logoutUser plus the exported validation chains and issueSession" },
+      { "name": "server/src/utils/tokens.ts", "action": "reuse", "description": "hashToken, createSecureToken and getBearerToken: the only place that knows how credentials are digested" },
+      { "name": "server/src/utils/sendEmail.ts", "action": "reuse", "description": "Resend then SMTP then a development console fallback; throws in production when no provider is configured" },
+      { "name": "server/src/utils/emailTemplates.ts", "action": "reuse", "description": "verifyEmailTemplate and resetPasswordTemplate, which escape user-controlled text in the HTML body" },
+      { "name": "server/src/middleware/authMiddleware.ts", "action": "reuse", "description": "protect (JWT + session row + throttled lastLoggedIn write) and rejectApiToken" },
+      { "name": "server/src/models/sessionModel.ts", "action": "reuse", "description": "Session schema with the unique token-hash index, the composite user/valid index and the 8-day TTL index" },
+      { "name": "server/src/models/userModel.ts", "action": "reuse", "description": "Credential fields, the bcrypt pre-save hook, matchPassword and the toJSON transform that strips password and token fields" },
+      { "name": "server/src/controllers/profileController.ts", "action": "reuse", "description": "changePassword (revokes the other sessions), listSessions, revokeSession, revokeOtherSessions" },
+      { "name": "server/src/routes/profileRoutes.ts", "action": "reuse", "description": "PUT /password and the signed-in devices routes behind protect" },
+      { "name": "server/src/config/env.ts", "action": "reuse", "description": "readConfig validation of MONGO_URI, JWT_SECRET, CLIENT_URL, CORS_ORIGIN, RATE_LIMIT_MAX and TRUST_PROXY" },
+      { "name": "server/src/app.ts", "action": "reuse", "description": "Helmet, the CORS origin allow-list, the JSON body limits and the auth/sensitive/api rate limiters, plus the router mounts" },
+      { "name": "client/src/pages/AuthPage.tsx", "action": "reuse", "description": "Sign-in and sign-up form, verification notice, the ?expired=1 message and the post-login routing" },
+      { "name": "client/src/pages/VerifyEmailPage.tsx", "action": "reuse", "description": "Consumes the verification link and reports success, an expired link or a resend action" },
+      { "name": "client/src/pages/ForgotPasswordPage.tsx", "action": "reuse", "description": "Requests the reset email and always shows the same confirmation" },
+      { "name": "client/src/pages/ResetPasswordPage.tsx", "action": "reuse", "description": "Sets the new password against the token from the URL" },
+      { "name": "client/src/pages/SecurityPage.tsx", "action": "reuse", "description": "Security settings screen that hosts the password change and the signed-in devices list" },
+      { "name": "client/src/features/account/components/SessionList.tsx", "action": "reuse", "description": "Accessible list of signed-in devices with per-device sign-out" },
+      { "name": "client/src/features/account/api.ts", "action": "reuse", "description": "sessionsApi list/revoke/revokeOthers against /profile/sessions" },
+      { "name": "client/src/utils/session.ts", "action": "reuse", "description": "saveSession, getStoredUser, updateStoredUser, clearSession and the cache wipe that keeps a new login from inheriting the previous account's data" },
+      { "name": "client/src/utils/api.ts", "action": "reuse", "description": "Bearer header injection, the 401 -> clearSession + /login?expired=1 interceptor and getApiErrorMessage" },
+      { "name": "client/src/hooks/useAuthGuard.ts", "action": "reuse", "description": "Page guard that redirects without a session or without onboarding, and logs out through /auth/logout" },
+      { "name": "client/src/components/auth/validation.ts", "action": "reuse", "description": "Email, name and password rules shared by the auth forms" }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "User",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "string (max 80)", "action": "no_change" },
+          { "name": "email", "type": "string (unique, lowercase)", "action": "no_change" },
+          { "name": "password", "type": "string (bcrypt hash)", "action": "no_change" },
+          { "name": "isVerified", "type": "boolean", "action": "no_change" },
+          { "name": "verificationToken", "type": "string (SHA-256 hash)", "action": "no_change", "nullable": true },
+          { "name": "verificationTokenExpires", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "resetPasswordToken", "type": "string (SHA-256 hash)", "action": "no_change", "nullable": true },
+          { "name": "resetPasswordExpires", "type": "Date", "action": "no_change", "nullable": true },
+          { "name": "onboarding", "type": "object { role, useCase, teamSize, completedAt }", "action": "no_change", "nullable": true },
+          { "name": "workspaces", "type": "ObjectId[] (ref Workspace)", "action": "no_change" },
+          { "name": "activeWorkspace", "type": "ObjectId (ref Workspace)", "action": "no_change", "nullable": true }
+        ]
+      },
+      {
+        "name": "Session",
+        "action": "no_change",
+        "fields": [
+          { "name": "user", "type": "ObjectId (ref User)", "action": "no_change" },
+          { "name": "token", "type": "string (unique SHA-256 hash of the JWT)", "action": "no_change" },
+          { "name": "userAgent", "type": "string", "action": "no_change" },
+          { "name": "ipAddress", "type": "string", "action": "no_change" },
+          { "name": "lastLoggedIn", "type": "Date (written at most every 5 minutes)", "action": "no_change" },
+          { "name": "isValid", "type": "boolean (default true)", "action": "no_change" },
+          { "name": "createdAt", "type": "Date (timestamps, also the TTL key)", "action": "no_change" },
+          { "name": "updatedAt", "type": "Date (timestamps)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Signup writes a User with isVerified false and a hashed verification token, then emails a link built from CLIENT_URL. Opening the link hashes the token, matches it with an unexpired row, sets isVerified and clears the token fields. Login loads the user by exact email, compares the bcrypt hash, refuses an unverified account with 403 and otherwise mints a JWT (jti, 7 days) and inserts a Session row holding the token hash, the user agent and the IP. protect recomputes the hash of the bearer token on every request and requires a matching isValid session, so logout, password reset and the devices screen all take effect immediately. Sessions are read and revoked through GET/DELETE /api/profile/sessions and POST /api/profile/sessions/revoke-others; MongoDB drops rows eight days after creation through a TTL index."
+  },
+  "apiContracts": [
+    { "method": "POST", "path": "/api/auth/signup", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-001"] },
+    { "method": "POST", "path": "/api/auth/login", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-003", "FR-004"] },
+    { "method": "POST", "path": "/api/auth/logout", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-006"] },
+    { "method": "GET", "path": "/api/auth/currentuser", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-011"] },
+    { "method": "GET", "path": "/api/auth/verify-email/:token", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-002"] },
+    { "method": "POST", "path": "/api/auth/resend-verification", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-002"] },
+    { "method": "POST", "path": "/api/auth/forgot-password", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-007"] },
+    { "method": "POST", "path": "/api/auth/reset-password/:token", "action": "reuse", "authenticationRequired": false, "linkedRequirements": ["FR-007", "FR-008"] },
+    { "method": "POST", "path": "/api/auth/onboarding", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-010"] },
+    { "method": "PUT", "path": "/api/profile/password", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "GET", "path": "/api/profile/sessions", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "DELETE", "path": "/api/profile/sessions/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] },
+    { "method": "POST", "path": "/api/profile/sessions/revoke-others", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-009"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "app.use('/api/auth', authLimiter) caps the whole auth area, and login, forgot-password, resend-verification, profile password change and the two-factor endpoints additionally run through sensitiveLimiter (20 per 15 minutes per IP) unless the request is a GET. The limit body is JSON so the web app can show it (CON-514)." },
+    { "requirementId": "NFR-002", "description": "Passwords are bcrypt hashes (salt rounds 10) and email verification, reset and session tokens are stored only as SHA-256 digests, so a database copy cannot be replayed as a session or a link. userModel's toJSON transform additionally deletes password and token fields from every serialised user (CON-505)." },
+    { "requirementId": "NFR-003", "description": "Each mutating auth route declares an express-validator chain; controllers cast input with String() and write lookups as { email: { $eq: String(email) } }, which stops objects such as { \"$gt\": \"\" } from becoming query operators (CON-515, CON-516)." },
+    { "requirementId": "NFR-004", "description": "Rejecting a change that breaks the flows the suite covers (verification single use, session revocation, reset expiry, device listing) is a merge gate: pnpm --filter server test and pnpm --filter server test:integration must pass, and the client session helpers are covered by client/src/utils/__tests__/session.test.ts (CON-402, CON-404)." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-002", "strategy": "Hashing is cheap to verify and expensive to brute force: SHA-256 for tokens keeps the per-request lookup key deterministic, while bcrypt is used only where a secret must be hard to guess." },
+    { "requirementId": "NFR-004", "strategy": "The authenticated request path does one indexed Session lookup ({ token: 1 } unique) and one User findById; lastLoggedIn is written at most every 5 minutes so a chatty client does not turn reads into writes." }
+  ],
+  "dependencies": [
+    { "name": "jsonwebtoken", "type": "library", "action": "no_change", "notes": "Session JWT signing and verification" },
+    { "name": "bcryptjs", "type": "library", "action": "no_change", "notes": "Password hashing and comparison" },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "Route-level input validation chains" },
+    { "name": "nodemailer", "type": "library", "action": "no_change", "notes": "SMTP fallback transport" },
+    { "name": "Resend", "type": "service", "action": "no_change", "notes": "Preferred email provider (RESEND_API_KEY)" },
+    { "name": "MongoDB", "type": "service", "action": "no_change", "notes": "Users and revocable session rows, with the session TTL index" },
+    { "name": "server/src/config/env.ts", "type": "internal", "action": "no_change", "notes": "Validated configuration, including JWT_SECRET and CLIENT_URL" }
+  ],
+  "risks": [
+    { "description": "Email deliverability failures block activation or recovery", "mitigation": "A provider check at boot, a resend endpoint, a development console fallback, and the invitation/verification links never logged in production" },
+    { "description": "A stale browser token is presented after the session was revoked", "mitigation": "protect answers 401 and the axios interceptor clears the session and redirects to /login?expired=1" },
+    { "description": "Reset tokens remain valid for an hour after the password changed", "mitigation": "The hash is cleared on use and every session is invalidated, so an intercepted link cannot be exchanged for access" }
+  ]
+}

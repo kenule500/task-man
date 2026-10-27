@@ -1,0 +1,119 @@
+{
+  "feature": "task-views",
+  "version": 1,
+  "architecture": {
+    "approach": "One data path, four presentations. client/src/pages/TaskPage.tsx owns the state (useTasks for data, the URL for the view, filters and board controls) and passes tasks plus callbacks into the selected view, which implements TaskViewProps (views/types.ts). Every view keeps its non-visual rules in client/src/features/tasks/lib/ with unit tests, and everything a user can be looking at (view, filters, board column, quick filters, grouping) is parsed from and written to the query string by small pure helpers. Drag and drop uses platform primitives - native HTML5 DnD for the board and the calendar, pointer events for the Gantt - and each gesture has a keyboard or button equivalent.",
+    "components": [
+      { "name": "client/src/features/tasks/views/types.ts", "action": "create", "description": "TaskViewProps: tasks, onUpdate, onEdit, onDelete, onCreate, optional onOpen, canWrite and canDelete - the contract that makes the views interchangeable (constitution CON-111)." },
+      { "name": "client/src/features/tasks/views/ListView.tsx", "action": "create", "description": "Dense grid table from md up and compact cards on phones, in-place editing, subtask arrangement, custom-field columns, multi-select and the bulk bar." },
+      { "name": "client/src/features/tasks/views/BoardView.tsx", "action": "create", "description": "Kanban board over the workflow stages: DnD with fractional positions, phone column switcher with swipe/slide, quick move, long-press Move-to sheet, quick filters, swimlanes, WIP badges, per-column pagination and the completion burst." },
+      { "name": "client/src/features/tasks/views/CalendarView.tsx", "action": "create", "description": "Six-week month grid with drag-to-reschedule, urgency dots and legend, phone week strip / compact month grid, Upcoming list and the Today action." },
+      { "name": "client/src/features/tasks/views/TimelineView.tsx", "action": "create", "description": "Gantt chart: bars, dependency arrows with conflict marking, day/week zoom, pointer drag move/resize and keyboard equivalents, with live refreshes held during a drag." },
+      { "name": "client/src/features/tasks/hooks/useBoardSettings.ts", "action": "create", "description": "useBoardSettings (WIP limits with a 404-tolerant read and a save that returns an error message), useBoardUrlState (?col, ?qf, ?group) and useIsDesktop." },
+      { "name": "client/src/features/tasks/lib/schedule.ts", "action": "create", "description": "Shared scheduling maths: getStartKey, rescheduleToDeadline, shiftTask, resizeTask, buildMonthGrid, groupByDeadline, buildTimeline, groupDaysByMonth and getLinkPath." },
+      { "name": "client/src/features/tasks/lib/boardQuickFilters.ts", "action": "create", "description": "The five quick filters, their parse/serialize/toggle helpers, isBlocked and isDueThisWeek." },
+      { "name": "client/src/features/tasks/lib/swimlanes.ts", "action": "create", "description": "Swimlane groupings, lane keys (with Unassigned/No project/No epic last) and groupIntoSwimlanes/laneIdOf." },
+      { "name": "client/src/features/tasks/lib/wip.ts", "action": "create", "description": "WipLimits type, normalizeWipLimits, isOverWip, wipCountLabel and parseWipInput - the soft-limit rules." },
+      { "name": "client/src/features/tasks/lib/pagination.ts", "action": "create", "description": "Cumulative \"show more\" pagination for a board column (BOARD_PAGE_SIZE = 10) and pageCount." },
+      { "name": "client/src/features/tasks/lib/selection.ts", "action": "create", "description": "Selection helpers for the list: toggleId, selectionState, toggleAll, idsBetween, selectRange, pruneSelection and selectionLabel." },
+      { "name": "client/src/features/tasks/lib/listColumns.ts", "action": "create", "description": "Built-in and custom columns, visibleColumns/toggleColumn, the grid template, tableMinWidth and the custom number/date column sorting (nextColumnSort, sortByColumn)." },
+      { "name": "client/src/features/tasks/lib/columnSwipe.ts", "action": "create", "description": "swipeStep (60 px, ignores vertical scrolls) and stepColumn for the phone board." },
+      { "name": "client/src/features/tasks/lib/calendarDots.ts", "action": "create", "description": "dotStateOf, summarizeDay (at most three dots, overflow and a text summary) and the DOT_META legend." },
+      { "name": "client/src/features/tasks/lib/agenda.ts", "action": "create", "description": "buildAgenda/buildUpcoming: the days of a month that have tasks, in date order, with past days dropped in the current month." },
+      { "name": "client/src/features/tasks/lib/week.ts", "action": "create", "description": "startOfWeek, buildWeek, shiftWeek, defaultSelectedKey, the remembered phone mode (taskman.calendar.mobileMode) and formatTaskRange." },
+      { "name": "client/src/features/tasks/lib/filters.ts", "action": "reuse", "description": "Applied by the page before the tasks reach a view, and reused by the list for grouping, sorting and the fractional drop position (getDropPosition, positionBetween, groupByStatus, getTaskStats)." },
+      { "name": "client/src/features/tasks/lib/date.ts", "action": "reuse", "description": "Calendar-day helpers every view uses for display and rescheduling (CON-203)." },
+      { "name": "client/src/features/tasks/lib/subtasks.ts", "action": "reuse", "description": "arrangeWithSubtasks/countSubtasks used by the list view." },
+      { "name": "client/src/features/tasks/lib/epics.ts", "action": "reuse", "description": "epicsOf/withoutEpics used by the board and the calendar to keep containers out of the work surfaces." },
+      { "name": "client/src/features/tasks/lib/scope.ts", "action": "reuse", "description": "ScopeBar support: resolveScopeFilters, scopeProjectOf, scopeSprintOf and hasScope." },
+      { "name": "client/src/features/tasks/lib/scroll.ts", "action": "reuse", "description": "scrollBehavior(): \"smooth\" or \"auto\" for reduced motion." },
+      { "name": "client/src/features/tasks/lib/completion.ts", "action": "reuse", "description": "newlyCompleted: the one-shot check burst when a card lands in a completed stage." },
+      { "name": "client/src/features/tasks/lib/dragImage.ts", "action": "reuse", "description": "setLiftedDragImage: the drag preview of a board card." },
+      { "name": "client/src/features/tasks/components/BoardQuickFilters.tsx", "action": "create", "description": "The toggle chips above the board." },
+      { "name": "client/src/features/tasks/components/BoardSwimlanes.tsx", "action": "create", "description": "The lane headers and the grouping select." },
+      { "name": "client/src/features/tasks/components/MoveTaskSheet.tsx", "action": "create", "description": "The phone sheet that lists the stages with counts and marks the current one." },
+      { "name": "client/src/features/tasks/components/WipLimitsDialog.tsx", "action": "create", "description": "Sets the soft WIP limits (settings:manage) against PUT /board-settings." },
+      { "name": "client/src/features/tasks/components/ListColumnsMenu.tsx", "action": "create", "description": "Choose the visible list columns and store the choice per workspace." },
+      { "name": "client/src/features/tasks/components/BulkActionBar.tsx", "action": "create", "description": "Bar for the current selection (status, priority, sprint, assignees, labels, delete)." },
+      { "name": "client/src/features/tasks/components/ViewSwitcher.tsx", "action": "create", "description": "List / Board / Calendar / Timeline switcher used by the page header." },
+      { "name": "client/src/features/tasks/components/TaskToolbar.tsx", "action": "create", "description": "Search, sort, scope bar, filters and the create action above every view." },
+      { "name": "client/src/features/tasks/components/FilterPills.tsx", "action": "create", "description": "The active filters as removable pills." },
+      { "name": "client/src/features/tasks/components/ScopeBar.tsx", "action": "create", "description": "Project / sprint / release scope selector shared by the views." },
+      { "name": "client/src/features/tasks/components/TaskBadges.tsx", "action": "create", "description": "Badges and indicators the views render (status, priority with a screen-reader label, due date, points, time, subtask progress, dependencies, relations, repeat, checklist)." },
+      { "name": "client/src/features/tasks/components/TaskSelects.tsx", "action": "create", "description": "Status/stage, priority, type, points and sprint selects grouped by status group." },
+      { "name": "client/src/features/tasks/components/InlineEdit.tsx", "action": "create", "description": "InlineText and InlineDate used for in-place editing." },
+      { "name": "client/src/features/tasks/components/TaskHoverCards.tsx", "action": "create", "description": "Hover preview of a card's task." },
+      { "name": "client/src/features/tasks/components/TaskActionsMenu.tsx", "action": "create", "description": "Per-task menu (open, edit, duplicate, move, convert, delete) used by the list and the board." },
+      { "name": "client/src/features/tasks/index.ts", "action": "modify", "description": "Publishes the four views, TaskViewProps and the shared helpers (constitution CON-110)." },
+      { "name": "client/src/pages/TaskPage.tsx", "action": "modify", "description": "Selects and renders the view, applies the filters, and owns the loading, error and empty states." },
+      { "name": "client/src/features/views/hooks/useUrlFilters.ts", "action": "reuse", "description": "Keeps the filter object in the query string; owned by the views feature." },
+      { "name": "client/src/features/workflow/hooks/useWorkflow.ts", "action": "reuse", "description": "Supplies the board's stages and the cached workflow used by optimistic updates." },
+      { "name": "server/src/controllers/boardSettingsController.ts", "action": "reuse", "description": "GET/PUT board-settings: the soft WIP limits the board reads and the dialog saves." },
+      { "name": "server/src/utils/taskQuery.ts", "action": "reuse", "description": "The server side of the same list query the URL filters mirror." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "status", "type": "enum pending|in-progress|completed", "action": "no_change" },
+          { "name": "stage", "type": "string (workflow stage key)", "action": "no_change" },
+          { "name": "position", "type": "number (fractional board order)", "action": "no_change" },
+          { "name": "startDate", "type": "date", "action": "no_change", "nullable": true },
+          { "name": "deadline", "type": "date", "action": "no_change" },
+          { "name": "dependencies", "type": "ObjectId[] ref Task (Gantt arrows)", "action": "no_change" },
+          { "name": "assignees", "type": "ObjectId[] ref User (swimlanes, avatars)", "action": "no_change" },
+          { "name": "custom", "type": "Map<string, mixed> (list columns and filters)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "no_change",
+        "fields": [
+          { "name": "workflow.stages", "type": "{ key, name, group, color, wipLimit }[]", "action": "no_change" },
+          { "name": "boardSettings.wipLimits", "type": "{ pending, 'in-progress', completed } (legacy per-status limits)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "TaskPage loads the workspace's tasks through useTasks (one shared cached list), applies the URL-held filters in memory and renders the requested view with the filtered tasks plus the write/delete capabilities. A view never fetches: it calls back into the page's handlers (onUpdate, onCreate, onDelete, onOpen), and those go through useTasks, which patches optimistically and rolls back on failure. Board and calendar drops send a small PATCH (position, stage/status, deadline, startDate); the Gantt sends shiftTask/resizeTask patches. Board controls (column, quick filters, grouping) and the view and filters all live in the query string, so a view is reproducible from its link."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/workspaces/:slug/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-001", "FR-011", "NFR-001"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002", "FR-006", "FR-008", "FR-010"] },
+    { "method": "PATCH", "path": "/api/workspaces/:slug/tasks/bulk", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/tasks/bulk-delete", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-007"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/workflow", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-002", "FR-003"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/board-settings", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-005"] },
+    { "method": "PUT", "path": "/api/workspaces/:slug/board-settings", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-005"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "canWrite and canDelete only hide or disable affordances (inline editors, drag, quick move, delete); the API keeps enforcing tasks:write and tasks:delete through requirePermission, so hiding a control is never the security boundary (EC-009)." },
+    { "requirementId": "NFR-002", "description": "Everything a gesture can do has a keyboard path (column tabs, Gantt arrow keys, the Move-to sheet, the done button), which also keeps the views usable without a pointer; accessible names come from the design-system primitives and explicit labels." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-001", "strategy": "All four views render the one cached task list from useTasks, so switching view or returning to the page costs no extra request, and an update patches that list in place instead of refetching it." },
+    { "requirementId": "NFR-004", "strategy": "Phones render a single board column with week-zoom Gantt and cards instead of the table, and every board column paginates at ten cards, keeping the DOM small on the devices with the least headroom." },
+    { "requirementId": "NFR-004", "strategy": "Reordering writes one fractional position instead of renumbering the column, so a drop is a single small PATCH, and the board keeps the dragged card's state locally until that patch resolves." }
+  ],
+  "dependencies": [
+    { "name": "react-router-dom", "type": "library", "action": "no_change", "notes": "useSearchParams for the view, filters and board state." },
+    { "name": "motion", "type": "library", "action": "no_change", "notes": "Slide transition, check burst and MotionProvider already used by the board." },
+    { "name": "lucide-react", "type": "library", "action": "no_change", "notes": "Icons." },
+    { "name": "tailwindcss v4", "type": "library", "action": "no_change", "notes": "Layout and the @theme tokens the views style with (CON-303)." },
+    { "name": "client/src/features/views", "type": "internal", "action": "no_change", "notes": "useUrlFilters and the saved-views menu." },
+    { "name": "server/src/utils/taskQuery.ts", "type": "internal", "action": "no_change", "notes": "The server counterpart of the filter parameters the views mirror." }
+  ],
+  "risks": [
+    { "description": "Keyboard and touch alternatives can be forgotten when a gesture is added, leaving one device class unable to act.", "mitigation": "The board's phone path, the Gantt's arrow keys and the list's selection keys have their own tests (board.test.tsx, calendar.test.tsx, views.test.tsx), and any drag handler is written next to its non-drag equivalent." },
+    { "description": "The URL can grow stale or contradictory while a user clicks around (unknown stage, removed label filter).", "mitigation": "Every parsed value falls back to a default, `?col=` returns to the first stage by dropping the parameter, and filter targets that no longer exist fall back to \"all\"." },
+    { "description": "Live refreshes during an interaction (drag, resize, long press) can move the data under the user.", "mitigation": "useLiveHold pauses refreshes while a Gantt drag is active and the board keeps its own drop state until the patch resolves." }
+  ]
+}

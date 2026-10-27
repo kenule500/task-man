@@ -1,0 +1,134 @@
+{
+  "feature": "custom-fields-workflow",
+  "version": 1,
+  "rows": [
+    {
+      "requirementId": "FR-001",
+      "acceptanceCriteriaIds": ["AC-016"],
+      "planSection": "architecture.components (customFieldController.listFields, routes/fieldRoutes.ts, useCustomFields)",
+      "taskIds": ["T2.1", "T2.2", "T3.1"],
+      "testIds": ["TEST-006", "TEST-010", "TEST-012"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-002",
+      "acceptanceCriteriaIds": ["AC-001", "AC-002", "AC-003"],
+      "planSection": "architecture.components (customFieldModel.ts, customFields.slugFromName, createField) / apiContracts POST /fields",
+      "taskIds": ["T1.1", "T2.2", "T3.5"],
+      "testIds": ["TEST-001", "TEST-006", "TEST-012"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-003",
+      "acceptanceCriteriaIds": ["AC-003", "AC-004"],
+      "planSection": "architecture.components (updateField, clearRemovedOptions) / apiContracts PATCH /fields/:id",
+      "taskIds": ["T1.1", "T2.3", "T3.5"],
+      "testIds": ["TEST-006", "TEST-012", "TEST-010"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-004",
+      "acceptanceCriteriaIds": ["AC-017"],
+      "planSection": "architecture.components (reorderFields) / apiContracts PUT /fields/order",
+      "taskIds": ["T2.1", "T2.4", "T3.5"],
+      "testIds": ["TEST-012", "TEST-006"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-005",
+      "acceptanceCriteriaIds": ["AC-018"],
+      "planSection": "architecture.components (deleteField) / apiContracts DELETE /fields/:id",
+      "taskIds": ["T2.4", "T3.5"],
+      "testIds": ["TEST-006", "TEST-012"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-006",
+      "acceptanceCriteriaIds": ["AC-005", "AC-006", "AC-007", "AC-008"],
+      "planSection": "architecture.components (customFields.planCustomValues, customFieldsDb.planRequestCustom, taskController)",
+      "taskIds": ["T1.2", "T1.3", "T2.5", "T4.1"],
+      "testIds": ["TEST-001", "TEST-005", "TEST-006", "TEST-008"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-007",
+      "acceptanceCriteriaIds": ["AC-009", "AC-010"],
+      "planSection": "architecture.components (taskQuery custom filters, fieldFilters.ts, lib/filters.matchesCustom)",
+      "taskIds": ["T1.2", "T2.6", "T3.3"],
+      "testIds": ["TEST-001", "TEST-005", "TEST-011", "TEST-016"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-008",
+      "acceptanceCriteriaIds": ["AC-011"],
+      "planSection": "architecture.components (workflow.workflowOf, workflowController.getWorkflow) / apiContracts GET /workflow",
+      "taskIds": ["T1.4", "T2.7", "T3.4"],
+      "testIds": ["TEST-002", "TEST-007", "TEST-013"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-009",
+      "acceptanceCriteriaIds": ["AC-012", "AC-013"],
+      "planSection": "architecture.components (workflowController.updateWorkflow, planStageMoves) / apiContracts PUT /workflow",
+      "taskIds": ["T1.4", "T1.5", "T2.7", "T3.5"],
+      "testIds": ["TEST-002", "TEST-007", "TEST-015"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-010",
+      "acceptanceCriteriaIds": ["AC-014"],
+      "planSection": "architecture.components (workflow.stageFor, taskController stage handling, workflow/lib/stages.resolveStage)",
+      "taskIds": ["T1.4", "T1.5", "T2.8", "T3.4"],
+      "testIds": ["TEST-002", "TEST-004", "TEST-008", "TEST-013", "TEST-014"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-011",
+      "acceptanceCriteriaIds": ["AC-008", "AC-010"],
+      "planSection": "architecture.components (CustomFieldInput, TaskCustomFields, TaskCustomChips, listColumns)",
+      "taskIds": ["T3.2", "T3.3"],
+      "testIds": ["TEST-012", "TEST-017", "TEST-018"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "FR-012",
+      "acceptanceCriteriaIds": ["AC-015"],
+      "planSection": "architecture.components (StageBadges, StageRow, BoardPreview, WorkflowSettingsPage) and features/tasks BoardView",
+      "taskIds": ["T3.4", "T3.5", "T4.3"],
+      "testIds": ["TEST-014", "TEST-015", "TEST-013"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-001",
+      "acceptanceCriteriaIds": ["AC-016", "AC-018"],
+      "planSection": "securityConsiderations (NFR-001)",
+      "taskIds": ["T1.3", "T2.4", "T4.2"],
+      "testIds": ["TEST-006", "TEST-007"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-002",
+      "acceptanceCriteriaIds": ["AC-013", "AC-015"],
+      "planSection": "securityConsiderations (NFR-002)",
+      "taskIds": ["T1.4", "T2.7", "T2.8", "T4.3"],
+      "testIds": ["TEST-002", "TEST-007", "TEST-014"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-003",
+      "acceptanceCriteriaIds": ["AC-012"],
+      "planSection": "performanceConsiderations (NFR-003)",
+      "taskIds": ["T1.2", "T1.4", "T3.1", "T4.1"],
+      "testIds": ["TEST-001", "TEST-002", "TEST-010", "TEST-013"],
+      "status": "complete"
+    },
+    {
+      "requirementId": "NFR-004",
+      "acceptanceCriteriaIds": ["AC-001", "AC-004"],
+      "planSection": "securityConsiderations (NFR-004)",
+      "taskIds": ["T2.1", "T4.3", "T4.4"],
+      "testIds": ["TEST-012", "TEST-015"],
+      "status": "complete"
+    }
+  ]
+}

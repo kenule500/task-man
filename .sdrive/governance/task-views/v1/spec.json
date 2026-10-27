@@ -1,0 +1,147 @@
+{
+  "feature": "task-views",
+  "title": "Task views: list, Kanban board, calendar and timeline",
+  "version": 1,
+  "overview": {
+    "problemStatement": "One task list is not enough: a team plans in columns, schedules on a calendar, checks the critical path on a Gantt and trims details in a dense table. Four separate screens would duplicate filtering, permissions and data loading, and they would drift apart the moment a rule changes.",
+    "proposedSolution": "Four interchangeable views behind one contract (client/src/features/tasks/views/types.ts, TaskViewProps) that all receive their tasks and callbacks from the page, which reads them from the single useTasks hook. Shared pure rules live in client/src/features/tasks/lib/ (filters, schedule, boardQuickFilters, swimlanes, wip, pagination, selection, listColumns, calendarDots, agenda, week, columnSwipe) and are unit tested there; the view, the filters and the board's own controls are kept in the URL so any state is shareable by link.",
+    "targetAudience": "Workspace members and administrators planning work in TaskMan, on desktop and on phones.",
+    "assumptions": [
+      "Visual details (spacing, colours, iconography) follow DESIGN.md and docs/DESIGN_SYSTEM.md and are not restated here; only behaviour is specified.",
+      "The saved-views menu and the URL-filter hook come from the separate views feature (client/src/features/views); they are reused, not owned by this feature.",
+      "Motion is provided by the motion package already used by the board (motion/react, MotionProvider); no new UI library was introduced."
+    ],
+    "outOfScope": [
+      "Saved views (client/src/features/views, /api/workspaces/:slug/views) - a separate feature.",
+      "The Gantt is not an editor for dependencies: it draws and marks conflicts, while dependency editing lives in the task form and the relations panel.",
+      "Time tracking and reports over the same data (features/time, features/flow) are separate features."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Plan the sprint on a board with drag and drop",
+      "role": "Workspace member",
+      "want": "see one column per workflow stage, drag cards between and inside the columns, and keep my own work visible",
+      "benefit": "the state of the sprint is obvious at a glance and moving work takes one gesture",
+      "acceptanceCriteria": [
+        { "id": "AC-001", "text": "The board renders one column per workflow stage with its name, colour dot and card count, and a task whose stored stage no longer belongs to its status group is shown in the first stage of that group (resolveStage)." },
+        { "id": "AC-002", "text": "Dropping a card on another column or position saves a patch with the target stage (or its status when the workflow is not loaded) and a fractional position between its new neighbours; a drop that changes nothing sends no request." },
+        { "id": "AC-003", "text": "The board never renders an epic as a card: epics are containers, so their items are shown (and lanes can group by epic)." },
+        { "id": "AC-022", "text": "Swimlane grouping splits the board into lanes by assignee, project, type or epic on desktop only; each task sits in exactly one lane (its first assignee, project, type or epic), empty buckets such as Unassigned come last, and grouping is off on phones." },
+        { "id": "AC-023", "text": "A column header shows its card count and, when a WIP limit is set for the stage, \"count / limit\" and a warning style while the column is over it; the limit is soft, so nothing is ever blocked and moving a card in is still allowed." },
+        { "id": "AC-024", "text": "A column renders the first ten cards and a \"Show more\" action that reveals ten more, with the remaining count available to the header." }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "Move work on a phone without dragging",
+      "role": "Workspace member on a phone",
+      "want": "switch columns with a swipe or a tab, and move a card with one tap or from a sheet",
+      "benefit": "I can run stand-up from my phone without fighting drag and drop",
+      "acceptanceCriteria": [
+        { "id": "AC-004", "text": "Below the md breakpoint the board shows one column at a time behind a sticky segmented switcher whose tab carries the column count (Pending first), and the selected stage is kept in ?col= (the first stage when absent or unknown)." },
+        { "id": "AC-005", "text": "A one-finger horizontal swipe past the 60 px threshold (lib/columnSwipe.ts) switches to the next column (swipe left) or the previous one (swipe right); shorter swipes, mostly vertical scrolls and multi-finger gestures are ignored, and nothing happens from md up where all columns are visible." },
+        { "id": "AC-006", "text": "Every card shows a labelled quick action for the next stage (Start, Next, Done, Reopen) and offers a \"Move to\" sheet from its menu; a 500 ms long press (cancelled when the finger moves or lifts early, mouse ignored) opens the same sheet." },
+        { "id": "AC-007", "text": "The column tabs answer Arrow keys, Home and End, and the incoming column's slide transition is skipped when prefers-reduced-motion is set." }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Manage tasks in a dense list",
+      "role": "Workspace member",
+      "want": "edit fields in place, choose which columns I see, and act on several rows at once",
+      "benefit": "triage is fast and I never open a dialog for a small change",
+      "acceptanceCriteria": [
+        { "id": "AC-008", "text": "The list renders a desktop grid table and compact phone cards for the same tasks, and each row/card keeps the task key, badges (priority, due date, type, points, time, subtask progress) and the actions menu." },
+        { "id": "AC-009", "text": "Title, due date, status and priority can be edited in place (InlineText, InlineDate, StatusSelect, PrioritySelect); with canWrite false the editors are read-only and the done button is disabled." },
+        { "id": "AC-010", "text": "The Columns menu switches the optional built-in columns and one column per active custom field, the choice is remembered per workspace, and clicking the header of a custom number or date column sorts ascending, then descending, then back to the list's own order." },
+        { "id": "AC-011", "text": "When bulk handlers and permissions allow it each row gets a selection checkbox: Shift+click selects the range from the last clicked row, the header checkbox toggles the visible rows (indeterminate in between), Esc clears the selection, and the bulk bar applies one patch or asks before deleting the selection." }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Schedule work on the calendar",
+      "role": "Workspace member",
+      "want": "see what is due when, move a task to another day and add a task on a day",
+      "benefit": "deadlines are planned against real days instead of an ordered list",
+      "acceptanceCriteria": [
+        { "id": "AC-012", "text": "The month grid always shows six full weeks starting on Sunday, places tasks on their due day, marks days outside the month and today, and dragging a task onto another day reschedules it keeping its duration (rescheduleToDeadline); an empty day offers \"add a task\" prefilled with that day when the user may write." },
+        { "id": "AC-013", "text": "Each day shows up to three urgency-ordered dots (overdue first) plus a \"+N\" overflow and a plain-text summary for assistive tech, with a legend naming the dot colours." },
+        { "id": "AC-014", "text": "Phones get a week strip or a compact month grid (the mode is remembered in localStorage under taskman.calendar.mobileMode) plus an \"Upcoming\" list of the days that have tasks; \"Today\" returns to the current month, selects, scrolls to and focuses today, and the \"t\" shortcut does the same except while typing in a field or dialog." }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Review the schedule on the Gantt timeline",
+      "role": "Workspace member",
+      "want": "see bars, dependency arrows and conflicts, and nudge dates directly",
+      "benefit": "the critical path and the slips in it are visible without exporting anything",
+      "acceptanceCriteria": [
+        { "id": "AC-015", "text": "Bars run from the start date (or the deadline for one-day tasks) to the deadline, rows are sorted by start, the header groups consecutive days by month, and the chart opens scrolled to today and zooms by day on desktop or by week on phones." },
+        { "id": "AC-016", "text": "An elbow arrow is drawn from each prerequisite's bar to its dependant's bar, and a dependant that starts before its prerequisite is due is counted as a conflict and highlighted." },
+        { "id": "AC-017", "text": "A bar can be dragged to move it or grabbed at its right edge to resize it, and the same is possible with Arrow keys (move) and Shift+Arrow (resize); while a drag is in progress live refreshes are held so the bars do not move under the pointer." }
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Share the exact view with a link",
+      "role": "Workspace member",
+      "want": "the view, the filters and the board state to live in the URL",
+      "benefit": "I can paste a link that opens what I was looking at",
+      "acceptanceCriteria": [
+        { "id": "AC-018", "text": "?view= selects list, board, calendar or timeline; switching views keeps every filter parameter and drops the rest (open task, ?new, board state)." },
+        { "id": "AC-019", "text": "Filters round-trip as q, status, priority, type, label, epic, project, sprint, release, assignedToMe, sort and cf.<key> (at most five), with safe fallbacks for missing or unknown values; a label or epic filter whose target no longer exists falls back to \"all\" instead of hiding everything." },
+        { "id": "AC-020", "text": "The board keeps ?col=, ?qf= and ?group= in the URL: quick filters and the swimlane grouping are parsed in canonical order with unknown values dropped, a column change pushes a history entry so Back returns to the previous column, and filter/grouping changes replace the entry." },
+        { "id": "AC-021", "text": "Views show an empty state that tells \"no tasks yet\" apart from \"no matches\", and hide write or delete affordances when the user lacks tasks:write or tasks:delete." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    { "id": "FR-001", "text": "Every view implements the shared TaskViewProps contract (views/types.ts) and receives its tasks and callbacks from the page; no view fetches data or reads the API directly (constitution CON-111).", "linkedAcceptanceCriteria": ["AC-008", "AC-018", "AC-021"] },
+    { "id": "FR-002", "text": "The board groups tasks into one column per workflow stage with counts, excludes epics from the columns, and writes drag-and-drop results as a stage/status patch plus a fractional position between the new neighbours.", "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003"] },
+    { "id": "FR-003", "text": "On phones the board shows one column at a time with the stage in ?col=, supports swipe and keyboard navigation between columns, and moves a card through a labelled quick action or the Move-to sheet (menu or 500 ms long press), skipping the slide transition for prefers-reduced-motion.", "linkedAcceptanceCriteria": ["AC-004", "AC-005", "AC-006", "AC-007"] },
+    { "id": "FR-004", "text": "The board offers Jira-style quick filters (My tasks, Bugs, Due this week, Blocked, Unassigned) that are AND-combined and kept in ?qf=, and swimlane grouping by assignee, project, type or epic on desktop, where each task lands in exactly one lane and empty buckets come last.", "linkedAcceptanceCriteria": ["AC-020", "AC-022"] },
+    { "id": "FR-005", "text": "Each board column shows its count and, when a WIP limit is set, \"count / limit\" with an over-limit warning that never blocks a move, and paginates its cards at ten with a \"Show more\" action.", "linkedAcceptanceCriteria": ["AC-023", "AC-024"] },
+    { "id": "FR-006", "text": "The list view renders a desktop table and phone cards, edits title, due date, status and priority in place when the user may write, remembers the visible columns per workspace and sorts by a custom number or date column.", "linkedAcceptanceCriteria": ["AC-008", "AC-009", "AC-010"] },
+    { "id": "FR-007", "text": "The list view offers multi-select (row checkbox, header checkbox with indeterminate state, Shift+click range, Esc to clear) and applies bulk updates or bulk deletes to the selection behind a confirmation.", "linkedAcceptanceCriteria": ["AC-011"] },
+    { "id": "FR-008", "text": "The calendar renders a six-week month grid, reschedules a task when it is dropped on another day, and creates a task prefilled with the day that was clicked.", "linkedAcceptanceCriteria": ["AC-012"] },
+    { "id": "FR-009", "text": "The calendar summarises each day with at most three urgency-ordered dots, an overflow count and an accessible text summary plus legend, and gives phones a week strip or compact month grid (remembered) with an Upcoming list and a Today action.", "linkedAcceptanceCriteria": ["AC-013", "AC-014"] },
+    { "id": "FR-010", "text": "The timeline lays tasks out as Gantt bars with month header segments, draws dependency arrows and marks conflicts, and reschedules or resizes a bar by pointer drag or with the keyboard while holding live refreshes.", "linkedAcceptanceCriteria": ["AC-015", "AC-016", "AC-017"] },
+    { "id": "FR-011", "text": "The selected view, the filters and the board controls are kept in the URL through tested parse/serialize helpers, with safe fallbacks for missing, unknown or oversized values.", "linkedAcceptanceCriteria": ["AC-018", "AC-019", "AC-020"] },
+    { "id": "FR-012", "text": "Views distinguish an empty workspace from a filtered-out result set and hide write/delete affordances (canWrite, canDelete) for members who lack the permission.", "linkedAcceptanceCriteria": ["AC-021"] }
+  ],
+  "nonFunctionalRequirements": [
+    { "id": "NFR-001", "text": "Views implement TaskViewProps and read data through the useTasks hook, which stays the single source of truth with optimistic updates (constitution CON-111); the canWrite/canDelete flags only hide affordances because the server keeps enforcing tasks:write and tasks:delete.", "linkedAcceptanceCriteria": ["AC-008", "AC-021"] },
+    { "id": "NFR-002", "text": "Interactive UI is keyboard operable and exposes accessible names: column tabs with Arrow/Home/End, Gantt bars with Arrow and Shift+Arrow, Esc clears the list selection, calendar dots are hidden from assistive tech behind a text summary, and the priority indicator carries a screen-reader label (constitution CON-305).", "linkedAcceptanceCriteria": ["AC-007", "AC-011", "AC-013", "AC-017"] },
+    { "id": "NFR-003", "text": "Scheduling works on calendar days: every date shown or sent by a view goes through client/src/features/tasks/lib/date.ts (parseDateKey, toDateKey, dateKeyOf), never through new Date('YYYY-MM-DD') for display (constitution CON-203).", "linkedAcceptanceCriteria": ["AC-012", "AC-015"] },
+    { "id": "NFR-004", "text": "Layouts are mobile-first: one board column at a time on phones with the mobile tab bar intact, phone cards instead of the list table, and a week zoom by default on the Gantt (constitution CON-306).", "linkedAcceptanceCriteria": ["AC-004", "AC-014"] }
+  ],
+  "edgeCases": [
+    { "id": "EC-001", "description": "A card is dropped exactly where it already was.", "expectedBehavior": "getDropPosition returns null and no request is sent, so the board does not write pointless patches." },
+    { "id": "EC-002", "description": "A live refresh answers while a Gantt bar is being dragged.", "expectedBehavior": "useLiveHold(drag !== null) pauses the refresh so the bars cannot jump under the pointer." },
+    { "id": "EC-003", "description": "?col=, ?group= or ?qf= carry an unknown value.", "expectedBehavior": "The board falls back to the first stage, group=none and no quick filters, and the invalid value is not written back." },
+    { "id": "EC-004", "description": "A label or epic filter points at something that no longer exists.", "expectedBehavior": "TaskPage falls back to \"all\" for that filter instead of showing an empty list." },
+    { "id": "EC-005", "description": "A filter or a delete hides rows that were selected.", "expectedBehavior": "pruneSelection drops the ids that are no longer visible, so the bulk bar cannot act on an invisible row." },
+    { "id": "EC-006", "description": "An empty workspace versus filters that match nothing.", "expectedBehavior": "Two distinct empty states driven by totalCount (\"no tasks\" versus \"no matches\")." },
+    { "id": "EC-007", "description": "localStorage is unavailable (private mode, sandboxed frame) for the phone calendar mode.", "expectedBehavior": "readMobileMode/writeMobileMode wrap storage access and fall back to the week strip without throwing." },
+    { "id": "EC-008", "description": "The user prefers reduced motion.", "expectedBehavior": "The column slide transition is skipped and scroll behaviour is set to \"auto\" (lib/scroll.ts)." },
+    { "id": "EC-009", "description": "A member without tasks:write opens a board, calendar or timeline.", "expectedBehavior": "Drag is disabled, quick actions are hidden and inline editors are read-only; the API still rejects any write attempt." }
+  ],
+  "dependencies": [
+    { "name": "react-router-dom", "type": "library", "notes": "useSearchParams backs the view, filter and board state in the URL." },
+    { "name": "motion (motion/react)", "type": "library", "notes": "Board slide transition, check burst and the board MotionProvider." },
+    { "name": "lucide-react", "type": "library", "notes": "Icons used by the views and their menus." },
+    { "name": "client/src/features/tasks/hooks/useTasks.ts", "type": "internal", "notes": "The single source of truth every view reads (constitution CON-111)." },
+    { "name": "client/src/features/workflow", "type": "internal", "notes": "useWorkflow supplies the board columns and the stage helpers (stages.ts)." },
+    { "name": "client/src/features/fields", "type": "internal", "notes": "Custom field values shown as chips/columns and used by the list filters." },
+    { "name": "client/src/features/views", "type": "internal", "notes": "useUrlFilters and the ViewsMenu (saved views) used by the task page." },
+    { "name": "GET /api/workspaces/:slug/board-settings", "type": "service", "notes": "Soft WIP limits; a 404 or a read failure simply means \"no limits\"." },
+    { "name": "native HTML5 drag and drop and pointer events", "type": "external", "notes": "Board and calendar use native DnD; the Gantt uses pointer events with keyboard equivalents (no drag library)." }
+  ],
+  "risks": [
+    { "id": "RISK-001", "description": "Three interaction models coexist (native HTML5 drag and drop, pointer events, touch gestures), which is easy to break on one device class.", "mitigation": "Every pointer/touch gesture has a keyboard or button equivalent (column tabs, Move-to sheet, Gantt arrow keys) and each one is covered by a dedicated test file (board.test.tsx, calendar.test.tsx, columnSwipe.test.ts, views.test.tsx)." },
+    { "id": "RISK-002", "description": "A workspace with many tasks could make the board and list slow, because the whole list arrives in one response.", "mitigation": "Columns and rows are memoised, the board paginates per column (BOARD_PAGE_SIZE = 10), drag reordering sends only a fractional position, and the shared query cache avoids refetching when switching views." },
+    { "id": "RISK-003", "description": "URL state and component state can drift, leaving a view that contradicts its own link.", "mitigation": "Parsing and serialising live in one tested module per concern (lib/filters.ts, lib/boardQuickFilters.ts, lib/swimlanes.ts, hooks/useBoardSettings.ts), and the board falls back to local state when the page passes no controls." }
+  ]
+}

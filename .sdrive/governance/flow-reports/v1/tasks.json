@@ -1,0 +1,121 @@
+{
+  "feature": "flow-reports",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Transition history",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "StatusTransition model and indexes",
+          "description": "server/src/models/statusTransitionModel.ts: one row per move with workspace, task, project name, sprint, type, from, to, at and actor, indexed by { workspace, at } and { workspace, task, at } and kept without a TTL so the charts reach back as far as the data does.",
+          "linkedRequirements": ["FR-003", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-005"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Flow tracking listener on the activity stream",
+          "description": "server/src/utils/flow/register.ts: registerFlowTracking subscribes once per process and trackStatusTransition writes the row for task.created and status-changing task.updated of top-level non-epic tasks; server/src/app.ts calls it before the automation and webhook listeners.",
+          "linkedRequirements": ["FR-003", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Pure metrics core",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Metrics module with timelines and the four measures",
+          "description": "server/src/utils/flow/metrics.ts: dayKey, parseDayKey, makeRange, buildTimelines with its backfill rules, cumulativeFlow, percentile (nearest rank), cycleTimes, leadTimes, agingWip, isoWeekLabel, throughput and buildFlowReport.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-006", "FR-007", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Unit tests for the metrics module",
+          "description": "server/src/__tests__/flowMetrics.test.ts covering day keys and ranges, the timeline backfill, the cumulative counts, the percentiles, cycle versus lead time, throughput weeks and the aging order.",
+          "linkedRequirements": ["NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "HTTP surface",
+      "dependencies": ["P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "getFlowReport handler with strict query parsing",
+          "description": "server/src/controllers/flowController.ts: queryString rejection of arrays and objects, the project/sprint/date rules, the 180-day cap, the default 30-day range, the task and transition queries scoped to the workspace, the assignee lookup for the aging list and the JSON payload.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-007", "NFR-001", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003", "AC-004", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Route registration with the project permission",
+          "description": "GET /:slug/reports/flow declared on server/src/routes/workspaceRoutes.ts behind protect and requirePermission('projects:read').",
+          "linkedRequirements": ["FR-001", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Flow report UI",
+      "dependencies": ["P1", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Client flow API, types and loading hook",
+          "description": "client/src/features/flow/types.ts, api.ts and hooks/useFlowReport.ts: the payload shapes, the request through the shared axios instance, and loading/error state keyed to the filter set.",
+          "linkedRequirements": ["FR-001", "FR-008"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Presentation helpers with text alternatives",
+          "description": "client/src/features/flow/lib/flow.ts: range presets and rangeFor, stack order, axisScale, cfdMax, stackBands, areaPath, labelIndexes, agingLevel and AGING_META, countOverP85, isEmptyReport, describeCfd and describeStats, plus hooks/useActiveIndex and hooks/useChartWidth.",
+          "linkedRequirements": ["FR-008", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "The four flow charts and the panel",
+          "description": "CumulativeFlowChart, TimeScatterChart, ThroughputChart, AgingWipList and ChartParts, assembled by FlowReportPanel with the filters, the summary cards and the cycle/lead switch.",
+          "linkedRequirements": ["FR-004", "FR-005", "FR-006", "FR-007", "FR-008"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Flow tab on the Reports page",
+          "description": "client/src/pages/ReportsPage.tsx mounts FlowReportPanel as ?tab=flow, only when the role holds projects:read, keeping the URL as the source of the selected tab.",
+          "linkedRequirements": ["FR-008", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-003"],
+          "completed": true
+        },
+        {
+          "id": "T4.5",
+          "title": "Client tests for the helpers and the panel",
+          "description": "client/src/features/flow/__tests__/flow.test.ts for the pure helpers and FlowReportPanel.test.tsx for the panel's states, plus the shared fixtures.",
+          "linkedRequirements": ["FR-008", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-009", "AC-010"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

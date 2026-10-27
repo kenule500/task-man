@@ -1,0 +1,1773 @@
+{
+  "feature": "real-time-chat",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Foundation: permissions, config, models",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Register the chat permission area and extend system roles",
+          "description": "Add chat:read, chat:write, chat:moderate and chat:dm to permissions.ts and map each into SYSTEM_ROLES explicitly, without widening any existing role's non-chat permissions.",
+          "linkedRequirements": [
+            "FR-033",
+            "NFR-007"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002",
+            "AC-008",
+            "AC-028"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Add chat retention and socket origin configuration",
+          "description": "Add chatRetentionDays (default 365) and the socket origin allow-list to config/env.ts, return them from readConfig, and document them in .env.example.",
+          "linkedRequirements": [
+            "NFR-013",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-029",
+            "AC-033"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Create the ChatChannel model",
+          "description": "Model kind enum, nameKey, project reference, participants, archived flag, lastMessageAt and lastMessageAuthor, with the unique name-key index.",
+          "linkedRequirements": [
+            "FR-001",
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001",
+            "AC-003",
+            "AC-009"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Create the ChatMessage model with cursor index",
+          "description": "Model author, parent, mentions, attachments, editedAt, deletedAt and pinnedAt, plus the (channel, createdAt, _id) index the paging predicate needs.",
+          "linkedRequirements": [
+            "FR-009",
+            "FR-010",
+            "NFR-002"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-009",
+            "AC-010"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Create the ChatReaction model",
+          "description": "One row per (message, user, emoji) enforced by a unique compound index so the reaction toggle has a single key.",
+          "linkedRequirements": [
+            "FR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-016",
+            "AC-017"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.6",
+          "title": "Create the ChatRead model",
+          "description": "Last-read pointer per (channel, user) with a unique compound index, used to derive unread badges.",
+          "linkedRequirements": [
+            "FR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-023"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T1.7",
+          "title": "Create the ChatPresence model with TTL",
+          "description": "User-level presence carrying a connection counter and a TTL index on seenAt so an unclean disconnect ages out.",
+          "linkedRequirements": [
+            "FR-029",
+            "FR-030"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-030",
+            "AC-031"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Channels and project lifecycle",
+      "dependencies": [
+        "P1"
+      ],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Implement pure channel access rules",
+          "description": "Create utils/chatAccess.ts with visibility, write and moderation rules per channel kind; a direct-channel non-participant resolves to not_found.",
+          "linkedRequirements": [
+            "FR-003",
+            "FR-026"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002",
+            "AC-027"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Seed default channels and backfill project channels",
+          "description": "Seed one team and one general channel per workspace and backfill project channels on list, tolerating a duplicate-key race the way syncProjectsFromTasks does.",
+          "linkedRequirements": [
+            "FR-002",
+            "FR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-003",
+            "AC-006"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Add the channel listing route",
+          "description": "GET /channels behind protect, requirePermission('chat:read') and a validator chain, returning only channels the caller may read.",
+          "linkedRequirements": [
+            "FR-003",
+            "NFR-007",
+            "NFR-010"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002",
+            "AC-021"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Create the project channel inside createProject",
+          "description": "Hook channel creation into project creation, reusing an existing channel for the same project instead of inserting a duplicate.",
+          "linkedRequirements": [
+            "FR-004",
+            "FR-036"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-004"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Archive the project channel in the delete cascade",
+          "description": "Extend the existing deleteProject cascade to archive the channel and its messages, leaving history readable and deleting no message rows.",
+          "linkedRequirements": [
+            "FR-005"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-005"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T2.6",
+          "title": "Mount chat routes and add the chat rate limit",
+          "description": "Mount the channels and chat routers under workspaceRoutes and add a dedicated chat limiter alongside the existing apiLimiter in app.ts.",
+          "linkedRequirements": [
+            "NFR-007",
+            "NFR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002",
+            "AC-008"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Messaging core over Socket.IO",
+      "dependencies": [
+        "P2"
+      ],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Create the authenticated Socket.IO server",
+          "description": "Build realtime/socket.ts and attach it to the HTTP server in server.ts, validating the handshake bearer token through the existing auth path and closing sockets of revoked sessions.",
+          "linkedRequirements": [
+            "NFR-005",
+            "NFR-006"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Validate socket payloads and throttle per connection",
+          "description": "Validate every socket event payload with the same pure validators as REST and apply a per-connection token bucket so one client cannot flood a channel.",
+          "linkedRequirements": [
+            "NFR-009",
+            "NFR-010"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Implement message creation and broadcast",
+          "description": "Authorize, normalise mentions, persist, then emit to the channel room excluding the author's connection, acknowledging only after a successful write.",
+          "linkedRequirements": [
+            "FR-007",
+            "FR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007",
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Implement cursor-paginated message history",
+          "description": "Expose GET /chat/:channelId/messages using the chatQuery cursor helpers with a hard page cap of 50.",
+          "linkedRequirements": [
+            "FR-010",
+            "NFR-002"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-010"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Maintain the channel last-message pointer",
+          "description": "Update lastMessageAt and lastMessageAuthor on write and order the channel list by them instead of scanning messages.",
+          "linkedRequirements": [
+            "FR-009"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-009"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T3.6",
+          "title": "Implement the REST send fallback",
+          "description": "Expose the same message creation over REST for clients without a socket, sharing the controller with the socket handler so authorisation has one implementation.",
+          "linkedRequirements": [
+            "FR-008",
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008",
+            "AC-033"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Rich messaging",
+      "dependencies": [
+        "P3"
+      ],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Implement threaded replies",
+          "description": "Store replies with a parent reference and project reply count plus last replier onto the parent so the channel can show a summary.",
+          "linkedRequirements": [
+            "FR-012",
+            "FR-013"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-012",
+            "AC-013"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Implement mentions and mention notifications",
+          "description": "Resolve @mentions against workspace members through chatMentions, persist user references, and notify through the existing notify path rather than a parallel mechanism.",
+          "linkedRequirements": [
+            "FR-014",
+            "FR-015"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-014",
+            "AC-015"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Implement reaction toggle and aggregation",
+          "description": "Toggle a reaction keyed by (message, user, emoji) and broadcast the aggregated per-emoji state so all clients agree.",
+          "linkedRequirements": [
+            "FR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-016",
+            "AC-017"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Implement author-only message edit",
+          "description": "Allow the author to edit their own message, record editedAt, keep the original timestamp, and refuse edits by anyone else.",
+          "linkedRequirements": [
+            "FR-017"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-018"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.5",
+          "title": "Implement soft delete with tombstone",
+          "description": "Soft-delete on author or moderator deletion, clearing body and attachment references while retaining the row for ordering and reply integrity.",
+          "linkedRequirements": [
+            "FR-018"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-019"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.6",
+          "title": "Implement message attachments",
+          "description": "Wire uploads through the existing uploadMiddleware and GridFS helpers, enforce channel read access on download, and remove orphaned files when message creation fails.",
+          "linkedRequirements": [
+            "FR-019",
+            "FR-020"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-020",
+            "AC-021"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.7",
+          "title": "Implement ephemeral typing events",
+          "description": "Broadcast typing state without persisting it, expiring it on idle or when the message arrives.",
+          "linkedRequirements": [
+            "FR-021"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.8",
+          "title": "Implement read state and unread derivation",
+          "description": "Accept POST /chat/:channelId/read and derive unread counts from the stored last-read pointer.",
+          "linkedRequirements": [
+            "FR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-023"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.9",
+          "title": "Implement channel search",
+          "description": "Search message text case-insensitively within the workspace, escaping the term before building its regex, paginating results and honouring channel read access.",
+          "linkedRequirements": [
+            "FR-023",
+            "NFR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-024"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T4.10",
+          "title": "Implement pinning and the pinned list",
+          "description": "Allow callers with chat:write to pin and unpin a message and list a channel's pinned messages in pinned order.",
+          "linkedRequirements": [
+            "FR-024"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-025"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P5",
+      "name": "Direct messages, moderation, retention",
+      "dependencies": [
+        "P4"
+      ],
+      "tasks": [
+        {
+          "id": "T5.1",
+          "title": "Implement direct channel creation",
+          "description": "Create or reuse the single direct channel between exactly two members so the same pair never accumulates duplicates.",
+          "linkedRequirements": [
+            "FR-025"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-026"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.2",
+          "title": "Enforce non-disclosure for direct channels",
+          "description": "Answer 404 for a direct channel the caller does not participate in, including for administrators, so the channel's existence is not revealed.",
+          "linkedRequirements": [
+            "FR-026"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-027"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.3",
+          "title": "Implement moderator message deletion",
+          "description": "Allow chat:moderate holders to delete any workspace message and record the action in the activity feed with actor and channel.",
+          "linkedRequirements": [
+            "FR-027"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-028"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T5.4",
+          "title": "Enforce the configured retention window",
+          "description": "Purge messages beyond chatRetentionDays and exclude purged content from search results.",
+          "linkedRequirements": [
+            "FR-028",
+            "NFR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-029"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P6",
+      "name": "Presence",
+      "dependencies": [
+        "P3"
+      ],
+      "tasks": [
+        {
+          "id": "T6.1",
+          "title": "Track user-level presence from connections",
+          "description": "Count one presence per user across tabs and devices rather than per socket, and expose it to the channel header.",
+          "linkedRequirements": [
+            "FR-029"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-030"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T6.2",
+          "title": "Refresh presence so stale entries age out",
+          "description": "Refresh presence periodically so the TTL removes an unclean disconnect instead of leaving a user permanently shown as online.",
+          "linkedRequirements": [
+            "FR-030"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-031"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P7",
+      "name": "Transport unification",
+      "dependencies": [
+        "P3"
+      ],
+      "tasks": [
+        {
+          "id": "T7.1",
+          "title": "Push activity changes to permission-filtered audiences",
+          "description": "Emit activity-feed changes over the socket, computing the audience per permission with the existing hiddenActions helper so no group leaks to a caller who may not see it.",
+          "linkedRequirements": [
+            "FR-031",
+            "NFR-015"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-032"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.2",
+          "title": "Replay missed events from the cursor on reconnect",
+          "description": "After a reconnect, replay activity-feed events from the stored cursor with no gaps and no duplicates.",
+          "linkedRequirements": [
+            "FR-031",
+            "NFR-015"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-032"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.3",
+          "title": "Expose transport state to the client",
+          "description": "Deliver the connected or degraded transport state so chat and live updates report fallback mode instead of silently going stale.",
+          "linkedRequirements": [
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-033"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T7.4",
+          "title": "Consume socket events in the live module",
+          "description": "Update features/live to consume socket events while preserving merge and liveStore semantics and keeping the poller as the fallback path.",
+          "linkedRequirements": [
+            "FR-031",
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-032",
+            "AC-033"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P8",
+      "name": "Client chat UI",
+      "dependencies": [
+        "P2",
+        "P4"
+      ],
+      "tasks": [
+        {
+          "id": "T8.1",
+          "title": "Scaffold the chat feature module",
+          "description": "Create client/src/features/chat with index.ts as the public entry, api.ts calling through utils/api.ts, and shared types.",
+          "linkedRequirements": [
+            "FR-001"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.2",
+          "title": "Implement the channel list hook",
+          "description": "Build useChatChannels covering the channel list, unread counts and the seed trigger.",
+          "linkedRequirements": [
+            "FR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-023"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.3",
+          "title": "Implement cursor paging for messages",
+          "description": "Build useChatMessages with cursor paging, prepending older pages without a scroll jump, and live append of incoming messages.",
+          "linkedRequirements": [
+            "FR-010",
+            "FR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-010",
+            "AC-011"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.4",
+          "title": "Build the channel view and composer",
+          "description": "Render the header, message list and composer, rendering bodies as text or through the existing markdown path with no raw HTML injection.",
+          "linkedRequirements": [
+            "FR-007",
+            "NFR-012"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.5",
+          "title": "Build the thread side panel",
+          "description": "Render a parent's replies in order and accept new replies without navigating away from the channel.",
+          "linkedRequirements": [
+            "FR-013"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-013"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.6",
+          "title": "Build the mention autocomplete",
+          "description": "Offer workspace members when @ is typed and insert a mention that the API stores as a user reference.",
+          "linkedRequirements": [
+            "FR-014"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-014"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.7",
+          "title": "Build the reaction bar",
+          "description": "Show aggregated per-emoji counts with the reactor list and reflect the toggle immediately.",
+          "linkedRequirements": [
+            "FR-016"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-017"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.8",
+          "title": "Build edit and delete affordances",
+          "description": "Expose edit and delete only for the author, showing the edited marker and the tombstone after deletion.",
+          "linkedRequirements": [
+            "FR-017",
+            "FR-018"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-018",
+            "AC-019"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.9",
+          "title": "Build the attachment picker and preview",
+          "description": "Pick and upload files through the existing upload path, show name, size and type on the message, and surface validation errors.",
+          "linkedRequirements": [
+            "FR-019",
+            "FR-020"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-020",
+            "AC-021"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.10",
+          "title": "Build typing and read indicators",
+          "description": "Show who is typing and mark channels read when opened so the unread badge clears.",
+          "linkedRequirements": [
+            "FR-021",
+            "FR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-022",
+            "AC-023"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.11",
+          "title": "Build the search and pinned panels",
+          "description": "Provide channel search results and a pinned-message list with navigation to the message.",
+          "linkedRequirements": [
+            "FR-023",
+            "FR-024"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-024",
+            "AC-025"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.12",
+          "title": "Add the direct message entry point",
+          "description": "Start a direct conversation from the channel list and open the created or reused channel.",
+          "linkedRequirements": [
+            "FR-025"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-026"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.13",
+          "title": "Show presence in the channel header",
+          "description": "Render online state in the header, treating one user with several connections as a single presence.",
+          "linkedRequirements": [
+            "FR-029"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-030"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.14",
+          "title": "Make the chat surface accessible",
+          "description": "Keyboard operation, an accessible name on every control, and a polite live region announcing incoming messages.",
+          "linkedRequirements": [
+            "NFR-003"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001",
+            "AC-007"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.15",
+          "title": "Make the chat layout mobile-first",
+          "description": "Keep the chat surface usable in the existing mobile shell and tab bar without a separate mobile implementation.",
+          "linkedRequirements": [
+            "NFR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T8.16",
+          "title": "Implement empty, loading, error and offline states",
+          "description": "Cover no channel selected, no messages yet, history failure and degraded transport with explicit UI rather than a blank pane.",
+          "linkedRequirements": [
+            "FR-011",
+            "FR-032"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-011",
+            "AC-033"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P9",
+      "name": "Navigation wiring",
+      "dependencies": [
+        "P8"
+      ],
+      "tasks": [
+        {
+          "id": "T9.1",
+          "title": "Add the CHAT group to the sidebar",
+          "description": "Insert a CHAT group between Main Menu and General, fed from the same permission-filtered channel source as the other nav items.",
+          "linkedRequirements": [
+            "FR-003"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001",
+            "AC-002"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.2",
+          "title": "Register the chat routes",
+          "description": "Add /:workspaceSlug/chat and /:workspaceSlug/chat/:channelId under WorkspaceLayout behind PermissionRoute with chat:read.",
+          "linkedRequirements": [
+            "FR-003"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-002"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T9.3",
+          "title": "Keep the mobile tab bar coherent",
+          "description": "Ensure the new sidebar group stays coherent with the mobile tab bar navigation.",
+          "linkedRequirements": [
+            "NFR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P10",
+      "name": "Hardening and verification",
+      "dependencies": [
+        "P7",
+        "P9"
+      ],
+      "tasks": [
+        {
+          "id": "T10.1",
+          "title": "Extend the Vercel CSP for the socket origin",
+          "description": "Add the socket origin and wss: scheme to connect-src in vercel.json, which currently allows 'self' only and blocks socket connections outright.",
+          "linkedRequirements": [
+            "NFR-014"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-033"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T10.2",
+          "title": "Source socket origins from validated config",
+          "description": "Read the socket origin allow-list from config/env.ts rather than a literal and use wss: in production.",
+          "linkedRequirements": [
+            "NFR-013",
+            "NFR-014"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-033"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T10.3",
+          "title": "Confirm Helmet covers the chat surface",
+          "description": "Verify the application-wide helmet middleware applies to chat HTTP routes and that the socket upgrade introduces no unprotected second HTTP surface.",
+          "linkedRequirements": [
+            "NFR-008"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-008"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T10.4",
+          "title": "Confirm validation coverage on routes and events",
+          "description": "Check every chat route carries a validator chain and every socket event validates its payload, with no client input interpolated into a query operator.",
+          "linkedRequirements": [
+            "NFR-010",
+            "NFR-011"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-021",
+            "AC-024"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T10.5",
+          "title": "Confirm no raw HTML injection in chat components",
+          "description": "Audit the chat feature for dangerouslySetInnerHTML and confirm bodies render through the safe text or markdown path.",
+          "linkedRequirements": [
+            "NFR-012"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-007"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T10.6",
+          "title": "Run typecheck, lint, governance validation and manual checks",
+          "description": "Run the server and client typecheckers, the client linter and node .sdrive/scripts/validate-governance.js, then manually check keyboard navigation, narrow screens and the connected versus degraded transport states.",
+          "linkedRequirements": [
+            "NFR-003",
+            "NFR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001",
+            "AC-033"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P11",
+      "name": "Project membership materialisation",
+      "dependencies": [
+        "P10"
+      ],
+      "tasks": [
+        {
+          "id": "T11.1",
+          "title": "Add the members list to the Project model",
+          "description": "Adds a materialised members array with an index, initialised empty so existing projects keep working.",
+          "linkedRequirements": [
+            "FR-035"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-038"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.2",
+          "title": "Implement pure project-membership helpers",
+          "description": "Adds utils/projectMembers.ts for merging, de-duplicating and removing member ids, with no HTTP or database dependency.",
+          "linkedRequirements": [
+            "FR-035"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-040"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.3",
+          "title": "Add an assignee to the project members on task assignment",
+          "description": "Assigning a user to a task adds them to the owning project members, idempotently, without requiring a separate invitation.",
+          "linkedRequirements": [
+            "FR-035"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-040"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.4",
+          "title": "Remove a departing member from every project",
+          "description": "When a member leaves the workspace, remove them from every project members list so channel access ends with membership.",
+          "linkedRequirements": [
+            "FR-044"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-040"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T11.5",
+          "title": "Gate project channels by project membership",
+          "description": "Replace the projects:read gate with a membership check that answers 404 for a non-member and lets chat:moderate through.",
+          "linkedRequirements": [
+            "FR-003",
+            "FR-037",
+            "NFR-017"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-038",
+            "AC-039"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P12",
+      "name": "Team channel audience, naming and avatar",
+      "dependencies": [
+        "P11"
+      ],
+      "tasks": [
+        {
+          "id": "T12.1",
+          "title": "Add name override and avatar to the channel model",
+          "description": "Adds nameOverride, avatarFileId and avatarType so a team channel can be renamed and re-pictured without touching the project.",
+          "linkedRequirements": [
+            "FR-041"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-046"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.2",
+          "title": "Serve the team-channel list in one request",
+          "description": "Returns each readable team channel with its avatar, display name, last-message preview and the caller unread state in a single aggregation.",
+          "linkedRequirements": [
+            "FR-038",
+            "FR-039",
+            "NFR-019"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-042",
+            "AC-043"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.3",
+          "title": "Exclude project channels from main-menu navigation",
+          "description": "The channels endpoint marks project channels as list-only so the sidebar shows just team and general while the chat screen shows the rest.",
+          "linkedRequirements": [
+            "FR-038"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-041"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.4",
+          "title": "Allow a chat:moderate holder to rename a channel",
+          "description": "PATCH renames a team channel, falls back to the project name when no override exists, and refuses everyone else with 403.",
+          "linkedRequirements": [
+            "FR-040",
+            "FR-041"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-044",
+            "AC-045",
+            "AC-046"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.5",
+          "title": "Allow a chat:moderate holder to set a channel avatar",
+          "description": "Uploads an image through the existing upload pipeline into GridFS, keeps the previous avatar when a upload is rejected, and refuses everyone else.",
+          "linkedRequirements": [
+            "FR-040",
+            "FR-042",
+            "NFR-018"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-045",
+            "AC-047"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.6",
+          "title": "Serve a channel avatar to readers only",
+          "description": "Streams the avatar to callers who may read the channel and answers 404 otherwise.",
+          "linkedRequirements": [
+            "FR-042"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-047"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T12.7",
+          "title": "Broadcast rename and avatar changes",
+          "description": "Emits the updated channel to members with the channel open so a rename does not require a reload.",
+          "linkedRequirements": [
+            "FR-040"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-044"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P13",
+      "name": "Members navigation and team-channel list UI",
+      "dependencies": [
+        "P12"
+      ],
+      "tasks": [
+        {
+          "id": "T13.1",
+          "title": "Rename the Team navigation item to Members",
+          "description": "Changes the sidebar label to Members and points it at the members path.",
+          "linkedRequirements": [
+            "FR-043"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-035"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.2",
+          "title": "Route the directory at /members and redirect /team",
+          "description": "Serves the team directory at /:workspaceSlug/members and redirects the previous /:workspaceSlug/team path so old links still resolve.",
+          "linkedRequirements": [
+            "FR-043"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-035",
+            "AC-036"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.3",
+          "title": "Limit the sidebar chat group to team and general",
+          "description": "SidebarChannels lists only the team and general channels and no longer shows project channels.",
+          "linkedRequirements": [
+            "FR-038"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-041"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.4",
+          "title": "Build the team-channel list",
+          "description": "Adds the WhatsApp-style group list beside the conversation with avatar, name, last-message preview and unread dot.",
+          "linkedRequirements": [
+            "FR-038",
+            "FR-039"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-042"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.5",
+          "title": "Show an explicit empty state for the team list",
+          "description": "When a caller can read no team channel the list says so rather than disappearing.",
+          "linkedRequirements": [
+            "FR-038"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-043"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.6",
+          "title": "Build the channel settings dialog",
+          "description": "Renders rename and avatar editing only for chat:moderate holders and hides it otherwise.",
+          "linkedRequirements": [
+            "FR-040",
+            "FR-042"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-044",
+            "AC-045"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.7",
+          "title": "Wire the list into the chat screen",
+          "description": "Composes the team list beside the conversation, opens the selected channel, and shows the archived read-only banner.",
+          "linkedRequirements": [
+            "FR-038",
+            "FR-005"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-042"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T13.8",
+          "title": "Make the new surfaces keyboard accessible",
+          "description": "The team list, the settings dialog and the avatar picker are operable by keyboard with accessible names.",
+          "linkedRequirements": [
+            "NFR-003"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-042"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P14",
+      "name": "Conversation ergonomics",
+      "dependencies": [
+        "P13"
+      ],
+      "tasks": [
+        {
+          "id": "T14.1",
+          "title": "Lay the conversation out like a group chat",
+          "description": "Own messages right-aligned without their own avatar; other members left-aligned with avatar and name, each bubble carrying time, edited and pinned marks.",
+          "linkedRequirements": [
+            "FR-045"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-048"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.2",
+          "title": "Exclude the signed-in user from the mention menu",
+          "description": "The suggestion list filters out the current user, since a self-mention has no effect.",
+          "linkedRequirements": [
+            "FR-046"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-049"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.3",
+          "title": "Highlight mentions in the message body",
+          "description": "Splits the body into text and mention runs, highlighting only tokens that match a known member, without injecting raw HTML.",
+          "linkedRequirements": [
+            "FR-047",
+            "NFR-020"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-052"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.4",
+          "title": "Persist multiple attachments on a message",
+          "description": "Resolves each attachment id to its stored name, size and type and refuses an id uploaded to a different channel.",
+          "linkedRequirements": [
+            "FR-048"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-053",
+            "AC-054"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.5",
+          "title": "Accept several files in the attachment picker",
+          "description": "The picker takes a multi-file selection and uploads each independently so one rejection does not discard the rest.",
+          "linkedRequirements": [
+            "FR-048"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-053"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.6",
+          "title": "Order the side panel as DMs then team channels",
+          "description": "New direct message first, then the direct conversations, then the team channels.",
+          "linkedRequirements": [
+            "FR-049"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-050"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.7",
+          "title": "Return server-side unread state per channel",
+          "description": "Each channel reports whether it holds messages newer than the caller last visit, so the badge survives across devices.",
+          "linkedRequirements": [
+            "FR-050"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-055"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.8",
+          "title": "Return an accurate per-channel member count",
+          "description": "Workspace members for the default channels, project members for a team channel, two for a direct conversation.",
+          "linkedRequirements": [
+            "FR-051"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-051"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T14.9",
+          "title": "Fix the task-creation nameKey validation error",
+          "description": "Replaces the load-and-save membership hook with a single atomic updateOne so no full-document validation runs on a partially selected project.",
+          "linkedRequirements": [
+            "FR-035"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-040"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P15",
+      "name": "Direct-message segmentation",
+      "dependencies": [
+        "P14"
+      ],
+      "tasks": [
+        {
+          "id": "T15.1",
+          "title": "Extract the shared conversation section",
+          "description": "Splits heading, row anatomy, loading/empty copy, footline, unread marker and keyboard handling out of TeamChannelList into ConversationSection.",
+          "linkedRequirements": [
+            "FR-053",
+            "NFR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-058"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.2",
+          "title": "Render team channels through the shared section",
+          "description": "TeamChannelList becomes a thin wrapper and keeps the rename and avatar settings affordance.",
+          "linkedRequirements": [
+            "FR-053"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-058"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.3",
+          "title": "Add the direct-message section",
+          "description": "DirectMessageList renders direct rows through ConversationSection with the other participant avatar and name.",
+          "linkedRequirements": [
+            "FR-054"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-057",
+            "AC-061"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.4",
+          "title": "Serve conversations in one request",
+          "description": "Adds GET /chat/conversations returning { directs, teams } with previews and unread state; keeps GET /chat/teams.",
+          "linkedRequirements": [
+            "FR-052",
+            "NFR-021"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-056",
+            "AC-059"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.5",
+          "title": "Resolve a direct card from the other participant",
+          "description": "Name and avatar come from the other participant User, with the neutral Direct message fallback.",
+          "linkedRequirements": [
+            "FR-054"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-061"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.6",
+          "title": "Compose the panel order",
+          "description": "Renders New direct message, then Direct messages, then Team channels, each with its own loading and empty copy.",
+          "linkedRequirements": [
+            "FR-056",
+            "FR-057"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-056",
+            "AC-059"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.7",
+          "title": "Add a new conversation in place",
+          "description": "A newly created direct conversation is inserted into the direct section and selected without a reload.",
+          "linkedRequirements": [
+            "FR-057"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-060"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.8",
+          "title": "Extract the New direct message picker",
+          "description": "Moves the picker out of ChannelList and removes the empty-list shim from the chat screen.",
+          "linkedRequirements": [
+            "FR-057"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-059",
+            "AC-060"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T15.9",
+          "title": "Verify the segmented panel",
+          "description": "Runs typecheckers, lint and the governance validator, then checks the panel at 320px and by keyboard.",
+          "linkedRequirements": [
+            "NFR-022"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-058"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P16",
+      "name": "Conversation list polish and honest counts",
+      "dependencies": [
+        "P15"
+      ],
+      "tasks": [
+        {
+          "id": "T16.1",
+          "title": "Order conversations by recency",
+          "description": "Sorts both sections by lastMessageAt descending, never-used last, then by name, in the conversations query.",
+          "linkedRequirements": [
+            "FR-058",
+            "NFR-023"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-062"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.2",
+          "title": "Return unread counts",
+          "description": "Adds an unread count per card from ChatRead and caps the rendered value at 9+.",
+          "linkedRequirements": [
+            "FR-060",
+            "FR-058"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-064"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.3",
+          "title": "Patch a background conversation row",
+          "description": "Uses the existing message socket event to update the row preview, count and position in place.",
+          "linkedRequirements": [
+            "FR-059",
+            "NFR-025"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-063"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.4",
+          "title": "Rebuild the New direct message control",
+          "description": "Renders a 44px row with icon, label and a labelled teammate list, keyboard operable with aria-expanded.",
+          "linkedRequirements": [
+            "FR-061",
+            "FR-062",
+            "NFR-024"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-065",
+            "AC-066"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.5",
+          "title": "Add the creator to project members",
+          "description": "Project creation adds the creator to Project.members idempotently.",
+          "linkedRequirements": [
+            "FR-064"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-067"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.6",
+          "title": "Backfill the creator into existing projects",
+          "description": "The channel backfill pass also adds missing creators to Project.members once.",
+          "linkedRequirements": [
+            "FR-064"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-067"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.7",
+          "title": "Compute the count by channel kind",
+          "description": "Project members including the creator, exactly two participants for direct, workspace members for the defaults.",
+          "linkedRequirements": [
+            "FR-063"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-067",
+            "AC-068"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.8",
+          "title": "Stop the workspace-count fallback",
+          "description": "startDirect returns memberCount and the header no longer falls back to members.length.",
+          "linkedRequirements": [
+            "FR-063"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-068"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.9",
+          "title": "Show the person in a direct header",
+          "description": "A direct conversation header renders the other participant avatar and display name instead of a lock glyph.",
+          "linkedRequirements": [
+            "FR-065"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-069"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T16.10",
+          "title": "Verify the control and the counts",
+          "description": "Runs typecheckers, lint and the governance validator, then checks the 44px control at 320px and by keyboard.",
+          "linkedRequirements": [
+            "NFR-024"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-065",
+            "AC-066"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P17",
+      "name": "Search as a find widget",
+      "dependencies": [
+        "P16"
+      ],
+      "tasks": [
+        {
+          "id": "T17.1",
+          "title": "Build the find bar",
+          "description": "Renders the input, position counter, previous/next and close; opens on the header button and Ctrl/Cmd+F, closes on Esc.",
+          "linkedRequirements": [
+            "FR-066"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-070"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.2",
+          "title": "Build the result list",
+          "description": "A labelled listbox of option rows with author, date and highlighted snippet, bounded rows and a selection kept in view.",
+          "linkedRequirements": [
+            "FR-067",
+            "FR-071",
+            "NFR-026"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-071",
+            "AC-075"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.3",
+          "title": "Add the search helpers",
+          "description": "Pure nextIndex with wrapping, formatCounter and segmentSnippet that highlights by React nodes rather than HTML.",
+          "linkedRequirements": [
+            "FR-067",
+            "NFR-027"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-071"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.4",
+          "title": "Replace the dropdown",
+          "description": "Removes SearchPanel from the chat screen and composes the bar and the result list in its place.",
+          "linkedRequirements": [
+            "FR-066"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-070"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.5",
+          "title": "Wire the keyboard contract",
+          "description": "ArrowDown/ArrowUp wrap, Enter opens, Shift+Enter goes back, Esc closes; focus stays in the input with aria-activedescendant.",
+          "linkedRequirements": [
+            "FR-068",
+            "FR-071"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-072",
+            "AC-075"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.6",
+          "title": "Page the results",
+          "description": "Fetches the next cursor page when the selection reaches the last loaded row and drops stale responses.",
+          "linkedRequirements": [
+            "FR-069",
+            "NFR-028"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-073"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.7",
+          "title": "Jump to the selected message",
+          "description": "Closes search, loads older pages when the message is missing, scrolls to it and highlights it briefly; reports a deleted message.",
+          "linkedRequirements": [
+            "FR-070",
+            "NFR-028"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-074"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.8",
+          "title": "Finish the accessibility pass",
+          "description": "Polite counter announcement, visible focus ring and a selection cue that does not rely on colour alone.",
+          "linkedRequirements": [
+            "FR-071"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-075"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T17.9",
+          "title": "Verify the find widget",
+          "description": "Runs the typecheckers, lint and the governance validator, then keyboard-checks a term spanning two pages at 320px.",
+          "linkedRequirements": [
+            "NFR-026"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-070",
+            "AC-072"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P18",
+      "name": "Review remediation",
+      "dependencies": [
+        "P17"
+      ],
+      "tasks": [
+        {
+          "id": "T18.1",
+          "title": "Perform the CON-703 browser pass on the chat routes",
+          "description": "With a seeded local MongoDB, check the channel list, conversation, thread overlay and find widget at 320/768/1024px and by keyboard. Added by /sdrive:review on 2026-10-18.",
+          "linkedRequirements": [
+            "NFR-004"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-001"
+          ],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P19",
+      "name": "Review remediation (coverage and spec drift)",
+      "dependencies": [
+        "P18"
+      ],
+      "tasks": [
+        {
+          "id": "T19.1",
+          "title": "Point the dashboard invite step at the Members route",
+          "description": "Replace the retired /{slug}/team destination in the GetStartedChecklist invite step with /{slug}/members and update GetStartedChecklist.test.tsx to assert it. Added by /sdrive:review on 2026-10-19 for AC-036.",
+          "linkedRequirements": [
+            "FR-043"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-036"
+          ],
+          "completed": true
+        },
+        {
+          "id": "T19.2",
+          "title": "Document the chat surface in README",
+          "description": "Add a README section covering how to reach chat, the chat:* permissions, and that search is channel-scoped and excludes thread replies. Added by /sdrive:review on 2026-10-19.",
+          "linkedRequirements": [
+            "FR-043"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-035",
+            "AC-036"
+          ],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

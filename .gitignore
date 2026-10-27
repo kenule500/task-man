@@ -13,3 +13,6 @@ build
 .vercel
 .env*
 coverage/
+
+# Headless-browser profile from the SpecDrive browser pass: contains cookies and saved logins
+.sdrive/reports/browser/chrome-profile/

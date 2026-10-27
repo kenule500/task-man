@@ -1,0 +1,233 @@
+{
+  "feature": "tasks-core",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Persistence and pure rules",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Model the task document with its schema-level limits",
+          "description": "server/src/models/taskModel.ts: enums, dates, hierarchy, dependencies, relations, labels, assignees, checklist, watchers, recurrence, comments, attachments, custom map, workspace indexes and the pre-save hook that keeps completedAt in step with status.",
+          "linkedRequirements": ["FR-001", "FR-003", "FR-007", "FR-010", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Write the pure dependency-graph helpers",
+          "description": "server/src/utils/taskGraph.ts: wouldCreateCycle and normalizeIds, unit tested in server/src/__tests__/taskGraph.test.ts.",
+          "linkedRequirements": ["FR-005"],
+          "linkedAcceptanceCriteria": ["AC-004"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Parse and build the task list query",
+          "description": "server/src/utils/taskQuery.ts: parseTaskListQuery, buildTaskFilter, buildTaskSort, taskNumberFromSearch, normalizeLabels and the priority rank expression.",
+          "linkedRequirements": ["FR-004"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Reserve and backfill task numbers",
+          "description": "server/src/utils/taskNumbers.ts: reserveTaskNumbers (atomic $inc on Workspace.taskCounter) and ensureTaskNumbers for tasks created before numbers existed.",
+          "linkedRequirements": ["FR-006"],
+          "linkedAcceptanceCriteria": ["AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Validate recurrences and compute the next dates",
+          "description": "server/src/utils/recurrence.ts: recurrenceProblem, normalizeRecurrence, nextOccurrenceDates and describeRecurrence, all in UTC calendar days.",
+          "linkedRequirements": ["FR-008"],
+          "linkedAcceptanceCriteria": ["AC-015"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Task API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Declare the task router and its permissions",
+          "description": "server/src/routes/taskRoutes.ts with protect plus requirePermission per route, bulk routes before /:id, and the /api/tasks alias in activeTaskRoutes.ts.",
+          "linkedRequirements": ["FR-001", "FR-004", "FR-012", "NFR-001", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "Create tasks with the full rule set",
+          "description": "createTask: validation chains, dates, dependencies, assignees, sprint/epic/release resolution, stage from the workflow, custom values, number reservation, activity entry and notification.",
+          "linkedRequirements": ["FR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Update only the editable fields of a task",
+          "description": "updateTask: EDITABLE_FIELDS allow-list, stage/status synchronisation, hierarchy and release reconciliation, subtask regrouping, activity diff and the reload trigger when a recurring task completes.",
+          "linkedRequirements": ["FR-002", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Delete a task with the full cascade",
+          "description": "deleteTask plus cleanUpRemovedTasks: subtasks, GridFS attachments, dependants, typed relations, epic references and time entries.",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Typed relations and subtask moves",
+          "description": "taskRelationController: addRelation/removeRelation with the inverse type written on both sides, blocks/blocked_by mapped onto dependencies, and moveTask with the parent rules.",
+          "linkedRequirements": ["FR-005", "FR-007"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-005", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T2.6",
+          "title": "Comments and GridFS attachments",
+          "description": "taskExtrasController: addComment/deleteComment with the author-or-settings:manage rule, uploadAttachment/downloadAttachment/deleteAttachment with the MIME allow-list and sanitized names.",
+          "linkedRequirements": ["FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T2.7",
+          "title": "Serve the per-task activity history",
+          "description": "activityController.getTaskActivity: workspace-scoped filter, before cursor, documented page limit, newest first.",
+          "linkedRequirements": ["FR-011"],
+          "linkedAcceptanceCriteria": ["AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T2.8",
+          "title": "Duplicate tasks and spawn the next occurrence",
+          "description": "duplicateTask with the copiedFields whitelist and the optional subtask copies; spawnNextOccurrence clearing the rule on the completed task.",
+          "linkedRequirements": ["FR-008", "FR-009"],
+          "linkedAcceptanceCriteria": ["AC-015", "AC-016"],
+          "completed": true
+        },
+        {
+          "id": "T2.9",
+          "title": "Bulk update and bulk delete",
+          "description": "bulkTaskController: at most 100 ids, every task validated before any write, add/remove semantics for assignees and labels, and the shared delete cascade.",
+          "linkedRequirements": ["FR-012"],
+          "linkedAcceptanceCriteria": ["AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T2.10",
+          "title": "Follow and unfollow a task",
+          "description": "watchTask/unwatchTask: atomic $addToSet/$pull for the signed-in user only, answering with the watcher ids.",
+          "linkedRequirements": ["FR-010"],
+          "linkedAcceptanceCriteria": ["AC-014"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Client feature module",
+      "dependencies": ["P1", "P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Wrap every task endpoint in one API module",
+          "description": "client/src/features/tasks/api.ts over client/src/utils/api.ts, including bulk, duplicate, watch, relations, move, activity, comments and attachments (downloads as blobs).",
+          "linkedRequirements": ["FR-001", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Make useTasks the single source of truth",
+          "description": "Stale-while-revalidate cache, optimistic applyPatch with rollback, delete undo window with pagehide flush, subtask regrouping, live refresh and reload after server-side side effects.",
+          "linkedRequirements": ["FR-002", "FR-007", "FR-012", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-006"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Add the date, filter and task-key libraries",
+          "description": "lib/date.ts, lib/filters.ts and lib/taskKey.ts, mirroring the server's list query and the calendar-day contract (CON-203), each with Jest tests.",
+          "linkedRequirements": ["FR-004", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-009", "AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Build the create/edit form on shared form rules",
+          "description": "lib/taskForm.ts plus TaskFormDialog.tsx: title/deadline validation, dependencies, checklist, recurrence, custom fields required per project.",
+          "linkedRequirements": ["FR-001"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Build the detail surfaces for collaboration",
+          "description": "TaskDetailDialog with inline edits, SubtaskList, TaskRelations, ConvertToSubtaskDialog, TaskChecklist, TaskComments, TaskAttachments, TaskActivity and TaskWatchToggle.",
+          "linkedRequirements": ["FR-007", "FR-010", "FR-011"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-011", "AC-013", "AC-014"],
+          "completed": true
+        },
+        {
+          "id": "T3.6",
+          "title": "Wire the feature into the task page",
+          "description": "TaskPage.tsx: useTasks, URL-held filters and view, create/edit/delete/detail dialogs, bulk handlers, undo snackbar and the CSV export.",
+          "linkedRequirements": ["FR-002", "FR-004", "FR-011", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-008", "AC-017"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Verification",
+      "dependencies": ["P1", "P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Cover the server rules with unit tests",
+          "description": "server/src/__tests__: taskQuery, taskGraph, taskController, recurrence, bulkTaskController, taskExtras, taskRoutes, epicRules and activity.",
+          "linkedRequirements": ["FR-005", "FR-006", "FR-012", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-010", "AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Cover the API end to end with integration tests",
+          "description": "server/src/__integration__ against a real MongoDB: tasks, relations, comments, attachments and bulk.",
+          "linkedRequirements": ["FR-003", "FR-005", "FR-010", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-012", "AC-017"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Cover the client module with tests",
+          "description": "client/src/features/tasks/__tests__: useTasks, filters, date, taskForm, taskKey, subtasks, recurrence, relations, comments, attachments, activity, bulk edit and checklist.",
+          "linkedRequirements": ["FR-002", "FR-004", "FR-010", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-008", "AC-011", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Pass the repository quality gates",
+          "description": "pnpm --filter server typecheck && pnpm --filter server test; pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter client lint; pnpm --filter client build (constitution CON-402).",
+          "linkedRequirements": ["NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

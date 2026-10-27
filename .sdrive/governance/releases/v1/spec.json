@@ -1,0 +1,291 @@
+{
+  "feature": "releases",
+  "title": "Releases: version planning, progress, the release action and generated release notes",
+  "version": 1,
+  "overview": {
+    "problemStatement": "A team finishes work continuously but ships it in versions, and nothing in the task manager represented that boundary: there was no way to say which work is planned for the next version, how far that version is, when it is due, or what will be in the notes when it goes out. Release notes ended up written by hand from memory, and an unfinished item was either shipped silently or kept in a list nobody owned.",
+    "proposedSolution": "A Release document (server/src/models/releaseModel.ts) belongs to a project and carries a version label, an optional start and release date and a status of unreleased, released or archived. Tasks point at a release through task.release, with the rules that a task joins an unreleased release of its own project, subtasks follow their parent, and epics cannot be assigned at all. The API (server/src/controllers/releaseController.ts) manages the versions, computes progress from the tasks (server/src/utils/releaseNotes.ts) and, on release, decides what happens to the unfinished work. The release notes are generated from the finished tasks grouped by type, and the roadmap shows dated releases as milestones.",
+    "targetAudience": "Product owners and project managers planning version by version, release managers shipping a version, and anyone who reads the release notes afterwards.",
+    "assumptions": [
+      "A release belongs to exactly one project and its name has to be unique inside that project; there is no workspace-wide release train.",
+      "Overdue is a calendar-day comparison in UTC: a release is overdue when it is still unreleased and its release day is before today's UTC day.",
+      "Progress counts top-level, non-epic tasks only; subtasks are part of their parent's estimate and epics are containers, so counting them would double the work.",
+      "Removing a task from a release leaves the task untouched otherwise - there is no separate archived state for work that was cut."
+    ],
+    "outOfScope": [
+      "Release trains and coordination of releases across several projects.",
+      "Deployment or pipeline integration: marking a release as released is a manual action and does not trigger anything external.",
+      "Changelog aggregation over several releases, or per-release sign-off approvals.",
+      "Editing the generated notes; they are always regenerated from the tasks (the panel lets you copy the Markdown out)."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Plan a version in a project",
+      "role": "product owner",
+      "want": "create a release with a version label, a description and a start and release date",
+      "benefit": "the team knows which version is being prepared and when it is due",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-001",
+          "text": "A release is created in a project the caller can write to, with a name of at most 60 characters, an optional description of at most 2000 characters and optional start and release dates; it starts in the status unreleased."
+        },
+        {
+          "id": "AC-002",
+          "text": "The release date must be on or after the start date; otherwise the request is refused with HTTP 400 'The release date must be on or after the start date'. The project must belong to the same workspace, or the request is refused with 'Project not found in this workspace'."
+        }
+      ]
+    },
+    {
+      "id": "US-002",
+      "title": "See how far each release is",
+      "role": "project manager",
+      "want": "the progress of every release and which open ones are overdue",
+      "benefit": "I can tell which version needs attention without counting tasks by hand",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-003",
+          "text": "Each release reports counts and story points per status group (pending, in-progress, completed and the total) over its top-level non-epic tasks."
+        },
+        {
+          "id": "AC-004",
+          "text": "A release that is still unreleased and whose release day is before today (UTC) is flagged overdue, and the UI shows the remaining or elapsed days next to the progress."
+        },
+        {
+          "id": "AC-005",
+          "text": "The list can be limited to one project and is ordered unreleased first, then released, then archived; within a status, dated releases come first in date order and undated ones last, alphabetical by name."
+        }
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Ship a release and decide about the unfinished work",
+      "role": "release manager",
+      "want": "mark a release as released and choose what happens to the tasks that are not done",
+      "benefit": "the version is closed honestly without silently dropping or shipping open work",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-006",
+          "text": "Only an unreleased release can be released; the status becomes released with releasedAt stamped, and a second attempt (a double click losing the race) is refused with HTTP 409 'This release was changed by someone else'."
+        },
+        {
+          "id": "AC-007",
+          "text": "Unfinished top-level tasks stay in the release when no move is requested, leave the release when null is passed, or move to another unreleased release of the same project when an id is passed (anything else is refused with 400). Subtasks follow their parent, and each moved task is recorded in the activity log."
+        },
+        {
+          "id": "AC-008",
+          "text": "A release can be archived, and reopening it (status unreleased) clears releasedAt so it can be released again."
+        },
+        {
+          "id": "AC-009",
+          "text": "Deleting a release keeps its tasks and removes their release, recording how many were unassigned in the activity log."
+        }
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Read the generated release notes",
+      "role": "product owner",
+      "want": "release notes that group the finished work by type, with task keys",
+      "benefit": "the notes are ready when the version ships and match what was actually completed",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-010",
+          "text": "The notes are generated from the completed tasks of the release, grouped as Features (story), Fixes (bug), Tasks (task) and Spikes (spike), each line led by its task key, with a heading carrying the release name, a Released or Planned date and the description; the response contains both the Markdown and the structured groups, and ?format=markdown returns the Markdown alone as text/markdown."
+        },
+        {
+          "id": "AC-011",
+          "text": "A release with no completed work says so instead of producing an empty list, and the client renders the notes as parsed plain data (headings, lists, paragraphs) so nothing in a task title can ever become markup."
+        }
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "See releases on a task and on the roadmap",
+      "role": "team member",
+      "want": "to assign my task to a release and to see release dates on the roadmap",
+      "benefit": "the work I do is tied to the version it ships in",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-012",
+          "text": "The release select of a task offers the unreleased releases of the task's project plus the release it already has (even a released or archived one), with 'No release' first; a task can only join an unreleased release of its project, epics cannot join any, and subtasks follow their parent."
+        },
+        {
+          "id": "AC-013",
+          "text": "Dated, non-archived releases of the selected project appear as milestone markers on the roadmap in date order, each with a text alternative, and selecting one opens the release page."
+        }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-001",
+      "text": "server/src/models/releaseModel.ts stores a release with workspace, project, name (1-60), a lower-cased nameKey, description (max 2000), startDate and releaseDate (nullable), status (unreleased, released, archived, default unreleased), releasedAt and createdBy. The unique index { workspace, project, nameKey } allows one release per name and project.",
+      "linkedAcceptanceCriteria": ["AC-001"]
+    },
+    {
+      "id": "FR-002",
+      "text": "validateCreateRelease requires a Mongo id project and a non-empty name, optional description, startDate and releaseDate as ISO-8601; createRelease resolves the project inside the workspace (400 'Project not found in this workspace' otherwise), asserts the date order, records a release.created activity entry and answers 201 with the release and its (empty) progress.",
+      "linkedAcceptanceCriteria": ["AC-001", "AC-002"]
+    },
+    {
+      "id": "FR-003",
+      "text": "updateRelease edits name, description and dates, accepts only the statuses archived (archive) and unreleased (reopen, which clears releasedAt) and refuses 'released' with a message pointing at the release action; the date order is re-asserted after the edit and the change is diffed into a release.updated activity entry.",
+      "linkedAcceptanceCriteria": ["AC-002", "AC-008"]
+    },
+    {
+      "id": "FR-004",
+      "text": "listReleases returns the releases of the workspace (optionally filtered by project id) with their progress, sorted unreleased first, then released, then archived, and inside a status by release date with undated releases last and ties broken by name.",
+      "linkedAcceptanceCriteria": ["AC-003", "AC-005"]
+    },
+    {
+      "id": "FR-005",
+      "text": "getRelease returns one release with its project (name, key, color, icon) and its top-level tasks with their key built from the project key and the task number, plus the progress computed over the non-epic tasks.",
+      "linkedAcceptanceCriteria": ["AC-003"]
+    },
+    {
+      "id": "FR-006",
+      "text": "summarizeProgress (server/src/utils/releaseNotes.ts) counts tasks and story points per status group - 'completed' and 'in-progress' keep their group and everything else counts as 'pending' - and isReleaseOverdue flags an unreleased release whose releaseDate is before today's UTC day.",
+      "linkedAcceptanceCriteria": ["AC-003", "AC-004"]
+    },
+    {
+      "id": "FR-007",
+      "text": "releaseRelease requires the release to be unreleased (400 otherwise), validates moveOpenTo when present (a Mongo id pointing at another unreleased release of the same project, never the release itself), performs the status change with a conditional findOneAndUpdate (409 'This release was changed by someone else' when it loses a race), moves the unfinished top-level tasks and their subtasks to the target or to no release, records a task.updated entry per moved task and answers with { release, movedTasks }.",
+      "linkedAcceptanceCriteria": ["AC-006", "AC-007"]
+    },
+    {
+      "id": "FR-008",
+      "text": "deleteRelease clears release on all of the release's tasks, deletes the release and records a release.deleted activity entry carrying how many tasks were unassigned.",
+      "linkedAcceptanceCriteria": ["AC-009"]
+    },
+    {
+      "id": "FR-009",
+      "text": "buildReleaseNotes generates the notes from the completed tasks of the release: a level-1 heading with the name, a 'Released <date>' line using releasedAt or releaseDate for a released release and a 'Planned <date>' line otherwise, the description when set, then one section per type (story -> Features, bug -> Fixes, task -> Tasks, spike -> Spikes) listing the tasks sorted by number with their keys, or the italic '_No finished work in this release yet._' when none are finished. getReleaseNotes returns { markdown, groups } as JSON and, with ?format=markdown, the Markdown alone as text/markdown.",
+      "linkedAcceptanceCriteria": ["AC-010", "AC-011"]
+    },
+    {
+      "id": "FR-010",
+      "text": "The client releases module (client/src/features/releases) exposes its types, api, hooks (useReleases, useRelease, useReleaseStatus) and helpers through index.ts, and renders the project's Releases tab (unreleased, released and archived sections with an archive toggle and the create/edit/archive/reopen/delete/release dialogs) plus the release page with the progress ring, the grouped task list and the notes panel. Its helpers live in lib/progress.ts (releasePercent, describeReleaseProgress, formatReleaseDates, describeReleaseDue, suggestReleaseDates, suggestReleaseName, releaseOptionsFor, groupReleaseTasks, upcomingReleases) and lib/notesMarkdown.ts (parseNotesMarkdown, splitNoteItem).",
+      "linkedAcceptanceCriteria": ["AC-005", "AC-011"]
+    },
+    {
+      "id": "FR-011",
+      "text": "Task endpoints accept release: resolveRelease requires the release to be in the workspace, unreleased, of the task's project (a task without a project adopts the release's project) and refuses epics; reconcileRelease drops the release when the task moves to another project, and subtasks follow their parent's release. TaskReleaseField builds the select from releaseOptionsFor with 'No release' first.",
+      "linkedAcceptanceCriteria": ["AC-012"]
+    },
+    {
+      "id": "FR-012",
+      "text": "releaseMarkers (client/src/features/planning/lib/roadmap.ts) places the dated, non-archived releases of the selected project on the roadmap axis in date order, describeReleaseMarker gives each marker a text alternative, and selecting a marker navigates to the release page; TaskReleaseLabel renders the release of a task as a link to that page in the task details block.",
+      "linkedAcceptanceCriteria": ["AC-013"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-001",
+      "text": "Every release query is scoped to one workspace (CON-106): findRelease looks up the id together with workspace: req.workspace._id, the project of a release and the tasks of a release are resolved with the same workspace id, and the release of a task is validated against the caller's workspace, so another workspace's releases are never exposed or linked.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-002",
+      "text": "The routes are permission scoped (CON-512): server/src/routes/releaseRoutes.ts uses requirePermission('projects:read') for the list, the detail and the notes and requirePermission('projects:write') for create, update, delete and the release action, each behind protect. The client mirrors this with can('projects:write').",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-003",
+      "text": "The rules that do not need HTTP or the database are pure and unit tested (CON-109, CON-202, CON-402): server/src/utils/releaseNotes.ts (summarizeProgress, isReleaseOverdue, buildReleaseNotes, taskKey) and the client helpers lib/progress.ts, lib/notesMarkdown.ts and the roadmap marker helper all have Jest suites.",
+      "linkedAcceptanceCriteria": []
+    },
+    {
+      "id": "NFR-004",
+      "text": "Generated notes cannot become markup (CON-517): the client parses the Markdown into plain data blocks (parseNotesMarkdown) and React renders them as text, so a task title is never interpreted as HTML and no dangerouslySetInnerHTML exists in the module.",
+      "linkedAcceptanceCriteria": []
+    }
+  ],
+  "edgeCases": [
+    {
+      "id": "EC-001",
+      "description": "Two releases of one project get the same name (including different casing).",
+      "expectedBehavior": "The unique index on { workspace, project, nameKey } rejects it and the API answers 409 'A release with this name already exists in the project'."
+    },
+    {
+      "id": "EC-002",
+      "description": "A release is created or edited with a release date before its start date.",
+      "expectedBehavior": "HTTP 400 'The release date must be on or after the start date'; clearing a date is allowed because the rules only compare them when both are set."
+    },
+    {
+      "id": "EC-003",
+      "description": "The release action is used on a release that is already released or archived.",
+      "expectedBehavior": "HTTP 400 'Only an unreleased release can be released'; archive and reopen are the ways to change the status of a closed release."
+    },
+    {
+      "id": "EC-004",
+      "description": "moveOpenTo names the release itself, a released release, a release of another project or an unknown id.",
+      "expectedBehavior": "HTTP 400 'Open tasks can only move to another unreleased release of this project'; without moveOpenTo the unfinished tasks simply stay in the release."
+    },
+    {
+      "id": "EC-005",
+      "description": "Two people release the same version at the same moment.",
+      "expectedBehavior": "Only the first conditional update matches; the loser receives 409 'This release was changed by someone else' and no task is moved twice."
+    },
+    {
+      "id": "EC-006",
+      "description": "Notes are requested for a release with nothing completed.",
+      "expectedBehavior": "The Markdown keeps the heading and dates and contains the italic placeholder '_No finished work in this release yet._'; the groups array is empty and the panel shows the empty state."
+    },
+    {
+      "id": "EC-007",
+      "description": "A release name that looks like a version is used to suggest the next one.",
+      "expectedBehavior": "suggestReleaseName bumps the minor part of the highest vX.Y[.Z] name it can parse (v2.4.1 -> v2.5.0) and falls back to v1.0.0 when nothing matches; a name that is not a version is ignored."
+    },
+    {
+      "id": "EC-008",
+      "description": "A task already in a released release is opened in the task form.",
+      "expectedBehavior": "The select still shows that release (labelled with its status) so the value is not silently lost, but only unreleased releases of the task's project can be chosen; the server refuses a released or archived target for a new assignment."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "server/src/utils/activity.ts",
+      "type": "internal",
+      "notes": "recordActivity/diffFields supply the release.created/updated/deleted/released and task.updated entries."
+    },
+    {
+      "name": "server/src/controllers/taskController.ts",
+      "type": "internal",
+      "notes": "resolveRelease, reconcileRelease and PUBLIC_USER_FIELDS are shared with the release rules; there is no separate release service."
+    },
+    {
+      "name": "client/src/features/tasks",
+      "type": "internal",
+      "notes": "The task list and detail host the release field and label; lib/date provides the calendar-day helpers used for the due dates."
+    },
+    {
+      "name": "client/src/features/planning",
+      "type": "internal",
+      "notes": "The roadmap axis and its placement helpers are reused to draw the release markers (releaseMarkers lives in the planning module and is tested from the releases one)."
+    },
+    {
+      "name": "mongoose",
+      "type": "library",
+      "notes": "Release documents and the unique { workspace, project, nameKey } index that carries the duplicate-name rule."
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-001",
+      "description": "Releasing moves tasks (and their subtasks) server-side while the client task list is a separate cache, so the board can show a task still in the shipped release.",
+      "mitigation": "The releases tab and the release page call onTasksChanged after a release or a delete, which reloads the task list the same way a sprint completion does."
+    },
+    {
+      "id": "RISK-002",
+      "description": "Notes are generated from the release's current tasks, so a task removed from the release after it shipped disappears from the notes.",
+      "mitigation": "Removing a task from a release is an explicit action that is recorded in the activity log, and the notes panel always shows the current state of the release rather than a frozen copy."
+    },
+    {
+      "id": "RISK-003",
+      "description": "A release whose tasks were deleted or moved to another project can end up with no work at all, making its progress meaningless.",
+      "mitigation": "reconcileRelease drops the release from a task that changes project, deleteRelease reports how many tasks were unassigned, and the empty state of the notes makes the situation visible."
+    }
+  ]
+}

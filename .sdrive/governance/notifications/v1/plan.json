@@ -1,0 +1,111 @@
+{
+  "feature": "notifications",
+  "version": 1,
+  "architecture": {
+    "approach": "Event-driven fan-out inside the API process. Task and comment handlers keep writing through their existing controllers, but call a notify helper (server/src/utils/notify.ts) after the write; the helper derives the recipient plan with pure, unit-tested functions, inserts one Notification row per recipient, and then attempts the optional channels (Web Push, email) for each recipient according to the switches stored on the user document. Reads are served by a dedicated controller/router (notificationController.ts / notificationRoutes.ts) mounted at /api/notifications behind `protect` only, because a notification belongs to a user rather than to a workspace permission. No queue or worker exists in this project (.sdrive/context/architecture-context.md), so delivery is awaited inside the request and every failure is swallowed and logged.",
+    "components": [
+      { "name": "server/src/models/notificationModel.ts", "action": "create", "description": "Notification schema: recipient (user), workspace, actor, type enum of four event names, task reference, 140-character summary, readAt, 90-day TTL index and the (user, readAt, createdAt) index used by the list endpoint." },
+      { "name": "server/src/utils/notify.ts", "action": "create", "description": "Pure rules (addedAssignees, planTaskNotifications, planCommentNotifications, resolveMentions, wantsEmail, wantsPush) plus delivery (deliver, notifyTaskEvents, notifyComment, loadMentionCandidates)." },
+      { "name": "server/src/models/pushSubscriptionModel.ts", "action": "create", "description": "One row per browser endpoint: unique https endpoint, base64url p256dh/auth keys, user agent and lastUsedAt." },
+      { "name": "server/src/utils/webPush.ts", "action": "create", "description": "VAPID configuration read from the environment, pushSentence wording shared with the bell, and sendPushToUser which prunes gone subscriptions and never throws." },
+      { "name": "server/src/utils/emailTemplates.ts", "action": "modify", "description": "notificationTemplate with per-type subjects and sentences; user-controlled text is escaped for the HTML part (escapeHtml)." },
+      { "name": "server/src/utils/sendEmail.ts", "action": "reuse", "description": "Provider selection (Resend HTTP API, then SMTP, then a development console fallback) reused unchanged by the delivery step." },
+      { "name": "server/src/controllers/notificationController.ts", "action": "create", "description": "listNotifications, markNotificationRead, markAllNotificationsRead and the push endpoints, all scoped to req.user." },
+      { "name": "server/src/routes/notificationRoutes.ts", "action": "create", "description": "GET /, GET /push/public-key, POST /push/subscribe, POST /push/unsubscribe, POST /read-all, POST /:id/read, each behind protect; mounted at /api/notifications in server/src/app.ts." },
+      { "name": "server/src/controllers/taskController.ts", "action": "modify", "description": "Calls notifyTaskEvents after task create, update (with the previous snapshot), duplicate and bulk status changes." },
+      { "name": "server/src/controllers/taskExtrasController.ts", "action": "modify", "description": "Resolves mentions against workspace members and calls notifyComment after storing a comment." },
+      { "name": "server/src/controllers/profileController.ts", "action": "modify", "description": "updateNotifications validates and applies only boolean switches under notifications.*." },
+      { "name": "server/src/models/userModel.ts", "action": "modify", "description": "Notification preference block (email, taskAssigned, taskCompleted, weeklyDigest, push) with defaults." },
+      { "name": "client/src/features/notifications/", "action": "create", "description": "Feature module: api (notificationsApi, pushApi), hooks (feed, inbox, push subscription, open, toasts), lib (format, mentions, push, newItems) and components (NotificationBell, NotificationRow, PushDeviceSettings)." },
+      { "name": "client/src/pages/InboxPage.tsx", "action": "create", "description": "Inbox screen with all/unread filters, paging and mark-all-read." },
+      { "name": "client/src/pages/NotificationsPage.tsx", "action": "create", "description": "Notification settings screen hosting PushDeviceSettings." },
+      { "name": "client/src/components/Sidebar.tsx", "action": "modify", "description": "Renders the bell from the notifications feature in the app shell." },
+      { "name": "client/src/hooks/useAuthGuard.ts", "action": "modify", "description": "Unsubscribes this device from push on logout so a shared browser stops receiving another account's notifications." },
+      { "name": "client/src/features/live/hooks/useLiveChanges.ts", "action": "modify", "description": "Announces notification changes so the bell refreshes as live polling delivers task changes." }
+    ],
+    "referencedRequirementIds": [
+      "FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006",
+      "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012",
+      "NFR-001", "NFR-002", "NFR-003", "NFR-004"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "Notification",
+        "action": "create",
+        "fields": [
+          { "name": "user", "type": "ObjectId ref User", "action": "add" },
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "add" },
+          { "name": "actor", "type": "ObjectId ref User", "action": "add" },
+          { "name": "type", "type": "String enum(task.assigned|task.completed|comment.mention|comment.reply_on_my_task)", "action": "add" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "add" },
+          { "name": "summary", "type": "String max 140", "action": "add", "nullable": true },
+          { "name": "readAt", "type": "Date", "action": "add", "nullable": true },
+          { "name": "createdAt", "type": "Date (timestamps, TTL 90 days)", "action": "add" }
+        ]
+      },
+      {
+        "name": "PushSubscription",
+        "action": "create",
+        "fields": [
+          { "name": "user", "type": "ObjectId ref User (indexed)", "action": "add" },
+          { "name": "endpoint", "type": "String max 2048 (unique, https)", "action": "add" },
+          { "name": "keys.p256dh", "type": "String max 200 (base64url)", "action": "add" },
+          { "name": "keys.auth", "type": "String max 200 (base64url)", "action": "add" },
+          { "name": "userAgent", "type": "String max 300", "action": "add" },
+          { "name": "lastUsedAt", "type": "Date", "action": "add" }
+        ]
+      },
+      {
+        "name": "User",
+        "action": "update",
+        "fields": [
+          { "name": "notifications.email", "type": "Boolean (default true)", "action": "add" },
+          { "name": "notifications.taskAssigned", "type": "Boolean (default true)", "action": "add" },
+          { "name": "notifications.taskCompleted", "type": "Boolean (default false)", "action": "add" },
+          { "name": "notifications.weeklyDigest", "type": "Boolean (default true)", "action": "add" },
+          { "name": "notifications.push", "type": "Boolean (default true)", "action": "add" }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "update",
+        "fields": [
+          { "name": "watchers", "type": "ObjectId[] ref User", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "A task write stores the task, then calls notifyTaskEvents(req, task, previous?) or notifyComment(req, task, comment). The pure planners produce a list of {type, userIds}; deliver() keeps only ids that are current members of req.workspace, inserts one Notification per pair, then for each recipient loads the user's email and notification preferences and, in parallel, sends Web Push (when VAPID is configured and notifications.push is not false) and email (when notifications.email and the event flag allow it). Comment notifications also $addToSet the author into Task.watchers, a field that already existed on the task model and that this feature writes rather than defines. Reads never touch another user's rows: the list builds its filter from req.user plus the workspaces the user is still a member of, and both mark-read paths match on user: req.user._id. The push endpoints upsert or delete PushSubscription rows by endpoint, and each delivery prunes subscriptions that answer 404/410."
+  },
+  "apiContracts": [
+    { "method": "GET", "path": "/api/notifications", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-005", "FR-011", "NFR-001"] },
+    { "method": "GET", "path": "/api/notifications/push/public-key", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-008", "NFR-003"] },
+    { "method": "POST", "path": "/api/notifications/push/subscribe", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/notifications/push/unsubscribe", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-008"] },
+    { "method": "POST", "path": "/api/notifications/read-all", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "NFR-001"] },
+    { "method": "POST", "path": "/api/notifications/:id/read", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-006", "NFR-001"] },
+    { "method": "PUT", "path": "/api/profile/notifications", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-010"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-001", "description": "The notification routes sit behind `protect` only; isolation comes from querying with req.user._id and from intersecting planned recipients with the workspace member list, so a user can never read or write another user's notification." },
+    { "requirementId": "NFR-002", "description": "notificationTemplate escapes every user-controlled string (actor name, task title, workspace name, comment excerpt) for the HTML part; plain text keeps the original characters. The client renders sentences as React text, never as HTML." },
+    { "requirementId": "NFR-003", "description": "VAPID keys and mail credentials are read from process.env at call time inside webPush.ts/sendEmail.ts, are never logged, and readVapid returns null unless all three VAPID values are present and the subject is a mailto: or https: URL." },
+    { "requirementId": "NFR-004", "description": "Delivery errors are caught per recipient and per channel; sendPushToUser and the notify helpers never throw, so an unreachable mail or push provider cannot turn a successful task write into a 500." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-001", "strategy": "Reads are answered by indexed single queries: the list uses (user, readAt, createdAt) with limit+1 rows plus one countDocuments for the unread total, and resolves task display keys with one Project lookup for the whole page instead of one per row." },
+    { "requirementId": "NFR-004", "strategy": "Fan-out is parallel and bounded: Promise.allSettled over recipients, push sends share one 24 h TTL and are skipped entirely unless VAPID is configured, the client polls at most once a minute while the tab is visible, and the createdAt TTL index bounds the collection without a cleanup job." }
+  ],
+  "dependencies": [
+    { "name": "web-push", "type": "library", "action": "no_change", "notes": "Already a server dependency; used for VAPID signing and sending." },
+    { "name": "nodemailer", "type": "library", "action": "no_change", "notes": "SMTP transport in sendEmail.ts." },
+    { "name": "Mongoose TTL index", "type": "internal", "action": "add", "notes": "expireAfterSeconds on Notification.createdAt (90 days)." },
+    { "name": "VAPID key pair", "type": "external", "action": "no_change", "notes": "Required configuration for Web Push; absent values disable push without error." }
+  ],
+  "risks": [
+    { "description": "Delivery is awaited inside the request, so a slow provider extends the response time of task writes.", "mitigation": "Sends run in parallel with Promise.allSettled, use short timeouts, and failures are logged; the in-app row is written first so the user still sees the notification." },
+    { "description": "An endpoint can be moved silently to another account by subscribing with it, because PushSubscription.endpoint is unique.", "mitigation": "This is deliberate and documented in the model: an endpoint belongs to one browser profile, and unsubscribing only deletes a subscription that belongs to the caller." },
+    { "description": "Mention patterns are name-based, so renaming a member can change who gets tagged.", "mitigation": "Mentions are resolved server-side against current member names at comment time, and the stored mention ids are what drives notification delivery." }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "feature": "custom-fields-workflow",
+  "version": 1,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Definitions and pure rules",
+      "tasks": [
+        {
+          "id": "T1.1",
+          "title": "Model the custom field document",
+          "description": "server/src/models/customFieldModel.ts: immutable slug key, eight types, options with colours, projects, required, order, archived, the caps and the unique (workspace, key) index.",
+          "linkedRequirements": ["FR-002", "FR-003"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002"],
+          "completed": true
+        },
+        {
+          "id": "T1.2",
+          "title": "Write the custom value rules",
+          "description": "server/src/utils/customFields.ts: fieldPath/fieldAppliesTo, coerceFieldValue per type, planCustomValues (merge, required on create, archived fields), describeCustomChanges and slugFromName/newOptionId.",
+          "linkedRequirements": ["FR-002", "FR-006", "FR-007", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-007", "AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T1.3",
+          "title": "Load the field definitions for a request",
+          "description": "server/src/utils/customFieldsDb.ts: loadFieldDefs in display order and planRequestCustom with the workspace's member ids.",
+          "linkedRequirements": ["FR-006", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-007"],
+          "completed": true
+        },
+        {
+          "id": "T1.4",
+          "title": "Write the workflow stage rules",
+          "description": "server/src/utils/workflow.ts: defaultWorkflow, validateWorkflow (1-12, keys, names, groups, colours, limits), firstStageOf, stageFor, workflowOf with the legacy board limits and planStageMoves.",
+          "linkedRequirements": ["FR-008", "FR-009", "FR-010", "NFR-002", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-012", "AC-013", "AC-014"],
+          "completed": true
+        },
+        {
+          "id": "T1.5",
+          "title": "Store the stages and the task-side fields",
+          "description": "server/src/models/workspaceModel.ts (workflow.stages next to boardSettings.wipLimits) and server/src/models/taskModel.ts (stage key and the custom map).",
+          "linkedRequirements": ["FR-009", "FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-012", "AC-014"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "Definitions API",
+      "dependencies": ["P1"],
+      "tasks": [
+        {
+          "id": "T2.1",
+          "title": "Declare the field router and its permissions",
+          "description": "server/src/routes/fieldRoutes.ts mounted at /api/workspaces/:slug/fields with tasks:read for the list and settings:manage for every change, /order declared before /:id.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-004", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-016"],
+          "completed": true
+        },
+        {
+          "id": "T2.2",
+          "title": "List and create fields",
+          "description": "listFields in display order and createField with the slug key, the 30-active-field cap, option validation, projects, required and the appended order plus the field.created audit entry.",
+          "linkedRequirements": ["FR-001", "FR-002"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-002", "AC-003", "AC-016"],
+          "completed": true
+        },
+        {
+          "id": "T2.3",
+          "title": "Update a field and clear the removed options",
+          "description": "updateField: name, options (id kept for renames/recolours, missing ones removed), projects, required, archived with the cap on unarchiving; clearRemovedOptions unsets or pulls the lost choices from the tasks.",
+          "linkedRequirements": ["FR-003"],
+          "linkedAcceptanceCriteria": ["AC-003", "AC-004"],
+          "completed": true
+        },
+        {
+          "id": "T2.4",
+          "title": "Reorder and delete fields",
+          "description": "reorderFields (listed ids first, unknown id refused, the rest keep their relative order) and deleteField (unset the values on every task and audit the count).",
+          "linkedRequirements": ["FR-004", "FR-005"],
+          "linkedAcceptanceCriteria": ["AC-017", "AC-018"],
+          "completed": true
+        },
+        {
+          "id": "T2.5",
+          "title": "Validate custom values on task writes",
+          "description": "taskController create/update call planRequestCustom for the custom part, apply the merge, describe the changes as custom.<key> and reject unknown or archived keys and missing required fields.",
+          "linkedRequirements": ["FR-006"],
+          "linkedAcceptanceCriteria": ["AC-005", "AC-006", "AC-007", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T2.6",
+          "title": "Filter the task list by custom values",
+          "description": "taskQuery.parseCustomFilters/buildTaskFilter: at most five cf.<key> parameters with slug keys, \"none\" for no value, and numeric/boolean text comparison.",
+          "linkedRequirements": ["FR-007"],
+          "linkedAcceptanceCriteria": ["AC-009"],
+          "completed": true
+        },
+        {
+          "id": "T2.7",
+          "title": "Serve and replace the workflow stages",
+          "description": "workflowController.getWorkflow and updateWorkflow: validation, moves for removed stages, status and completedAt resynchronisation, stale-stage reset, legacy board limits cleared and the workflow.updated audit diff.",
+          "linkedRequirements": ["FR-008", "FR-009", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-012", "AC-013"],
+          "completed": true
+        },
+        {
+          "id": "T2.8",
+          "title": "Keep stage and status in sync on task writes",
+          "description": "stageFor applied by createTask and updateTask, the \"Unknown stage\" rejection, and the resolveStage fallback used when a task's stage does not match its status.",
+          "linkedRequirements": ["FR-010", "NFR-002"],
+          "linkedAcceptanceCriteria": ["AC-014"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "Client modules and settings surfaces",
+      "dependencies": ["P1", "P2"],
+      "tasks": [
+        {
+          "id": "T3.1",
+          "title": "Build the fields feature module",
+          "description": "features/fields: types, api, lib/fields.ts and lib/fieldFilters.ts mirrors, and the per-workspace cache (useCustomFields) shared by every view.",
+          "linkedRequirements": ["FR-001", "FR-002", "FR-003", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-016"],
+          "completed": true
+        },
+        {
+          "id": "T3.2",
+          "title": "Show custom fields on tasks",
+          "description": "CustomFieldInput, CustomFieldValue, TaskCustomFields, TaskFormCustomFields and TaskCustomChips plus the list column per active field (listColumns.customColumns/sortByColumn).",
+          "linkedRequirements": ["FR-011"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-008"],
+          "completed": true
+        },
+        {
+          "id": "T3.3",
+          "title": "Add the custom field filters to the toolbar",
+          "description": "fieldFilters.filterableFields/filterOptions/withCustomFilter wired into the filters that live in the URL, matching values with lib/filters.matchesCustom.",
+          "linkedRequirements": ["FR-007"],
+          "linkedAcceptanceCriteria": ["AC-010"],
+          "completed": true
+        },
+        {
+          "id": "T3.4",
+          "title": "Build the workflow feature module",
+          "description": "features/workflow: types, api, lib/stages.ts mirror, the per-workspace cache (useWorkflow plus cachedWorkflow) and the StageBadges/StageRow/BoardPreview/DeleteStageDialog components.",
+          "linkedRequirements": ["FR-008", "FR-010", "FR-012", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-011", "AC-014", "AC-015"],
+          "completed": true
+        },
+        {
+          "id": "T3.5",
+          "title": "Build the settings pages",
+          "description": "CustomFieldsPage (list, create/edit, reorder, archive, delete with a warning) and WorkflowSettingsPage (staged stage list with a preview, limits, save through useWorkflow), both behind settings:manage.",
+          "linkedRequirements": ["FR-002", "FR-003", "FR-004", "FR-005", "FR-009", "FR-012"],
+          "linkedAcceptanceCriteria": ["AC-001", "AC-004", "AC-012", "AC-017", "AC-018"],
+          "completed": true
+        }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Verification",
+      "dependencies": ["P1", "P2", "P3"],
+      "tasks": [
+        {
+          "id": "T4.1",
+          "title": "Unit test the rules on both sides",
+          "description": "server/src/__tests__/customFields.test.ts and workflow.test.ts against client/src/features/fields/__tests__/fields.test.ts, fieldFilters.test.ts and client/src/features/workflow/__tests__/stages.test.ts (CON-202, CON-404).",
+          "linkedRequirements": ["FR-006", "FR-009", "NFR-003"],
+          "linkedAcceptanceCriteria": ["AC-007", "AC-012"],
+          "completed": true
+        },
+        {
+          "id": "T4.2",
+          "title": "Integration test the definitions end to end",
+          "description": "server/src/__integration__/customFields.test.ts and workflow.test.ts against a real MongoDB: create/update/reorder/delete a field, clear removed options, replace the workflow and check the moved tasks.",
+          "linkedRequirements": ["FR-002", "FR-003", "FR-005", "FR-009", "NFR-001"],
+          "linkedAcceptanceCriteria": ["AC-004", "AC-013", "AC-018"],
+          "completed": true
+        },
+        {
+          "id": "T4.3",
+          "title": "Test the client surfaces",
+          "description": "fieldsUi.test.tsx (values, editors, read-only, settings page), workflowBoard.test.tsx (stage columns, WIP badge, moves with stage), WorkflowSettingsPage.test.tsx, customFilters.test.ts and listColumns.test.ts.",
+          "linkedRequirements": ["FR-007", "FR-011", "FR-012", "NFR-002", "NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-008", "AC-010", "AC-015"],
+          "completed": true
+        },
+        {
+          "id": "T4.4",
+          "title": "Pass the repository quality gates",
+          "description": "pnpm --filter server typecheck && pnpm --filter server test; pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter client lint; pnpm --filter client build (constitution CON-402).",
+          "linkedRequirements": ["NFR-004"],
+          "linkedAcceptanceCriteria": ["AC-001"],
+          "completed": true
+        }
+      ]
+    }
+  ]
+}

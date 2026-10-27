@@ -1,0 +1,281 @@
+{
+  "feature": "time-tracking",
+  "version": 1,
+  "architecture": {
+    "approach": "Retroactive plan of the implemented design. A TimeEntry document is the single record of logged work; a partial unique index makes at most one running timer per user and workspace possible, so the timer does not need a lock or a separate store. Task-scoped routes live on the tasks router (/tasks/:id/time, /tasks/:id/timer/start|stop) and the workspace-wide reads on a small time router (/time, /time/running, /time/export.csv). All arithmetic is pure and lives in server/src/utils/timeTracking.ts, so the controllers only validate, query and serialise. The client keeps one timer store shared by the header pill and the task dialog, re-reads entries when the time-changed event fires, and derives the weekly grid from the entries with the pure helpers in features/time/lib.",
+    "components": [
+      {
+        "name": "server/src/models/timeEntryModel.ts",
+        "action": "create",
+        "description": "TimeEntry document (workspace, task, user, startedAt, endedAt, minutes, note, running) with the { workspace, user, startedAt } and { task } indexes and the partial unique index on running timers."
+      },
+      {
+        "name": "server/src/utils/timeTracking.ts",
+        "action": "create",
+        "description": "Pure helpers: MAX_ENTRY_MINUTES, MAX_TIMER_MINUTES, minutesBetween, timerEnd, dayKey, parseRangeBound, TimeRow/TimeTotals, summarizeEntries, formatMinutes, csvCell and toCsvRows."
+      },
+      {
+        "name": "server/src/controllers/timeController.ts",
+        "action": "create",
+        "description": "validateTimeEntry, getTaskTime, addTimeEntry, startTimer, stopTimer, deleteTimeEntry, syncLogged, timesheetFilter/loadSheet, getTimesheet, getRunningTimer and exportTimesheet."
+      },
+      {
+        "name": "server/src/routes/timeRoutes.ts",
+        "action": "create",
+        "description": "Workspace time router: /running, /export.csv and the timesheet at the root, all behind protect and requirePermission('tasks:read')."
+      },
+      {
+        "name": "server/src/routes/taskRoutes.ts",
+        "action": "modify",
+        "description": "Adds GET/POST /:id/time, POST /:id/timer/start, POST /:id/timer/stop and DELETE /:id/time/:entryId with their permissions and the validation chain."
+      },
+      {
+        "name": "server/src/routes/workspaceRoutes.ts",
+        "action": "modify",
+        "description": "Mounts the time router at /:slug/time."
+      },
+      {
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "description": "Accepts the estimate (estimateMinutes) and keeps the loggedMinutes field on the task as the denormalised total."
+      },
+      {
+        "name": "server/src/utils/activity.ts",
+        "action": "reuse",
+        "description": "recordActivity supplies the time.logged and time.deleted audit entries."
+      },
+      {
+        "name": "client/src/features/time/timerStore.ts",
+        "action": "create",
+        "description": "One shared store for the caller's running timer: subscribeTimer, getTimerSnapshot, refreshTimer, selectWorkspace, startTimer, stopTimer, notifyTimeChanged and the taskman:time-changed event."
+      },
+      {
+        "name": "client/src/features/time/api.ts",
+        "action": "create",
+        "description": "timeApi: forTask, log, remove, start, stop, running, timesheet and exportCsv through the shared axios instance."
+      },
+      {
+        "name": "client/src/features/time/hooks/useTaskTime.ts",
+        "action": "create",
+        "description": "Entries of one task with log/remove, reloaded on the time-changed event."
+      },
+      {
+        "name": "client/src/features/time/hooks/useRunningTimer.ts",
+        "action": "create",
+        "description": "Subscribes to the timer store, refreshes on focus and visibility and exposes useNow for the elapsed clock."
+      },
+      {
+        "name": "client/src/features/time/hooks/useTimesheet.ts",
+        "action": "create",
+        "description": "Loads the timesheet for the filters with an AbortController, keeping the previous data on a background failure and reloading after any time change."
+      },
+      {
+        "name": "client/src/features/time/lib/duration.ts",
+        "action": "create",
+        "description": "parseDuration, formatDuration, describeDuration, formatElapsed, timeProgress and describeProgress with MAX_ENTRY_MINUTES and MAX_ESTIMATE_MINUTES."
+      },
+      {
+        "name": "client/src/features/time/lib/timesheet.ts",
+        "action": "create",
+        "description": "startOfIsoWeek, weekDayKeys, shiftWeekStart, weekRange, localDayKey, buildWeekGrid and loggedAtFor."
+      },
+      {
+        "name": "client/src/features/time/components/TimerPill.tsx",
+        "action": "create",
+        "description": "Header pill with the task key, the elapsed clock and the stop button."
+      },
+      {
+        "name": "client/src/features/time/components/TaskTimeSection.tsx",
+        "action": "create",
+        "description": "Estimate field, logged total, progress bar, entries, start/stop controls, manual log and delete."
+      },
+      {
+        "name": "client/src/features/time/components/LogTimePopover.tsx",
+        "action": "create",
+        "description": "Manual entry form (duration text, day or start, note)."
+      },
+      {
+        "name": "client/src/features/time/components/TimeProgressBar.tsx",
+        "action": "create",
+        "description": "Logged against estimated minutes with the over/remaining state."
+      },
+      {
+        "name": "client/src/features/time/components/WeekGridTable.tsx",
+        "action": "create",
+        "description": "Table of task rows by weekday with row, day and week totals."
+      },
+      {
+        "name": "client/src/pages/TimesheetPage.tsx",
+        "action": "create",
+        "description": "Weekly timesheet screen: week navigation, person filter for managers, totals, grid and CSV export."
+      },
+      {
+        "name": "client/src/components/AppShell.tsx",
+        "action": "modify",
+        "description": "Renders TimerPill in the header for the selected workspace."
+      }
+    ],
+    "referencedRequirementIds": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "NFR-001", "NFR-002", "NFR-003", "NFR-004"]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "TimeEntry",
+        "action": "no_change",
+        "fields": [
+          { "name": "workspace", "type": "ObjectId ref Workspace", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change" },
+          { "name": "user", "type": "ObjectId ref User", "action": "no_change" },
+          { "name": "startedAt", "type": "Date", "action": "no_change" },
+          { "name": "endedAt", "type": "Date (null while running)", "action": "no_change", "nullable": true },
+          { "name": "minutes", "type": "Number (min 0, whole minutes)", "action": "no_change" },
+          { "name": "note", "type": "String (max 200)", "action": "no_change" },
+          { "name": "running", "type": "Boolean (partial unique index on { workspace, user } where true)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Task",
+        "action": "no_change",
+        "fields": [
+          { "name": "estimateMinutes", "type": "Number (0-100000, null = no estimate)", "action": "no_change", "nullable": true },
+          { "name": "loggedMinutes", "type": "Number (sum of the stopped entries)", "action": "no_change" },
+          { "name": "title", "type": "String", "action": "no_change" },
+          { "name": "number", "type": "Number", "action": "no_change", "nullable": true },
+          { "name": "project", "type": "String (project name)", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Activity",
+        "action": "no_change",
+        "fields": [
+          { "name": "action", "type": "String (time.logged, time.deleted)", "action": "no_change" },
+          { "name": "task", "type": "ObjectId ref Task", "action": "no_change" },
+          { "name": "changes", "type": "Array of { field: 'time', from|to: formatted duration }", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          { "name": "name", "type": "String (join key with task.project)", "action": "no_change" },
+          { "name": "key", "type": "String (task key prefix, default TM)", "action": "no_change" }
+        ]
+      }
+    ],
+    "flowDescription": "Logging by hand creates a stopped entry with whole minutes and resynchronises the task's loggedMinutes. Starting a timer looks for the caller's running entry in that workspace: if it points at the same task the entry is returned as is, otherwise it is stopped (capped at a day, at least one minute) and logged before a new running entry is created, which the partial unique index guarantees can only be one per user and workspace. Stopping a timer ends it, recomputes the task total and records an audit entry with the duration. Reads take two shapes: the task view returns the estimate, the total, the caller's running entry and up to 500 recent entries, while the timesheet filters stopped entries by date range, user and project and returns totals by user, day and task - or the same rows as CSV for the export."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/tasks/:id/time",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-006", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/tasks/:id/time",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-002", "FR-005", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspaces/:slug/tasks/:id/time/:entryId",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-005", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/tasks/:id/timer/start",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-003", "FR-001", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/tasks/:id/timer/stop",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-004", "FR-005", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/time",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-007", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/time/running",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-008", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/time/export.csv",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-009", "NFR-001", "NFR-002"]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/workspaces/:slug/tasks/:id",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-011", "NFR-001"]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-001",
+      "description": "Workspace isolation (CON-106): every TimeEntry read and write carries workspace: req.workspace._id, the task is resolved with the same workspace id, and the project filter is turned into the ids of that project's tasks inside the workspace, so a filter can never reach another workspace's rows."
+    },
+    {
+      "requirementId": "NFR-002",
+      "description": "Permissions run before the handler (CON-512) while the entry-level rule stays in the controller (CON-105): tasks:read for reads, tasks:write for logging, timers and deletion, and inside deleteTimeEntry (and the timesheet's user filter) the caller must be the author or hold settings:manage, otherwise 403."
+    },
+    {
+      "requirementId": "NFR-003",
+      "description": "Input validation (CON-515, CON-516): validateTimeEntry caps minutes at 1440 and the note at 200 characters and requires either minutes or both timestamps; range bounds are parsed by parseRangeBound, which rejects anything that is not a day key or a valid ISO instant, and ids are cast before use."
+    },
+    {
+      "requirementId": "NFR-004",
+      "description": "The CSV export neutralises spreadsheet formula injection: csvCell prefixes an apostrophe to any value starting with =, +, -, @, tab or carriage return, and quotes every field with inner quotes doubled."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-003",
+      "strategy": "The task total is computed with a single aggregate over stopped entries instead of a document per entry, project keys are fetched once per response with one query over the distinct project names, and the timesheet pins the project filter to a task id list only when that filter is used."
+    },
+    {
+      "requirementId": "NFR-001",
+      "strategy": "Both reads are bounded: the task view selects the last 500 entries and the timesheet loads limit + 1 rows to detect truncation, so a large history cannot produce an unbounded response."
+    }
+  ],
+  "dependencies": [
+    { "name": "mongoose", "type": "library", "action": "no_change", "notes": "TimeEntry documents, the partial unique index on running timers and the aggregation used by syncLogged." },
+    { "name": "express-validator", "type": "library", "action": "no_change", "notes": "validateTimeEntry declared on the task route." },
+    { "name": "server/src/utils/activity.ts", "type": "internal", "action": "no_change", "notes": "Audit entries for logged and deleted time." },
+    { "name": "client/src/utils/api.ts", "type": "internal", "action": "no_change", "notes": "CON-207: shared axios instance, also used for the blob download of the export." },
+    { "name": "client/src/features/tasks", "type": "internal", "action": "no_change", "notes": "Task list and detail host the time section; lib/date provides the calendar-day helpers of the weekly grid." }
+  ],
+  "risks": [
+    {
+      "description": "loggedMinutes on the task is a denormalised total that can go stale if entries are changed outside the controller.",
+      "mitigation": "Every mutating path calls syncLogged, which recomputes the total from the entries and returns it in the response."
+    },
+    {
+      "description": "A forgotten timer keeps running while the browser is closed.",
+      "mitigation": "timerEnd caps an entry at one day, the running timer is visible in the header wherever the user navigates, and starting another timer stops the previous one."
+    },
+    {
+      "description": "Server totals group by UTC day while the weekly grid groups by the viewer's local day, so a late-evening entry can sit under a different day in the two views.",
+      "mitigation": "The grid uses the local calendar day of the entry (localDayKey) and the week range is built from local week boundaries, so the entries are always inside the requested window; the difference is documented as an assumption in the spec."
+    }
+  ]
+}
