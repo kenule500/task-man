@@ -1,0 +1,302 @@
+{
+  "feature": "real-time-chat",
+  "version": 2,
+  "rows": [
+    {
+      "requirementId": "FR-072",
+      "acceptanceCriteriaIds": ["AC-076", "AC-078"],
+      "planSection": "§2 Architecture; §3 Data model",
+      "taskIds": ["T20.1", "T20.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-073",
+      "acceptanceCriteriaIds": ["AC-076", "AC-077"],
+      "planSection": "§2 Architecture; §7 UI/UX",
+      "taskIds": ["T20.2", "T20.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-074",
+      "acceptanceCriteriaIds": ["AC-077"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T20.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-075",
+      "acceptanceCriteriaIds": ["AC-079"],
+      "planSection": "§3 Data model (a task assignment grants the channel)",
+      "taskIds": ["T21.1", "T21.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-076",
+      "acceptanceCriteriaIds": ["AC-080", "AC-081"],
+      "planSection": "§3 Data model (a task assignment grants the channel); §4 API contracts",
+      "taskIds": ["T21.3", "T21.4"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-077",
+      "acceptanceCriteriaIds": ["AC-080", "AC-081"],
+      "planSection": "§3 Data model (a task assignment grants the channel); §6 Performance considerations",
+      "taskIds": ["T21.5"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-078",
+      "acceptanceCriteriaIds": ["AC-082"],
+      "planSection": "§3 Data model (a task assignment grants the channel)",
+      "taskIds": ["T21.2", "T21.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-079",
+      "acceptanceCriteriaIds": ["AC-080"],
+      "planSection": "§3 Data model (a task assignment grants the channel); §2 Architecture",
+      "taskIds": ["T21.6"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-080",
+      "acceptanceCriteriaIds": ["AC-083"],
+      "planSection": "§2 Architecture; §7 UI/UX",
+      "taskIds": ["T22.1", "T22.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-081",
+      "acceptanceCriteriaIds": ["AC-084"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T22.3", "T22.4"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-082",
+      "acceptanceCriteriaIds": ["AC-085"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T22.3", "T22.5"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-083",
+      "acceptanceCriteriaIds": ["AC-083", "AC-085"],
+      "planSection": "§2 Architecture; §10 Verification",
+      "taskIds": ["T22.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-084",
+      "acceptanceCriteriaIds": ["AC-087"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T23.1", "T23.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-085",
+      "acceptanceCriteriaIds": ["AC-088"],
+      "planSection": "§3 Data model (an attachment is rendered); §7 UI/UX",
+      "taskIds": ["T23.4", "T23.5"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-086",
+      "acceptanceCriteriaIds": ["AC-089"],
+      "planSection": "§5 Security considerations; §3 Data model (an attachment is rendered)",
+      "taskIds": ["T23.2", "T23.5"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-087",
+      "acceptanceCriteriaIds": ["AC-090"],
+      "planSection": "§3 Data model (an attachment is rendered); §6 Performance considerations",
+      "taskIds": ["T23.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-088",
+      "acceptanceCriteriaIds": ["AC-091"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T23.6"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-089",
+      "acceptanceCriteriaIds": ["AC-092"],
+      "planSection": "§4 API contracts; §7 UI/UX",
+      "taskIds": ["T24.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-090",
+      "acceptanceCriteriaIds": ["AC-093"],
+      "planSection": "§4 API contracts",
+      "taskIds": ["T24.1", "T24.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-091",
+      "acceptanceCriteriaIds": ["AC-094"],
+      "planSection": "§2 Architecture; §4 API contracts",
+      "taskIds": ["T25.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-092",
+      "acceptanceCriteriaIds": ["AC-095"],
+      "planSection": "§2 Architecture",
+      "taskIds": ["T25.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-093",
+      "acceptanceCriteriaIds": ["AC-096"],
+      "planSection": "§7 UI/UX",
+      "taskIds": ["T26.4"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-094",
+      "acceptanceCriteriaIds": ["AC-097", "AC-098"],
+      "planSection": "§4 API contracts; §5 Security considerations",
+      "taskIds": ["T26.1", "T26.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "FR-095",
+      "acceptanceCriteriaIds": ["AC-097", "AC-099"],
+      "planSection": "§7 UI/UX; §6 Performance considerations",
+      "taskIds": ["T26.3", "T26.4"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-029",
+      "acceptanceCriteriaIds": ["AC-080"],
+      "planSection": "§6 Performance considerations",
+      "taskIds": ["T21.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-030",
+      "acceptanceCriteriaIds": ["AC-097"],
+      "planSection": "§4 API contracts; §6 Performance considerations",
+      "taskIds": ["T26.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-031",
+      "acceptanceCriteriaIds": ["AC-090"],
+      "planSection": "§6 Performance considerations",
+      "taskIds": ["T23.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-032",
+      "acceptanceCriteriaIds": ["AC-086"],
+      "planSection": "§1 Approach; §6 Performance considerations",
+      "taskIds": ["T22.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-033",
+      "acceptanceCriteriaIds": ["AC-085", "AC-088", "AC-099"],
+      "planSection": "§7 UI/UX; §10 Verification",
+      "taskIds": ["T23.4", "T26.3", "T27.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-034",
+      "acceptanceCriteriaIds": ["AC-099"],
+      "planSection": "§6 Performance considerations; §7 UI/UX; §10 Verification",
+      "taskIds": ["T22.3", "T26.3", "T27.3"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-035",
+      "acceptanceCriteriaIds": ["AC-093", "AC-097", "AC-098"],
+      "planSection": "§5 Security considerations; §4 API contracts",
+      "taskIds": ["T24.1", "T26.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-036",
+      "acceptanceCriteriaIds": ["AC-093"],
+      "planSection": "§5 Security considerations",
+      "taskIds": ["T24.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-037",
+      "acceptanceCriteriaIds": ["AC-086"],
+      "planSection": "§5 Security considerations",
+      "taskIds": ["T22.4", "T27.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-038",
+      "acceptanceCriteriaIds": ["AC-093"],
+      "planSection": "§5 Security considerations",
+      "taskIds": ["T24.1"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-039",
+      "acceptanceCriteriaIds": ["AC-089"],
+      "planSection": "§5 Security considerations",
+      "taskIds": ["T23.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-040",
+      "acceptanceCriteriaIds": ["AC-087"],
+      "planSection": "§5 Security considerations",
+      "taskIds": ["T23.3", "T27.2"],
+      "testIds": [],
+      "status": "not_started"
+    },
+    {
+      "requirementId": "NFR-041",
+      "acceptanceCriteriaIds": ["AC-089", "AC-099"],
+      "planSection": "§2 Architecture; §7 UI/UX",
+      "taskIds": ["T23.3", "T25.2", "T27.1"],
+      "testIds": [],
+      "status": "not_started"
+    }
+  ]
+}

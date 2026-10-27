@@ -170,7 +170,9 @@
     },
     {
       "name": "real-time-chat",
-      "currentVersion": "v1",
+      "branch": "feature/chat",
+      "base": "main",
+      "currentVersion": "v2",
       "versions": [
         {
           "id": "v1",
@@ -187,6 +189,34 @@
               "event": "Specification written and awaiting Gate 1 approval.",
               "by": "onboarding",
               "timestamp": "2026-10-26T19:41:39.397Z"
+            }
+          ]
+        },
+        {
+          "id": "v2",
+          "phase": "ongoing",
+          "currentStep": "implementation",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "in_progress",
+            "review": "pending"
+          },
+          "history": [
+            {
+              "event": "v2 proposed on the existing feature/chat branch: project-chat vocabulary, live project-channel grants, code and attachment rendering, project chat entry point, author population and a channel member panel. Branch recorded as feature/chat (base main) because that branch already holds the chat code.",
+              "by": "agent",
+              "timestamp": "2026-10-27T00:00:00.000Z"
+            },
+            {
+              "event": "Gate 1 approved. Specification (7 user stories, 24 acceptance criteria, 24 functional and 13 non-functional requirements) and the 37-row traceability matrix accepted.",
+              "by": "user",
+              "timestamp": "2026-10-27T00:00:00.000Z"
+            },
+            {
+              "event": "Gate 2 approved. Plan and 32 tasks across P20-P27 accepted; every requirement maps to a plan section and at least one task, and all 24 acceptance criteria are linked.",
+              "by": "user",
+              "timestamp": "2026-10-27T00:00:00.000Z"
             }
           ]
         }

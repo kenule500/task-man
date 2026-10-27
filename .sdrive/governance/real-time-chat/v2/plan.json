@@ -1,0 +1,430 @@
+{
+  "feature": "real-time-chat",
+  "version": 2,
+  "architecture": {
+    "approach": "A second pass over the existing chat module rather than a new slice. The seeded team channel is renamed to 'Project Chat' while its kind stays 'team', and the rename is applied to existing workspaces by extending the seeding pass that already runs on every channel list request, so no migration step is introduced. A task assignment keeps using addAssigneesToProjectMembers as the single membership hook, which grows a return value of the ids it actually added; callers ensure the project channel exists and emit one chat:channel-granted per (project, user) to the assignee's user room, and the client appends, dedupes and joins the room. Attachments stop being anchors to a protected route and are fetched as blobs through the authenticated axios client into a refcounted object-URL cache, rendered as thumbnails or file cards and opened in an in-app lightbox. Pasted code becomes a fenced block and renders through a new code card whose highlighter is a lazy chunk with a plain-monospace fallback. The project detail header gains an Open chat action backed by a get-or-create project-channel endpoint, and the chat header's empty member handler becomes a panel fed by a channel-scoped member endpoint resolved in two queries. Message payloads carry a populated author on every emit, with a client-side directory fallback so a known participant is never rendered as 'Unknown member'.",
+    "components": [
+      {
+        "name": "server/src/controllers/chatChannelController.ts",
+        "action": "modify",
+        "description": "Rename the seeded team channel to 'Project Chat' with collision-safe idempotent backfill; extract channelCard from conversationCard; add the projectChannel get-or-create handler and the channelMembers resolver."
+      },
+      {
+        "name": "server/src/utils/projectMembers.ts",
+        "action": "modify",
+        "description": "addAssigneesToProjectMembers returns the assignee ids that were not already project members instead of void."
+      },
+      {
+        "name": "server/src/utils/chatGrant.ts",
+        "action": "create",
+        "description": "Pure: collapse the added assignee ids into at most one (project, user) grant pair, deduplicating bulk edits."
+      },
+      {
+        "name": "server/src/controllers/taskController.ts",
+        "action": "modify",
+        "description": "After a create or update that changes assignees, ensure the project channel exists and emit chat:channel-granted per granted pair."
+      },
+      {
+        "name": "server/src/controllers/projectController.ts",
+        "action": "modify",
+        "description": "On project rename, emit chat:channel with the updated summary so open chat screens show the new name."
+      },
+      {
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "description": "Populate the author on every path that emits chat:updated (edit, pin, unpin) and keep messageView the single view shaper."
+      },
+      {
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "modify",
+        "description": "Add GET /chat/projects/:projectId/channel and GET /chat/:channelId/members before the :channelId routes, each with protect, requirePermission('chat:read') and an isMongoId chain."
+      },
+      {
+        "name": "server/src/realtime/bus.ts",
+        "action": "reuse",
+        "description": "emitToUser + userRoom carry the channel grant; emitToChannel carries the project rename."
+      },
+      {
+        "name": "client/src/features/chat/lib/code.ts",
+        "action": "create",
+        "description": "Pure: detectSnippet, inferLanguage, fenceOf, extensionOf and parseBody for fenced code and clearly-code bodies."
+      },
+      {
+        "name": "client/src/features/chat/lib/attachments.ts",
+        "action": "create",
+        "description": "Pure: kindOf, humanSize and downloadName for attachment rendering."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useAttachmentUrl.ts",
+        "action": "create",
+        "description": "Refcounted module-level object-URL cache; fetches attachment bytes with the authenticated axios client and revokes on last unmount."
+      },
+      {
+        "name": "client/src/features/chat/lib/authors.ts",
+        "action": "create",
+        "description": "Pure: resolve an author id against the member directory, returning a neutral placeholder only for an unknown id."
+      },
+      {
+        "name": "client/src/features/chat/components/CodeCard.tsx",
+        "action": "create",
+        "description": "Language label, lazy syntax highlighting with a plain-monospace fallback above the character cap, Copy and Download, own horizontal scroll."
+      },
+      {
+        "name": "client/src/features/chat/components/AttachmentCard.tsx",
+        "action": "create",
+        "description": "Image thumbnail or file card with icon, name and size; opens the lightbox or downloads; retryable placeholder on failure."
+      },
+      {
+        "name": "client/src/features/chat/components/Lightbox.tsx",
+        "action": "create",
+        "description": "Modal image viewer with focus trap, Escape, click-outside and focus restore."
+      },
+      {
+        "name": "client/src/features/chat/components/MembersPanel.tsx",
+        "action": "create",
+        "description": "Channel member list with avatar, presence, workspace role and 'You' badge, online first, keyboard operable."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageItem.tsx",
+        "action": "modify",
+        "description": "Delegate the body to CodeCard where applicable, replace the attachment anchor with AttachmentCard, resolve the author through the directory, drop attachmentHref."
+      },
+      {
+        "name": "client/src/features/chat/components/MessageList.tsx",
+        "action": "modify",
+        "description": "Pass the member directory through so author ids resolve without a refresh."
+      },
+      {
+        "name": "client/src/features/chat/components/Composer.tsx",
+        "action": "modify",
+        "description": "Detect a pasted snippet and insert it fenced; preview pending attachments as thumbnails or file cards."
+      },
+      {
+        "name": "client/src/features/chat/components/ChatHeader.tsx",
+        "action": "modify",
+        "description": "Wire the members control to a real handler and use project-channel copy."
+      },
+      {
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "modify",
+        "description": "Title the section 'Project channels', update the empty and footer copy, and accept an appended granted channel."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Handle chat:channel-granted (append, dedupe, join the room), open the members panel, and remove the attachmentHref builder."
+      },
+      {
+        "name": "client/src/features/chat/api.ts",
+        "action": "modify",
+        "description": "Add projectChannel(slug, projectId) and channelMembers(slug, channelId)."
+      },
+      {
+        "name": "client/src/pages/ProjectDetailPage.tsx",
+        "action": "modify",
+        "description": "Add an Open chat action gated on chat:read that resolves the project's channel before navigating."
+      },
+      {
+        "name": "prism-react-renderer",
+        "action": "create",
+        "description": "New client dependency for token-based syntax highlighting, lazy-loaded by the code card."
+      }
+    ],
+    "referencedRequirementIds": [
+      "FR-072",
+      "FR-073",
+      "FR-074",
+      "FR-075",
+      "FR-076",
+      "FR-077",
+      "FR-078",
+      "FR-079",
+      "FR-080",
+      "FR-081",
+      "FR-082",
+      "FR-083",
+      "FR-084",
+      "FR-085",
+      "FR-086",
+      "FR-087",
+      "FR-088",
+      "FR-089",
+      "FR-090",
+      "FR-091",
+      "FR-092",
+      "FR-093",
+      "FR-094",
+      "FR-095",
+      "NFR-029",
+      "NFR-030",
+      "NFR-031",
+      "NFR-032",
+      "NFR-033",
+      "NFR-034",
+      "NFR-035",
+      "NFR-036",
+      "NFR-037",
+      "NFR-038",
+      "NFR-039",
+      "NFR-040",
+      "NFR-041"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "ChatChannel",
+        "action": "update",
+        "fields": [
+          {
+            "name": "name",
+            "type": "String",
+            "nullable": false,
+            "action": "modify"
+          },
+          {
+            "name": "kind",
+            "type": "String (team | general | project | direct)",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "nameKey",
+            "type": "String",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "project",
+            "type": "ObjectId (Project)",
+            "nullable": true,
+            "action": "no_change"
+          },
+          {
+            "name": "archived",
+            "type": "Boolean",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatMessage",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "author",
+            "type": "ObjectId (User)",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "body",
+            "type": "String",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "attachments",
+            "type": "ChatAttachment[]",
+            "nullable": true,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatPresence",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "online",
+            "type": "Boolean (derived)",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "members",
+            "type": "ObjectId[] (User)",
+            "nullable": true,
+            "action": "no_change"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Workspace",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "members.roleId",
+            "type": "ObjectId (Role)",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      }
+    ],
+    "flowDescription": "assignee -> addAssigneesToProjectMembers returns the newly added ids -> createProjectChannel ensures the project channel exists -> chatGrant collapses the pairs -> emitToUser('chat:channel-granted', channelCard) -> client appends, dedupes and joins the channel room. Separately: MessageItem -> AttachmentCard -> useAttachmentUrl -> axios blob fetch with the bearer token -> cached object URL -> thumbnail or lightbox, revoked on last unmount. And: project detail header -> GET /chat/projects/:projectId/channel (get-or-create) -> navigate to /{workspaceSlug}/chat/{channelId}."
+  },
+  "apiContracts": [
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/projects/:projectId/channel",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-089", "FR-090", "NFR-035", "NFR-036", "NFR-038"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/members",
+      "action": "create",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-094", "FR-095", "NFR-030", "NFR-035"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/conversations",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-077"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-091", "FR-092", "NFR-032"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/attachments/:attachmentId",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-086", "FR-087", "NFR-039"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspaces/:slug/chat/members",
+      "action": "reuse",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-094"]
+    }
+  ],
+  "securityConsiderations": [
+    {
+      "requirementId": "NFR-035",
+      "description": "Both new routes run protect then requirePermission('chat:read') and resolve the channel with the v1 loadChannelForCaller rules; a non-member receives 404 for a project channel, so project existence is not leaked."
+    },
+    {
+      "requirementId": "NFR-036",
+      "description": "projectId and channelId pass through an express-validator isMongoId chain, and every query filters by req.workspace._id with no user input interpolated into a query."
+    },
+    {
+      "requirementId": "NFR-037",
+      "description": "Code and message bodies render as React text nodes; dangerouslySetInnerHTML is not introduced, and the highlighter emits token elements rather than HTML strings."
+    },
+    {
+      "requirementId": "NFR-038",
+      "description": "New routes inherit Helmet, the general rate limiter and the shared error handler; no bypass and no direct process.env read is added."
+    },
+    {
+      "requirementId": "NFR-039",
+      "description": "Attachment bytes travel through the authenticated axios client over HTTPS; no token in a URL or query string, no long-lived public link, no new storage service."
+    },
+    {
+      "requirementId": "NFR-040",
+      "description": "The upload MIME allow-list and filename sanitisation remain the only content gate; a stored image/* type is a rendering hint and a decode failure falls back to the file card."
+    }
+  ],
+  "performanceConsiderations": [
+    {
+      "requirementId": "NFR-029",
+      "strategy": "The grant rides the existing user room: one $addToSet diff and one upsert per granted project, so the 2-second p95 budget is met by the socket path with no added polling."
+    },
+    {
+      "requirementId": "NFR-030",
+      "strategy": "The channel member endpoint resolves the audience and the distinct role ids in two queries regardless of member count; no per-member lookup."
+    },
+    {
+      "requirementId": "NFR-031",
+      "strategy": "One object URL per attachment id for the life of the message list, refcounted and revoked on last unmount; only rendered messages are fetched."
+    },
+    {
+      "requirementId": "NFR-032",
+      "strategy": "The highlighter is a lazy chunk and snippets above 20,000 characters render as plain monospace, so first paint and typing are unaffected."
+    },
+    {
+      "requirementId": "NFR-034",
+      "strategy": "The code card scrolls its own horizontal overflow and the panel is a full-height sheet at 320px, so the conversation never widens."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "prism-react-renderer",
+      "type": "library",
+      "action": "add",
+      "notes": "Token-based syntax highlighting without a stylesheet; lazy-loaded by the code card. Skill required before implementation."
+    },
+    {
+      "name": "axios",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Reused for authenticated blob fetches of attachments."
+    },
+    {
+      "name": "socket.io",
+      "type": "library",
+      "action": "no_change",
+      "notes": "One new event on the existing user room plus the existing channel rooms."
+    },
+    {
+      "name": "lucide-react",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Icons for code, copy, download, file, image and close actions."
+    },
+    {
+      "name": "ChatChannel / ChatMessage / ChatPresence",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "No schema change; only the stored name of the seeded team channel is updated."
+    }
+  ],
+  "risks": [
+    {
+      "description": "RISK-007: feature/chat is about 100 commits behind main, so the eventual merge conflicts in the chat files.",
+      "mitigation": "Confine edits to the files named in the plan and treat the merge as a separate reviewed step."
+    },
+    {
+      "description": "RISK-008: the syntax highlighter can add bundle weight.",
+      "mitigation": "Lazy import, a small language set and the 20,000-character cap."
+    },
+    {
+      "description": "RISK-009: caching image blobs can grow memory in a long session.",
+      "mitigation": "One cache entry per attachment id, revoked on last unmount, only rendered messages fetched."
+    },
+    {
+      "description": "RISK-010: a bulk assignment could emit many channel events.",
+      "mitigation": "Diff the member list and collapse events by project and user before emitting."
+    },
+    {
+      "description": "RISK-011: renaming the stored channel can collide with an existing 'Project Chat' row under the unique (workspace, kind, nameKey) index.",
+      "mitigation": "Rename only when no team row already holds the target name; otherwise leave the existing row untouched."
+    },
+    {
+      "description": "RISK-012: changing the message renderer can regress the v1 search jump, pin panel or thread panel.",
+      "mitigation": "Keep the body renderer a child component and preserve the data-message-id contract used by search."
+    }
+  ]
+}

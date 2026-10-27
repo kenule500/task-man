@@ -1,0 +1,318 @@
+{
+  "feature": "real-time-chat",
+  "version": 2,
+  "phases": [
+    {
+      "phaseId": "P20",
+      "name": "Project-chat vocabulary",
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "T20.1",
+          "title": "Rename the seeded team channel to Project Chat, collision-safe",
+          "description": "Rename DEFAULT_CHANNELS[0] to 'Project Chat' with project-oriented copy, and extend ensureDefaultChannels with an idempotent rename of an existing 'Team Chat' row that runs only when no kind:'team' row already holds nameKey 'project chat', so the unique workspace/kind/nameKey index cannot throw.",
+          "linkedRequirements": ["FR-072"],
+          "linkedAcceptanceCriteria": ["AC-076", "AC-078"],
+          "completed": false
+        },
+        {
+          "id": "T20.2",
+          "title": "Rewrite the chat surface copy to project vocabulary",
+          "description": "Rewrite the user-facing chat strings - sidebar section heading, empty state, footer, header fallback and conversation labels - to 'Project Chat', 'Project channels' and 'project channel', leaving the stored kind 'team' untouched.",
+          "linkedRequirements": ["FR-073", "FR-074"],
+          "linkedAcceptanceCriteria": ["AC-076", "AC-077"],
+          "completed": false
+        },
+        {
+          "id": "T20.3",
+          "title": "Confirm no team-chat copy remains and kind is unchanged",
+          "description": "Search the chat surface for 'Team Chat' and 'team channel' and confirm none remain, and confirm the API still returns kind 'team' for the renamed row so permissions, indexes and access rules are unchanged.",
+          "linkedRequirements": ["FR-072", "FR-073"],
+          "linkedAcceptanceCriteria": ["AC-077", "AC-078"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P21",
+      "name": "Live project-channel grant",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T21.1",
+          "title": "Make addAssigneesToProjectMembers report the ids it added",
+          "description": "Diff the project's current members before the $addToSet and return the ids that were actually added, keeping the write additive and idempotent and leaving existing call sites working.",
+          "linkedRequirements": ["FR-075"],
+          "linkedAcceptanceCriteria": ["AC-079"],
+          "completed": false
+        },
+        {
+          "id": "T21.2",
+          "title": "Add the pure chatGrant helper",
+          "description": "Create server/src/utils/chatGrant.ts, a pure function that turns the added assignee ids plus the project and channel into at most one (project, user) grant pair, so a bulk edit does not emit duplicates.",
+          "linkedRequirements": ["FR-078"],
+          "linkedAcceptanceCriteria": ["AC-082"],
+          "completed": false
+        },
+        {
+          "id": "T21.3",
+          "title": "Emit chat:channel-granted on task assignment",
+          "description": "In taskController.ts, after a create or update that changes assignees, call createProjectChannel before emitting so a project without a channel still works, then emit chat:channel-granted to each newly added assignee's user room.",
+          "linkedRequirements": ["FR-075", "FR-076", "FR-078"],
+          "linkedAcceptanceCriteria": ["AC-079", "AC-080", "AC-081", "AC-082"],
+          "completed": false
+        },
+        {
+          "id": "T21.4",
+          "title": "Extract the channel card payload",
+          "description": "Extract channelCard from conversationCard in chatChannelController.ts and reuse it for the grant payload: id, name, project id, avatar URL, member count and archived flag.",
+          "linkedRequirements": ["FR-076"],
+          "linkedAcceptanceCriteria": ["AC-081"],
+          "completed": false
+        },
+        {
+          "id": "T21.5",
+          "title": "Append and join a granted channel on the client",
+          "description": "In ChatView.tsx handle chat:channel-granted with a functional update that appends, dedupes by id and re-sorts the project-channel list, then emit chat:join for the channel room so the next message arrives live.",
+          "linkedRequirements": ["FR-077"],
+          "linkedAcceptanceCriteria": ["AC-080", "AC-081"],
+          "completed": false
+        },
+        {
+          "id": "T21.6",
+          "title": "Refresh a channel card when its project is renamed",
+          "description": "Emit chat:channel with the updated summary when a project is renamed, so an open chat screen shows the new project name without a reload.",
+          "linkedRequirements": ["FR-079"],
+          "linkedAcceptanceCriteria": ["AC-080"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P22",
+      "name": "Pasted code renders as a code card",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T22.1",
+          "title": "Add pure code detection and language inference",
+          "description": "Create client/src/features/chat/lib/code.ts with detectSnippet (multi-line plus code signals, so a prose line break stays prose), inferLanguage, fenceOf (no double-wrap when the paste is already fenced), extensionOf and parseBody returning prose and fenced segments.",
+          "linkedRequirements": ["FR-080", "FR-083"],
+          "linkedAcceptanceCriteria": ["AC-083"],
+          "completed": false
+        },
+        {
+          "id": "T22.2",
+          "title": "Fence a pasted snippet in the composer",
+          "description": "Use detectSnippet and fenceOf in Composer.tsx's paste handler, inserting the fenced block at the caret and preserving the pasted indentation.",
+          "linkedRequirements": ["FR-080"],
+          "linkedAcceptanceCriteria": ["AC-083"],
+          "completed": false
+        },
+        {
+          "id": "T22.3",
+          "title": "Build the code card with lazy highlighting",
+          "description": "Add CodeCard.tsx with a header holding the language label and Copy and Download, a React.lazy highlighter that falls back to a plain pre above the 20,000-character cap or for an unknown language, and its own horizontal scroll.",
+          "linkedRequirements": ["FR-081", "FR-082", "NFR-032", "NFR-034"],
+          "linkedAcceptanceCriteria": ["AC-084", "AC-086"],
+          "completed": false
+        },
+        {
+          "id": "T22.4",
+          "title": "Render code cards from the message body",
+          "description": "Render CodeCard from MessageItem.tsx when parseBody finds fenced code or a clearly-code body, keeping surrounding prose as text nodes and preserving the data-message-id contract used by search.",
+          "linkedRequirements": ["FR-081", "NFR-037"],
+          "linkedAcceptanceCriteria": ["AC-084", "AC-086"],
+          "completed": false
+        },
+        {
+          "id": "T22.5",
+          "title": "Copy and download a snippet",
+          "description": "Wire Copy to the raw code without fences and Download to a blob named from extensionOf, both with a success announcement and neither requiring edit mode.",
+          "linkedRequirements": ["FR-082"],
+          "linkedAcceptanceCriteria": ["AC-085"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P23",
+      "name": "Attachment previews, lightbox and download",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T23.1",
+          "title": "Add pure attachment helpers",
+          "description": "Create client/src/features/chat/lib/attachments.ts with kindOf (image versus file from the stored MIME type), humanSize and downloadName.",
+          "linkedRequirements": ["FR-084"],
+          "linkedAcceptanceCriteria": ["AC-087"],
+          "completed": false
+        },
+        {
+          "id": "T23.2",
+          "title": "Fetch attachment bytes with a refcounted object-URL cache",
+          "description": "Add hooks/useAttachmentUrl.ts with a module-level cache keyed by attachment id that fetches through the authenticated axios client with responseType 'blob', reuses the object URL and revokes it when the last consumer unmounts.",
+          "linkedRequirements": ["FR-086", "FR-087", "NFR-031"],
+          "linkedAcceptanceCriteria": ["AC-089", "AC-090"],
+          "completed": false
+        },
+        {
+          "id": "T23.3",
+          "title": "Build the attachment card",
+          "description": "Add AttachmentCard.tsx with a bounded image thumbnail for image MIME types and a file card with icon, name and size otherwise, each a button with an accessible name; a failed fetch renders a retryable placeholder with the file name.",
+          "linkedRequirements": ["FR-084", "NFR-041"],
+          "linkedAcceptanceCriteria": ["AC-087", "AC-089"],
+          "completed": false
+        },
+        {
+          "id": "T23.4",
+          "title": "Add the in-app image lightbox",
+          "description": "Add Lightbox.tsx, a modal viewer with a focus trap, Escape and click-outside to close, and focus restored to the thumbnail that opened it.",
+          "linkedRequirements": ["FR-085", "NFR-033"],
+          "linkedAcceptanceCriteria": ["AC-088", "AC-099"],
+          "completed": false
+        },
+        {
+          "id": "T23.5",
+          "title": "Stop linking attachments to the protected API route",
+          "description": "Replace the anchor in MessageItem.tsx with AttachmentCard, delete the attachmentHref prop and remove its builder from ChatView.tsx, so no chat surface can navigate the browser to the API route.",
+          "linkedRequirements": ["FR-085", "FR-086"],
+          "linkedAcceptanceCriteria": ["AC-088", "AC-089"],
+          "completed": false
+        },
+        {
+          "id": "T23.6",
+          "title": "Preview pending attachments in the composer",
+          "description": "Preview pending attachments in Composer.tsx as image thumbnails or file cards from a local object URL, keeping the existing remove control and revoking the URL on removal.",
+          "linkedRequirements": ["FR-088"],
+          "linkedAcceptanceCriteria": ["AC-091"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P24",
+      "name": "Open chat from the project",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T24.1",
+          "title": "Expose a project's channel with get-or-create",
+          "description": "Add GET /chat/projects/:projectId/channel to chatRoutes.ts before the :channelId routes, with chat:read, an isMongoId chain on projectId, a workspace-scoped lookup, get-or-create through createProjectChannel, and 404 for a project the caller cannot see.",
+          "linkedRequirements": ["FR-090", "NFR-035", "NFR-036", "NFR-038"],
+          "linkedAcceptanceCriteria": ["AC-093"],
+          "completed": false
+        },
+        {
+          "id": "T24.2",
+          "title": "Add the projectChannel client call",
+          "description": "Add chatApi.projectChannel(slug, projectId) returning the channel summary, typed in types.ts.",
+          "linkedRequirements": ["FR-090"],
+          "linkedAcceptanceCriteria": ["AC-093"],
+          "completed": false
+        },
+        {
+          "id": "T24.3",
+          "title": "Add the Open chat action to the project header",
+          "description": "Add an Open chat action to ProjectDetailPage.tsx beside Edit, Open board and New sprint, gated on chat:read, resolving the channel before navigating so a channel-less project does not land on an empty route.",
+          "linkedRequirements": ["FR-089"],
+          "linkedAcceptanceCriteria": ["AC-092", "AC-093"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P25",
+      "name": "A live message always names its author",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T25.1",
+          "title": "Populate the author on every chat:updated emit",
+          "description": "Populate the author on every path that emits chat:updated - edit, pin and unpin - so the payload matches what chat:message already sends, keeping messageView the single view shaper.",
+          "linkedRequirements": ["FR-091"],
+          "linkedAcceptanceCriteria": ["AC-094"],
+          "completed": false
+        },
+        {
+          "id": "T25.2",
+          "title": "Resolve an author id against the member directory",
+          "description": "Add client/src/features/chat/lib/authors.ts with resolveAuthor(message, directory) returning the populated author, else a directory hit by id, else a neutral placeholder only for an unknown id; use it in MessageItem.tsx and MessageList.tsx.",
+          "linkedRequirements": ["FR-092", "NFR-041"],
+          "linkedAcceptanceCriteria": ["AC-094", "AC-095"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P26",
+      "name": "Channel member panel",
+      "dependencies": ["P20"],
+      "tasks": [
+        {
+          "id": "T26.1",
+          "title": "Add the channel members endpoint",
+          "description": "Extract the workspace-directory query from listChatMembers into a reusable resolver and add GET /chat/:channelId/members, resolving the audience from the channel kind - project members, workspace members or the two direct participants - in at most two queries with one Role lookup for the role name.",
+          "linkedRequirements": ["FR-094", "NFR-030", "NFR-035"],
+          "linkedAcceptanceCriteria": ["AC-097", "AC-098"],
+          "completed": false
+        },
+        {
+          "id": "T26.2",
+          "title": "Add the channelMembers client call",
+          "description": "Add chatApi.channelMembers(slug, channelId) returning { members, count }, typed in types.ts with roleName and online.",
+          "linkedRequirements": ["FR-094"],
+          "linkedAcceptanceCriteria": ["AC-097"],
+          "completed": false
+        },
+        {
+          "id": "T26.3",
+          "title": "Build the members panel",
+          "description": "Add MembersPanel.tsx showing avatar, name, presence dot, role and a You badge, with online members first then alphabetical, a count matching the header, keyboard operation with Escape and focus return, and no horizontal scroll at 320px.",
+          "linkedRequirements": ["FR-095", "NFR-033", "NFR-034"],
+          "linkedAcceptanceCriteria": ["AC-097", "AC-099"],
+          "completed": false
+        },
+        {
+          "id": "T26.4",
+          "title": "Open the panel from the header member control",
+          "description": "Wire ChatHeader's members control to open the panel in ChatView.tsx, replacing the empty onOpenMembers handler, with the panel and header reading the same count source.",
+          "linkedRequirements": ["FR-093", "FR-095"],
+          "linkedAcceptanceCriteria": ["AC-096", "AC-097"],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P27",
+      "name": "Hardening and verification",
+      "dependencies": ["P20", "P21", "P22", "P23", "P24", "P25", "P26"],
+      "tasks": [
+        {
+          "id": "T27.1",
+          "title": "Degrade each new failure path readably",
+          "description": "Make a failed attachment fetch, a failed highlight import and a failed member query each fall back to a readable state without an unhandled rejection or console error.",
+          "linkedRequirements": ["NFR-041"],
+          "linkedAcceptanceCriteria": ["AC-089", "AC-099"],
+          "completed": false
+        },
+        {
+          "id": "T27.2",
+          "title": "Sweep the new surfaces against the security baseline",
+          "description": "Confirm both new routes run protect then requirePermission('chat:read'), every parameter has an isMongoId chain, every query is workspace-scoped, bodies render as text nodes, and no token reaches a URL.",
+          "linkedRequirements": ["NFR-035", "NFR-036", "NFR-037", "NFR-038", "NFR-039", "NFR-040"],
+          "linkedAcceptanceCriteria": ["AC-086", "AC-089", "AC-093"],
+          "completed": false
+        },
+        {
+          "id": "T27.3",
+          "title": "Run typecheck, lint and build, then check the browser",
+          "description": "Run the server and client typechecks, the client lint and build, then check /{workspace}/chat and /{workspace}/projects/:id in the browser at 320px and by keyboard.",
+          "linkedRequirements": ["NFR-033", "NFR-034"],
+          "linkedAcceptanceCriteria": ["AC-096", "AC-099"],
+          "completed": false
+        }
+      ]
+    }
+  ]
+}
