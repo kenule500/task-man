@@ -195,10 +195,10 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "planning",
+          "currentStep": "specification",
           "gates": {
-            "specification": "approved",
-            "planning": "pending",
+            "specification": "pending",
+            "planning": "approved",
             "implementation": "in_progress",
             "review": "pending"
           },
@@ -227,6 +227,17 @@
               "event": "spec_updated (/sdrive:update-propose, Gate 1 draft): amendment to v2 from a maintainer walkthrough after v2 shipped. Added US-043..US-048, AC-100..AC-116, FR-096..FR-105, NFR-042..NFR-046, EC-043..EC-049 and RISK-013..RISK-016 to spec.md and spec.json, plus 15 rows in traceability.json (status in_progress; the task column is provisional until Gate 2). The amendment supersedes the sidebar clause of AC-076 and narrows AC-077: one Project chat navigation item replaces the team-chat sidebar item and links to /{workspaceSlug}/chat, so the chat root lists every channel and direct message and no longer redirects to a default channel. It also records seven defects that no criterion covered: a bounded chat height with independent scroll containers and a header that stays put; a token-based hover surface on the code card's Copy and Download controls; the caller's project membership passed to decideChannelAccess in downloadAttachment; unread reconciliation and live grant/rename handling in the sidebar; opening a conversation the client has not listed; recency ordering on first paint; and a live thread update. Existing IDs, text and rows are untouched, AC-076/AC-077 keep their wording, and the amendment note states which behaviour wins. The specification gate is reset to pending because new requirements invalidate the previous approval, and the implementation gate returns to in_progress because T28.x-T32.x are unbuilt; plan.md, tasks.md, plan.json and tasks.json are deliberately untouched until Gate 1 is approved. Validator: real-time-chat/v2 spec.json, plan.json, tasks.json and traceability.json are valid, and this reset also clears the two pre-existing workflow-state schema errors (v2 currentStep test, implementation complete). No external research was available: the ux-ui-library, Stackwise and Context7 MCP servers are unreachable here, so the amendment cites only in-repository sources (DESIGN.md, perfect-ui-rules.md, the constitution, client/src/index.css and the chat module).",
               "by": "update-proposal",
               "timestamp": "2026-10-28T16:36:08.046Z"
+            },
+            {
+              "event": "Gate 1 approved by the user in session on 2026-10-28, conditioned on restating AC-114 as ONE merged, recency-ordered conversation list instead of two labelled segments. Restated: AC-114 and FR-105 now require a single run of rows with no per-kind headings, and the amendment note records that this amends AC-056 and AC-065 for that view while keeping the shared row rendering those criteria established. Gate 2 was then approved on 2026-10-28: plan section 11 and phases P28-P32 (19 tasks, T28.1-T32.5) accepted, with every new requirement linked to at least one acceptance criterion and at least one task.",
+              "by": "user",
+              "timestamp": "2026-10-28T17:40:00.000Z"
+            },
+            {
+              "event": "spec_updated",
+              "by": "update-proposal",
+              "summary": "real-time-chat v2 extended by /sdrive:update-propose: appended US-043..US-048, AC-100..AC-116 (17 acceptance criteria), FR-096..FR-105 (10 functional), NFR-042..NFR-046 (5 non-functional), EC-043..EC-049 (7 edge cases) and RISK-013..RISK-017 (5 risks) to spec.md and spec.json; appended plan section 11 to plan.md and plan.json (20 components, 15 referenced requirements, 4 no-change entities, the attachment contract moved to modify, 1 security, 3 performance, 6 dependency and 5 risk entries); appended phases P28-P32 with 19 tasks (T28.1-T32.5) to tasks.md and tasks.json; appended 15 requirement rows to traceability.json (status in_progress) and left the 37 existing rows complete. Nothing existing was renumbered, reworded or deleted, and the seeded team channel keeps its stored kind 'team'. The specification gate is reset to pending for re-approval and the current step is specification.",
+              "timestamp": "2026-10-28T17:40:00.000Z"
             }
           ]
         }

@@ -510,7 +510,7 @@
             "AC-099"
           ],
           "completed": true
-        },
+        }
       ]
     },
     {
@@ -569,7 +569,7 @@
             "AC-102"
           ],
           "completed": false
-        },
+        }
       ]
     },
     {
@@ -627,7 +627,7 @@
             "AC-106"
           ],
           "completed": false
-        },
+        }
       ]
     },
     {
@@ -674,7 +674,7 @@
             "AC-110"
           ],
           "completed": false
-        },
+        }
       ]
     },
     {
@@ -722,7 +722,7 @@
             "AC-113"
           ],
           "completed": false
-        },
+        }
       ]
     },
     {

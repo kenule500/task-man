@@ -464,13 +464,13 @@ As a workspace member, I want a thread reply and the most recent conversation to
 
 ### Edge Cases and Error States (new)
 
-- EC-043: The `Project chat` item is clicked while a conversation is open → the chat root opens the list with no conversation selected; the conversation that was open stays in the list and in the socket room list; no channel id is added to the URL.
-- EC-044: A member can read no conversation at all → the chat root shows an explicit empty state that names who can grant access, not a blank pane and not a broken layout.
-- EC-045: A conversation is opened by route id before the client has listed it (deep link, freshly granted channel, bookmark) → the view resolves that conversation and opens it for a member with access; the no-channel-selected pane is shown only after access was checked and refused.
-- EC-046: An attachment fetch fails because the browser is offline or the API answered an error → the retryable placeholder is shown with the file name, Retry fetches again and succeeds once the failure clears, and nothing navigates away from the app.
-- EC-047: A reply arrives for a parent message that is older than the loaded page → no count is invented for a row that is not loaded; the parent is correct the next time its page is loaded.
-- EC-048: A reply arrives for a different parent than the one whose thread panel is open → only the arriving parent's reply count changes; the open panel is left untouched.
-- EC-049: A tap leaves the pointer-hover state applied on a touch device → the control does not stay in its hover surface and contrast remains at least 4.5:1 whether or not the hover state is applied (`perfect-ui-rules.md`, no sticky hover on touch).
+- EC-043: The `Project chat` item is clicked while a conversation is open. → The chat root opens the list with no conversation selected; the conversation that was open stays in the list and in the socket room list; no channel id is added to the URL.
+- EC-044: A member can read no conversation at all. → The chat root shows an explicit empty state that names who can grant access, not a blank pane and not a broken layout.
+- EC-045: A conversation is opened by route id before the client has listed it (deep link, freshly granted channel, bookmark). → The view resolves that conversation and opens it for a member with access; the no-channel-selected pane is shown only after access was checked and refused.
+- EC-046: An attachment fetch fails because the browser is offline or the API answered an error. → The retryable placeholder is shown with the file name; Retry fetches again and succeeds once the failure clears; nothing navigates away from the app.
+- EC-047: A reply arrives for a parent message that is older than the loaded page. → No count is invented for a row that is not loaded; the parent is correct the next time its page is loaded.
+- EC-048: A reply arrives for a different parent than the one whose thread panel is open. → Only the arriving parent's reply count changes; the open panel is left untouched.
+- EC-049: A tap leaves the pointer-hover state applied on a touch device. → The control does not stay in its hover surface and contrast remains at least 4.5:1 whether or not the hover state is applied (`perfect-ui-rules.md`, no sticky hover on touch).
 
 ### Anti-redundancy check (new)
 
