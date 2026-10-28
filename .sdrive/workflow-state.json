@@ -195,9 +195,9 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "specification",
+          "currentStep": "implementation",
           "gates": {
-            "specification": "pending",
+            "specification": "approved",
             "planning": "approved",
             "implementation": "in_progress",
             "review": "pending"
@@ -238,6 +238,11 @@
               "by": "update-proposal",
               "summary": "real-time-chat v2 extended by /sdrive:update-propose: appended US-043..US-048, AC-100..AC-116 (17 acceptance criteria), FR-096..FR-105 (10 functional), NFR-042..NFR-046 (5 non-functional), EC-043..EC-049 (7 edge cases) and RISK-013..RISK-017 (5 risks) to spec.md and spec.json; appended plan section 11 to plan.md and plan.json (20 components, 15 referenced requirements, 4 no-change entities, the attachment contract moved to modify, 1 security, 3 performance, 6 dependency and 5 risk entries); appended phases P28-P32 with 19 tasks (T28.1-T32.5) to tasks.md and tasks.json; appended 15 requirement rows to traceability.json (status in_progress) and left the 37 existing rows complete. Nothing existing was renumbered, reworded or deleted, and the seeded team channel keeps its stored kind 'team'. The specification gate is reset to pending for re-approval and the current step is specification.",
               "timestamp": "2026-10-28T17:40:00.000Z"
+            },
+            {
+              "event": "Specification gate re-approved by the user after the amendment (audit event gate_approved for real-time-chat v2 specification, hash-chained at 885fb90d2cd5aab9fbfd42905a24bf9ea539164f7a3ce4223cb98ef8f12407d5). The specification and planning gates are approved and the current step moves to implementation; the implementation gate stays in_progress because phases P28-P32 (T28.1-T32.5) are not built yet.",
+              "by": "user",
+              "timestamp": "2026-10-28T21:58:50.414Z"
             }
           ]
         }

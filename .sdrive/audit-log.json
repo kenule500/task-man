@@ -162,6 +162,17 @@
       "event": "feature_archived",
       "prevHash": "7a7dda24cc1652e99c00ac65893a3c398a38cb2ed6df6913a0f9b1c0e1d1515f",
       "hash": "57e67dee9738ad8efb2fae9728cae0ab6846172ec8eae5b880ac1c0daeeacc4d"
+    },
+    {
+      "timestamp": "2026-10-28T21:58:50.414Z",
+      "actor": "kenule500",
+      "feature": "real-time-chat",
+      "version": "v2",
+      "gate": "specification",
+      "previousValue": "pending",
+      "event": "gate_approved",
+      "prevHash": "57e67dee9738ad8efb2fae9728cae0ab6846172ec8eae5b880ac1c0daeeacc4d",
+      "hash": "885fb90d2cd5aab9fbfd42905a24bf9ea539164f7a3ce4223cb98ef8f12407d5"
     }
   ]
 }
