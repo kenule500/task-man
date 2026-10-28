@@ -530,7 +530,7 @@
           "linkedAcceptanceCriteria": [
             "AC-100"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T28.2",
@@ -542,7 +542,7 @@
           "linkedAcceptanceCriteria": [
             "AC-101"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T28.3",
@@ -556,7 +556,7 @@
             "AC-100",
             "AC-113"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T28.4",
@@ -568,7 +568,7 @@
           "linkedAcceptanceCriteria": [
             "AC-102"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -589,7 +589,7 @@
           "linkedAcceptanceCriteria": [
             "AC-103"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T29.2",
@@ -601,7 +601,7 @@
           "linkedAcceptanceCriteria": [
             "AC-104"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T29.3",
@@ -613,7 +613,7 @@
           "linkedAcceptanceCriteria": [
             "AC-105"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T29.4",
@@ -626,7 +626,7 @@
             "AC-103",
             "AC-106"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -647,7 +647,7 @@
           "linkedAcceptanceCriteria": [
             "AC-107"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T30.2",
@@ -660,7 +660,7 @@
             "AC-108",
             "AC-109"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T30.3",
@@ -673,7 +673,7 @@
           "linkedAcceptanceCriteria": [
             "AC-110"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -694,7 +694,7 @@
           "linkedAcceptanceCriteria": [
             "AC-111"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T31.2",
@@ -707,7 +707,7 @@
           "linkedAcceptanceCriteria": [
             "AC-111"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T31.3",
@@ -721,7 +721,7 @@
             "AC-112",
             "AC-113"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -742,7 +742,7 @@
           "linkedAcceptanceCriteria": [
             "AC-112"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T32.2",
@@ -754,7 +754,7 @@
           "linkedAcceptanceCriteria": [
             "AC-114"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T32.3",
@@ -768,7 +768,7 @@
             "AC-115",
             "AC-116"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T32.4",
@@ -782,7 +782,7 @@
             "AC-115",
             "AC-116"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T32.5",
@@ -797,7 +797,7 @@
             "AC-107",
             "AC-109"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     }

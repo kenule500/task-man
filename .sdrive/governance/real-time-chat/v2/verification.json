@@ -1,12 +1,12 @@
 {
   "feature": "real-time-chat",
   "status": "fail",
-  "checkedAt": "2026-10-28T14:58:55.619Z",
+  "checkedAt": "2026-10-28T23:51:47.056Z",
   "summary": {
-    "matched": 9,
-    "missing": 44,
+    "matched": 16,
+    "missing": 72,
     "renamed": 0,
-    "extra": 217
+    "extra": 216
   },
   "items": {
     "matched": [
@@ -59,8 +59,48 @@
         "file": "server/src/realtime/bus.ts"
       },
       {
+        "type": "component",
+        "name": "server/src/utils/chatThread.ts",
+        "action": "create",
+        "file": "server/src/utils/chatThread.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "file": "server/src/controllers/chatMessageController.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/realtime/bus.ts",
+        "action": "modify",
+        "file": "server/src/realtime/bus.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "reuse",
+        "file": "server/src/utils/chatAccess.ts"
+      },
+      {
+        "type": "component",
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "reuse",
+        "file": "server/src/routes/chatRoutes.ts"
+      },
+      {
         "type": "dependency",
         "name": "lucide-react",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "lucide-react",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "tailwindcss",
         "action": "no_change"
       }
     ],
@@ -151,6 +191,81 @@
         "action": "create"
       },
       {
+        "type": "component",
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ConversationList.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ConversationRow.tsx",
+        "action": "create"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/ConversationSection.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/DirectMessageList.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/conversations.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/lib/messages.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatSocket.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatMessages.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/hooks/useChatChannels.ts",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/chat/components/CodeCard.tsx",
+        "action": "modify"
+      },
+      {
+        "type": "component",
+        "name": "client/src/index.css",
+        "action": "reuse"
+      },
+      {
         "type": "endpoint",
         "method": "GET",
         "path": "/api/workspaces/:slug/chat/projects/:projectId/channel",
@@ -178,7 +293,7 @@
         "type": "endpoint",
         "method": "GET",
         "path": "/api/workspaces/:slug/chat/attachments/:attachmentId",
-        "action": "reuse"
+        "action": "modify"
       },
       {
         "type": "endpoint",
@@ -296,6 +411,68 @@
         "action": "no_change"
       },
       {
+        "type": "entity",
+        "name": "ChatChannel",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "kind",
+        "fieldType": "String (team | general | project | direct)",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "ChatChannel",
+        "name": "nameKey",
+        "fieldType": "String",
+        "action": "no_change"
+      },
+      {
+        "type": "entity",
+        "name": "ChatMessage",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "replyCount",
+        "fieldType": "Number",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "ChatMessage",
+        "name": "lastReplyAuthor",
+        "fieldType": "ObjectId (User)",
+        "action": "no_change"
+      },
+      {
+        "type": "entity",
+        "name": "ChatRead",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "ChatRead",
+        "name": "lastReadAt",
+        "fieldType": "Date",
+        "action": "no_change"
+      },
+      {
+        "type": "entity",
+        "name": "Project",
+        "action": "no_change"
+      },
+      {
+        "type": "field",
+        "entity": "Project",
+        "name": "members",
+        "fieldType": "ObjectId[] (User)",
+        "action": "no_change"
+      },
+      {
         "type": "dependency",
         "name": "prism-react-renderer",
         "action": "add"
@@ -313,6 +490,21 @@
       {
         "type": "dependency",
         "name": "ChatChannel / ChatMessage / ChatPresence",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "socket.io / socket.io-client",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "axios",
+        "action": "no_change"
+      },
+      {
+        "type": "dependency",
+        "name": "ConversationSection / TeamChannelList / DirectMessageList",
         "action": "no_change"
       }
     ],
@@ -332,11 +524,6 @@
         "type": "component",
         "name": "server/src/utils/changeCursor.ts",
         "file": "server/src/utils/changeCursor.ts"
-      },
-      {
-        "type": "component",
-        "name": "server/src/utils/chatAccess.ts",
-        "file": "server/src/utils/chatAccess.ts"
       },
       {
         "type": "component",
