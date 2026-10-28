@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/utils/api';
 import { chatApi } from '../api';
+import { notifyConversations } from '../lib/conversationEvents';
 import { activeChannels, defaultChannelId, sortChannels } from '../lib/messages';
 import { allLastRead, setLastRead } from '../lib/readState';
 import type { ChatChannel, ChatUser } from '../types';
@@ -49,6 +50,8 @@ export const useChatChannels = ({ slug, enabled }: Options) => {
   const markRead = useCallback((channelId: string) => {
     setLastRead(channelId);
     setLastReadState(allLastRead());
+    // The sidebar repaints from the same read state, so its badge clears without a reload (AC-111)
+    notifyConversations('read');
     if (!slug) return;
     void chatApi.markRead(slug, channelId).catch(() => {
       // The badge is cosmetic: a failed marker must not interrupt reading
@@ -60,6 +63,25 @@ export const useChatChannels = ({ slug, enabled }: Options) => {
       current.some(item => item._id === channel._id) ? current : sortChannels([...current, channel])
     ));
   }, []);
+
+  /**
+   * Opens a conversation the route names but the list has not caught up with yet - a channel granted
+   * by an assignment while the page was open, or a deep link opened before the first load finished.
+   * One re-read answers whether the member may see it, so the "nothing selected" pane is only reached
+   * after access was checked and refused (AC-112, EC-045).
+   */
+  const ensureChannel = useCallback(async (channelId: string): Promise<ChatChannel | null> => {
+    const known = channels.find(channel => channel._id === channelId);
+    if (known) return known;
+    if (!slug) return null;
+    try {
+      const list = await chatApi.channels(slug);
+      setChannels(sortChannels(list));
+      return list.find(channel => channel._id === channelId) ?? null;
+    } catch {
+      return null;
+    }
+  }, [channels, slug]);
 
   const nameOf = useCallback((userId: string) => (
     members.find(member => member._id === userId)?.name ?? 'Teammate'
@@ -76,6 +98,7 @@ export const useChatChannels = ({ slug, enabled }: Options) => {
     lastRead,
     markRead,
     addChannel,
+    ensureChannel,
     nameOf,
     defaultChannelId: defaultChannelId(visibleChannels),
   };

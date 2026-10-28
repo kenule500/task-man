@@ -8,8 +8,7 @@ import { getApiErrorMessage } from '@/utils/api';
 import { chatApi } from '../api';
 import NewDirectMessage from '../components/NewDirectMessage';
 import ChannelSettingsDialog from '../components/ChannelSettingsDialog';
-import DirectMessageList from '../components/DirectMessageList';
-import TeamChannelList from '../components/TeamChannelList';
+import ConversationList from '../components/ConversationList';
 import ChatHeader from '../components/ChatHeader';
 import Composer from '../components/Composer';
 import MembersPanel from '../components/MembersPanel';
@@ -21,7 +20,8 @@ import ThreadPanel from '../components/ThreadPanel';
 import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
-import { applyIncomingMessage, grantChannel, renameChannel } from '../lib/conversations';
+import { notifyConversations } from '../lib/conversationEvents';
+import { applyIncomingMessage, grantChannel, mergeConversations, renameChannel } from '../lib/conversations';
 import { formatCounter, nextIndex } from '../lib/search';
 import type { ChatMessage, ConversationCard, PresenceMap } from '../types';
 
@@ -53,21 +53,30 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
 
   const {
     active, members, loading: channelsLoading, error: channelsError,
-    markRead, addChannel, nameOf, defaultChannelId,
+    markRead, addChannel, ensureChannel, nameOf,
   } = useChatChannels({ slug: workspaceSlug, enabled: canRead });
 
-  const currentChannelId = channelId ?? defaultChannelId ?? undefined;
-  const channel = active.find(item => item._id === currentChannelId) ?? null;
+  // The route names the conversation, or nothing does: the chat root shows the list with nothing
+  // selected instead of redirecting to a channel the member never asked for (AC-101)
+  const currentChannelId = channelId;
+  const channel = currentChannelId ? active.find(item => item._id === currentChannelId) ?? null : null;
 
-  // Route the member to the default channel once the list is known
+  // A conversation named by the route that the list does not hold yet (fresh grant, deep link) is
+  // resolved once before the empty pane is shown, so a member with access never sees it (AC-112)
+  const resolveAttempts = useRef<Set<string>>(new Set());
+  const [unresolved, setUnresolved] = useState<string | null>(null);
   useEffect(() => {
-    if (!workspaceSlug || !canRead || channelId || !defaultChannelId) return;
-    navigate(`/${workspaceSlug}/chat/${defaultChannelId}`, { replace: true });
-  }, [workspaceSlug, canRead, channelId, defaultChannelId, navigate]);
+    if (!currentChannelId || channel || channelsLoading) return;
+    if (resolveAttempts.current.has(currentChannelId)) return;
+    resolveAttempts.current.add(currentChannelId);
+    void ensureChannel(currentChannelId).then(found => {
+      if (!found) setUnresolved(currentChannelId);
+    });
+  }, [currentChannelId, channel, channelsLoading, ensureChannel]);
 
   const {
     messages, reactions, loading, loadingOlder, error, hasMore,
-    applyMessage, applyUpdated, applyReaction, loadOlder,
+    applyMessage, applyUpdated, applyReaction, applyThread, loadOlder,
   } = useChatMessages({ slug: workspaceSlug, channelId: currentChannelId, enabled: canRead });
 
   const [presence, setPresence] = useState<PresenceMap>({});
@@ -167,10 +176,17 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     onChannelGranted: card => {
       setTeams(current => grantChannel(current, card));
       joinChannel(card._id);
+      // The sidebar keeps its own list; one notice keeps both panes in step (AC-113)
+      notifyConversations('channels');
     },
     // A project rename updates the open row in place (FR-079, EC-042)
     onChannelUpdated: summary => {
       setTeams(current => renameChannel(current, summary));
+      notifyConversations('channels');
+    },
+    // A reply elsewhere in this channel updates its parent's count, with or without an open thread
+    onThread: update => {
+      if (update.channelId === currentChannelId) applyThread(update);
     },
   });
 
@@ -448,22 +464,16 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   if (channelsLoading || permissionsLoading) return <PageLoader label="Loading channels" />;
   if (channelsError) return <Alert tone="error" title="Channels could not be loaded">{channelsError}</Alert>;
 
-  if (!channel) {
-    return (
-      <EmptyState
-        title="No channel selected"
-        description="Pick a channel from the sidebar to start reading, or ask an administrator to give you access."
-      />
-    );
-  }
-
   const others = Object.entries(typing).filter(([userId]) => userId !== user?._id).map(([userId]) => nameOf(userId));
   const onlineUserIds = Object.entries(presence).filter(([, online]) => online).map(([id]) => id);
-  const peerId = channel.kind === 'direct'
+  const peerId = channel?.kind === 'direct'
     ? channel.participants.find(id => id !== user?._id)
     : undefined;
   const peer = peerId ? members.find(member => member._id === peerId) ?? null : null;
-  const label = channel.kind === 'direct' ? nameOf(peerId ?? '') : channel.name;
+  const label = channel ? (channel.kind === 'direct' ? nameOf(peerId ?? '') : channel.name) : '';
+  // One merged list: a conversation that just received a message rises above the others (AC-114)
+  const conversations = mergeConversations(directs, teams);
+  const hasConversations = conversations.length > 0;
   const searchCounter = formatCounter(activeResult, searchResults.length, searchHasMore);
   const activeOptionId = searchResults[activeResult]
     ? `chat-search-option-${searchResults[activeResult]._id}`
@@ -494,32 +504,24 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     // The shell gives this screen the space below its header; the panel owns that space and never
     // scrolls the page itself (spec §17 responsiveness)
     <div className="flex min-h-0 flex-1 overflow-hidden">
-      {/* Team channels and direct conversations; the two default channels are in the main menu */}
+      {/* Every conversation the member can read, plus the direct-message picker */}
       <div
         className={cn(
           'min-h-0 w-full shrink-0 flex-col border-r border-slate-200 bg-sidebar lg:flex lg:w-72',
           listOpen ? 'flex' : 'hidden',
         )}
       >
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {/* The picker stays the first item; both sections are segmented the same way (spec AC-056, AC-065) */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* The picker stays the first item, then one merged list ordered by latest activity (AC-114) */}
           <NewDirectMessage
             members={members}
             currentUserId={user?._id}
             canStartDirect={canDirect}
             onStartDirect={startDirect}
           />
-          <div className="border-t border-slate-200">
-            <DirectMessageList
-              directs={directs}
-              currentChannelId={currentChannelId}
-              loading={teamsLoading}
-              onSelect={openChannel}
-            />
-          </div>
-          <div className="border-t border-slate-200">
-            <TeamChannelList
-              teams={teams}
+          <div className="min-h-0 flex-1 border-t border-slate-200">
+            <ConversationList
+              items={conversations}
               currentChannelId={currentChannelId}
               loading={teamsLoading}
               canManage={canModerate}
@@ -543,13 +545,14 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         />
       )}
 
-      <div
-        className={cn(
-          'relative min-w-0 flex-1 flex-col bg-white',
-          listOpen ? 'hidden lg:flex' : 'flex',
-          channel.archived && 'opacity-95',
-        )}
-      >
+      {channel ? (
+        <div
+          className={cn(
+            'relative min-h-0 min-w-0 flex-1 flex-col bg-white',
+            listOpen ? 'hidden lg:flex' : 'flex',
+            channel.archived && 'opacity-95',
+          )}
+        >
         <ChatHeader
           channel={channel}
           label={label}
@@ -692,7 +695,21 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           onSend={deliver}
           onTyping={notifyTyping}
         />
-      </div>
+        </div>
+      ) : (
+        <div className={cn('relative min-h-0 min-w-0 flex-1 bg-white', listOpen ? 'hidden lg:flex' : 'flex')}>
+          <EmptyState
+            title={unresolved ? 'Conversation not available' : 'No conversation selected'}
+            description={
+              unresolved
+                ? 'This conversation is not available to you. Ask a workspace administrator for access.'
+                : hasConversations
+                  ? 'Pick a channel or a direct message from the list to start reading.'
+                  : 'No conversation is available to you yet. Assign yourself a task in a project to join its channel, or ask a workspace administrator for access.'
+            }
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -49,6 +49,18 @@ export const applyIncomingMessage = (
   return sortConversations([...cards.slice(0, index), next, ...cards.slice(index + 1)]);
 };
 
+/**
+ * One merged conversation list: the member's project channels and direct messages interleaved and
+ * ordered by latest activity (AC-114).
+ *
+ * The server already orders each group, but the client owns the merged order so a row that receives a
+ * message rises to the top without a refetch, and so the list and the sidebar cannot disagree.
+ */
+export const mergeConversations = (
+  directs: readonly ConversationCard[],
+  teams: readonly ConversationCard[],
+): ConversationCard[] => sortConversations([...teams, ...directs]);
+
 /** Badge copy: a four-digit count would widen the row, so it caps at 9+ (spec AC-064). */
 export const unreadLabel = (count: number): string => (count > 9 ? '9+' : String(Math.max(count, 1)));
 

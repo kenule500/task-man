@@ -84,7 +84,7 @@ export const CodeCard = ({ code, language, label, className }: CodeCardProps) =>
             type="button"
             onClick={() => void copy()}
             aria-label={`Copy ${shown} code`}
-            className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium text-slate-300 outline-none hover:bg-slate-800 hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
+            className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium text-slate-300 outline-none hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
           >
             {copied ? <Check className="size-3.5" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -93,7 +93,7 @@ export const CodeCard = ({ code, language, label, className }: CodeCardProps) =>
             type="button"
             onClick={download}
             aria-label={`Download ${shown} code`}
-            className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium text-slate-300 outline-none hover:bg-slate-800 hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
+            className="flex items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium text-slate-300 outline-none hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-primary"
           >
             <Download className="size-3.5" aria-hidden />
             <span>Download</span>

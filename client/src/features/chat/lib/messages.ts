@@ -1,4 +1,4 @@
-import type { ChatChannel, ChatMessage } from '../types';
+import type { ChatChannel, ChatMessage, ChatThreadUpdate } from '../types';
 
 /** Team first, then general, then project channels, then direct conversations (matches the API order). */
 const KIND_ORDER: Record<ChatChannel['kind'], number> = {
@@ -88,6 +88,32 @@ export const unreadCount = (
   const seen = lastReadAtByChannel[channel._id];
   if (!seen) return 1;
   return new Date(channel.lastMessageAt).getTime() > new Date(seen).getTime() ? 1 : 0;
+};
+
+/**
+ * Applies a live thread update to the parent row (AC-115).
+ *
+ * The count is the server's post-increment value rather than a delta, so a member who missed an event
+ * recovers on the next load instead of drifting (RISK-016). A parent that is not in the loaded page is
+ * left alone: inventing a row or a count for it would show a message the member cannot scroll to
+ * (EC-047). A no-op update returns the same array so React can skip the re-render.
+ */
+export const patchParentReply = (
+  messages: ChatMessage[],
+  update: ChatThreadUpdate,
+): ChatMessage[] => {
+  const index = messages.findIndex(message => message._id === update.messageId);
+  if (index === -1) return messages;
+
+  const current = messages[index];
+  const author = update.lastReplyAuthor ?? current.lastReplyAuthor ?? null;
+  if (current.replyCount === update.replyCount && String(current.lastReplyAuthor ?? '') === String(author ?? '')) {
+    return messages;
+  }
+
+  const next = [...messages];
+  next[index] = { ...current, replyCount: update.replyCount, lastReplyAuthor: author };
+  return next;
 };
 
 /** Human label for a direct conversation, which the API stores without a per-person name. */

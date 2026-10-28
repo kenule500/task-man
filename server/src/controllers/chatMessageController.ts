@@ -6,11 +6,13 @@ import ChatMessage, { ChatAttachment, IChatMessage, MAX_MESSAGE_BODY } from '../
 import ChatReaction, { MAX_EMOJI_LENGTH } from '../models/chatReactionModel.js';
 import ChatRead from '../models/chatReadModel.js';
 import Notification from '../models/notificationModel.js';
+import Project from '../models/projectModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { emitToChannel, emitToChannelExcept, emitToUser } from '../realtime/bus.js';
 import { recordActivity } from '../utils/activity.js';
 import { canModerate } from '../utils/chatAccess.js';
 import { snippetOf, uniqueIds } from '../utils/chatMentions.js';
+import { threadUpdateOf } from '../utils/chatThread.js';
 import { clampPageSize, decodeMessageCursor, encodeMessageCursor, olderThanCursor, searchFilter } from '../utils/chatQuery.js';
 import { MessageInput, parseMessageInput } from '../utils/chatValidation.js';
 import { deleteFiles, fileInfoOf, openFileStream, saveFile } from '../utils/gridfs.js';
@@ -140,10 +142,21 @@ export const createMessageInChannel = async ({
   await message.populate('author', PUBLIC_USER_FIELDS);
 
   if (parentId) {
-    await ChatMessage.updateOne(
+    // The stored count comes back with the increment, so the thread event carries the truth rather
+    // than a delta a client would have to add to a number it may never have seen (AC-115, RISK-016)
+    const parent = await ChatMessage.findOneAndUpdate(
       { _id: parentId },
       { $inc: { replyCount: 1 }, $set: { lastReplyAuthor: authorId } },
-    );
+      { new: true, projection: { replyCount: 1, lastReplyAuthor: 1 } },
+    ).lean();
+    if (parent) {
+      emitToChannel(String(channel._id), 'chat:thread', threadUpdateOf({
+        channelId: String(channel._id),
+        parentId: String(parentId),
+        replyCount: parent.replyCount,
+        lastReplyAuthor: parent.lastReplyAuthor,
+      }));
+    }
   }
 
   const view = messageView(message.toObject() as unknown as Record<string, unknown>);
@@ -721,7 +734,23 @@ export const downloadAttachment = async (req: Request, res: Response): Promise<v
     }
 
     const { decideChannelAccess } = await import('../utils/chatAccess.js');
-    const decision = decideChannelAccess({ channel, userId: String(req.user?._id), permissions: permissionsOf(req) });
+    // A project channel is readable by its project's members, so the fact the socket and message paths
+    // already pass has to travel here too: without it every non-moderator project member was refused
+    // and saw "Could not load this attachment" (AC-108). An outsider still gets 404 (AC-109, NFR-046).
+    const permissions = permissionsOf(req);
+    const isProjectMember = channel.kind === 'project' && channel.project && !canModerate(permissions)
+      ? Boolean(await Project.exists({
+        _id: channel.project,
+        workspace: workspaceIdOf(req),
+        members: String(req.user?._id),
+      }))
+      : undefined;
+    const decision = decideChannelAccess({
+      channel,
+      userId: String(req.user?._id),
+      permissions,
+      isProjectMember,
+    });
     if (decision !== 'allow') {
       res.status(404).json({ message: 'Attachment not found' });
       return;

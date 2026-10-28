@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, FolderKanban, Users, Calendar,
   BarChart3, HelpCircle, LogOut, ChevronsUpDown, DoorOpen,
-  Sparkles, Plus, Check, User, Settings, Search, Milestone, Gauge, Timer, BookOpen, type LucideIcon,
+  Sparkles, Plus, Check, User, Settings, Search, Milestone, Gauge, Timer, BookOpen, MessageSquare, type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -150,6 +150,34 @@ const NavGroup = ({
   );
 };
 
+/** The single way into chat: one destination that opens every conversation the member can read. */
+const ChatNavItem = ({ href, active }: { href: string; active: boolean }) => {
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={active}
+        tooltip="Project chat"
+        className="max-md:h-10"
+        render={
+          <Link
+            to={href}
+            aria-current={active ? 'page' : undefined}
+            onClick={() => {
+              if (isMobile) setOpenMobile(false);
+            }}
+            className="w-full"
+          >
+            <MessageSquare aria-hidden />
+            <span>Project chat</span>
+          </Link>
+        }
+      />
+    </SidebarMenuItem>
+  );
+};
+
 const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,6 +210,11 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
   // The wiki has one address per page (/wiki/<id>), so it stays lit below its root
   const isActive = (key: string) =>
     location.pathname === `/${targetSlug}/${key}` || (key === 'wiki' && location.pathname.startsWith(`/${targetSlug}/wiki/`));
+
+  // Every chat screen lives under the workspace's chat root, which is the one navigation destination
+  const chatRoot = targetSlug ? `/${targetSlug}/chat` : '';
+  const onChatRoute = Boolean(chatRoot)
+    && (location.pathname === chatRoot || location.pathname.startsWith(`${chatRoot}/`));
 
   // Page context for the top bar (visible on mobile, where the sidebar is hidden)
   const section =
@@ -324,8 +357,16 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             permissionsLoading={permissionsLoading}
           />
           <SidebarProjects slug={targetSlug} canRead={!permissionsLoading && can('projects:read')} />
-          {/* Chat channels sit between the main navigation and General, as in the product mock */}
-          <SidebarChannels />
+          {/* Chat: one destination for every conversation, then the member's direct messages */}
+          {!permissionsLoading && can('chat:read') && (
+            <SidebarGroup>
+              <SidebarGroupLabel>Chat</SidebarGroupLabel>
+              <SidebarMenu>
+                <ChatNavItem href={hrefFor('chat')} active={onChatRoute} />
+              </SidebarMenu>
+              <SidebarChannels />
+            </SidebarGroup>
+          )}
           <NavGroup
             label="General"
             items={navGeneral}
@@ -377,7 +418,8 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
       </ShadcnSidebar>
 
       {/* ========== Main Content ========== */}
-      <SidebarInset>
+      {/* On the chat route the frame fills the viewport so the panes scroll inside it, not the page */}
+      <SidebarInset className={onChatRoute ? 'h-svh min-h-0 overflow-hidden' : undefined}>
         <header className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center gap-2 border-b border-slate-300 bg-white pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)]">
           <SidebarTrigger className="-ml-2 size-10 md:-ml-1 md:size-8" />
           <Separator orientation="vertical" className="mr-2 !h-4" />

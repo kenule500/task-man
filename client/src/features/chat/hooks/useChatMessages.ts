@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getApiErrorMessage } from '@/utils/api';
 import { chatApi } from '../api';
-import { prependOlder, upsertMessage } from '../lib/messages';
-import type { ChatMessage, Reaction } from '../types';
+import { patchParentReply, prependOlder, upsertMessage } from '../lib/messages';
+import type { ChatMessage, ChatThreadUpdate, Reaction } from '../types';
 
 interface Options {
   slug: string | undefined;
@@ -70,6 +70,14 @@ export const useChatMessages = ({ slug, channelId, enabled }: Options) => {
     setReactions(current => ({ ...current, [payload.messageId]: payload.reactions }));
   }, []);
 
+  /**
+   * A reply that arrived in this channel: the reply itself never joins the channel list, but its
+   * parent's count does (AC-115). A parent outside the loaded page is ignored rather than invented.
+   */
+  const applyThread = useCallback((update: ChatThreadUpdate) => {
+    setMessages(current => patchParentReply(current, update));
+  }, []);
+
   const loadOlder = useCallback(async () => {
     if (!slug || !channelId || !cursor || loadingOlder) return;
     setLoadingOlder(true);
@@ -104,6 +112,7 @@ export const useChatMessages = ({ slug, channelId, enabled }: Options) => {
     applyMessage,
     applyUpdated,
     applyReaction,
+    applyThread,
     loadOlder,
     removeLocal,
     setReactions,

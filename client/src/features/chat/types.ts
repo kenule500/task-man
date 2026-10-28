@@ -63,6 +63,17 @@ export interface Reaction {
   users: string[];
 }
 
+/**
+ * The parent summary the server emits after a reply is stored (AC-115). It carries the authoritative
+ * post-increment count, so a client never has to guess a delta from an event it might have missed.
+ */
+export interface ChatThreadUpdate {
+  channelId: string;
+  messageId: string;
+  replyCount: number;
+  lastReplyAuthor?: ChatUser | string | null;
+}
+
 export interface MessagePage {
   messages: ChatMessage[];
   nextCursor: string | null;

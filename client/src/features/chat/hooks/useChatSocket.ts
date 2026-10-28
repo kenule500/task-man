@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client';
 import { API_URL } from '@/config';
 import { getToken } from '@/utils/session';
 import type {
-  ChannelSummary, ChatMessage, ConversationCard, OutgoingMessage, Reaction, SocketAck,
+  ChannelSummary, ChatMessage, ChatThreadUpdate, ConversationCard, OutgoingMessage, Reaction, SocketAck,
 } from '../types';
 
 /** `API_URL` points at the API root (…/api); the socket is served from the same origin. */
@@ -28,6 +28,8 @@ interface Options {
   onReaction: (payload: ReactionEvent) => void;
   onTyping: (userId: string) => void;
   onPresence: (userId: string, online: boolean) => void;
+  /** The parent summary of a reply that arrived in a room this connection is in (AC-115). */
+  onThread?: (update: ChatThreadUpdate) => void;
   /** A project channel the member was just granted; the view appends it and joins its room. */
   onChannelGranted?: (card: ConversationCard) => void;
   /** An existing channel's name or picture changed (e.g. its project was renamed). */
@@ -52,20 +54,20 @@ export interface ChatSocket {
  */
 export const useChatSocket = ({
   slug, channelId, channelIds = [], enabled,
-  onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
+  onMessage, onUpdated, onReaction, onTyping, onPresence, onThread, onChannelGranted, onChannelUpdated,
 }: Options): ChatSocket => {
   const socketRef = useRef<Socket | null>(null);
   const [state, setState] = useState<TransportState>('connecting');
 
   // Handlers live in a ref so re-renders never tear down the connection
   const handlers = useRef({
-    onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
+    onMessage, onUpdated, onReaction, onTyping, onPresence, onThread, onChannelGranted, onChannelUpdated,
   });
   useEffect(() => {
     handlers.current = {
-      onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
+      onMessage, onUpdated, onReaction, onTyping, onPresence, onThread, onChannelGranted, onChannelUpdated,
     };
-  }, [onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated]);
+  }, [onMessage, onUpdated, onReaction, onTyping, onPresence, onThread, onChannelGranted, onChannelUpdated]);
 
   // Refs keep the connection effect independent of the open channel and of the room list
   const openChannel = useRef(channelId);
@@ -102,6 +104,8 @@ export const useChatSocket = ({
     socket.on('chat:updated', (message: ChatMessage) => handlers.current.onUpdated(message));
     socket.on('chat:deleted', (message: ChatMessage) => handlers.current.onUpdated(message));
     socket.on('chat:reaction', (payload: ReactionEvent) => handlers.current.onReaction(payload));
+    // A reply's parent summary, so a member who does not have the thread open still sees the count
+    socket.on('chat:thread', (update: ChatThreadUpdate) => handlers.current.onThread?.(update));
     socket.on('chat:typing', (payload: { channelId?: string; userId: string }) => {
       // Typing is only meaningful for the conversation on screen
       if (payload.channelId === openChannel.current) handlers.current.onTyping(payload.userId);
