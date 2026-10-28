@@ -480,6 +480,210 @@
       ],
       "testIds": [],
       "status": "complete"
+    },
+    {
+      "requirementId": "FR-096",
+      "acceptanceCriteriaIds": [
+        "AC-100"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T28.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-097",
+      "acceptanceCriteriaIds": [
+        "AC-101"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T28.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-098",
+      "acceptanceCriteriaIds": [
+        "AC-102"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T28.4"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-099",
+      "acceptanceCriteriaIds": [
+        "AC-103",
+        "AC-104",
+        "AC-106"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T29.1",
+        "T29.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-100",
+      "acceptanceCriteriaIds": [
+        "AC-105"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T29.3"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-101",
+      "acceptanceCriteriaIds": [
+        "AC-107"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T30.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-102",
+      "acceptanceCriteriaIds": [
+        "AC-108",
+        "AC-109",
+        "AC-110"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T30.2",
+        "T30.3"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-103",
+      "acceptanceCriteriaIds": [
+        "AC-111"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T31.1",
+        "T31.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-104",
+      "acceptanceCriteriaIds": [
+        "AC-112",
+        "AC-113"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T28.3",
+        "T31.3",
+        "T32.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-105",
+      "acceptanceCriteriaIds": [
+        "AC-114",
+        "AC-115",
+        "AC-116"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T32.2",
+        "T32.3",
+        "T32.4"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-042",
+      "acceptanceCriteriaIds": [
+        "AC-103",
+        "AC-106"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T29.1",
+        "T29.4"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-043",
+      "acceptanceCriteriaIds": [
+        "AC-106",
+        "AC-107"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T30.1",
+        "T32.5"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-044",
+      "acceptanceCriteriaIds": [
+        "AC-115",
+        "AC-116"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T32.3",
+        "T32.4"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-045",
+      "acceptanceCriteriaIds": [
+        "AC-111",
+        "AC-112"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T31.1",
+        "T31.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-046",
+      "acceptanceCriteriaIds": [
+        "AC-110",
+        "AC-109"
+      ],
+      "planSection": "§11 Amendment - project chat entry, chat shell and delivery fixes",
+      "taskIds": [
+        "T30.2",
+        "T30.3"
+      ],
+      "testIds": [],
+      "status": "in_progress"
     }
   ]
 }

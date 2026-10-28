@@ -195,11 +195,11 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "test",
+          "currentStep": "planning",
           "gates": {
             "specification": "approved",
-            "planning": "approved",
-            "implementation": "complete",
+            "planning": "pending",
+            "implementation": "in_progress",
             "review": "pending"
           },
           "history": [
@@ -222,6 +222,11 @@
               "event": "Implementation complete on feature/chat: all 32 tasks across P20-P27 built. Server and client typecheck, client lint and build pass; governance validators pass; secret scan clean. sdrive verify reports fail with 44 missing / 217 extra, every missing item attributable to the CON-614 scanner gaps (no client/ scan, workspace-root dependency read, no Mongoose entity detection, absolute-vs-relative endpoint paths) and confirmed present in the repository.",
               "by": "agent",
               "timestamp": "2026-10-28T15:11:18.354Z"
+            },
+            {
+              "event": "spec_updated (/sdrive:update-propose, Gate 1 draft): amendment to v2 from a maintainer walkthrough after v2 shipped. Added US-043..US-048, AC-100..AC-116, FR-096..FR-105, NFR-042..NFR-046, EC-043..EC-049 and RISK-013..RISK-016 to spec.md and spec.json, plus 15 rows in traceability.json (status in_progress; the task column is provisional until Gate 2). The amendment supersedes the sidebar clause of AC-076 and narrows AC-077: one Project chat navigation item replaces the team-chat sidebar item and links to /{workspaceSlug}/chat, so the chat root lists every channel and direct message and no longer redirects to a default channel. It also records seven defects that no criterion covered: a bounded chat height with independent scroll containers and a header that stays put; a token-based hover surface on the code card's Copy and Download controls; the caller's project membership passed to decideChannelAccess in downloadAttachment; unread reconciliation and live grant/rename handling in the sidebar; opening a conversation the client has not listed; recency ordering on first paint; and a live thread update. Existing IDs, text and rows are untouched, AC-076/AC-077 keep their wording, and the amendment note states which behaviour wins. The specification gate is reset to pending because new requirements invalidate the previous approval, and the implementation gate returns to in_progress because T28.x-T32.x are unbuilt; plan.md, tasks.md, plan.json and tasks.json are deliberately untouched until Gate 1 is approved. Validator: real-time-chat/v2 spec.json, plan.json, tasks.json and traceability.json are valid, and this reset also clears the two pre-existing workflow-state schema errors (v2 currentStep test, implementation complete). No external research was available: the ux-ui-library, Stackwise and Context7 MCP servers are unreachable here, so the amendment cites only in-repository sources (DESIGN.md, perfect-ui-rules.md, the constitution, client/src/index.css and the chat module).",
+              "by": "update-proposal",
+              "timestamp": "2026-10-28T16:36:08.046Z"
             }
           ]
         }

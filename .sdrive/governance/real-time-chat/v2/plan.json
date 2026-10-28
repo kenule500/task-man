@@ -128,6 +128,106 @@
         "name": "prism-react-renderer",
         "action": "create",
         "description": "New client dependency for token-based syntax highlighting, lazy-loaded by the code card."
+      },
+      {
+        "name": "server/src/utils/chatThread.ts",
+        "action": "create",
+        "description": "Pure shaper for the thread update payload: channelId, messageId, the authoritative post-increment replyCount and lastReplyAuthor, so a client never guesses a delta."
+      },
+      {
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "description": "downloadAttachment resolves the caller's project membership for a project channel and passes isProjectMember to decideChannelAccess exactly as the socket path does, keeping 404 for a caller who may not read the channel; createMessageInChannel emits the thread update after the parent replyCount increment."
+      },
+      {
+        "name": "server/src/realtime/bus.ts",
+        "action": "modify",
+        "description": "The chat:thread event name beside the existing chat:message and chat:updated helpers; the channel room and emitToChannel are reused unchanged."
+      },
+      {
+        "name": "server/src/utils/chatAccess.ts",
+        "action": "reuse",
+        "description": "No rule change: the missing input (project membership) was the defect, not the decision itself."
+      },
+      {
+        "name": "server/src/routes/chatRoutes.ts",
+        "action": "reuse",
+        "description": "No route, validator, middleware order or permission change in this amendment."
+      },
+      {
+        "name": "client/src/components/Sidebar.tsx",
+        "action": "modify",
+        "description": "Add the Project chat navigation item in the chat position (link to the chat root, current on the root and on any conversation route) and pass a viewport-bounded class to SidebarInset on the chat route so the screen fills the space below the app header."
+      },
+      {
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify",
+        "description": "Stop rendering the seeded team and general channels as sidebar rows, patch rows from chat:channel-granted and chat:channel instead of reading the list once, and reconcile the unread indicator with the client read state."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "No redirect at the chat root, one merged conversation list, bounded list and message panes with the header outside the message scroll container, resolve a conversation named by the route that the list does not hold yet, and apply the thread update."
+      },
+      {
+        "name": "client/src/features/chat/components/ConversationList.tsx",
+        "action": "create",
+        "description": "The merged, recency-ordered conversation list: the new-direct-message picker first, one row per conversation, its own scroll owner, and the view-level loading and empty copy."
+      },
+      {
+        "name": "client/src/features/chat/components/ConversationRow.tsx",
+        "action": "create",
+        "description": "The single conversation row extracted from ConversationSection (avatar, name, preview, unread badge, aria-current) so every kind of conversation still renders identically."
+      },
+      {
+        "name": "client/src/features/chat/components/ConversationSection.tsx",
+        "action": "modify",
+        "description": "Delegate its rows to ConversationRow without changing its props, so existing callers and tests keep working."
+      },
+      {
+        "name": "client/src/features/chat/components/TeamChannelList.tsx",
+        "action": "modify",
+        "description": "No longer rendered by the chat root; its copy moves into the merged list's empty state. Kept rather than deleted because this amendment authors no tests (CON-401)."
+      },
+      {
+        "name": "client/src/features/chat/components/DirectMessageList.tsx",
+        "action": "modify",
+        "description": "No longer rendered by the chat root; its copy moves into the merged list's empty state. Kept rather than deleted because this amendment authors no tests (CON-401)."
+      },
+      {
+        "name": "client/src/features/chat/lib/conversations.ts",
+        "action": "modify",
+        "description": "Add mergeConversations(directs, teams): interleave then order by latest activity, so the merged order has one implementation beside sortConversations."
+      },
+      {
+        "name": "client/src/features/chat/lib/messages.ts",
+        "action": "modify",
+        "description": "Add patchParentReply(messages, update): set the reply count and last reply author on the parent, leaving other rows and an unloaded parent alone."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatSocket.ts",
+        "action": "modify",
+        "description": "Listen for chat:thread and hand the update to the view."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatMessages.ts",
+        "action": "modify",
+        "description": "Apply the parent patch from a thread update, and keep refusing to add a reply to the channel list."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatChannels.ts",
+        "action": "modify",
+        "description": "Merge a conversation the route names but the list does not hold yet, so a freshly granted channel opens before the next list load."
+      },
+      {
+        "name": "client/src/features/chat/components/CodeCard.tsx",
+        "action": "modify",
+        "description": "Replace hover:bg-slate-800 hover:text-white with the inverse-surface tokens plus the documented translucent-white hover state layer, so contrast holds in both themes."
+      },
+      {
+        "name": "client/src/index.css",
+        "action": "reuse",
+        "description": "No token change: the inverse surface, inverse text and the dark-theme remaps the code card now uses already exist."
       }
     ],
     "referencedRequirementIds": [
@@ -167,7 +267,22 @@
       "NFR-038",
       "NFR-039",
       "NFR-040",
-      "NFR-041"
+      "NFR-041",
+      "FR-096",
+      "FR-097",
+      "FR-098",
+      "FR-099",
+      "FR-100",
+      "FR-101",
+      "FR-102",
+      "FR-103",
+      "FR-104",
+      "FR-105",
+      "NFR-042",
+      "NFR-043",
+      "NFR-044",
+      "NFR-045",
+      "NFR-046"
     ]
   },
   "dataModel": {
@@ -273,9 +388,69 @@
             "action": "no_change"
           }
         ]
+      },
+      {
+        "name": "ChatChannel",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "String (team | general | project | direct)",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "nameKey",
+            "type": "String",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatMessage",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "replyCount",
+            "type": "Number",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "lastReplyAuthor",
+            "type": "ObjectId (User)",
+            "nullable": true,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatRead",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "lastReadAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "Project",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "members",
+            "type": "ObjectId[] (User)",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
       }
     ],
-    "flowDescription": "assignee -> addAssigneesToProjectMembers returns the newly added ids -> createProjectChannel ensures the project channel exists -> chatGrant collapses the pairs -> emitToUser('chat:channel-granted', channelCard) -> client appends, dedupes and joins the channel room. Separately: MessageItem -> AttachmentCard -> useAttachmentUrl -> axios blob fetch with the bearer token -> cached object URL -> thumbnail or lightbox, revoked on last unmount. And: project detail header -> GET /chat/projects/:projectId/channel (get-or-create) -> navigate to /{workspaceSlug}/chat/{channelId}."
+    "flowDescription": "assignee -> addAssigneesToProjectMembers returns the newly added ids -> createProjectChannel ensures the project channel exists -> chatGrant collapses the pairs -> emitToUser('chat:channel-granted', channelCard) -> client appends, dedupes and joins the channel room. Separately: MessageItem -> AttachmentCard -> useAttachmentUrl -> axios blob fetch with the bearer token -> cached object URL -> thumbnail or lightbox, revoked on last unmount. And: project detail header -> GET /chat/projects/:projectId/channel (get-or-create) -> navigate to /{workspaceSlug}/chat/{channelId}. Amendment flow (2026-10-28): the sidebar's Project chat item links to the chat root, which renders the merged conversation list with nothing selected, ordered by mergeConversations plus sortConversations with the header outside the message scroll container; an attachment is fetched through AttachmentCard and the route now passes the caller's project membership into decideChannelAccess; a reply persists, increments the parent and emits chat:thread with the authoritative count, and the client patches that parent row and appends the reply to an open thread panel."
   },
   "apiContracts": [
     {
@@ -309,9 +484,9 @@
     {
       "method": "GET",
       "path": "/api/workspaces/:slug/chat/attachments/:attachmentId",
-      "action": "reuse",
+      "action": "modify",
       "authenticationRequired": true,
-      "linkedRequirements": ["FR-086", "FR-087", "NFR-039"]
+      "linkedRequirements": ["FR-086", "FR-087", "NFR-039", "FR-102", "NFR-046"]
     },
     {
       "method": "GET",
@@ -345,6 +520,10 @@
     {
       "requirementId": "NFR-040",
       "description": "The upload MIME allow-list and filename sanitisation remain the only content gate; a stored image/* type is a rendering hint and a decode failure falls back to the file card."
+    },
+    {
+      "requirementId": "NFR-046",
+      "description": "The attachment route resolves project membership for a project channel and still answers 404 for a caller who may not read the message's channel (direct, project or unknown alike), so no existence information leaks; no token is placed in a URL and the blob fetch keeps using the authenticated axios client."
     }
   ],
   "performanceConsiderations": [
@@ -367,6 +546,18 @@
     {
       "requirementId": "NFR-034",
       "strategy": "The code card scrolls its own horizontal overflow and the panel is a full-height sheet at 320px, so the conversation never widens."
+    },
+    {
+      "requirementId": "NFR-042",
+      "strategy": "Bounding the chat screen is a static layout change (a route-scoped height on the inset plus min-h-0 at every flex level): no resize observer, no virtualisation, and the message page size is untouched."
+    },
+    {
+      "requirementId": "NFR-044",
+      "strategy": "A reply emits one four-field summary to the channel room the member is already in, replacing a client-side guess, so the parent row updates without a refetch and the count stays authoritative after a reload."
+    },
+    {
+      "requirementId": "NFR-045",
+      "strategy": "Unread reconciliation compares the stored read timestamp with the channel's activity and writes at most one read state per conversation open; the sidebar patches rows from the events it already receives instead of re-fetching, and no polling interval is added."
     }
   ],
   "dependencies": [
@@ -399,6 +590,36 @@
       "type": "internal",
       "action": "no_change",
       "notes": "No schema change; only the stored name of the seeded team channel is updated."
+    },
+    {
+      "name": "socket.io / socket.io-client",
+      "type": "library",
+      "action": "no_change",
+      "notes": "One more event (chat:thread) on the existing channel room; the socket-io skill covers the pattern."
+    },
+    {
+      "name": "axios",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Continues to carry the attachment blob fetch with the bearer token."
+    },
+    {
+      "name": "lucide-react",
+      "type": "library",
+      "action": "no_change",
+      "notes": "MessageSquare for the navigation item plus the existing code-card icons."
+    },
+    {
+      "name": "tailwindcss",
+      "type": "library",
+      "action": "no_change",
+      "notes": "Layout utilities and the token map in client/src/index.css; no new token is introduced."
+    },
+    {
+      "name": "ConversationSection / TeamChannelList / DirectMessageList",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Kept and refactored to delegate rows; retiring them is a separate decision that moves their tests with them."
     }
   ],
   "risks": [
@@ -425,6 +646,26 @@
     {
       "description": "RISK-012: changing the message renderer can regress the v1 search jump, pin panel or thread panel.",
       "mitigation": "Keep the body renderer a child component and preserve the data-message-id contract used by search."
+    },
+    {
+      "description": "RISK-013: a bounded height can clip content on a short viewport, at 200% zoom or with the software keyboard open.",
+      "mitigation": "min-h-0 at every flex level, the composer outside the scroll container, and a browser check at 320x568 and 200% zoom."
+    },
+    {
+      "description": "RISK-014: the sidebar item removes the desktop shortcut to the seeded team channel.",
+      "mitigation": "The channel stays a row in the merged list with its unread state, and the browser pass confirms it is reachable."
+    },
+    {
+      "description": "RISK-015: the chat root no longer redirects, so older links land on the list.",
+      "mitigation": "The root shows the list with an explicit empty pane, the conversation route is unchanged, and the README update is a documentation task."
+    },
+    {
+      "description": "RISK-016: a patched reply count can drift if an event is missed while the socket is disconnected.",
+      "mitigation": "listMessages re-derives the count on the next load and the thread event carries the authoritative value rather than a delta."
+    },
+    {
+      "description": "RISK-017: one merged list changes a surface that AC-056 and AC-065 fixed.",
+      "mitigation": "The row rendering is extracted rather than rewritten, so previews, badges and the picker position are preserved, and the spec records the amendment explicitly."
     }
   ]
 }

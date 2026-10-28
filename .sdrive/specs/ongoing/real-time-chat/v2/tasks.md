@@ -1,9 +1,9 @@
 ---
 title: Real-time chat v2 - execution tasks
-status: complete
+status: in_progress
 version: v2
 created: 2026-10-27
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # real-time-chat v2 - execution tasks
@@ -109,3 +109,57 @@ updated: 2026-10-27
 | [x] T27.1 | Make each new failure path degrade readably: failed attachment fetch, failed highlight import, failed member query - no unhandled rejection and no console error. | NFR-041 | AC-089, AC-099 |
 | [x] T27.2 | Sweep the new surfaces for the security baseline: both routes run `protect` then `requirePermission('chat:read')`, every parameter is an `isMongoId()` chain, every query is workspace-scoped, and no token reaches a URL. | NFR-035, NFR-036, NFR-037, NFR-038, NFR-039, NFR-040 | AC-086, AC-089, AC-093 |
 | [x] T27.3 | Run `pnpm --filter server typecheck`, `pnpm --filter client typecheck`, `pnpm --filter client lint` and `pnpm --filter client build`, then check `/{workspace}/chat` and `/{workspace}/projects/:id` in the browser at 320px and by keyboard (CON-305, CON-306). | NFR-033, NFR-034 | AC-096, AC-099 |
+
+## P28 - The Project chat entry point
+
+*Depends on P27 (the build this amendment corrects). Plan section 11.*
+
+| ID | Task | Requirements | Acceptance criteria |
+|---|---|---|---|
+| [ ] T28.1 | Add the `Project chat` item to the chat position of the sidebar navigation: a `Link` to `/{workspaceSlug}/chat` with a `MessageSquare` glyph, `aria-current="page"` on the chat root and on any `/{workspaceSlug}/chat/{channelId}`, no permission- or kind-specific glyph, and a tooltip equal to the label. | FR-096 | AC-100 |
+| [ ] T28.2 | In `ChatView.tsx`, drop the redirect to the default channel and render the conversation list beside an explicit nothing-selected pane: a member with readable conversations is told to pick one from the list, and a member with none is told who can grant access. | FR-097 | AC-101 |
+| [ ] T28.3 | In `SidebarChannels.tsx`, stop rendering the seeded `team`/`general` channels as sidebar rows, keep the group hidden without `chat:read`, and patch or add rows from `chat:channel-granted` / `chat:channel` instead of reading the list once at mount. | FR-096, FR-104 | AC-100, AC-113 |
+| [ ] T28.4 | Confirm the seeded team channel is still listed, readable and unread-tracked inside the root list with `kind: 'team'`, and that `ensureDefaultChannels` and the collision-safe rename backfill are untouched. | FR-098 | AC-102 |
+
+## P29 - A still frame: bounded height, two scroll owners
+
+*Depends on P28. Plan section 11.*
+
+| ID | Task | Requirements | Acceptance criteria |
+|---|---|---|---|
+| [ ] T29.1 | Bound the chat route on the box chain: pass `h-svh min-h-0 overflow-hidden` to `SidebarInset` when the path is the chat route, and make `#main-content` and the chat screen `min-h-0` with a real height, so the document itself never scrolls while a conversation is read. | FR-099 | AC-103 |
+| [ ] T29.2 | Give the conversation-list pane and the message pane their own `overflow-y-auto` scroll owner with `min-h-0` at every level, so scrolling one leaves the other where it was. | FR-099 | AC-104 |
+| [ ] T29.3 | Take the chat header (and an open search bar or pinned-message panel) out of the message scroll container so it stays visible while the messages scroll beneath it, without introducing a new z-index. | FR-100 | AC-105 |
+| [ ] T29.4 | Check the containment at 320px, 1920px and 200% zoom: no horizontal scrollbar, the composer above the mobile tab bar, nothing hidden behind the header, and a keyboard focus ring never covered (record the check in the plan's verification section). | NFR-042 | AC-103, AC-106 |
+
+## P30 - Readable code actions and attachments that load
+
+*Depends on P28. Plan section 11.*
+
+| ID | Task | Requirements | Acceptance criteria |
+|---|---|---|---|
+| [ ] T30.1 | Replace the code card's `hover:bg-slate-800 hover:text-white` with the inverse-surface tokens plus the documented translucent-white hover state layer, and check the label, icon and focus ring of Copy and Download in the light and the dark theme. | FR-101 | AC-107 |
+| [ ] T30.2 | In `downloadAttachment`, resolve the caller's project membership for a project channel (one workspace-scoped `Project.exists`) and pass `isProjectMember` to `decideChannelAccess` exactly as the socket path does, keeping 404 for a caller who may not read the message's channel. | FR-102 | AC-108, AC-109 |
+| [ ] T30.3 | Sweep the attachment failure path: an offline or server failure keeps the retryable card with the file name, Retry refetches and succeeds once the failure clears, nothing navigates away from the app, and no token is placed in a URL. | FR-102, NFR-046 | AC-110 |
+
+## P31 - Unread is one truth
+
+*Depends on P28. Plan section 11.*
+
+| ID | Task | Requirements | Acceptance criteria |
+|---|---|---|---|
+| [ ] T31.1 | Make the unread decision read the client's stored read state first and treat a server flag written before the read as cleared, in both the merged list row and the sidebar. | FR-103 | AC-111 |
+| [ ] T31.2 | After `markRead` resolves, update the affected row's unread state without re-fetching the whole list, with no polling interval and at most one read-state write per conversation open. | FR-103, NFR-045 | AC-111 |
+| [ ] T31.3 | Update the sidebar rows when a conversation is granted or renamed (the events the view already handles), so the sidebar and the open view never disagree about which conversations exist or what they are called. | FR-104, NFR-045 | AC-112, AC-113 |
+
+## P32 - One conversation list and live threads
+
+*Depends on P28. Plan section 11.*
+
+| ID | Task | Requirements | Acceptance criteria |
+|---|---|---|---|
+| [ ] T32.1 | Resolve a conversation named by the route that the list does not hold yet (freshly granted channel, deep link): merge it into the list, or fetch it, before deciding there is nothing to show, so the empty pane is only reached after access was checked and refused. | FR-104 | AC-112 |
+| [ ] T32.2 | Extract `ConversationRow` from `ConversationSection` (delegating rows so existing callers keep working), add `ConversationList` (picker first, one row per conversation, its own scroll owner, view-level loading and empty copy) and `mergeConversations(directs, teams)` in `lib/conversations.ts`, then make `ChatView` render that single list ordered by latest activity with no per-kind headings. | FR-105 | AC-114 |
+| [ ] T32.3 | Add `server/src/utils/chatThread.ts` (pure shaper for `{ channelId, messageId, replyCount, lastReplyAuthor }`) and emit `chat:thread` to the channel room from `createMessageInChannel` after the parent increment, so the socket send path emits it as well. | FR-105, NFR-044 | AC-115, AC-116 |
+| [ ] T32.4 | Handle `chat:thread` in `useChatSocket`, add `patchParentReply(messages, update)` to `lib/messages.ts`, apply it in `useChatMessages` so the parent's count changes without a reload, and append the arriving reply to the open thread panel while leaving a reply for another parent to that parent's own row. | FR-105, NFR-044 | AC-115, AC-116 |
+| [ ] T32.5 | Sweep the amendment for the baseline and the gates: every touched route still runs `protect` then `requirePermission`, the only new access input is project membership, no token reaches a URL, then run `pnpm --filter server typecheck`, `pnpm --filter client typecheck`, `pnpm --filter client lint`, `pnpm --filter client build` and `node .sdrive/scripts/validate-governance.js`, and finish with the browser pass at 320px, 200% zoom and by keyboard with a second account. | NFR-043, NFR-046 | AC-106, AC-107, AC-109 |

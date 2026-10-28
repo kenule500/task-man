@@ -510,6 +510,294 @@
             "AC-099"
           ],
           "completed": true
+        },
+      ]
+    },
+    {
+      "phaseId": "P28",
+      "name": "The Project chat entry point",
+      "dependencies": [
+        "P27"
+      ],
+      "tasks": [
+        {
+          "id": "T28.1",
+          "title": "Add the Project chat item to the sidebar navigation",
+          "description": "Render a Link to the workspace chat root with a MessageSquare glyph in the chat position of the sidebar, marked current on the chat root and on any conversation route, with no permission- or kind-specific glyph and a tooltip equal to the label.",
+          "linkedRequirements": [
+            "FR-096"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-100"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T28.2",
+          "title": "Show the conversation list at the chat root with nothing selected",
+          "description": "In ChatView.tsx remove the redirect to the default channel and render the list beside an explicit nothing-selected pane: a member with readable conversations is told to pick one from the list, and a member with none is told who can grant access.",
+          "linkedRequirements": [
+            "FR-097"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-101"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T28.3",
+          "title": "Stop listing the seeded channels in the sidebar and patch rows live",
+          "description": "In SidebarChannels.tsx stop rendering the seeded team and general channels as sidebar rows, keep the group hidden without chat:read, and patch or add rows from chat:channel-granted and chat:channel instead of reading the list once at mount.",
+          "linkedRequirements": [
+            "FR-096",
+            "FR-104"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-100",
+            "AC-113"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T28.4",
+          "title": "Confirm the seeded channel still lives in the list, unchanged",
+          "description": "Confirm the seeded team channel is still listed, readable and unread-tracked inside the root list with kind 'team', and that ensureDefaultChannels and the collision-safe rename backfill are untouched.",
+          "linkedRequirements": [
+            "FR-098"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-102"
+          ],
+          "completed": false
+        },
+      ]
+    },
+    {
+      "phaseId": "P29",
+      "name": "A still frame: bounded height, two scroll owners",
+      "dependencies": [
+        "P28"
+      ],
+      "tasks": [
+        {
+          "id": "T29.1",
+          "title": "Bound the chat route so the document does not scroll",
+          "description": "Pass a viewport-bounded class (h-svh min-h-0 overflow-hidden) to SidebarInset on the chat route only, and make the main content column and the chat screen min-h-0 with a real height, so scrolling a conversation never scrolls the page.",
+          "linkedRequirements": [
+            "FR-099"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-103"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T29.2",
+          "title": "Give the list pane and the message pane their own scroll owner",
+          "description": "Add an independent overflow-y-auto scroll container with min-h-0 at every level for the conversation list and for the messages, so scrolling one leaves the other where it was.",
+          "linkedRequirements": [
+            "FR-099"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-104"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T29.3",
+          "title": "Keep the chat header out of the message scroll container",
+          "description": "Move the chat header, an open search bar and the pinned-message panel outside the message scroll container so the header stays visible while the messages scroll beneath it, without introducing a new z-index.",
+          "linkedRequirements": [
+            "FR-100"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-105"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T29.4",
+          "title": "Check the containment at 320px, 1920px and 200% zoom",
+          "description": "Confirm no horizontal scrollbar, the composer above the mobile tab bar, nothing hidden behind the header and no focus ring covered, at 320px, 1920px and 200% zoom, and record the check in the plan's verification section.",
+          "linkedRequirements": [
+            "NFR-042"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-103",
+            "AC-106"
+          ],
+          "completed": false
+        },
+      ]
+    },
+    {
+      "phaseId": "P30",
+      "name": "Readable code actions and attachments that load",
+      "dependencies": [
+        "P28"
+      ],
+      "tasks": [
+        {
+          "id": "T30.1",
+          "title": "Move the code card hover onto the design tokens",
+          "description": "Replace hover:bg-slate-800 hover:text-white on the Copy and Download controls with the inverse-surface tokens plus the documented translucent-white hover state layer, and check the label, icon and focus ring in both themes.",
+          "linkedRequirements": [
+            "FR-101"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-107"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T30.2",
+          "title": "Pass project membership to the attachment access decision",
+          "description": "In downloadAttachment resolve the caller's project membership for a project channel with one workspace-scoped Project.exists and pass isProjectMember to decideChannelAccess exactly as the socket path does, keeping 404 for a caller who may not read the message's channel.",
+          "linkedRequirements": [
+            "FR-102"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-108",
+            "AC-109"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T30.3",
+          "title": "Sweep the attachment failure path",
+          "description": "Confirm an offline or server failure keeps the retryable card with the file name, that Retry refetches and succeeds once the failure clears, that nothing navigates away from the app and that no token is placed in a URL.",
+          "linkedRequirements": [
+            "FR-102",
+            "NFR-046"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-110"
+          ],
+          "completed": false
+        },
+      ]
+    },
+    {
+      "phaseId": "P31",
+      "name": "Unread is one truth",
+      "dependencies": [
+        "P28"
+      ],
+      "tasks": [
+        {
+          "id": "T31.1",
+          "title": "Decide unread from the client read state first",
+          "description": "Make the unread decision read the client's stored read state first and treat a server flag written before the read as cleared, in both the merged list row and the sidebar.",
+          "linkedRequirements": [
+            "FR-103"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-111"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T31.2",
+          "title": "Reconcile the row after a conversation is marked read",
+          "description": "After markRead resolves, update the affected row's unread state without re-fetching the whole list, with no polling interval and at most one read-state write per conversation open.",
+          "linkedRequirements": [
+            "FR-103",
+            "NFR-045"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-111"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T31.3",
+          "title": "Keep the sidebar in step with grants and renames",
+          "description": "Update the sidebar rows when a conversation is granted or renamed, using the events the open view already handles, so the sidebar and the open view never disagree about which conversations exist or what they are called.",
+          "linkedRequirements": [
+            "FR-104",
+            "NFR-045"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-112",
+            "AC-113"
+          ],
+          "completed": false
+        },
+      ]
+    },
+    {
+      "phaseId": "P32",
+      "name": "One conversation list and live threads",
+      "dependencies": [
+        "P28"
+      ],
+      "tasks": [
+        {
+          "id": "T32.1",
+          "title": "Open a conversation the client has not listed yet",
+          "description": "Resolve a conversation named by the route that the list does not hold yet (a freshly granted channel, a deep link): merge it into the list or fetch it before deciding there is nothing to show, so the empty pane is reached only after access was checked and refused.",
+          "linkedRequirements": [
+            "FR-104"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-112"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T32.2",
+          "title": "Render one merged, recency-ordered conversation list",
+          "description": "Extract ConversationRow from ConversationSection (delegating rows so existing callers keep working), add ConversationList (picker first, one row per conversation, its own scroll owner, view-level loading and empty copy) and mergeConversations(directs, teams) in lib/conversations.ts, then make ChatView render that single list ordered by latest activity with no per-kind headings.",
+          "linkedRequirements": [
+            "FR-105"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-114"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T32.3",
+          "title": "Emit an authoritative thread update on a reply",
+          "description": "Add server/src/utils/chatThread.ts (pure shaper for channelId, messageId, replyCount and lastReplyAuthor) and emit chat:thread to the channel room from createMessageInChannel after the parent increment, so the socket send path emits it as well.",
+          "linkedRequirements": [
+            "FR-105",
+            "NFR-044"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-115",
+            "AC-116"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T32.4",
+          "title": "Patch the parent reply count and the open thread",
+          "description": "Handle chat:thread in useChatSocket, add patchParentReply(messages, update) to lib/messages.ts, apply it in useChatMessages so the parent count changes without a reload, and append the arriving reply to the open thread panel while leaving a reply for another parent to that parent's own row.",
+          "linkedRequirements": [
+            "FR-105",
+            "NFR-044"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-115",
+            "AC-116"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T32.5",
+          "title": "Run the security sweep and the quality gates",
+          "description": "Check every touched route still runs protect then requirePermission, that the only new access input is project membership and that no token reaches a URL, then run the server and client typechecks, the client lint, the client build and the governance validator, and finish with the browser pass at 320px, 200% zoom and by keyboard with a second account.",
+          "linkedRequirements": [
+            "NFR-043",
+            "NFR-046"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-106",
+            "AC-107",
+            "AC-109"
+          ],
+          "completed": false
         }
       ]
     }

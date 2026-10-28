@@ -3,7 +3,7 @@ title: Real-time chat v2 - project chat, rich messages and channel membership
 status: backlog
 version: v2
 created: 2026-10-27
-updated: 2026-10-27
+updated: 2026-10-28
 ---
 
 # real-time-chat v2 - functional specification
@@ -365,3 +365,151 @@ No duplicate channel model, message store, socket transport, member model or not
 Every requirement above maps to at least one acceptance criterion, and the matrix now also maps each of the 37 requirements (24 FR, 13 NFR)
 to a plan section and one or more of the 32 tasks in P20-P27. All 24 acceptance criteria are linked. The machine-readable matrix is
 `.sdrive/governance/real-time-chat/v2/traceability.json`; test ids remain for `/sdrive:test` to assign (CON-404, CON-405).
+
+---
+
+## 9. Amendment - the Project chat entry, a still frame and delivery fixes (update-propose, 2026-10-28)
+
+### Amendment note
+
+This section is the machine- and human-readable record of a maintainer walkthrough after v2 shipped. It **supersedes the sidebar clause of AC-076** and **narrows AC-077**: the seeded team channel is no longer a sidebar row, and a single `Project chat` navigation item replaces the team-chat navigation item on the sidebar. That item is a link to the workspace chat root - it is not a channel of its own - so it opens the view that lists every channel and direct message the member can read. It also **amends AC-056 and AC-065** for that view: the two labelled segments (`Project channels`, `Direct messages`) become one merged, recency-ordered run of rows, while the shared row rendering those criteria established - avatar, name, last-message preview, unread badge, one component for every conversation kind - is kept exactly as it is.
+
+Nothing else about the v2 rename changes: the seeded channel keeps its stored `kind: 'team'`, its `nameKey`, its row, its permissions and the rename backfill, and AC-078 stands untouched. Every other existing requirement, story, acceptance criterion, edge case and task keeps its text, its number and its meaning. Where the two disagree, the requirement in this section wins, because it is later and it is the behaviour the maintainer asked for.
+
+The walkthrough also reported seven defects that no acceptance criterion covered. They are recorded here as new requirements rather than silently fixed, so `/sdrive:test` can cover them (CON-401, CON-405):
+
+| # | Reported | Root cause found in the repository |
+|---|---|---|
+| 1 | The sidebar still offers a project chat *channel*; it should be the way into every conversation | `SidebarChannels` filters to `mainMenu ?? kind === 'team' \|\| 'general'`, so the seeded team channel is a row that links to `/{slug}/chat/{channelId}`; no desktop entry points at `/{slug}/chat` and `ChatView` redirects that route to a default channel |
+| 2 | The channel list scrolls away with the messages | `SidebarProvider` wraps the app in `min-h-svh` and nothing between it and the chat screen bounds the height, so the document scrolls and the message pane's own `overflow-y-auto` never engages |
+| 3 | The chat header should float above the messages | `ChatHeader` is a sibling of the message pane inside a column that is not height-bounded; when the document scrolls, the header leaves the viewport |
+| 4 | Copy and Download on a code card vanish on hover | `hover:bg-slate-800 hover:text-white` under a `bg-slate-900` card: the dark theme remaps `--color-slate-800` to `#E2E8F0` and only rewrites the plain `bg-slate-800` utility, so the hover background becomes near-white while `hover:text-white` is forced to `#FFFFFF` (about 1.1:1) |
+| 5 | 'Could not load this attachment. Retry' for some members | `downloadAttachment` calls `decideChannelAccess` without `isProjectMember`, which answers `not_found` for any project channel to a caller without `chat:moderate`; every other path resolves membership first |
+| 6 | The unread badge never clears; a granted channel shows 'No channel selected' until a reload | The sidebar reads its channel list once and prefers the server's `unread` flag over the local read state, and `ChatView` resolves the open channel from a list it loaded before the grant, so a route id it has not listed renders the empty pane |
+| 7 | Thread replies and the newest conversation only appear after a reload | `useChatMessages` drops a reply from the channel list and nothing updates the parent's `replyCount`, and the conversation rows are rendered in payload order rather than re-sorted on first paint |
+
+### US-043: The sidebar reaches every conversation
+
+As a workspace member, I want a `Project chat` item in the sidebar that opens every conversation I can read, so that I reach a conversation in one place instead of a channel row I cannot tell apart from the others.
+
+**Acceptance Criteria:**
+- AC-100: In the sidebar chat group a single `Project chat` navigation item replaces the seeded team-chat entry: it is a link to `/{workspaceSlug}/chat` (the conversation list, no channel id), it is marked current for both `/{workspaceSlug}/chat` and `/{workspaceSlug}/chat/{channelId}`, and it carries no channel glyph and no permission-specific lock.
+- AC-101: Opening `/{workspaceSlug}/chat` with no conversation selected shows the conversation list beside an explicit no-conversation-selected pane and does not redirect to a default channel; a member who can read at least one conversation is told to pick one from the list, never to ask an administrator for access.
+- AC-102: The seeded team channel remains a readable conversation inside that list, with its stored `kind: 'team'` and its unread state unchanged, so renaming it and moving its sidebar entry stay display changes.
+
+### US-044: The chat frame stays still while I read
+
+As a workspace member, I want the conversation list and the chat header to stay where they are while I scroll the messages, so that I can read a long conversation and switch conversation without losing my place.
+
+**Acceptance Criteria:**
+- AC-103: The chat screen occupies exactly the space below the application header with its own bounded height: scrolling the message pane never scrolls the document, and the page scroll position is unchanged while a conversation is read.
+- AC-104: The conversation-list pane and the message pane are independent scroll containers: scrolling the messages leaves the list where it was, and scrolling the list leaves the conversation where it was.
+- AC-105: The chat header (conversation name, presence summary and the search, pins and members controls) stays visible while the messages scroll beneath it, and a long message list never pushes it out of view.
+- AC-106: The containment holds from 320px to 1920px and at 200% zoom: no horizontal scrolling, no content hidden behind the header or the mobile tab bar, and a keyboard focus ring is never hidden behind the fixed header.
+
+### US-045: Code actions stay readable in every state
+
+As a workspace member, I want the Copy and Download controls on a code card to stay legible when I hover or focus them, so that I can copy a snippet without guessing which control I am about to press.
+
+**Acceptance Criteria:**
+- AC-107: The code card's Copy and Download controls keep at least 4.5:1 text contrast and 3:1 icon contrast against their own background in the default, hover, focus-visible and active states, in the light and the dark theme; the hover surface comes from the design tokens that are remapped for dark mode, never from a raw slate step that the dark theme maps to a light colour.
+
+### US-046: Attachments load for everyone who may read the conversation
+
+As a project member, I want a file posted in a project channel to open for me even when I am not an administrator, so that shared screenshots and documents are actually usable by the people doing the work.
+
+**Acceptance Criteria:**
+- AC-108: An attachment on a project-channel message is fetched successfully by every project member who may read that channel, not only by holders of `chat:moderate`; the route passes the caller's project membership into the same access decision the socket and message paths use.
+- AC-109: A caller who may not read the message's channel still receives 404 with no existence information, for a project channel, a direct conversation and any other channel kind.
+- AC-110: A fetch that fails for a network or server reason still renders the retryable placeholder with the file name, and Retry loads the file once the failure clears; no failure navigates the browser away from the app and no token reaches a URL.
+
+### US-047: Unread is one truth and a new conversation arrives live
+
+As a workspace member, I want the unread count to clear when I read a conversation and a newly granted channel to open straight away, so that I trust the badges and never have to reload to reach a conversation I was just given.
+
+**Acceptance Criteria:**
+- AC-111: Reading a conversation clears its unread indicator in the sidebar and in the conversation list without a reload, and it stays cleared: a server-side unread flag written before the read must not re-light the badge.
+- AC-112: A conversation granted by a task assignment is openable immediately: following its link shows the conversation for a member with access instead of the no-channel-selected pane, and its row is present in the list and in the sidebar without a reload.
+- AC-113: A grant or a rename reaches the sidebar as well as the open view, so the two panes never disagree about which conversations exist or what they are called.
+
+### US-048: Replies and order show up live
+
+As a workspace member, I want a thread reply and the most recent conversation to appear without a reload, so that I follow the conversation that is actually newest and never miss a reply someone sent me.
+
+**Acceptance Criteria:**
+- AC-114: The conversation list is one WhatsApp-style run of rows: every conversation the member can read - the seeded channels, the project channels and the direct messages - appears in a single sequence ordered by its latest message, newest first, with no per-kind section headings; the order is applied on first paint and again after every live message.
+- AC-115: When another member replies in a thread, the reply count on the parent message in the open conversation updates live for every member of that channel, without a reload, whether or not their thread panel is open.
+- AC-116: A reply that arrives while its thread panel is open appears in that panel at once for every member viewing it, and a reply for a different parent only updates that parent's count.
+
+### Functional Requirements (new)
+
+- FR-096: The sidebar MUST render one `Project chat` navigation item that links to the workspace chat root and MUST NOT render the seeded team channel as a separate sidebar row; the item MUST be marked current on both the chat root and a conversation route.
+- FR-097: The chat root route MUST show the conversation list with no conversation selected and MUST NOT redirect to a default channel; its empty pane MUST offer the list and MUST NOT tell a member who has readable conversations to ask an administrator.
+- FR-098: The seeded team channel MUST remain a readable conversation in that list with `kind: 'team'` and its unread state, so no stored row, index, permission or access rule changes with this amendment.
+- FR-099: The chat screen MUST bound its height to the space below the application header so the document does not scroll while a conversation is read, and the conversation-list pane and the message pane MUST each own their scroll container.
+- FR-100: The chat header MUST stay visible while the message pane scrolls, including while a search bar or a pinned-message panel is open.
+- FR-101: The code card's Copy and Download controls MUST take their hover, focus and active surfaces from the design tokens that are remapped for both themes, so text contrast stays at least 4.5:1 in every state and theme.
+- FR-102: The attachment download route MUST resolve the caller's project membership and pass it to the same channel access decision the socket and message paths use, so a project member without `chat:moderate` can fetch an attachment of a channel they may read, while a caller who may not read it keeps receiving 404.
+- FR-103: After a conversation is marked read, the client MUST clear its unread indicator in the sidebar and in the conversation list without a reload, and MUST treat a server unread flag that predates the read as cleared.
+- FR-104: A conversation granted or renamed while a member is connected MUST appear or update in both the conversation list and the sidebar without a reload, and a conversation named by the route MUST open even when the client has not listed it yet.
+- FR-105: The conversation list MUST be a single merged, recency-ordered list - seeded channels, project channels and direct messages in one sequence with no per-kind headings - ordered by latest activity on first paint and after every live message, and a thread reply MUST update its parent's reply count live for every member of the channel, with the reply appended to an open thread panel.
+
+### Non-Functional Requirements (new)
+
+- NFR-042: Scroll containment MUST hold from 320px to 1920px and at 200% zoom without a horizontal scrollbar, and no interactive content may be hidden behind the fixed chat header or the mobile tab bar (`perfect-ui-rules.md` section 4, WCAG 2.4.11).
+- NFR-043: Every state of the surfaces this amendment touches (default, hover, focus-visible, active, disabled) MUST meet at least 4.5:1 text contrast and 3:1 icon and focus-ring contrast in both themes, and the pairs MUST be verifiable from the token map in `client/src/index.css` (`perfect-ui-rules.md` section 4).
+- NFR-044: A thread reply MUST reach every other member of the channel within 2 seconds p95 on a normal connection, and the count MUST be correct after a reload when the socket is unavailable; no polling interval may be added to achieve it.
+- NFR-045: Unread reconciliation MUST NOT add a request per render: at most one read-state write per conversation open, no polling, and no re-fetch of the channel list on every navigation.
+- NFR-046: The attachment route MUST keep its disclosure rules: 404 for a caller who may not read the message's channel, no existence leak, no token in a URL, and a readable retryable failure state otherwise.
+
+### Edge Cases and Error States (new)
+
+- EC-043: The `Project chat` item is clicked while a conversation is open → the chat root opens the list with no conversation selected; the conversation that was open stays in the list and in the socket room list; no channel id is added to the URL.
+- EC-044: A member can read no conversation at all → the chat root shows an explicit empty state that names who can grant access, not a blank pane and not a broken layout.
+- EC-045: A conversation is opened by route id before the client has listed it (deep link, freshly granted channel, bookmark) → the view resolves that conversation and opens it for a member with access; the no-channel-selected pane is shown only after access was checked and refused.
+- EC-046: An attachment fetch fails because the browser is offline or the API answered an error → the retryable placeholder is shown with the file name, Retry fetches again and succeeds once the failure clears, and nothing navigates away from the app.
+- EC-047: A reply arrives for a parent message that is older than the loaded page → no count is invented for a row that is not loaded; the parent is correct the next time its page is loaded.
+- EC-048: A reply arrives for a different parent than the one whose thread panel is open → only the arriving parent's reply count changes; the open panel is left untouched.
+- EC-049: A tap leaves the pointer-hover state applied on a touch device → the control does not stay in its hover surface and contrast remains at least 4.5:1 whether or not the hover state is applied (`perfect-ui-rules.md`, no sticky hover on touch).
+
+### Anti-redundancy check (new)
+
+| Need | Existing asset | Decision |
+|---|---|---|
+| A sidebar entry for the conversation list | `components/Sidebar.tsx` nav config and `features/chat/components/SidebarChannels.tsx` | modify: one nav item, the seeded team row leaves the sidebar |
+| A conversation list with no conversation selected | `features/chat/views/ChatView.tsx` (list pane, `EmptyState`) | modify: drop the default-channel redirect, keep the list beside the empty pane |
+| Conversation ordering by activity | `features/chat/lib/conversations.ts` `sortConversations`, server `listConversations` `byRecency` | reuse; apply on first paint instead of trusting payload order |
+| A bounded, page-independent screen | the chat branch of `#main-content` in `components/Sidebar.tsx`, `components/ui/sidebar.tsx` `SidebarProvider`/`SidebarInset`, the `MessageList` scroll container | modify: bound the height and give each pane its own scroll owner |
+| A header that stays put | `features/chat/components/ChatHeader.tsx` | modify |
+| Readable action states in both themes | the token map in `client/src/index.css` (`inverse`, `inverse-text`, hover state layer), `DESIGN.md` conventions | reuse; the card stops using a raw slate step |
+| Project membership for channel access | `server/src/utils/chatAccess.ts` `decideChannelAccess`, `server/src/utils/projectMembers.ts` | reuse; the attachment route starts passing the same fact |
+| Read state | `features/chat/lib/readState.ts`, `useChatChannels.markRead`, `chatApi.markRead` | modify: reconcile the local read with the server flag |
+| A granted or renamed conversation arriving live | `server/src/utils/chatGrant.ts`, `realtime/bus.ts` `emitToUser`, `features/chat/lib/conversations.ts` `grantChannel`/`renameChannel`, `useChatChannels.addChannel` | reuse; the sidebar subscribes to the same events |
+| Opening a conversation the client has not listed | `chatApi.channels`, `chatApi.conversations`, `useChatChannels` | modify: resolve the route id before deciding there is no channel |
+| A live thread update | `realtime/chatEvents.ts` with `channelRoom`, `chatMessageController.createMessageInChannel` (already increments `replyCount`), `useChatMessages` | modify: one event carrying the authoritative parent summary |
+| Real-time transport | `socket.io` / `socket.io-client`, existing rooms | reuse; no second transport, no polling |
+
+No new channel model, message store, transport, member model, upload path or notification path is introduced, and no dependency is added.
+
+### Risks (new)
+
+- RISK-013: Bounding the chat screen height can clip content on a short viewport, at high zoom or with the software keyboard open. Mitigation: `min-h-0` on every flex ancestor, the composer outside the scroll container, and a browser check at 320x568 and 200% zoom.
+- RISK-014: Replacing the sidebar entry removes the only desktop shortcut to the seeded team channel. Mitigation: the channel stays a row inside the chat root list with its unread state, and the browser pass confirms it is reachable without a channel id in the sidebar.
+- RISK-015: Removing the chat root redirect changes what `/{workspaceSlug}/chat` does for existing links and bookmarks. Mitigation: the root renders the list with an explicit empty pane, `/{workspaceSlug}/chat/{channelId}` is unchanged, and the documentation pass updates the README chat section.
+- RISK-016: Patching a parent reply count from live events can drift if an event is missed while the socket is disconnected. Mitigation: `listMessages` re-derives the count on every load, and the thread event carries the authoritative post-increment count rather than a delta.
+- RISK-017: One merged conversation list changes a surface that AC-056 and AC-065 fixed. Mitigation: the row rendering is extracted rather than rewritten, so previews, unread badges and the picker position are preserved, and the amendment to those two criteria is recorded in the note above.
+
+### Traceability summary (new rows)
+
+This amendment adds 6 user stories, 17 acceptance criteria (AC-100..AC-116), 10 functional requirements (FR-096..FR-105), 5 non-functional requirements (NFR-042..NFR-046), 7 edge cases (EC-043..EC-049) and 4 risks (RISK-013..RISK-016). Every new requirement maps to at least one acceptance criterion and to the plan section and tasks appended in `plan.md`/`tasks.md` (P28-P32); the rows are in `.sdrive/governance/real-time-chat/v2/traceability.json` with status `in_progress`, and their task column is provisional until Gate 2 approves the plan.
+
+Two notes for the reviewer:
+
+1. **Supersession.** AC-076's sidebar clause and AC-077's section scope are superseded by FR-096/FR-097 as described in the amendment note. Both keep their text and their number, and the matrix keeps their existing rows.
+2. **Decided at Gate 1 (2026-10-28).** AC-114 and FR-105 order one merged list instead of two labelled segments, so AC-056 and AC-065 are amended for this view: every conversation - the seeded channel, a project channel or a direct message - is one row in one recency-ordered run, and each row still shows the avatar, name, last-message preview and unread badge through the single row component AC-056 introduced. The parts of AC-056/AC-065 that made the two segments read identically are therefore preserved; only the grouping goes.
+
+### Research sources and assumptions
+
+- **No external research available.** The `ux-ui-library`, Stackwise and Context7 MCP servers named by the update-proposal agent are not available in this environment, so no version-specific library documentation or component guidance was fetched for this amendment.
+- Verified in-repository sources: `DESIGN.md` (token names, contrast expectation, scroll behaviour of wide content, touch targets), `perfect-ui-rules.md` (section 4 contrast and state layers, no sticky hover on touch, WCAG 2.4.11), `.sdrive/constitution.md` (CON-101..CON-204, CON-401, CON-703), `client/src/index.css` (the dark-theme remap of `slate-800`/`slate-900`, the `inverse` tokens and the hover state layer), `.sdrive/skills/socket-io/SKILL.md`, `.sdrive/skills/client-feature-module/SKILL.md`, and the chat module sources listed in the anti-redundancy table.
+- Assumption recorded rather than invented: the seeded team channel keeps existing as a conversation (AC-102). The maintainer's instruction covered the sidebar entry, not the stored row, and renaming or deleting the stored row would touch indexes, permissions and the v2 backfill that AC-078 protects.

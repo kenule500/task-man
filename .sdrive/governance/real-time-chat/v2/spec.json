@@ -183,6 +183,128 @@
           "text": "The panel is keyboard operable - it opens with focus inside, closes on Escape and returns focus to the trigger - and at 320px it fits without horizontal scrolling."
         }
       ]
+    },
+    {
+      "id": "US-043",
+      "title": "The sidebar reaches every conversation",
+      "role": "Workspace member",
+      "want": "a Project chat item in the sidebar that opens every conversation I can read",
+      "benefit": "I reach a conversation in one place instead of a channel row I cannot tell apart from the others",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-100",
+          "text": "In the sidebar chat group a single Project chat navigation item replaces the seeded team-chat entry: it is a link to /{workspaceSlug}/chat (the conversation list, no channel id), it is marked current for both /{workspaceSlug}/chat and /{workspaceSlug}/chat/{channelId}, and it carries no channel glyph and no permission-specific lock."
+        },
+        {
+          "id": "AC-101",
+          "text": "Opening /{workspaceSlug}/chat with no conversation selected shows the conversation list beside an explicit no-conversation-selected pane and does not redirect to a default channel; a member who can read at least one conversation is told to pick one from the list, never to ask an administrator for access."
+        },
+        {
+          "id": "AC-102",
+          "text": "The seeded team channel remains a readable conversation inside that list, with its stored kind: 'team' and its unread state unchanged, so renaming it and moving its sidebar entry stay display changes."
+        }
+      ]
+    },
+    {
+      "id": "US-044",
+      "title": "The chat frame stays still while I read",
+      "role": "Workspace member",
+      "want": "the conversation list and the chat header to stay where they are while I scroll the messages",
+      "benefit": "I can read a long conversation and switch conversation without losing my place",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-103",
+          "text": "The chat screen occupies exactly the space below the application header with its own bounded height: scrolling the message pane never scrolls the document, and the page scroll position is unchanged while a conversation is read."
+        },
+        {
+          "id": "AC-104",
+          "text": "The conversation-list pane and the message pane are independent scroll containers: scrolling the messages leaves the list where it was, and scrolling the list leaves the conversation where it was."
+        },
+        {
+          "id": "AC-105",
+          "text": "The chat header (conversation name, presence summary and the search, pins and members controls) stays visible while the messages scroll beneath it, and a long message list never pushes it out of view."
+        },
+        {
+          "id": "AC-106",
+          "text": "The containment holds from 320px to 1920px and at 200% zoom: no horizontal scrolling, no content hidden behind the header or the mobile tab bar, and a keyboard focus ring is never hidden behind the fixed header."
+        }
+      ]
+    },
+    {
+      "id": "US-045",
+      "title": "Code actions stay readable in every state",
+      "role": "Workspace member",
+      "want": "the Copy and Download controls on a code card to stay legible when I hover or focus them",
+      "benefit": "I can copy a snippet without guessing which control I am about to press",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-107",
+          "text": "The code card's Copy and Download controls keep at least 4.5:1 text contrast and 3:1 icon contrast against their own background in the default, hover, focus-visible and active states, in the light and the dark theme; the hover surface comes from the design tokens that are remapped for dark mode, never from a raw slate step that the dark theme maps to a light colour."
+        }
+      ]
+    },
+    {
+      "id": "US-046",
+      "title": "Attachments load for everyone who may read the conversation",
+      "role": "Project member",
+      "want": "a file posted in a project channel to open for me even when I am not an administrator",
+      "benefit": "shared screenshots and documents are actually usable by the people doing the work",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-108",
+          "text": "An attachment on a project-channel message is fetched successfully by every project member who may read that channel, not only by holders of chat:moderate; the route passes the caller's project membership into the same access decision the socket and message paths use."
+        },
+        {
+          "id": "AC-109",
+          "text": "A caller who may not read the message's channel still receives 404 with no existence information, for a project channel, a direct conversation and any other channel kind."
+        },
+        {
+          "id": "AC-110",
+          "text": "A fetch that fails for a network or server reason still renders the retryable placeholder with the file name, and Retry loads the file once the failure clears; no failure navigates the browser away from the app and no token reaches a URL."
+        }
+      ]
+    },
+    {
+      "id": "US-047",
+      "title": "Unread is one truth and a new conversation arrives live",
+      "role": "Workspace member",
+      "want": "the unread count to clear when I read a conversation and a newly granted channel to open straight away",
+      "benefit": "I trust the badges and never have to reload to reach a conversation I was just given",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-111",
+          "text": "Reading a conversation clears its unread indicator in the sidebar and in the conversation list without a reload, and it stays cleared: a server-side unread flag written before the read must not re-light the badge."
+        },
+        {
+          "id": "AC-112",
+          "text": "A conversation granted by a task assignment is openable immediately: following its link shows the conversation for a member with access instead of the no-channel-selected pane, and its row is present in the list and in the sidebar without a reload."
+        },
+        {
+          "id": "AC-113",
+          "text": "A grant or a rename reaches the sidebar as well as the open view, so the two panes never disagree about which conversations exist or what they are called."
+        }
+      ]
+    },
+    {
+      "id": "US-048",
+      "title": "Replies and order show up live",
+      "role": "Workspace member",
+      "want": "a thread reply and the most recent conversation to appear without a reload",
+      "benefit": "I follow the conversation that is actually newest and never miss a reply someone sent me",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-114",
+          "text": "The conversation list is one WhatsApp-style run of rows: every conversation the member can read - the seeded channels, the project channels and the direct messages - appears in a single sequence ordered by its latest message, newest first, with no per-kind section headings; the order is applied on first paint and again after every live message."
+        },
+        {
+          "id": "AC-115",
+          "text": "When another member replies in a thread, the reply count on the parent message in the open conversation updates live for every member of that channel, without a reload, whether or not their thread panel is open."
+        },
+        {
+          "id": "AC-116",
+          "text": "A reply that arrives while its thread panel is open appears in that panel at once for every member viewing it, and a reply for a different parent only updates that parent's count."
+        }
+      ]
     }
   ],
   "functionalRequirements": [
@@ -305,6 +427,56 @@
       "id": "FR-095",
       "text": "The member panel MUST show avatar, name, online state, role and a 'You' badge, group online members first, and state a count equal to the header's member count.",
       "linkedAcceptanceCriteria": ["AC-097", "AC-099"]
+    },
+    {
+      "id": "FR-096",
+      "text": "The sidebar MUST render one Project chat navigation item that links to the workspace chat root and MUST NOT render the seeded team channel as a separate sidebar row; the item MUST be marked current on both the chat root and a conversation route.",
+      "linkedAcceptanceCriteria": ["AC-100"]
+    },
+    {
+      "id": "FR-097",
+      "text": "The chat root route MUST show the conversation list with no conversation selected and MUST NOT redirect to a default channel; its empty pane MUST offer the list and MUST NOT tell a member who has readable conversations to ask an administrator.",
+      "linkedAcceptanceCriteria": ["AC-101"]
+    },
+    {
+      "id": "FR-098",
+      "text": "The seeded team channel MUST remain a readable conversation in that list with kind: 'team' and its unread state, so no stored row, index, permission or access rule changes with this amendment.",
+      "linkedAcceptanceCriteria": ["AC-102"]
+    },
+    {
+      "id": "FR-099",
+      "text": "The chat screen MUST bound its height to the space below the application header so the document does not scroll while a conversation is read, and the conversation-list pane and the message pane MUST each own their scroll container.",
+      "linkedAcceptanceCriteria": ["AC-103", "AC-104", "AC-106"]
+    },
+    {
+      "id": "FR-100",
+      "text": "The chat header MUST stay visible while the message pane scrolls, including while a search bar or a pinned-message panel is open.",
+      "linkedAcceptanceCriteria": ["AC-105"]
+    },
+    {
+      "id": "FR-101",
+      "text": "The code card's Copy and Download controls MUST take their hover, focus and active surfaces from the design tokens that are remapped for both themes, so text contrast stays at least 4.5:1 in every state and theme.",
+      "linkedAcceptanceCriteria": ["AC-107"]
+    },
+    {
+      "id": "FR-102",
+      "text": "The attachment download route MUST resolve the caller's project membership and pass it to the same channel access decision the socket and message paths use, so a project member without chat:moderate can fetch an attachment of a channel they may read, while a caller who may not read it keeps receiving 404.",
+      "linkedAcceptanceCriteria": ["AC-108", "AC-109", "AC-110"]
+    },
+    {
+      "id": "FR-103",
+      "text": "After a conversation is marked read, the client MUST clear its unread indicator in the sidebar and in the conversation list without a reload, and MUST treat a server unread flag that predates the read as cleared.",
+      "linkedAcceptanceCriteria": ["AC-111"]
+    },
+    {
+      "id": "FR-104",
+      "text": "A conversation granted or renamed while a member is connected MUST appear or update in both the conversation list and the sidebar without a reload, and a conversation named by the route MUST open even when the client has not listed it yet.",
+      "linkedAcceptanceCriteria": ["AC-112", "AC-113"]
+    },
+    {
+      "id": "FR-105",
+      "text": "The conversation list MUST be a single merged, recency-ordered list - seeded channels, project channels and direct messages in one sequence with no per-kind headings - ordered by latest activity on first paint and after every live message, and a thread reply MUST update its parent's reply count live for every member of the channel, with the reply appended to an open thread panel.",
+      "linkedAcceptanceCriteria": ["AC-114", "AC-115", "AC-116"]
     }
   ],
   "nonFunctionalRequirements": [
@@ -372,6 +544,31 @@
       "id": "NFR-041",
       "text": "A failed attachment fetch, a failed code highlight and a failed member query MUST each degrade to a readable fallback without unhandled rejections or console errors.",
       "linkedAcceptanceCriteria": ["AC-089", "AC-099"]
+    },
+    {
+      "id": "NFR-042",
+      "text": "Scroll containment MUST hold from 320px to 1920px and at 200% zoom without a horizontal scrollbar, and no interactive content may be hidden behind the fixed chat header or the mobile tab bar (perfect-ui-rules.md section 4, WCAG 2.4.11).",
+      "linkedAcceptanceCriteria": ["AC-103", "AC-106"]
+    },
+    {
+      "id": "NFR-043",
+      "text": "Every state of the surfaces this amendment touches (default, hover, focus-visible, active, disabled) MUST meet at least 4.5:1 text contrast and 3:1 icon and focus-ring contrast in both themes, and the pairs MUST be verifiable from the token map in client/src/index.css (perfect-ui-rules.md section 4).",
+      "linkedAcceptanceCriteria": ["AC-106", "AC-107"]
+    },
+    {
+      "id": "NFR-044",
+      "text": "A thread reply MUST reach every other member of the channel within 2 seconds p95 on a normal connection, and the count MUST be correct after a reload when the socket is unavailable; no polling interval may be added to achieve it.",
+      "linkedAcceptanceCriteria": ["AC-115", "AC-116"]
+    },
+    {
+      "id": "NFR-045",
+      "text": "Unread reconciliation MUST NOT add a request per render: at most one read-state write per conversation open, no polling, and no re-fetch of the channel list on every navigation.",
+      "linkedAcceptanceCriteria": ["AC-111", "AC-112"]
+    },
+    {
+      "id": "NFR-046",
+      "text": "The attachment route MUST keep its disclosure rules: 404 for a caller who may not read the message's channel, no existence leak, no token in a URL, and a readable retryable failure state otherwise.",
+      "linkedAcceptanceCriteria": ["AC-110", "AC-109"]
     }
   ],
   "edgeCases": [
@@ -439,6 +636,41 @@
       "id": "EC-042",
       "description": "A project is renamed while a member has the chat open.",
       "expectedBehavior": "The row and header update to the new name without a reload."
+    },
+    {
+      "id": "EC-043",
+      "description": "The Project chat item is clicked while a conversation is open.",
+      "expectedBehavior": "The chat root opens the list with no conversation selected; the conversation that was open stays in the list and in the socket room list; no channel id is added to the URL."
+    },
+    {
+      "id": "EC-044",
+      "description": "A member can read no conversation at all.",
+      "expectedBehavior": "The chat root shows an explicit empty state that names who can grant access, not a blank pane and not a broken layout."
+    },
+    {
+      "id": "EC-045",
+      "description": "A conversation is opened by route id before the client has listed it (deep link, freshly granted channel, bookmark).",
+      "expectedBehavior": "The view resolves that conversation and opens it for a member with access; the no-channel-selected pane is shown only after access was checked and refused."
+    },
+    {
+      "id": "EC-046",
+      "description": "An attachment fetch fails because the browser is offline or the API answered an error.",
+      "expectedBehavior": "The retryable placeholder is shown with the file name; Retry fetches again and succeeds once the failure clears; nothing navigates away from the app."
+    },
+    {
+      "id": "EC-047",
+      "description": "A reply arrives for a parent message that is older than the loaded page.",
+      "expectedBehavior": "No count is invented for a row that is not loaded; the parent is correct the next time its page is loaded."
+    },
+    {
+      "id": "EC-048",
+      "description": "A reply arrives for a different parent than the one whose thread panel is open.",
+      "expectedBehavior": "Only the arriving parent's reply count changes; the open panel is left untouched."
+    },
+    {
+      "id": "EC-049",
+      "description": "A tap leaves the pointer-hover state applied on a touch device.",
+      "expectedBehavior": "The control does not stay in its hover surface and contrast remains at least 4.5:1 whether or not the hover state is applied (perfect-ui-rules.md, no sticky hover on touch)."
     }
   ],
   "dependencies": [
@@ -466,6 +698,31 @@
       "name": "ChatChannel / ChatMessage / ChatPresence",
       "type": "internal",
       "notes": "Reused models; no schema change."
+    },
+    {
+      "name": "socket.io / socket.io-client",
+      "type": "library",
+      "notes": "No change. The thread update reuses the existing channel room and the existing event set; no second transport is added."
+    },
+    {
+      "name": "axios",
+      "type": "library",
+      "notes": "No change. The existing authenticated client keeps carrying the attachment blob fetches."
+    },
+    {
+      "name": "lucide-react",
+      "type": "library",
+      "notes": "No change. The sidebar item and the code card reuse the existing icon set."
+    },
+    {
+      "name": "tailwindcss",
+      "type": "library",
+      "notes": "No change. The chat shell, the sticky header and the code card hover use the existing utilities and the token map in client/src/index.css."
+    },
+    {
+      "name": "ChatChannel / ChatMessage / ChatRead",
+      "type": "internal",
+      "notes": "No change. No schema or index change: the amendment is display, access-decision and event-shape work."
     }
   ],
   "risks": [
@@ -498,6 +755,31 @@
       "id": "RISK-012",
       "description": "Changing the message renderer can regress the v1 search jump, pin panel or thread panel.",
       "mitigation": "Keep the body renderer a child component and preserve the data-message-id contract used by search."
+    },
+    {
+      "id": "RISK-013",
+      "description": "Bounding the chat screen height can clip content on a short viewport, at high zoom or with the software keyboard open.",
+      "mitigation": "min-h-0 on every flex ancestor, the composer outside the scroll container, and a browser check at 320x568 and 200% zoom."
+    },
+    {
+      "id": "RISK-014",
+      "description": "Replacing the sidebar entry removes the only desktop shortcut to the seeded team channel.",
+      "mitigation": "The channel stays a row inside the chat root list with its unread state, and the browser pass confirms it is reachable without a channel id in the sidebar."
+    },
+    {
+      "id": "RISK-015",
+      "description": "Removing the chat root redirect changes what /{workspaceSlug}/chat does for existing links and bookmarks.",
+      "mitigation": "The root renders the list with an explicit empty pane, /{workspaceSlug}/chat/{channelId} is unchanged, and the documentation pass updates the README chat section."
+    },
+    {
+      "id": "RISK-016",
+      "description": "Patching a parent reply count from live events can drift if an event is missed while the socket is disconnected.",
+      "mitigation": "listMessages re-derives the count on every load, and the thread event carries the authoritative post-increment count rather than a delta."
+    },
+    {
+      "id": "RISK-017",
+      "description": "One merged conversation list changes a surface that AC-056 and AC-065 fixed.",
+      "mitigation": "The row rendering is extracted rather than rewritten, so previews, unread badges and the picker position are preserved, and the amendment to those two criteria is recorded in the spec's amendment note."
     }
   ]
 }
