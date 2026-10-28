@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ChevronRight, FolderKanban, KanbanSquare, Pencil, Plus } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ChevronRight, FolderKanban, KanbanSquare, MessageSquare, Pencil, Plus } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { Alert, EmptyState, SkeletonDetail, Surface, Tag, toast } from '@/components/ds';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
+import { getApiErrorMessage } from '@/utils/api';
+import { chatApi } from '@/features/chat';
 import {
   ProjectFormDialog, ProjectIcon, ProjectWorkspace, SprintFormDialog, colorStyleOf, suggestSprintDates, suggestSprintName,
   useProjectDirectory, useProjects,
@@ -16,8 +18,11 @@ type SprintFormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit';
 
 const ProjectDetailPage = () => {
   const { workspaceSlug = '', projectId } = useParams<{ workspaceSlug: string; projectId: string }>();
+  const navigate = useNavigate();
   const { can } = usePermissions();
   const canWrite = can('projects:write');
+  // The chat action is hidden from a role without chat:read, and no channel request is made (EC-040)
+  const canChat = can('chat:read');
 
   const {
     projects, loading, error, clearError, updateProject, createSprint, updateSprint, startSprint, completeSprint, deleteSprint,
@@ -43,6 +48,22 @@ const ProjectDetailPage = () => {
   const boardHref = project
     ? `/${workspaceSlug}/tasks?view=board&project=${encodeURIComponent(project.name)}${hasActiveSprint ? '&sprint=active' : ''}`
     : `/${workspaceSlug}/tasks?view=board`;
+
+  // The channel is resolved (and created on demand) before navigating, so a project that has never had
+  // one does not land on an empty route (FR-089, AC-093).
+  const [openingChat, setOpeningChat] = useState(false);
+  const openChat = async () => {
+    if (!project || openingChat) return;
+    setOpeningChat(true);
+    try {
+      const channel = await chatApi.projectChannel(workspaceSlug, project._id);
+      navigate(`/${workspaceSlug}/chat/${channel._id}`);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not open the project chat.'));
+    } finally {
+      setOpeningChat(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -103,6 +124,16 @@ const ProjectDetailPage = () => {
               <Link to={boardHref} className={buttonVariants({ variant: 'outline', className: 'h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9' })}>
                 <KanbanSquare className="size-4" aria-hidden /> Open board
               </Link>
+              {canChat && (
+                <Button
+                  variant="outline"
+                  onClick={() => void openChat()}
+                  disabled={openingChat}
+                  className="h-11 gap-2 rounded-lg border-slate-300 text-sm text-slate-800 shadow-none sm:h-9"
+                >
+                  <MessageSquare className="size-4" aria-hidden /> {openingChat ? 'Opening…' : 'Open chat'}
+                </Button>
+              )}
               {canWrite && (
                 <Button
                   onClick={() => setSprintForm({ mode: 'create' })}

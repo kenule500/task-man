@@ -14,7 +14,8 @@ import Page from '../models/pageModel.js';
 import PageVersion from '../models/pageVersionModel.js';
 import CustomField from '../models/customFieldModel.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
-import { archiveProjectChannel, createProjectChannel } from './chatChannelController.js';
+import { archiveProjectChannel, createProjectChannel, projectChannelCard } from './chatChannelController.js';
+import { emitToChannel } from '../realtime/bus.js';
 import { TaskRuleError, handleError, hasValidationErrors, workspaceOf } from './taskController.js';
 
 // Tasks store their project by name; matching ignores case like the unique index does
@@ -199,6 +200,26 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
 };
 
 /**
+ * Refreshes an open chat screen when its project is renamed (FR-079, EC-042).
+ *
+ * The channel row itself is not renamed: `displayNameOf` prefers the project's current name over the
+ * stored one, so the summary carries the new name and the client patches the row it already has.
+ * Emitted to the channel room, which every member's socket has joined.
+ */
+const announceProjectRename = async (
+  workspaceId: mongoose.Types.ObjectId,
+  project: { _id: mongoose.Types.ObjectId; name: string; members: (mongoose.Types.ObjectId | string)[] },
+): Promise<void> => {
+  try {
+    const card = await projectChannelCard(workspaceId, project);
+    emitToChannel(card._id, 'chat:channel', card);
+  } catch (error) {
+    // A rename that already saved must not fail because a live update could not be sent
+    console.error('chat channel rename error:', (error as Error).message);
+  }
+};
+
+/**
  * @desc    Edit a project (renaming moves its tasks along)
  * @route   PATCH /api/workspaces/:slug/projects/:id
  */
@@ -241,6 +262,16 @@ export const updateProject = async (req: Request, res: Response): Promise<void> 
     if (changes.length > 0) {
       await recordActivity(req, { action: 'project.updated', summary: project.name, project: project._id as mongoose.Types.ObjectId, changes });
     }
+
+    // An open chat screen shows the project's new name without a reload (FR-079, EC-042)
+    if (project.name !== previousName) {
+      await announceProjectRename(project.workspace as mongoose.Types.ObjectId, {
+        _id: project._id as mongoose.Types.ObjectId,
+        name: project.name,
+        members: project.members ?? [],
+      });
+    }
+
     res.status(200).json(await withSprints(project.toObject()));
   } catch (error) {
     respondError(res, error, 'updateProject');

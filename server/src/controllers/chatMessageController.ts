@@ -25,6 +25,16 @@ export const messageView = (message: Record<string, unknown>) => {
   return { ...message, body: '', attachments: [] };
 };
 
+/**
+ * Populates the author and shapes the message, so every emit carries the same name and avatar that
+ * `chat:message` already sends (FR-091, AC-094). `messageView` stays the only place a message is
+ * shaped; this only makes sure the author is loaded before that happens.
+ */
+const messageViewWithAuthor = async (message: IChatMessage): Promise<Record<string, unknown>> => {
+  await message.populate('author', PUBLIC_USER_FIELDS);
+  return messageView(message.toObject() as unknown as Record<string, unknown>);
+};
+
 const objectId = (value: unknown) => new mongoose.Types.ObjectId(String(value));
 
 /** Keeps only the mentioned ids that are actually members of this workspace. */
@@ -355,7 +365,7 @@ export const editMessage = async (req: Request, res: Response): Promise<void> =>
     found.message.editedAt = new Date();
     await found.message.save();
 
-    const view = messageView(found.message.toObject() as unknown as Record<string, unknown>);
+    const view = await messageViewWithAuthor(found.message);
     emitToChannel(String(found.channel._id), 'chat:updated', view);
 
     res.status(200).json(view);
@@ -507,7 +517,7 @@ export const pinMessage = async (req: Request, res: Response): Promise<void> => 
     found.message.pinnedBy = objectId(req.user?._id);
     await found.message.save();
 
-    const view = messageView(found.message.toObject() as unknown as Record<string, unknown>);
+    const view = await messageViewWithAuthor(found.message);
     emitToChannel(String(found.channel._id), 'chat:updated', view);
     res.status(200).json(view);
   } catch (error) {
@@ -531,7 +541,7 @@ export const unpinMessage = async (req: Request, res: Response): Promise<void> =
     found.message.pinnedBy = null;
     await found.message.save();
 
-    const view = messageView(found.message.toObject() as unknown as Record<string, unknown>);
+    const view = await messageViewWithAuthor(found.message);
     emitToChannel(String(found.channel._id), 'chat:updated', view);
     res.status(200).json(view);
   } catch (error) {

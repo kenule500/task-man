@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { API_URL } from '@/config';
 import { getToken } from '@/utils/session';
-import type { ChatMessage, OutgoingMessage, Reaction, SocketAck } from '../types';
+import type {
+  ChannelSummary, ChatMessage, ConversationCard, OutgoingMessage, Reaction, SocketAck,
+} from '../types';
 
 /** `API_URL` points at the API root (…/api); the socket is served from the same origin. */
 const socketOrigin = (apiUrl: string = API_URL): string => apiUrl.replace(/\/api\/?$/, '');
@@ -26,6 +28,10 @@ interface Options {
   onReaction: (payload: ReactionEvent) => void;
   onTyping: (userId: string) => void;
   onPresence: (userId: string, online: boolean) => void;
+  /** A project channel the member was just granted; the view appends it and joins its room. */
+  onChannelGranted?: (card: ConversationCard) => void;
+  /** An existing channel's name or picture changed (e.g. its project was renamed). */
+  onChannelUpdated?: (card: ChannelSummary) => void;
 }
 
 export interface ChatSocket {
@@ -33,6 +39,8 @@ export interface ChatSocket {
   /** Sends over the socket; resolves with `null` when the socket is unavailable so the caller can fall back to REST. */
   send: (input: OutgoingMessage) => Promise<ChatMessage | null>;
   notifyTyping: () => void;
+  /** Subscribes this connection to one more channel room, e.g. a channel just granted (AC-081). */
+  joinChannel: (channelId: string) => void;
 }
 
 /**
@@ -43,16 +51,21 @@ export interface ChatSocket {
  * message that arrives in a background row can refresh that row without a reload (spec AC-063).
  */
 export const useChatSocket = ({
-  slug, channelId, channelIds = [], enabled, onMessage, onUpdated, onReaction, onTyping, onPresence,
+  slug, channelId, channelIds = [], enabled,
+  onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
 }: Options): ChatSocket => {
   const socketRef = useRef<Socket | null>(null);
   const [state, setState] = useState<TransportState>('connecting');
 
   // Handlers live in a ref so re-renders never tear down the connection
-  const handlers = useRef({ onMessage, onUpdated, onReaction, onTyping, onPresence });
+  const handlers = useRef({
+    onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
+  });
   useEffect(() => {
-    handlers.current = { onMessage, onUpdated, onReaction, onTyping, onPresence };
-  }, [onMessage, onUpdated, onReaction, onTyping, onPresence]);
+    handlers.current = {
+      onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated,
+    };
+  }, [onMessage, onUpdated, onReaction, onTyping, onPresence, onChannelGranted, onChannelUpdated]);
 
   // Refs keep the connection effect independent of the open channel and of the room list
   const openChannel = useRef(channelId);
@@ -96,6 +109,13 @@ export const useChatSocket = ({
     socket.on('chat:presence', (payload: { userId: string; online: boolean }) => {
       handlers.current.onPresence(payload.userId, payload.online);
     });
+    // A project channel this member was just granted, and a rename of a channel already in the list
+    socket.on('chat:channel-granted', (card: ConversationCard) => {
+      handlers.current.onChannelGranted?.(card);
+    });
+    socket.on('chat:channel', (card: ChannelSummary) => {
+      handlers.current.onChannelUpdated?.(card);
+    });
 
     return () => {
       socket.close();
@@ -125,5 +145,13 @@ export const useChatSocket = ({
     if (socket?.connected && channelId) socket.emit('chat:typing', { channelId });
   }, [channelId]);
 
-  return { state, send, notifyTyping };
+  // A granted channel is not in `channelIds` yet, so it is joined explicitly rather than waiting for
+  // the next render of the room list (FR-077, AC-081). The server re-checks access on `chat:join`.
+  const joinChannel = useCallback((channelIdToJoin: string) => {
+    const socket = socketRef.current;
+    if (!socket?.connected || !channelIdToJoin) return;
+    socket.emit('chat:join', { channelIds: [channelIdToJoin] });
+  }, []);
+
+  return { state, send, notifyTyping, joinChannel };
 };

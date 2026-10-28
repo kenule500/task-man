@@ -21,6 +21,9 @@ import Release from '../models/releaseModel.js';
 import { IWorkspace } from '../models/workspaceModel.js';
 import { deleteFiles } from '../utils/gridfs.js';
 import { addAssigneesToProjectMembers } from '../utils/projectMembers.js';
+import { planChannelGrants, uniqueChannelGrants, type ChannelGrant } from '../utils/chatGrant.js';
+import { emitToUser } from '../realtime/bus.js';
+import { projectChannelCard } from './chatChannelController.js';
 import { normalizeIds, wouldCreateCycle } from '../utils/taskGraph.js';
 import { diffFields, recordActivity } from '../utils/activity.js';
 import { stageFor, UNKNOWN_STAGE_MESSAGE, workflowOf } from '../utils/workflow.js';
@@ -57,6 +60,46 @@ const POPULATE_PATHS = [
 ];
 
 export class TaskRuleError extends Error {}
+
+/**
+ * Tells each newly added assignee that the project's channel is now readable, so an open chat screen
+ * gains the row without a reload (FR-075, FR-076, NFR-029).
+ *
+ * Runs after `addAssigneesToProjectMembers` reported who it added, so an existing member gets no
+ * event and a bulk edit collapses to one event per project and user (FR-078, EC-031, EC-033).
+ * Nothing is stored for an offline member: they receive the channel from the normal conversations
+ * load (EC-032), which is why no notification row is written here.
+ */
+const announceChannelGrants = async (
+  workspaceId: mongoose.Types.ObjectId,
+  projectName: string | null | undefined,
+  addedUserIds: readonly string[],
+): Promise<void> => {
+  const name = (projectName ?? '').trim();
+  if (!name || addedUserIds.length === 0) return;
+
+  try {
+    const project = await Project.findOne({ workspace: workspaceId, nameKey: name.toLowerCase() })
+      .select('_id name members').lean();
+    if (!project) return;
+
+    const grants: ChannelGrant[] = uniqueChannelGrants(
+      planChannelGrants(String(project._id), addedUserIds),
+    );
+    if (grants.length === 0) return;
+
+    // Resolved once per request: a bulk edit that grants several people shares one card
+    const card = await projectChannelCard(workspaceId, {
+      _id: project._id as mongoose.Types.ObjectId,
+      name: project.name,
+      members: project.members ?? [],
+    });
+    for (const grant of grants) emitToUser(grant.userId, 'chat:channel-granted', card);
+  } catch (error) {
+    // A live-update failure must never fail the assignment that already succeeded
+    console.error('chat channel grant error:', (error as Error).message);
+  }
+};
 
 // Fields whose changes are written to the activity log (description changes are noted without the text)
 const AUDITED_FIELDS = [
@@ -554,8 +597,12 @@ export const createTask = async (req: Request, res: Response): Promise<void> => 
       changes: parentId ? [{ field: 'parent', to: parentId }] : [],
     });
     // Being assigned work makes someone a member of the project, which grants its channel (spec T11.3)
-    await addAssigneesToProjectMembers(workspace._id as mongoose.Types.ObjectId, task.project, assignees);
+    const addedToProject = await addAssigneesToProjectMembers(
+      workspace._id as mongoose.Types.ObjectId, task.project, assignees,
+    );
     await notifyTaskEvents(req, task);
+    // ...and the people who just joined learn about the channel without reloading (spec T21.3)
+    await announceChannelGrants(workspace._id as mongoose.Types.ObjectId, task.project, addedToProject);
     res.status(201).json(await populateTasks(task));
   } catch (error) {
     handleError(res, error, 'createTask');
@@ -664,7 +711,9 @@ export const updateTask = async (req: Request, res: Response): Promise<void> => 
 
     // Being assigned work makes someone a member of the project, which grants its channel (spec T11.3)
     if ('assignees' in req.body) {
-      await addAssigneesToProjectMembers(workspaceId, task.project, task.assignees ?? []);
+      const addedToProject = await addAssigneesToProjectMembers(workspaceId, task.project, task.assignees ?? []);
+      // The people who just joined learn about the channel without reloading (spec T21.3)
+      await announceChannelGrants(workspaceId, task.project, addedToProject);
     }
 
     const after = task.toObject() as unknown as Record<string, unknown>;

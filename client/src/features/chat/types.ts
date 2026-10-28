@@ -115,6 +115,20 @@ export interface ChannelSummary {
   archived: boolean;
 }
 
+/** One row of the channel member panel: who they are, their workspace role and whether they are here. */
+export interface ChannelMember {
+  _id: string;
+  name: string;
+  avatarUrl: string;
+  roleName: string;
+  online: boolean;
+}
+
+export interface ChannelMembersPayload {
+  members: ChannelMember[];
+  count: number;
+}
+
 /** Who is connected, by user id. */
 export type PresenceMap = Record<string, boolean>;
 

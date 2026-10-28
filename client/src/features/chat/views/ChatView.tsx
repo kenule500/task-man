@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, EmptyState, PageLoader, toast } from '@/components/ds';
-import { API_URL } from '@/config';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { cn } from '@/lib/utils';
@@ -13,6 +12,7 @@ import DirectMessageList from '../components/DirectMessageList';
 import TeamChannelList from '../components/TeamChannelList';
 import ChatHeader from '../components/ChatHeader';
 import Composer from '../components/Composer';
+import MembersPanel from '../components/MembersPanel';
 import MessageList from '../components/MessageList';
 import { PinnedPanel } from '../components/Panels';
 import SearchBar from '../components/SearchBar';
@@ -21,7 +21,7 @@ import ThreadPanel from '../components/ThreadPanel';
 import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
-import { applyIncomingMessage } from '../lib/conversations';
+import { applyIncomingMessage, grantChannel, renameChannel } from '../lib/conversations';
 import { formatCounter, nextIndex } from '../lib/search';
 import type { ChatMessage, ConversationCard, PresenceMap } from '../types';
 
@@ -99,6 +99,9 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
   const [pinsOpen, setPinsOpen] = useState(false);
   const [pinned, setPinned] = useState<ChatMessage[]>([]);
   const [pinsLoading, setPinsLoading] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
+  // The members control, so closing the panel hands focus back to it (NFR-033)
+  const membersTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [teams, setTeams] = useState<ConversationCard[]>([]);
   const [directs, setDirects] = useState<ConversationCard[]>([]);
   const [teamsLoadedFor, setTeamsLoadedFor] = useState<string | null>(null);
@@ -130,7 +133,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     return () => { cancelled = true; };
   }, [workspaceSlug, canRead]);
 
-  const { state: transport, send, notifyTyping } = useChatSocket({
+  const { state: transport, send, notifyTyping, joinChannel } = useChatSocket({
     slug: workspaceSlug,
     channelId: currentChannelId,
     // Subscribed to every conversation so a row can refresh while another channel is open (AC-063)
@@ -159,6 +162,16 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     },
     onTyping: userId => setTyping(current => ({ ...current, [userId]: Date.now() })),
     onPresence: (userId, online) => setPresence(current => ({ ...current, [userId]: online })),
+    // A project channel arrived because a task assignment made this member part of the project:
+    // append it, then join its room so the next message arrives live (FR-077, AC-080, AC-081)
+    onChannelGranted: card => {
+      setTeams(current => grantChannel(current, card));
+      joinChannel(card._id);
+    },
+    // A project rename updates the open row in place (FR-079, EC-042)
+    onChannelUpdated: summary => {
+      setTeams(current => renameChannel(current, summary));
+    },
   });
 
   // Typing indicators expire on their own
@@ -183,10 +196,6 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
 
   // Highlighting @mentions needs the member names available in this channel
   const memberNames = useMemo(() => members.map(member => member.name), [members]);
-
-  const attachmentHref = useCallback((attachmentId: string) => (
-    `${API_URL}/workspaces/${encodeURIComponent(workspaceSlug ?? '')}/chat/attachments/${attachmentId}`
-  ), [workspaceSlug]);
 
   /** Sends over the socket when possible, otherwise REST; the ack message is merged either way. */
   const deliver = async (
@@ -550,6 +559,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
           // A direct conversation is always its two participants; other kinds come from the server
           memberCount={channel.memberCount ?? (channel.kind === 'direct' ? 2 : members.length)}
           transport={transport}
+          membersButtonRef={membersTriggerRef}
           onBack={() => setListOpen(true)}
           onOpenSearch={() => {
             setSearchNotice('');
@@ -559,8 +569,21 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
             setPinsOpen(value => !value);
             if (!pinsOpen) void loadPins();
           }}
-          onOpenMembers={() => { /* the member list lives in the sidebar */ }}
+          onOpenMembers={() => setMembersOpen(true)}
         />
+
+        {workspaceSlug && currentChannelId && (
+          <MembersPanel
+            slug={workspaceSlug}
+            channelId={currentChannelId}
+            channelLabel={label}
+            currentUserId={user?._id}
+            memberCount={channel.memberCount ?? (channel.kind === 'direct' ? 2 : members.length)}
+            open={membersOpen}
+            onOpenChange={setMembersOpen}
+            returnFocusTo={membersTriggerRef}
+          />
+        )}
 
         {channel.archived && (
           <Alert tone="warning" title="This project was deleted">
@@ -611,6 +634,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
                 reactions={reactions}
                 currentUserId={user?._id}
                 memberNames={memberNames}
+                directory={members}
                 canWrite={canWrite}
                 canModerate={canModerate}
                 loading={loading}
@@ -618,7 +642,7 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
                 hasMore={hasMore}
                 error={error}
                 emptyCopy={channel.kind === 'direct' ? 'Say hello to start the conversation.' : 'No messages yet. Start the conversation.'}
-                attachmentHref={attachmentHref}
+                slug={workspaceSlug ?? ''}
                 scrollTo={scrollTarget}
                 highlightedMessageId={highlightedId}
                 onLoadOlder={loadOlder}

@@ -1,7 +1,7 @@
 import api from '@/utils/api';
 import type {
-  ChannelSummary, ChatChannel, ChatMessage, ChatUser, ConversationsPayload, ConversationCard, MessagePage,
-  OutgoingMessage, Reaction, SearchPage,
+  ChannelMembersPayload, ChannelSummary, ChatChannel, ChatMessage, ChatUser, ConversationsPayload,
+  ConversationCard, MessagePage, OutgoingMessage, Reaction, SearchPage,
 } from './types';
 
 const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}`;
@@ -112,6 +112,26 @@ export const chatApi = {
   teams: async (slug: string): Promise<ConversationCard[]> => {
     const { data } = await api.get(`${base(slug)}/chat/teams`);
     return Array.isArray(data?.teams) ? data.teams : [];
+  },
+
+  /**
+   * One project's channel, created on demand. Resolving before navigating keeps a channel-less
+   * project from landing the member on an empty route (FR-090, AC-093).
+   */
+  projectChannel: async (slug: string, projectId: string): Promise<ChannelSummary> => {
+    const { data } = await api.get(
+      `${base(slug)}/chat/projects/${encodeURIComponent(projectId)}/channel`,
+    );
+    return data;
+  },
+
+  /** Everyone in one channel, with workspace role and presence (FR-094). */
+  channelMembers: async (slug: string, channelId: string): Promise<ChannelMembersPayload> => {
+    const { data } = await api.get(`${channelBase(slug, channelId)}/members`);
+    return {
+      members: Array.isArray(data?.members) ? data.members : [],
+      count: typeof data?.count === 'number' ? data.count : (data?.members?.length ?? 0),
+    };
   },
 
   renameChannel: async (slug: string, channelId: string, name: string): Promise<ChannelSummary> => {

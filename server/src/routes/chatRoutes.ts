@@ -1,14 +1,18 @@
 import express, { Router } from 'express';
 import {
+  channelMembers,
   getChannelAvatar,
   listChannels,
   listChatMembers,
   listConversations,
   listTeamChannels,
+  projectChannel,
   renameChannel,
   setChannelAvatar,
   startDirect,
+  validateChannelIdParam,
   validateListChannels,
+  validateProjectChannelParam,
   validateRenameChannel,
   validateStartDirect,
 } from '../controllers/chatChannelController.js';
@@ -50,10 +54,15 @@ router.get('/channels', requirePermission('chat:read'), validateListChannels, li
 router.get('/chat/conversations', requirePermission('chat:read'), listConversations);
 // Team channels only, kept for callers that need just that half
 router.get('/chat/teams', requirePermission('chat:read'), listTeamChannels);
+// A project's channel, get-or-create. Declared before the :channelId routes so "projects" is not
+// captured as a channel id (spec T24.1).
+router.get('/chat/projects/:projectId/channel', requirePermission('chat:read'), validateProjectChannelParam, projectChannel);
 // Avatar upload is declared before the generic :channelId routes so it is not captured as an id
 router.post('/chat/:channelId/avatar', requirePermission('chat:moderate'), uploadAttachmentFile, setChannelAvatar);
 router.get('/chat/:channelId/avatar', requirePermission('chat:read'), getChannelAvatar);
 router.patch('/chat/:channelId', requirePermission('chat:moderate'), validateRenameChannel, renameChannel);
+// Everyone in one channel, with workspace role and presence
+router.get('/chat/:channelId/members', requirePermission('chat:read'), validateChannelIdParam, channelMembers);
 // The mention menu and the direct-message picker need names; users:read is not required for chat
 router.get('/chat/members', requirePermission('chat:read'), listChatMembers);
 router.post('/chat/direct', requirePermission('chat:dm'), validateStartDirect, startDirect);

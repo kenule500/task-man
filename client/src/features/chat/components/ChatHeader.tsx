@@ -1,4 +1,5 @@
 import { ChevronLeft, Hash, Lock, Search, Pin, Users } from 'lucide-react';
+import type { Ref } from 'react';
 import { TooltipHint, UserAvatar } from '@/components/ds';
 import { cn } from '@/lib/utils';
 import { avatarSrc } from '../lib/avatar';
@@ -18,6 +19,8 @@ interface ChatHeaderProps {
   onOpenSearch: () => void;
   onTogglePins: () => void;
   onOpenMembers: () => void;
+  /** The members control, so the panel can return focus to it when it closes (NFR-033). */
+  membersButtonRef?: Ref<HTMLButtonElement>;
 }
 
 const TRANSPORT_COPY = {
@@ -29,7 +32,7 @@ const TRANSPORT_COPY = {
 /** Channel title, presence summary and the tools that belong to the conversation. */
 export const ChatHeader = ({
   channel, label, peer, peerOnline = false, onlineUserIds, memberCount, transport,
-  onBack, onOpenSearch, onTogglePins, onOpenMembers,
+  onBack, onOpenSearch, onTogglePins, onOpenMembers, membersButtonRef,
 }: ChatHeaderProps) => {
   const Glyph = channel.kind === 'direct' ? Lock : Hash;
   const online = onlineUserIds.length;
@@ -110,8 +113,10 @@ export const ChatHeader = ({
         </TooltipHint>
         <TooltipHint label={`${memberCount} ${memberCount === 1 ? 'member' : 'members'}`}>
           <button
+            ref={membersButtonRef}
             type="button"
             aria-label={`Members, ${memberCount} in this channel`}
+            aria-haspopup="dialog"
             onClick={onOpenMembers}
             className="flex size-8 items-center justify-center rounded-md text-slate-500 outline-none hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-primary"
           >

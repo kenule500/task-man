@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { groupByDay } from '../lib/messages';
-import type { ChatMessage, Reaction } from '../types';import MessageItem from './MessageItem';
+import type { ChatMessage, ChatUser, Reaction } from '../types';
+import MessageItem from './MessageItem';
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -8,6 +9,8 @@ interface MessageListProps {
   currentUserId: string | undefined;
   /** Known member names, so @mentions render highlighted. */
   memberNames: readonly string[];
+  /** The channel's member directory, so an author id resolves to a name and avatar (FR-092). */
+  directory?: readonly ChatUser[];
   canWrite: boolean;
   canModerate: boolean;
   loading: boolean;
@@ -15,7 +18,8 @@ interface MessageListProps {
   hasMore: boolean;
   error: string;
   emptyCopy: string;
-  attachmentHref: (attachmentId: string) => string;
+  /** Workspace slug used to fetch attachment bytes through the authenticated client (FR-086). */
+  slug?: string;
   /** A message the search jumped to: scroll to it and let the list flash it (spec AC-074). */
   scrollTo?: { id: string; nonce: number } | null;
   highlightedMessageId?: string | null;
@@ -31,8 +35,8 @@ interface MessageListProps {
 
 /** The channel's messages, oldest at the top, with an accessible live region for new arrivals. */
 export const MessageList = ({
-  messages, reactions, currentUserId, memberNames, canWrite, canModerate, loading, loadingOlder, hasMore,
-  error, emptyCopy, attachmentHref, scrollTo, highlightedMessageId, onLoadOlder, onToggleReaction, onReply,
+  messages, reactions, currentUserId, memberNames, directory, canWrite, canModerate, loading, loadingOlder, hasMore,
+  error, emptyCopy, slug, scrollTo, highlightedMessageId, onLoadOlder, onToggleReaction, onReply,
   onEdit, onDelete, onPin, announcement,
 }: MessageListProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -95,6 +99,7 @@ export const MessageList = ({
                   reactions={reactions[message._id] ?? []}
                   currentUserId={currentUserId}
                   memberNames={memberNames}
+                  directory={directory}
                   canWrite={canWrite}
                   canModerate={canModerate}
                   onToggleReaction={onToggleReaction}
@@ -102,7 +107,7 @@ export const MessageList = ({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onPin={onPin}
-                  attachmentHref={attachmentHref}
+                  slug={slug}
                   highlighted={message._id === highlightedMessageId}
                 />
               ))}

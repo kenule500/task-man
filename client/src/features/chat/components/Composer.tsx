@@ -1,11 +1,72 @@
-import { useRef, useState } from 'react';
-import { Paperclip, Send, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Paperclip, Send, X } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/utils/api';
 import { cn } from '@/lib/utils';
+import { detectSnippet, fenceOf } from '../lib/code';
+import { humanSize, kindOf } from '../lib/attachments';
 import { activeMention, applyMention, mentionedUserIds } from '../lib/mentions';
 import type { ChatAttachment, ChatUser } from '../types';
 
 const MAX_MENTION_SUGGESTIONS = 6;
+
+/** An uploaded attachment plus the local file still in memory, used to preview it before sending. */
+interface PendingAttachmentItem {
+  attachment: ChatAttachment;
+  /** Object URL of the local file; revoked when the row goes away (FR-088). */
+  previewUrl: string | null;
+}
+
+/**
+ * One attachment that has been uploaded but not yet sent, previewed the way it will appear in the
+ * message: a thumbnail for an image, a chip for anything else (FR-088, AC-091).
+ */
+const PendingAttachment = ({
+  item, onRemove,
+}: {
+  item: PendingAttachmentItem;
+  onRemove: () => void;
+}) => {
+  const { attachment, previewUrl } = item;
+  const isImage = kindOf(attachment.type) === 'image';
+  const size = humanSize(attachment.size);
+
+  const remove = (
+    <button
+      type="button"
+      aria-label={`Remove ${attachment.name}`}
+      onClick={onRemove}
+      className="rounded p-0.5 text-slate-500 outline-none hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-primary"
+    >
+      <X className="size-3" aria-hidden />
+    </button>
+  );
+
+  return (
+    <li className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-1 pr-2">
+      {isImage && previewUrl ? (
+        <img
+          src={previewUrl}
+          alt=""
+          className="size-9 shrink-0 rounded object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded bg-slate-100 text-slate-400"
+        >
+          {isImage ? <Image className="size-4" /> : <Paperclip className="size-4" />}
+        </span>
+      )}
+      <span className="min-w-0">
+        <span className="block max-w-40 truncate text-xs font-medium text-slate-700">{attachment.name}</span>
+        <span className="block text-[11px] text-slate-400">
+          {[isImage ? 'Image' : 'File', size].filter(Boolean).join(' · ')}
+        </span>
+      </span>
+      {remove}
+    </li>
+  );
+};
 
 interface ComposerProps {
   slug: string;
@@ -30,7 +91,7 @@ export const Composer = ({
   onSend, parentId, onTyping, autoFocus,
 }: ComposerProps) => {
   const [body, setBody] = useState('');
-  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [attachments, setAttachments] = useState<PendingAttachmentItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -63,6 +124,41 @@ export const Composer = ({
     });
   };
 
+  /**
+   * A pasted snippet becomes a fenced block tagged with its language, inserted at the caret so it
+   * keeps the pasted indentation and any text already typed around it (FR-080, AC-083).
+   *
+   * Only code gets this treatment: prose that merely wraps stays prose (EC-035), and a paste that
+   * already carries a fence is left exactly as it is (EC-034).
+   */
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = event.clipboardData?.getData('text/plain') ?? '';
+    if (!pasted || !detectSnippet(pasted)) return;
+
+    event.preventDefault();
+    const field = event.currentTarget;
+    const start = field.selectionStart ?? body.length;
+    const end = field.selectionEnd ?? start;
+    const before = body.slice(0, start);
+    const after = body.slice(end);
+
+    // Keep the block on its own lines without adding a leading empty line when there is no text yet
+    const prefix = before && !before.endsWith('\n') ? '\n' : '';
+    const suffix = after && !after.startsWith('\n') ? '\n' : '';
+    const inserted = `${prefix}${fenceOf(pasted)}${suffix}`;
+    const next = `${before}${inserted}${after}`;
+    const caret = before.length + inserted.length;
+
+    setBody(next);
+    syncMention(next, caret);
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(caret, caret);
+    });
+  };
+
   const submit = async () => {
     const text = body.trim();
     if ((!text && attachments.length === 0) || disabled || sending) return;
@@ -72,9 +168,10 @@ export const Composer = ({
       await onSend(text, {
         parentId: parentId ?? null,
         mentionIds: mentionedUserIds(text, members),
-        attachmentIds: attachments.map(item => item.id),
+        attachmentIds: attachments.map(item => item.attachment.id),
       });
       setBody('');
+      // Sending ends the previews: each object URL is revoked with its row
       setAttachments([]);
       setMention(null);
     } catch (err) {
@@ -99,7 +196,12 @@ export const Composer = ({
           form,
           { headers: { 'Content-Type': 'multipart/form-data' } },
         );
-        if (data?.attachment) setAttachments(current => [...current, data.attachment as ChatAttachment]);
+        if (data?.attachment) {
+          const attachment = data.attachment as ChatAttachment;
+          // An image keeps a local object URL so it can be previewed before it is sent (FR-088)
+          const previewUrl = kindOf(attachment.type) === 'image' ? URL.createObjectURL(file) : null;
+          setAttachments(current => [...current, { attachment, previewUrl }]);
+        }
       } catch (err) {
         setError(getApiErrorMessage(err, `Could not upload ${file.name}.`));
       }
@@ -108,25 +210,36 @@ export const Composer = ({
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  /** Removing a pending attachment also releases the object URL it was previewed with (AC-091). */
+  const removeAttachment = (attachmentId: string) => {
+    setAttachments(current => current.filter(item => {
+      if (item.attachment.id !== attachmentId) return true;
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return false;
+    }));
+  };
+
+  // Nothing outlives the composer: a URL still held when the channel changes is revoked on unmount
+  const previewsRef = useRef(attachments);
+  useEffect(() => { previewsRef.current = attachments; }, [attachments]);
+  useEffect(() => () => {
+    for (const item of previewsRef.current) {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    }
+  }, []);
+
   return (
     <div className="border-t border-slate-200 bg-white p-3">
       {error && <p role="alert" className="mb-2 text-xs text-danger-fg">{error}</p>}
 
       {attachments.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-2">
-          {attachments.map(attachment => (
-            <li key={attachment.id} className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
-              <Paperclip className="size-3" aria-hidden />
-              <span className="max-w-40 truncate">{attachment.name}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${attachment.name}`}
-                onClick={() => setAttachments(current => current.filter(item => item.id !== attachment.id))}
-                className="rounded p-0.5 outline-none hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <X className="size-3" aria-hidden />
-              </button>
-            </li>
+          {attachments.map(item => (
+            <PendingAttachment
+              key={item.attachment.id}
+              item={item}
+              onRemove={() => removeAttachment(item.attachment.id)}
+            />
           ))}
         </ul>
       )}
@@ -175,6 +288,7 @@ export const Composer = ({
               syncMention(event.target.value, event.target.selectionStart ?? event.target.value.length);
               onTyping?.();
             }}
+            onPaste={handlePaste}
             onKeyDown={event => {
               if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();

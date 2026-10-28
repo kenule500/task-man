@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { body, query } from 'express-validator';
+import { body, param, query } from 'express-validator';
 import ChatChannel, {
   CHANNEL_KINDS, MAX_CHANNEL_NAME, MAX_DIRECT_PARTICIPANTS, directKeyOf,
 } from '../models/chatChannelModel.js';
 import ChatMessage from '../models/chatMessageModel.js';
+import ChatPresence from '../models/chatPresenceModel.js';
 import ChatRead from '../models/chatReadModel.js';
 import Project from '../models/projectModel.js';
+import Role from '../models/roleModel.js';
 import User from '../models/userModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { emitToChannel } from '../realtime/bus.js';
@@ -26,8 +28,10 @@ const isDuplicateKey = (error: unknown) => (error as { code?: number } | null)?.
 export const DEFAULT_CHANNELS = [
   {
     kind: 'team' as const,
-    name: 'Team Chat',
-    description: 'Day-to-day team coordination: workflows, resources, blockers and internal check-ins.',
+    name: 'Project Chat',
+    // The stored kind stays 'team' so permissions, indexes and existing rows are untouched (AC-078);
+    // only the label describes what the channel is actually used for (FR-072, FR-073).
+    description: 'Project coordination: work in progress, resources, blockers and decisions.',
   },
   {
     kind: 'general' as const,
@@ -54,6 +58,48 @@ export const ensureDefaultChannels = async (workspaceId: mongoose.Types.ObjectId
     // Two requests seeding at once race on the unique index: the channels exist either way
     if (!isDuplicateKey(error)) throw error;
   });
+
+  await renameLegacyTeamChannel(workspaceId);
+};
+
+/** The label the seeded team channel carried before v2; kept so the backfill can recognise it. */
+export const LEGACY_TEAM_CHANNEL_NAME = 'Team Chat';
+
+/**
+ * Renames an existing `Team Chat` row to `Project Chat` (FR-072, AC-076).
+ *
+ * The seeding pass runs on every list request, so an existing workspace corrects itself here instead
+ * of needing a migration script. The write is guarded against the unique
+ * (workspace, kind, nameKey) index (RISK-011): if a `team` row already holds the target name, that row
+ * is the default channel and the legacy one is left alone rather than failing the whole seed.
+ */
+const renameLegacyTeamChannel = async (workspaceId: mongoose.Types.ObjectId): Promise<void> => {
+  const target = DEFAULT_CHANNELS.find(channel => channel.kind === 'team');
+  if (!target) return;
+  const targetKey = nameKeyOf(target.name);
+
+  // Already renamed, or never seeded: nothing to do
+  const legacy = await ChatChannel.findOne({
+    workspace: workspaceId,
+    kind: 'team',
+    nameKey: nameKeyOf(LEGACY_TEAM_CHANNEL_NAME),
+  }).select('_id nameOverride').lean();
+  if (!legacy) return;
+
+  // A second team row already answers to the new name: renaming would collide on the unique index
+  const occupied = await ChatChannel.exists({
+    workspace: workspaceId,
+    kind: 'team',
+    nameKey: targetKey,
+    _id: { $ne: legacy._id },
+  });
+  if (occupied) return;
+
+  // `nameKey` is derived in a document hook, which updateOne does not run, so it is set explicitly
+  await ChatChannel.updateOne(
+    { _id: legacy._id, workspace: workspaceId },
+    { $set: { name: target.name.slice(0, MAX_CHANNEL_NAME), nameKey: targetKey } },
+  );
 };
 
 /**
@@ -99,10 +145,13 @@ export const backfillProjectChannels = async (workspaceId: mongoose.Types.Object
   });
 };
 
-/** Called when a project is created: one channel per project, reusing an existing one. */
+/**
+ * Called when a project is created: one channel per project, reusing an existing one.
+ * Returns nothing on purpose — callers that need the row read it back through `projectChannelCard`.
+ */
 export const createProjectChannel = async (
   workspaceId: mongoose.Types.ObjectId,
-  project: { _id: mongoose.Types.ObjectId; name: string },
+  project: { _id: mongoose.Types.ObjectId; name: string; members?: (mongoose.Types.ObjectId | string)[] },
 ): Promise<void> => {
   await ChatChannel.updateOne(
     { workspace: workspaceId, project: project._id },
@@ -119,6 +168,29 @@ export const createProjectChannel = async (
     { upsert: true },
   ).catch(error => {
     if (!isDuplicateKey(error)) throw error;
+  });
+};
+
+/**
+ * The card a granted channel is announced with: enough for the client to render the row and join its
+ * room, and nothing it would have to fetch (FR-076, AC-081). Ensures the channel exists first, so a
+ * project that predates its channel still produces a grant (EC-030).
+ */
+export const projectChannelCard = async (
+  workspaceId: mongoose.Types.ObjectId,
+  project: { _id: mongoose.Types.ObjectId; name: string; members?: (mongoose.Types.ObjectId | string)[] },
+): Promise<ChannelCard> => {
+  await createProjectChannel(workspaceId, project);
+  // Read back rather than build a view by hand: the row may have pre-existed with its own name/avatar
+  const stored = await ChatChannel.findOne({ workspace: workspaceId, project: project._id })
+    .select('name avatarFileId archived').lean();
+
+  return channelCard(stored ?? { _id: project._id, archived: false }, {
+    // The project's current name wins, so a rename is reflected without touching the channel row
+    name: project.name,
+    avatarUrl: stored?.avatarFileId ? `/chat/${String(project._id)}/avatar` : null,
+    project: String(project._id),
+    memberCount: project.members?.length ?? 0,
   });
 };
 
@@ -187,18 +259,36 @@ const unreadCountsFor = async (
   return new Map(rows.map(row => [String(row._id), row.count]));
 };
 
-/** The shape both conversation sections render: one card per channel with its preview and unread state. */
-const conversationCard = (
+/**
+ * The fields of a conversation row that are not about its messages: identity, name, picture and size.
+ * Extracted so the grant event and the conversations list describe a channel the same way (FR-076).
+ */
+export const channelCard = (
   channel: { _id: unknown; archived?: boolean },
-  fields: { name: string; avatarUrl: string | null; project?: string | null },
-  preview: { body: string; createdAt: Date; authorName?: string } | undefined,
-  unreadCount: number,
+  fields: { name: string; avatarUrl: string | null; project?: string | null; memberCount?: number },
 ) => ({
   _id: String(channel._id),
   name: fields.name,
   project: fields.project ?? null,
   avatarUrl: fields.avatarUrl,
+  memberCount: fields.memberCount ?? 0,
   archived: Boolean(channel.archived),
+});
+
+export type ChannelCard = ReturnType<typeof channelCard>;
+
+/** The shape both conversation sections render: one card per channel with its preview and unread state. */
+const conversationCard = (
+  channel: { _id: unknown; archived?: boolean },
+  fields: { name: string; avatarUrl: string | null; project?: string | null; memberCount?: number },
+  preview: { body: string; createdAt: Date; authorName?: string } | undefined,
+  unreadCount: number,
+): ChannelCard & {
+  lastMessage: { body: string; at: Date; authorName: string } | null;
+  unread: boolean;
+  unreadCount: number;
+} => ({
+  ...channelCard(channel, fields),
   lastMessage: preview ? { body: preview.body, at: preview.createdAt, authorName: preview.authorName ?? '' } : null,
   unread: unreadCount > 0,
   unreadCount,
@@ -482,20 +572,189 @@ export const validateStartDirect = [
  */
 export const listChatMembers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const workspace = await Workspace.findById(workspaceIdOf(req))
-      .select('members.user')
-      .populate('members.user', 'name avatarUrl')
-      .lean();
+    const workspaceId = workspaceIdOf(req);
+    const users = await workspaceDirectory(workspaceId);
 
-    const members = (workspace?.members ?? [])
-      .map(member => member.user as unknown as { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } | null)
-      .filter((user): user is { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } => Boolean(user))
-      .map(user => ({ _id: String(user._id), name: user.name ?? '', avatarUrl: user.avatarUrl ?? '' }))
+    const members = users
+      .map(user => ({ _id: user._id, name: user.name, avatarUrl: user.avatarUrl }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     res.status(200).json({ members });
   } catch (error) {
     handleError(res, error, 'listChatMembers');
+  }
+};
+
+/** A member of the workspace with the fields the chat surfaces render. */
+interface DirectoryUser {
+  _id: string;
+  name: string;
+  avatarUrl: string;
+}
+
+/**
+ * The workspace's people, by id (NFR-030). Extracted from `listChatMembers` so the channel-members
+ * resolver can reuse it instead of issuing the same query a second time.
+ */
+const workspaceDirectory = async (workspaceId: mongoose.Types.ObjectId): Promise<DirectoryUser[]> => {
+  const workspace = await Workspace.findById(workspaceId)
+    .select('members.user')
+    .populate('members.user', 'name avatarUrl')
+    .lean();
+
+  return (workspace?.members ?? [])
+    .map(member => member.user as unknown as { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } | null)
+    .filter((user): user is { _id: mongoose.Types.ObjectId; name?: string; avatarUrl?: string } => Boolean(user))
+    .map(user => ({ _id: String(user._id), name: user.name ?? '', avatarUrl: user.avatarUrl ?? '' }));
+};
+
+/** One row of the channel member panel. */
+export interface ChannelMember {
+  _id: string;
+  name: string;
+  avatarUrl: string;
+  roleName: string;
+  online: boolean;
+}
+
+/**
+ * Who belongs to a channel, resolved from its kind alone (EC-038, FR-094):
+ *
+ *  - `project`  - the owning project's members
+ *  - `direct`   - exactly its two participants
+ *  - otherwise  - every workspace member (the `team` and `general` channels are open to the workspace)
+ *
+ * Two reads plus one `Role` lookup at most, never a query per member (NFR-030). Ids outside the
+ * workspace directory are dropped, so a stale project member cannot leak a removed user's name.
+ */
+const resolveChannelAudience = async (
+  workspaceId: mongoose.Types.ObjectId,
+  channel: { kind: string; project?: mongoose.Types.ObjectId | null; participants?: mongoose.Types.ObjectId[] },
+): Promise<{ users: DirectoryUser[]; roleByUserId: Map<string, string>; onlineIds: Set<string> }> => {
+  // The workspace member list carries the role assignment; a project or direct audience is intersected
+  // with it below, so the role always describes a real workspace membership.
+  const [directory, workspace] = await Promise.all([
+    workspaceDirectory(workspaceId),
+    Workspace.findById(workspaceId).select('members.user members.roleId').lean(),
+  ]);
+
+  const roleByUserId = new Map<string, string>();
+  const roleIds = new Set<string>();
+  for (const member of workspace?.members ?? []) {
+    const roleId = member.roleId ? String(member.roleId) : '';
+    if (!roleId) continue;
+    roleIds.add(roleId);
+    roleByUserId.set(String(member.user), roleId);
+  }
+
+  // One lookup for every distinct role actually referenced, not one per member
+  const roles = roleIds.size === 0
+    ? []
+    : await Role.find({ _id: { $in: [...roleIds] } }).select('name').lean();
+  const roleNameById = new Map(roles.map(role => [String(role._id), role.name]));
+
+  let audience = directory;
+  if (channel.kind === 'project' && channel.project) {
+    const project = await Project.findOne({ _id: channel.project, workspace: workspaceId })
+      .select('members').lean();
+    const projectMembers = new Set((project?.members ?? []).map(String));
+    audience = directory.filter(user => projectMembers.has(user._id));
+  } else if (channel.kind === 'direct') {
+    const participants = new Set((channel.participants ?? []).map(String));
+    audience = directory.filter(user => participants.has(user._id));
+  }
+
+  // Presence rows are the same source the socket broadcasts, so the panel and the header agree
+  const online = audience.length === 0
+    ? []
+    : await ChatPresence.find({
+      workspace: workspaceId,
+      user: { $in: audience.map(user => new mongoose.Types.ObjectId(user._id)) },
+      connections: { $gt: 0 },
+    }).select('user').lean();
+  const onlineIds = new Set(online.map(row => String(row.user)));
+
+  return {
+    users: audience,
+    roleByUserId: new Map([...roleByUserId].map(([userId, roleId]) => [userId, roleNameById.get(roleId) ?? ''])),
+    onlineIds,
+  };
+};
+
+export const validateChannelIdParam = [
+  param('channelId').isMongoId().withMessage('Channel not found'),
+];
+
+/**
+ * @desc    Everyone in one channel, with their workspace role and presence
+ * @route   GET /api/workspaces/:slug/chat/:channelId/members
+ */
+export const channelMembers = async (req: Request, res: Response): Promise<void> => {
+  if (hasValidationErrors(req, res)) return;
+  try {
+    const lookup = await loadChannelForCaller(req);
+    if (!lookup.ok) {
+      res.status(lookup.failure.status).json({ message: lookup.failure.message });
+      return;
+    }
+
+    const { users, roleByUserId, onlineIds } = await resolveChannelAudience(
+      workspaceIdOf(req),
+      lookup.channel,
+    );
+
+    const members: ChannelMember[] = users
+      .map(user => ({
+        _id: user._id,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        roleName: roleByUserId.get(user._id) ?? '',
+        online: onlineIds.has(user._id),
+      }))
+      // Online first, then alphabetical, matching the panel's grouping (FR-095)
+      .sort((a, b) => (Number(b.online) - Number(a.online)) || a.name.localeCompare(b.name));
+
+    res.status(200).json({ members, count: members.length });
+  } catch (error) {
+    handleError(res, error, 'channelMembers');
+  }
+};
+
+export const validateProjectChannelParam = [
+  param('projectId').isMongoId().withMessage('Project not found'),
+];
+
+/**
+ * @desc    The channel for one project, created on demand so the project header can link to it
+ * @route   GET /api/workspaces/:slug/chat/projects/:projectId/channel
+ *
+ * A project the caller cannot see answers 404, never 403, so the endpoint does not disclose which
+ * projects exist (EC-040, NFR-035). Only a member of the project may cause a channel to be created.
+ */
+export const projectChannel = async (req: Request, res: Response): Promise<void> => {
+  if (hasValidationErrors(req, res)) return;
+  try {
+    const workspaceId = workspaceIdOf(req);
+    const project = await Project.findOne({
+      _id: String(req.params.projectId),
+      workspace: workspaceId,
+      members: new mongoose.Types.ObjectId(String(req.user?._id)),
+    }).select('_id name members').lean();
+
+    if (!project) {
+      res.status(404).json({ message: 'Project not found' });
+      return;
+    }
+
+    const card = await projectChannelCard(workspaceId, {
+      _id: project._id as mongoose.Types.ObjectId,
+      name: project.name,
+      members: project.members ?? [],
+    });
+
+    res.status(200).json(card);
+  } catch (error) {
+    handleError(res, error, 'projectChannel');
   }
 };
 

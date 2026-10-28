@@ -27,24 +27,41 @@ export const withoutMember = (
 
 /**
  * Assigning someone a task makes them a member of that task's project, which is what grants access
- * to the project's team channel. Additive and idempotent: it never removes anyone, so a member is
+ * to the project's channel. Additive and idempotent: it never removes anyone, so a member is
  * not silently cut out of an audited conversation when their tasks change (spec §8.6).
+ *
+ * Returns the ids it actually added, diffed against the project's members before the `$addToSet`, so
+ * a caller can tell a real grant from a no-op (FR-075, AC-079). An empty array means nobody new joined
+ * and no channel event should be emitted (FR-078).
  */
 export const addAssigneesToProjectMembers = async (
   workspaceId: mongoose.Types.ObjectId | string,
   projectName: string | null | undefined,
   assigneeIds: readonly (mongoose.Types.ObjectId | string)[],
-): Promise<void> => {
+): Promise<string[]> => {
   const name = (projectName ?? '').trim();
-  if (!name || assigneeIds.length === 0) return;
+  if (!name || assigneeIds.length === 0) return [];
+
+  const filter = { workspace: workspaceId, nameKey: name.toLowerCase() };
+  const incoming = [...new Set(assigneeIds.map(id => String(id)).filter(Boolean))];
+  if (incoming.length === 0) return [];
+
+  // Read the member list first so the grant can be diffed: $addToSet alone cannot say what it added
+  const before = await Project.findOne(filter).select('members').lean();
+  const existing = new Set((before?.members ?? []).map(String));
+  const added = incoming.filter(id => !existing.has(id));
 
   // $addToSet on the array rather than load-and-save: a partially selected document would fail
   // full-document validation on fields it never loaded (e.g. `Path nameKey is required`), and this
   // is a single atomic write anyway.
   await Project.updateOne(
-    { workspace: workspaceId, nameKey: name.toLowerCase() },
-    { $addToSet: { members: { $each: assigneeIds.map(id => new mongoose.Types.ObjectId(String(id))) } } },
+    filter,
+    { $addToSet: { members: { $each: incoming.map(id => new mongoose.Types.ObjectId(id)) } } },
   );
+
+  // A second writer between the read and the write may have added someone first: their event is
+  // dropped, which is the safe direction (a duplicate row, never a missing one)
+  return added;
 };
 
 /** A member who leaves the workspace loses access to every project channel (spec FR-044). */

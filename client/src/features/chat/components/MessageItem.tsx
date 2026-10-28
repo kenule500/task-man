@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { Pencil, Pin, Reply, Smile, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/ds';
+import { resolveAuthor } from '../lib/authors';
+import { codeOnlySegment, parseBody } from '../lib/code';
 import { segmentMentions } from '../lib/mentions';
 import { REACTION_CHOICES } from '../lib/reactions';
-import type { ChatMessage, Reaction } from '../types';
-import { authorOf } from '../types';
+import type { ChatMessage, ChatUser, Reaction } from '../types';
+import AttachmentCard from './AttachmentCard';
+import CodeCard from './CodeCard';
 
 interface ReactionBarProps {
   reactions: Reaction[];
@@ -83,6 +86,8 @@ interface MessageItemProps {
   currentUserId: string | undefined;
   /** Known member names, used to highlight @mentions the way a chat app does. */
   memberNames: readonly string[];
+  /** The channel's member directory, so an author id can be resolved to a name and avatar (FR-092). */
+  directory?: readonly ChatUser[];
   canWrite: boolean;
   canModerate: boolean;
   onToggleReaction: (messageId: string, emoji: string) => void;
@@ -90,8 +95,8 @@ interface MessageItemProps {
   onEdit: (message: ChatMessage, body: string) => void;
   onDelete: (message: ChatMessage) => void;
   onPin: (message: ChatMessage, pinned: boolean) => void;
-  /** Download URL for an attachment; the view builds it so this component stays free of routing concerns. */
-  attachmentHref: (attachmentId: string) => string;
+  /** Workspace slug used to fetch attachment bytes through the authenticated client (FR-086). */
+  slug?: string;
   /** The search jump just landed here; the highlight clears on its own (spec AC-074). */
   highlighted?: boolean;
 }
@@ -103,28 +108,23 @@ const timeOf = (iso: string): string => {
     : date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 };
 
-const formatSize = (bytes: number): string => {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 /**
  * One message. The caller's own messages sit on the right in a tinted bubble and everyone else's on the
  * left with an avatar, so a conversation reads the way a group chat does.
  */
 export const MessageItem = ({
-  message, reactions, currentUserId, memberNames, canWrite, canModerate,
-  onToggleReaction, onReply, onEdit, onDelete, onPin, attachmentHref, highlighted = false,
+  message, reactions, currentUserId, memberNames, directory = [], canWrite, canModerate,
+  onToggleReaction, onReply, onEdit, onDelete, onPin, slug, highlighted = false,
 }: MessageItemProps) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.body);
 
-  const author = authorOf(message);
-  const mine = Boolean(currentUserId && author?._id === currentUserId);
+  const author = resolveAuthor(message, directory);
+  const mine = Boolean(currentUserId && author._id === currentUserId);
   const deleted = Boolean(message.deletedAt);
   const canDelete = !deleted && (mine || canModerate);
+  const segments = parseBody(message.body);
+  const codeOnly = !editing && !deleted ? codeOnlySegment(message.body) : null;
 
   if (deleted) {
     return (
@@ -138,8 +138,6 @@ export const MessageItem = ({
     );
   }
 
-  const segments = segmentMentions(message.body, memberNames);
-
   return (
     <li
       id={`message-${message._id}`}
@@ -152,11 +150,11 @@ export const MessageItem = ({
     >
       <div className={cn('flex max-w-[85%] gap-2 md:max-w-[70%]', mine ? 'flex-row-reverse' : 'flex-row')}>
         {/* The caller does not need their own avatar; other people's identify the speaker */}
-        {!mine && <UserAvatar name={author?.name ?? '?'} src={author?.avatarUrl} size="sm" />}
+        {!mine && <UserAvatar name={author.name} src={author.avatarUrl} size="sm" />}
 
         <div className="min-w-0">
           <div className={cn('flex flex-wrap items-baseline gap-2', mine && 'justify-end')}>
-            {!mine && <span className="text-sm font-semibold text-slate-900">{author?.name ?? 'Unknown member'}</span>}
+            {!mine && <span className="text-sm font-semibold text-slate-900">{author.name}</span>}
             <time dateTime={message.createdAt} className="text-xs text-slate-500">{timeOf(message.createdAt)}</time>
             {message.editedAt && <span className="text-xs text-slate-400">(edited)</span>}
             {message.pinnedAt && (
@@ -195,6 +193,9 @@ export const MessageItem = ({
                 </button>
               </div>
             </form>
+          ) : codeOnly ? (
+            // A body that is entirely code reads as a code card on its own (AC-084)
+            <CodeCard code={codeOnly.code} language={codeOnly.language} className="w-full" />
           ) : (
             <div
               className={cn(
@@ -202,29 +203,36 @@ export const MessageItem = ({
                 mine ? 'rounded-br-sm bg-primary/10 text-slate-900' : 'rounded-bl-sm bg-slate-100 text-slate-800',
               )}
             >
-              <p className="whitespace-pre-wrap break-words">
-                {segments.map((segment, index) => (
-                  segment.isMention
-                    // Mentions stand out the way they do in a group chat (spec AC-052)
-                    ? <span key={index} className="rounded bg-primary/15 px-1 font-medium text-primary">{segment.text}</span>
-                    : <span key={index}>{segment.text}</span>
-                ))}
-              </p>
+              {/* Prose around a snippet stays prose; only the fenced part becomes a card (NFR-037) */}
+              {segments.map((segment, index) => (
+                segment.kind === 'code' ? (
+                  <CodeCard
+                    key={index}
+                    code={segment.code}
+                    language={segment.language}
+                    label={segment.language}
+                    className="w-full"
+                  />
+                ) : (
+                  <p key={index} className="whitespace-pre-wrap break-words">
+                    {segmentMentions(segment.text, memberNames).map((part, partIndex) => (
+                      part.isMention
+                        // Mentions stand out the way they do in a group chat (spec AC-052)
+                        ? <span key={partIndex} className="rounded bg-primary/15 px-1 font-medium text-primary">{part.text}</span>
+                        : <span key={partIndex}>{part.text}</span>
+                    ))}
+                  </p>
+                )
+              ))}
             </div>
           )}
 
           {message.attachments.length > 0 && (
-            <ul className={cn('mt-1 space-y-1', mine && 'text-right')}>
+            // Each attachment is a card, never a link to the protected API route (FR-085, AC-088)
+            <ul className={cn('mt-1 flex flex-col gap-1', mine && 'items-end')}>
               {message.attachments.map(attachment => (
                 <li key={attachment.id}>
-                  <a
-                    href={attachmentHref(attachment.id)}
-                    className="text-xs font-medium text-primary underline underline-offset-2"
-                    download={attachment.name}
-                  >
-                    {attachment.name}
-                  </a>
-                  <span className="ml-1 text-xs text-slate-400">{formatSize(attachment.size)}</span>
+                  <AttachmentCard slug={slug} attachment={attachment} />
                 </li>
               ))}
             </ul>
