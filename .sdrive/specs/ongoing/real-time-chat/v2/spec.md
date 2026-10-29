@@ -3,7 +3,7 @@ title: Real-time chat v2 - project chat, rich messages and channel membership
 status: backlog
 version: v2
 created: 2026-10-27
-updated: 2026-10-28
+updated: 2026-10-29
 ---
 
 # real-time-chat v2 - functional specification
@@ -513,3 +513,115 @@ Two notes for the reviewer:
 - **No external research available.** The `ux-ui-library`, Stackwise and Context7 MCP servers named by the update-proposal agent are not available in this environment, so no version-specific library documentation or component guidance was fetched for this amendment.
 - Verified in-repository sources: `DESIGN.md` (token names, contrast expectation, scroll behaviour of wide content, touch targets), `perfect-ui-rules.md` (section 4 contrast and state layers, no sticky hover on touch, WCAG 2.4.11), `.sdrive/constitution.md` (CON-101..CON-204, CON-401, CON-703), `client/src/index.css` (the dark-theme remap of `slate-800`/`slate-900`, the `inverse` tokens and the hover state layer), `.sdrive/skills/socket-io/SKILL.md`, `.sdrive/skills/client-feature-module/SKILL.md`, and the chat module sources listed in the anti-redundancy table.
 - Assumption recorded rather than invented: the seeded team channel keeps existing as a conversation (AC-102). The maintainer's instruction covered the sidebar entry, not the stored row, and renaming or deleting the stored row would touch indexes, permissions and the v2 backfill that AC-078 protects.
+
+---
+
+## 10. Amendment 2 - sidebar composition, overlay contrast and delivery (update-propose, 2026-10-28)
+
+### Amendment note
+
+This section records a second maintainer walkthrough, after the P28-P32 build shipped. It **narrows the sidebar change made in section 9**: the chat group keeps `General` as a channel row and stops listing direct messages, so the sidebar holds the workspace-wide entry point (`Project chat`) and the workspace-wide channel (`General`), while direct messages live only in the conversation list. AC-100 still holds - one `Project chat` item replaces the team-chat entry - and the seeded `team` channel remains a conversation in the list (AC-102, AC-078 untouched).
+
+Everything else about sections 8 and 9 keeps its text and its number; where this section is more specific, it wins because it is later.
+
+The same walkthrough reported six defects that the previous criteria did not cover. Each is recorded with the cause found in the repository, so `/sdrive:test` can pin it:
+
+| # | Reported | Root cause found in the repository |
+|---|---|---|
+| 1 | `General` disappeared and a direct message took its place | `SidebarChannels` filters `channel.kind === 'direct'`, so the chat group lists direct messages and no channel rows at all |
+| 2 | The empty-pane text should be centred | `EmptyState` sets `text-center` on its wrapper, but the chat pane neither centres the block nor narrows its `max-w-md` description, which equals the pane width: the sentence runs edge to edge at the top of the pane |
+| 3 | The image overlay should be darker | `Lightbox` backdrops with `bg-slate-900/80`, and the dark theme remaps `.bg-slate-900` to `--color-inverse` (`index.css`), so the scrim turns into a light wash instead of a dark one |
+| 4 | The unread count should disappear when the channel is opened | Opening calls `markRead`, which writes the local read state and notifies the sidebar, but nothing clears `unread`/`unreadCount` on the `ConversationCard`, so the list badge survives until a reload |
+| 5 | The channel with the latest message must rise for every member | Receivers patch their row through `applyIncomingMessage`, but the sender never receives their own `chat:message` (the server emits with `exceptSocketId`) and `deliver` never patches the card, so the sender's list keeps its old order |
+| 6 | A thread reply must show at once for its author too | The reply's author never receives `chat:thread` for the same reason, and nothing patches the parent locally, so their reply count stays stale |
+
+### US-049: The sidebar keeps General and drops direct messages
+
+As a workspace member, I want the chat group to show `Project chat` and `General` only, so that the sidebar stays the workspace-wide entry point while my direct messages live in the conversation list.
+
+**Acceptance Criteria:**
+- AC-117: The sidebar chat group renders the `Project chat` destination and a `General` channel row; no direct-message row appears in the sidebar, and direct messages remain in the conversation list.
+- AC-118: `General` is readable by every member of the workspace who holds `chat:read`, with no project membership required, and its sidebar row shows that member's unread state.
+
+### US-050: The empty pane reads as a composed block
+
+As a workspace member, I want the nothing-selected pane to look centred instead of edge to edge, so that the screen looks finished and the instruction is easy to read.
+
+**Acceptance Criteria:**
+- AC-119: The nothing-selected pane centres its icon, title and description in the available space, and constrains the description width so it reads as a centred paragraph rather than one edge-to-edge line.
+
+### US-051: The image overlay is dark enough to read the image
+
+As a workspace member, I want a properly dark backdrop behind an opened image, so that the image stands out instead of competing with the page behind it.
+
+**Acceptance Criteria:**
+- AC-120: The image overlay uses a deliberately dark backdrop that the theme does not remap (a scrim of at least 80% black), so the image and the dialog controls stand out in the light and the dark theme.
+
+### US-052: Opening a conversation clears its badge
+
+As a workspace member, I want the unread count on a conversation to disappear the moment I open it, so that I can trust the counts and stop re-opening conversations that are already read.
+
+**Acceptance Criteria:**
+- AC-121: Opening a conversation clears its unread flag and count in the conversation list at once, in addition to the sidebar, with no reload and no extra request.
+
+### US-053: The newest conversation rises for everyone
+
+As a workspace member, I want the conversation that just received a message to move to the top for every member, including the one who sent it, so that the list always reflects what is actually newest without a reload.
+
+**Acceptance Criteria:**
+- AC-122: Sending a message moves that conversation to the top of the sender's list with the new preview immediately, and every other member's list does the same when the message arrives, with no reload.
+
+### US-054: A reply shows up for its author too
+
+As a workspace member, I want my own thread reply to show its reply count straight away, so that I can click through to the thread I just started exactly like everyone else.
+
+**Acceptance Criteria:**
+- AC-123: A thread reply updates the parent's reply count for its author at the moment the server acknowledges it, as well as for every other member, so both can open the thread without a reload.
+
+### Functional Requirements (new)
+
+- FR-106: The sidebar MUST render the `Project chat` destination and a `General` channel row, and MUST NOT render direct-message rows; direct messages MUST remain reachable from the conversation list.
+- FR-107: `General` MUST remain readable by every workspace member holding `chat:read`, without project membership, and its sidebar row MUST show that member's unread state.
+- FR-108: The nothing-selected pane MUST centre its icon, title and description and MUST constrain the description width, so the state reads as one centred block.
+- FR-109: The image overlay MUST use a theme-independent dark scrim of at least 80% black instead of a surface colour the dark theme remaps.
+- FR-110: Opening a conversation MUST clear its unread flag and count in the conversation list as well as the sidebar, without a reload and without an extra request.
+- FR-111: A successful send MUST patch the conversation's card (preview and position) for the sender, and a reply MUST patch the parent's reply count for its author, with the server returning the authoritative summary in the socket acknowledgement and the REST response.
+
+### Non-Functional Requirements (new)
+
+- NFR-047: The scrim and centring changes MUST keep at least 4.5:1 text contrast and 3:1 icon and focus-ring contrast in both themes, and the overlay MUST keep its focus trap, Escape and click-outside behaviour.
+- NFR-048: Clearing a badge or re-ordering a row MUST NOT add a request: the client patches the data it already holds, with no polling and no refetch on open.
+
+### Edge Cases and Error States (new)
+
+- EC-050: The member has no direct message and no project channel. → The sidebar still shows `Project chat` and `General`, and the empty pane still explains how to join a project or start a conversation.
+- EC-051: A conversation is opened by route id before its card exists in the list. → Clearing its badge is a no-op rather than an error, and the row appears once the list resolves.
+- EC-052: A message is sent while the socket is unavailable and the REST fallback answers. → The REST response patches the card exactly like the socket acknowledgement, so the conversation still rises to the top.
+- EC-053: Two members send in different conversations at the same time. → Each list orders by the latest message that member knows about, with no duplicate row and no flicker back to the old order.
+- EC-054: The image fails to load while its overlay is open. → The dark scrim, the file name and the loading or failure copy stay readable, and the dialog still closes with Escape or a click outside.
+
+### Anti-redundancy check (new)
+
+| Need | Existing asset | Decision |
+|---|---|---|
+| A sidebar row for the workspace-wide channel | `SidebarChannels.tsx` (already renders channel rows and the unread badge) | modify: filter to `kind === 'general'` instead of `'direct'`; the group and the `Project chat` item stay in `Sidebar.tsx` |
+| General readable by every member | `server/src/utils/chatAccess.ts` `visibleChannelClause` (base kinds already include `general`) | reuse; FR-107 only pins the behaviour that already exists |
+| A centred empty state | `client/src/components/ds/primitives.tsx` `EmptyState` | reuse; the pane centres it and narrows the description through `className` |
+| A dark overlay scrim | `Lightbox.tsx` + the `--color-scrim` token / `bg-black` utilities | modify: stop using the remapped `slate-900` surface |
+| Clearing a card's badge | `lib/conversations.ts` (already owns card shaping) | modify: add a pure `markConversationRead` |
+| Raising the sender's card | `lib/conversations.ts` `applyIncomingMessage` | modify: add a pure `applySentMessage` that reuses the same ordering |
+| The reply author's count | `chat:thread` + `utils/chatThread.ts` (both already exist) | modify: return the same summary in the socket ack and the REST response, and patch the parent locally |
+| Transport, models, permissions | `socket.io`, `ChatMessage`, `ChatChannel`, `chatAccess` | reuse; no new dependency, route, model or permission |
+
+No new component, route, endpoint, model or dependency is introduced.
+
+### Risks (new)
+
+- RISK-018: A fixed dark scrim can swallow the dialog's own controls in the light theme. Mitigation: keep the title, close and download controls on the inverse surface tokens and re-check their contrast in both themes.
+- RISK-019: Patching the sender's card optimistically can disagree with the server's order when clocks differ. Mitigation: use the timestamp in the server response for the card and let the next list load replace the local value.
+
+### Traceability summary (new rows)
+
+This amendment adds 6 user stories, 7 acceptance criteria (AC-117..AC-123), 6 functional requirements (FR-106..FR-111), 2 non-functional requirements (NFR-047, NFR-048), 5 edge cases (EC-050..EC-054) and 2 risks (RISK-018, RISK-019). Every new requirement maps to at least one acceptance criterion and to the plan section and tasks appended in `plan.md`/`tasks.md` (P33-P36); the rows are in `.sdrive/governance/real-time-chat/v2/traceability.json` with status `in_progress`, and their task column is provisional until Gate 2 approves the plan.
+
+One note for the reviewer: **this amendment narrows section 9's sidebar change** (it does not rewrite it). AC-117/FR-106 add `General` back and remove direct-message rows; AC-100's single `Project chat` item and AC-102's retained conversation are unchanged.

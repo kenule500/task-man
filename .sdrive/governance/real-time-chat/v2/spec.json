@@ -305,6 +305,88 @@
           "text": "A reply that arrives while its thread panel is open appears in that panel at once for every member viewing it, and a reply for a different parent only updates that parent's count."
         }
       ]
+    },
+    {
+      "id": "US-049",
+      "title": "The sidebar keeps General and drops direct messages",
+      "role": "Workspace member",
+      "want": "the chat group to show Project chat and General only",
+      "benefit": "the sidebar stays the workspace-wide entry point while my direct messages live in the conversation list",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-117",
+          "text": "The sidebar chat group renders the Project chat destination and a General channel row; no direct-message row appears in the sidebar, and direct messages remain in the conversation list."
+        },
+        {
+          "id": "AC-118",
+          "text": "General is readable by every member of the workspace who holds chat:read, with no project membership required, and its sidebar row shows that member's unread state."
+        }
+      ]
+    },
+    {
+      "id": "US-050",
+      "title": "The empty pane reads as a composed block",
+      "role": "Workspace member",
+      "want": "the nothing-selected pane to look centred instead of edge to edge",
+      "benefit": "the screen looks finished and the instruction is easy to read",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-119",
+          "text": "The nothing-selected pane centres its icon, title and description in the available space, and constrains the description width so it reads as a centred paragraph rather than one edge-to-edge line."
+        }
+      ]
+    },
+    {
+      "id": "US-051",
+      "title": "The image overlay is dark enough to read the image",
+      "role": "Workspace member",
+      "want": "a properly dark backdrop behind an opened image",
+      "benefit": "the image stands out instead of competing with the page behind it",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-120",
+          "text": "The image overlay uses a deliberately dark backdrop that the theme does not remap (a scrim of at least 80% black), so the image and the dialog controls stand out in the light and the dark theme."
+        }
+      ]
+    },
+    {
+      "id": "US-052",
+      "title": "Opening a conversation clears its badge",
+      "role": "Workspace member",
+      "want": "the unread count on a conversation to disappear the moment I open it",
+      "benefit": "I can trust the counts and stop re-opening conversations that are already read",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-121",
+          "text": "Opening a conversation clears its unread flag and count in the conversation list at once, in addition to the sidebar, with no reload and no extra request."
+        }
+      ]
+    },
+    {
+      "id": "US-053",
+      "title": "The newest conversation rises for everyone",
+      "role": "Workspace member",
+      "want": "the conversation that just received a message to move to the top for every member, including the one who sent it",
+      "benefit": "the list always reflects what is actually newest without a reload",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-122",
+          "text": "Sending a message moves that conversation to the top of the sender's list with the new preview immediately, and every other member's list does the same when the message arrives, with no reload."
+        }
+      ]
+    },
+    {
+      "id": "US-054",
+      "title": "A reply shows up for its author too",
+      "role": "Workspace member",
+      "want": "my own thread reply to show its reply count straight away",
+      "benefit": "I can click through to the thread I just started exactly like everyone else",
+      "acceptanceCriteria": [
+        {
+          "id": "AC-123",
+          "text": "A thread reply updates the parent's reply count for its author at the moment the server acknowledges it, as well as for every other member, so both can open the thread without a reload."
+        }
+      ]
     }
   ],
   "functionalRequirements": [
@@ -477,6 +559,36 @@
       "id": "FR-105",
       "text": "The conversation list MUST be a single merged, recency-ordered list - seeded channels, project channels and direct messages in one sequence with no per-kind headings - ordered by latest activity on first paint and after every live message, and a thread reply MUST update its parent's reply count live for every member of the channel, with the reply appended to an open thread panel.",
       "linkedAcceptanceCriteria": ["AC-114", "AC-115", "AC-116"]
+    },
+    {
+      "id": "FR-106",
+      "text": "The sidebar MUST render the Project chat destination and a General channel row, and MUST NOT render direct-message rows; direct messages MUST remain reachable from the conversation list.",
+      "linkedAcceptanceCriteria": ["AC-117"]
+    },
+    {
+      "id": "FR-107",
+      "text": "General MUST remain readable by every workspace member holding chat:read, without project membership, and its sidebar row MUST show that member's unread state.",
+      "linkedAcceptanceCriteria": ["AC-118"]
+    },
+    {
+      "id": "FR-108",
+      "text": "The nothing-selected pane MUST centre its icon, title and description and MUST constrain the description width, so the state reads as one centred block.",
+      "linkedAcceptanceCriteria": ["AC-119"]
+    },
+    {
+      "id": "FR-109",
+      "text": "The image overlay MUST use a theme-independent dark scrim of at least 80% black instead of a surface colour the dark theme remaps.",
+      "linkedAcceptanceCriteria": ["AC-120"]
+    },
+    {
+      "id": "FR-110",
+      "text": "Opening a conversation MUST clear its unread flag and count in the conversation list as well as the sidebar, without a reload and without an extra request.",
+      "linkedAcceptanceCriteria": ["AC-121"]
+    },
+    {
+      "id": "FR-111",
+      "text": "A successful send MUST patch the conversation's card (preview and position) for the sender, and a reply MUST patch the parent's reply count for its author, with the server returning the authoritative summary in the socket acknowledgement and the REST response.",
+      "linkedAcceptanceCriteria": ["AC-122", "AC-123"]
     }
   ],
   "nonFunctionalRequirements": [
@@ -569,6 +681,16 @@
       "id": "NFR-046",
       "text": "The attachment route MUST keep its disclosure rules: 404 for a caller who may not read the message's channel, no existence leak, no token in a URL, and a readable retryable failure state otherwise.",
       "linkedAcceptanceCriteria": ["AC-110", "AC-109"]
+    },
+    {
+      "id": "NFR-047",
+      "text": "The scrim and centring changes MUST keep at least 4.5:1 text contrast and 3:1 icon and focus-ring contrast in both themes, and the overlay MUST keep its focus trap, Escape and click-outside behaviour.",
+      "linkedAcceptanceCriteria": ["AC-119", "AC-120"]
+    },
+    {
+      "id": "NFR-048",
+      "text": "Clearing a badge or re-ordering a row MUST NOT add a request: the client patches the data it already holds, with no polling and no refetch on open.",
+      "linkedAcceptanceCriteria": ["AC-121", "AC-122"]
     }
   ],
   "edgeCases": [
@@ -671,6 +793,31 @@
       "id": "EC-049",
       "description": "A tap leaves the pointer-hover state applied on a touch device.",
       "expectedBehavior": "The control does not stay in its hover surface and contrast remains at least 4.5:1 whether or not the hover state is applied (perfect-ui-rules.md, no sticky hover on touch)."
+    },
+    {
+      "id": "EC-050",
+      "description": "The member has no direct message and no project channel.",
+      "expectedBehavior": "The sidebar still shows Project chat and General, and the empty pane still explains how to join a project or start a conversation."
+    },
+    {
+      "id": "EC-051",
+      "description": "A conversation is opened by route id before its card exists in the list.",
+      "expectedBehavior": "Clearing its badge is a no-op rather than an error, and the row appears once the list resolves."
+    },
+    {
+      "id": "EC-052",
+      "description": "A message is sent while the socket is unavailable and the REST fallback answers.",
+      "expectedBehavior": "The REST response patches the card exactly like the socket acknowledgement, so the conversation still rises to the top."
+    },
+    {
+      "id": "EC-053",
+      "description": "Two members send in different conversations at the same time.",
+      "expectedBehavior": "Each list orders by the latest message that member knows about, with no duplicate row and no flicker back to the old order."
+    },
+    {
+      "id": "EC-054",
+      "description": "The image fails to load while its overlay is open.",
+      "expectedBehavior": "The dark scrim, the file name and the loading or failure copy stay readable, and the dialog still closes with Escape or a click outside."
     }
   ],
   "dependencies": [
@@ -780,6 +927,16 @@
       "id": "RISK-017",
       "description": "One merged conversation list changes a surface that AC-056 and AC-065 fixed.",
       "mitigation": "The row rendering is extracted rather than rewritten, so previews, unread badges and the picker position are preserved, and the amendment to those two criteria is recorded in the note above."
+    },
+    {
+      "id": "RISK-018",
+      "description": "A fixed dark scrim can swallow the dialog's own controls in the light theme.",
+      "mitigation": "Keep the title, close and download controls on the inverse surface tokens and re-check their contrast in both themes."
+    },
+    {
+      "id": "RISK-019",
+      "description": "Patching the sender's card optimistically can disagree with the server's order when clocks differ.",
+      "mitigation": "Use the timestamp in the server response for the card and let the next list load replace the local value."
     }
   ]
 }

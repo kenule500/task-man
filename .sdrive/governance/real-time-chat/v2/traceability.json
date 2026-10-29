@@ -684,6 +684,109 @@
       ],
       "testIds": [],
       "status": "complete"
+    },
+    {
+      "requirementId": "FR-106",
+      "acceptanceCriteriaIds": [
+        "AC-117"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T33.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-107",
+      "acceptanceCriteriaIds": [
+        "AC-118"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T33.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-108",
+      "acceptanceCriteriaIds": [
+        "AC-119"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T34.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-109",
+      "acceptanceCriteriaIds": [
+        "AC-120"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T34.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-110",
+      "acceptanceCriteriaIds": [
+        "AC-121"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T35.1"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "FR-111",
+      "acceptanceCriteriaIds": [
+        "AC-122",
+        "AC-123"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T35.2",
+        "T36.1",
+        "T36.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-047",
+      "acceptanceCriteriaIds": [
+        "AC-119",
+        "AC-120"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T34.1",
+        "T34.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
+    },
+    {
+      "requirementId": "NFR-048",
+      "acceptanceCriteriaIds": [
+        "AC-121",
+        "AC-122"
+      ],
+      "planSection": "§12 Amendment 2 - sidebar composition, overlay contrast and delivery",
+      "taskIds": [
+        "T35.1",
+        "T35.2"
+      ],
+      "testIds": [],
+      "status": "in_progress"
     }
   ]
 }

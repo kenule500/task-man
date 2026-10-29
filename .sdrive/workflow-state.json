@@ -195,11 +195,11 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "review",
+          "currentStep": "specification",
           "gates": {
-            "specification": "approved",
+            "specification": "pending",
             "planning": "approved",
-            "implementation": "approved",
+            "implementation": "in_progress",
             "review": "pending"
           },
           "history": [
@@ -248,6 +248,12 @@
               "event": "Implementation complete on feature/chat (P28-P32, 19 tasks, T28.1-T32.5). Added the Project chat navigation item and the conversation root that no longer redirects, a viewport-bounded chat frame with independent list and message scroll owners and a header outside the message scroll, the token-based hover layer on the code card, project membership passed to decideChannelAccess in downloadAttachment, unread reconciliation from the local read state with a one-way notice to the sidebar, one merged recency-ordered conversation list built from ConversationRow plus mergeConversations, and a chat:thread event carrying the authoritative post-increment reply count that the client patches onto the parent row. Gates run with the local toolchain after reinstalling node_modules from the lockfile: client tsc -b and tsc -p tsconfig.test.json exit 0, eslint exit 0, vite build exit 0 (31.6 s), server tsc --noEmit exit 0, governance validator all files valid. sdrive verify reports fail with matched 16 / missing 72 / renamed 0 / extra 216; every missing item is a client path (the scanner scans server and api only), a Mongoose entity or field, a workspace-declared dependency, or an absolute-vs-relative route path, which are the four documented CON-614 gaps, and each one exists in the repository. Not performed: the CON-703 browser pass, which needs a running MongoDB, the dev server and a browser. Tests remain for /sdrive:test; chatMessageLifecycle.test.ts still asserts the previous updateOne increment and SidebarChannels.test.tsx still expects the removed team/general rows, so both need updating there.",
               "by": "agent",
               "timestamp": "2026-10-28T23:20:00.000Z"
+            },
+            {
+              "event": "spec_updated",
+              "by": "update-proposal",
+              "summary": "Amendment 2 (/sdrive:update-propose, second walkthrough): appended US-049..US-054, AC-117..AC-123 (7 acceptance criteria), FR-106..FR-111 (6 functional), NFR-047..NFR-048 (2 non-functional), EC-050..EC-054 (5 edge cases) and RISK-018..RISK-019 (2 risks) to spec.md and spec.json, plus 8 rows in traceability.json (in_progress, plan section 12, task column provisional until Gate 2). It narrows section 9's sidebar change: the chat group keeps a General channel row again and stops listing direct messages, so the sidebar holds Project chat plus General while direct messages live only in the conversation list; General stays readable by every workspace member with chat:read. It also pins six defects found in the build: the empty pane does not centre its block or narrow its description; the image overlay uses bg-slate-900, which the dark theme remaps to a light inverse surface instead of a dark scrim; opening a conversation never clears the ConversationCard unread flag, so the list badge survives; the sender never receives their own chat:message or chat:thread, so their card does not rise and their reply count stays stale. Existing IDs, text and rows are untouched. The specification gate is reset to pending for re-approval and the implementation gate returns to in_progress because P33-P36 are unbuilt; plan.md, tasks.md, plan.json and tasks.json are unchanged until Gate 1 is approved.",
+              "timestamp": "2026-10-29T01:40:00.000Z"
             }
           ]
         }
