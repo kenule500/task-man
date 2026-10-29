@@ -195,11 +195,11 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "implementation",
+          "currentStep": "review",
           "gates": {
             "specification": "approved",
             "planning": "approved",
-            "implementation": "in_progress",
+            "implementation": "approved",
             "review": "pending"
           },
           "history": [
@@ -243,6 +243,11 @@
               "event": "Specification gate re-approved by the user after the amendment (audit event gate_approved for real-time-chat v2 specification, hash-chained at 885fb90d2cd5aab9fbfd42905a24bf9ea539164f7a3ce4223cb98ef8f12407d5). The specification and planning gates are approved and the current step moves to implementation; the implementation gate stays in_progress because phases P28-P32 (T28.1-T32.5) are not built yet.",
               "by": "user",
               "timestamp": "2026-10-28T21:58:50.414Z"
+            },
+            {
+              "event": "Implementation complete on feature/chat (P28-P32, 19 tasks, T28.1-T32.5). Added the Project chat navigation item and the conversation root that no longer redirects, a viewport-bounded chat frame with independent list and message scroll owners and a header outside the message scroll, the token-based hover layer on the code card, project membership passed to decideChannelAccess in downloadAttachment, unread reconciliation from the local read state with a one-way notice to the sidebar, one merged recency-ordered conversation list built from ConversationRow plus mergeConversations, and a chat:thread event carrying the authoritative post-increment reply count that the client patches onto the parent row. Gates run with the local toolchain after reinstalling node_modules from the lockfile: client tsc -b and tsc -p tsconfig.test.json exit 0, eslint exit 0, vite build exit 0 (31.6 s), server tsc --noEmit exit 0, governance validator all files valid. sdrive verify reports fail with matched 16 / missing 72 / renamed 0 / extra 216; every missing item is a client path (the scanner scans server and api only), a Mongoose entity or field, a workspace-declared dependency, or an absolute-vs-relative route path, which are the four documented CON-614 gaps, and each one exists in the repository. Not performed: the CON-703 browser pass, which needs a running MongoDB, the dev server and a browser. Tests remain for /sdrive:test; chatMessageLifecycle.test.ts still asserts the previous updateOne increment and SidebarChannels.test.tsx still expects the removed team/general rows, so both need updating there.",
+              "by": "agent",
+              "timestamp": "2026-10-28T23:20:00.000Z"
             }
           ]
         }
