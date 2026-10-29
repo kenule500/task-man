@@ -170,8 +170,8 @@ updated: 2026-10-29
 
 | ID | Task | Requirements | Acceptance criteria |
 |---|---|---|---|
-| [ ] T33.1 | In `SidebarChannels.tsx`, render the workspace-wide `general` channel as the only row (filter `kind === 'general'`), keep the group hidden without `chat:read`, keep the read-state badge, and keep the grant/rename notice subscription for a rename. | FR-106 | AC-117 |
-| [ ] T33.2 | Confirm `General` needs no project membership: it is a base kind in `visibleChannelClause`, so every member with `chat:read` sees it, and its row's badge comes from that member's own read state. | FR-107 | AC-118 |
+| [x] T33.1 | In `SidebarChannels.tsx`, render the workspace-wide `general` channel as the only row (filter `kind === 'general'`), keep the group hidden without `chat:read`, keep the read-state badge, and keep the grant/rename notice subscription for a rename. | FR-106 | AC-117 |
+| [x] T33.2 | Confirm `General` needs no project membership: it is a base kind in `visibleChannelClause`, so every member with `chat:read` sees it, and its row's badge comes from that member's own read state. | FR-107 | AC-118 |
 
 ## P34 - Pane and overlay
 
@@ -179,8 +179,8 @@ updated: 2026-10-29
 
 | ID | Task | Requirements | Acceptance criteria |
 |---|---|---|---|
-| [ ] T34.1 | Centre the nothing-selected pane: wrap `EmptyState` in a centred flex container that fills the pane and narrow its description (`max-w-sm`, balanced lines) so the block reads as composed rather than edge to edge. | FR-108, NFR-047 | AC-119 |
-| [ ] T34.2 | Replace the lightbox backdrop `bg-slate-900/80` with a theme-independent dark scrim (`bg-black/80`), keeping the title, close and download controls on the inverse tokens so they stay legible in both themes. | FR-109, NFR-047 | AC-120 |
+| [x] T34.1 | Centre the nothing-selected pane: wrap `EmptyState` in a centred flex container that fills the pane and narrow its description (`max-w-sm`, balanced lines) so the block reads as composed rather than edge to edge. | FR-108, NFR-047 | AC-119 |
+| [x] T34.2 | Replace the lightbox backdrop `bg-slate-900/80` with a theme-independent dark scrim (`bg-black/80`), keeping the title, close and download controls on the inverse tokens so they stay legible in both themes. | FR-109, NFR-047 | AC-120 |
 
 ## P35 - Badge and ordering
 
@@ -188,8 +188,8 @@ updated: 2026-10-29
 
 | ID | Task | Requirements | Acceptance criteria |
 |---|---|---|---|
-| [ ] T35.1 | Add `markConversationRead(cards, channelId)` to `lib/conversations.ts` (pure, a no-op when the card is absent) and apply it to both lists when a conversation is opened, so the list badge clears with the sidebar and without a request. | FR-110, NFR-048 | AC-121 |
-| [ ] T35.2 | Add `applySentMessage(cards, message, currentUserId)` sharing `applyIncomingMessage`'s preview and ordering, and apply it to the sender's lists for every successful send (socket ack and REST response, replies included), so the conversation rises to the top on the sender's screen too. | FR-111, NFR-048 | AC-122 |
+| [x] T35.1 | Add `markConversationRead(cards, channelId)` to `lib/conversations.ts` (pure, a no-op when the card is absent) and apply it to both lists when a conversation is opened, so the list badge clears with the sidebar and without a request. | FR-110, NFR-048 | AC-121 |
+| [x] T35.2 | Add `applySentMessage(cards, message, currentUserId)` sharing `applyIncomingMessage`'s preview and ordering, and apply it to the sender's lists for every successful send (socket ack and REST response, replies included), so the conversation rises to the top on the sender's screen too. | FR-111, NFR-048 | AC-122 |
 
 ## P36 - The reply reaches its author
 
@@ -197,6 +197,6 @@ updated: 2026-10-29
 
 | ID | Task | Requirements | Acceptance criteria |
 |---|---|---|---|
-| [ ] T36.1 | Server: return the parent summary (`thread`, shaped by `threadUpdateOf`) from `sendMessage` and from the `chat:send` acknowledgement, so a reply's author receives exactly what `chat:thread` gives everyone else. | FR-111 | AC-123 |
-| [ ] T36.2 | Client: type the acknowledgement's `thread` in `useChatSocket`, return it with the sent message, and patch the parent row (and the open thread's parent) from it in `useChatMessages`/`ChatView`, keeping the `chat:thread` handler for everybody else. | FR-111 | AC-123 |
-| [ ] T36.3 | Run the gates: `pnpm --filter server typecheck`, `pnpm --filter client typecheck`, `pnpm --filter client lint`, `pnpm --filter client build`, `node .sdrive/scripts/validate-governance.js` and `sdrive verify` (recording the CON-614 attribution if it fails), then the browser pass over the chat root, a channel, an opened image and a thread at 320px and in the dark theme. | NFR-047 | AC-119, AC-120 |
+| [x] T36.1 | Server: return the parent summary (`thread`, shaped by `threadUpdateOf`) from `sendMessage` and from the `chat:send` acknowledgement, so a reply's author receives exactly what `chat:thread` gives everyone else. | FR-111 | AC-123 |
+| [x] T36.2 | Client: type the acknowledgement's `thread` in `useChatSocket`, return it with the sent message, and patch the parent row (and the open thread's parent) from it in `useChatMessages`/`ChatView`, keeping the `chat:thread` handler for everybody else. | FR-111 | AC-123 |
+| [x] T36.3 | Run the gates: `pnpm --filter server typecheck`, `pnpm --filter client typecheck`, `pnpm --filter client lint`, `pnpm --filter client build`, `node .sdrive/scripts/validate-governance.js` and `sdrive verify` (recording the CON-614 attribution if it fails), then the browser pass over the chat root, a channel, an opened image and a thread at 320px and in the dark theme. | NFR-047 | AC-119, AC-120 |

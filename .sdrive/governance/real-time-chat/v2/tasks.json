@@ -818,7 +818,7 @@
           "linkedAcceptanceCriteria": [
             "AC-117"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T33.2",
@@ -830,7 +830,7 @@
           "linkedAcceptanceCriteria": [
             "AC-118"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -852,7 +852,7 @@
           "linkedAcceptanceCriteria": [
             "AC-119"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T34.2",
@@ -865,7 +865,7 @@
           "linkedAcceptanceCriteria": [
             "AC-120"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -887,7 +887,7 @@
           "linkedAcceptanceCriteria": [
             "AC-121"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T35.2",
@@ -900,7 +900,7 @@
           "linkedAcceptanceCriteria": [
             "AC-122"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -921,7 +921,7 @@
           "linkedAcceptanceCriteria": [
             "AC-123"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T36.2",
@@ -933,7 +933,7 @@
           "linkedAcceptanceCriteria": [
             "AC-123"
           ],
-          "completed": false
+          "completed": true
         },
         {
           "id": "T36.3",
@@ -946,7 +946,7 @@
             "AC-119",
             "AC-120"
           ],
-          "completed": false
+          "completed": true
         }
       ]
     }
