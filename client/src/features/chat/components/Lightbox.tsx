@@ -79,7 +79,7 @@ export const Lightbox = ({
   // The scrim is the backdrop itself: a click that did not start on the dialog's content closes
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/80 p-3 sm:p-6"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 p-3 sm:p-6"
       role="presentation"
       onMouseDown={event => {
         if (event.target === event.currentTarget) onClose();
@@ -95,7 +95,9 @@ export const Lightbox = ({
         <div className="flex w-full items-center justify-between gap-2 text-white">
           <div className="min-w-0">
             <h2 id="chat-lightbox-title" className="truncate text-sm font-semibold">{name}</h2>
-            {detail && <p className="truncate text-xs text-slate-300">{detail}</p>}
+            {/* The scrim is fixed black, so the chrome uses the inverse tokens: the slate ramp is
+                remapped to dark values in the dark theme and would vanish on it (AC-120, NFR-047) */}
+            {detail && <p className="truncate text-xs text-inverse-muted">{detail}</p>}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {onDownload && (
@@ -103,7 +105,7 @@ export const Lightbox = ({
                 type="button"
                 onClick={onDownload}
                 aria-label={`Download ${name}`}
-                className="flex size-9 items-center justify-center rounded-md text-slate-200 outline-none hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+                className="flex size-9 items-center justify-center rounded-md text-inverse-text outline-none hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-inverse-text"
               >
                 <Download className="size-4" aria-hidden />
               </button>
@@ -113,7 +115,7 @@ export const Lightbox = ({
               type="button"
               onClick={onClose}
               aria-label="Close image"
-              className="flex size-9 items-center justify-center rounded-md text-slate-200 outline-none hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+              className="flex size-9 items-center justify-center rounded-md text-inverse-text outline-none hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-inverse-text"
             >
               <X className="size-4" aria-hidden />
             </button>
@@ -129,7 +131,7 @@ export const Lightbox = ({
             />
           ) : (
             // The bytes may still be in flight or may have failed; either way the dialog stays usable
-            <p className="py-10 text-sm text-slate-300">Loading image...</p>
+            <p className="py-10 text-sm text-inverse-muted">Loading image...</p>
           )}
         </div>
       </div>

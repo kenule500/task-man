@@ -3,7 +3,7 @@ import { io, type Socket } from 'socket.io-client';
 import { API_URL } from '@/config';
 import { getToken } from '@/utils/session';
 import type {
-  ChannelSummary, ChatMessage, ChatThreadUpdate, ConversationCard, OutgoingMessage, Reaction, SocketAck,
+  ChannelSummary, ChatMessage, ChatThreadUpdate, ConversationCard, OutgoingMessage, Reaction, SentResult, SocketAck,
 } from '../types';
 
 /** `API_URL` points at the API root (…/api); the socket is served from the same origin. */
@@ -39,7 +39,7 @@ interface Options {
 export interface ChatSocket {
   state: TransportState;
   /** Sends over the socket; resolves with `null` when the socket is unavailable so the caller can fall back to REST. */
-  send: (input: OutgoingMessage) => Promise<ChatMessage | null>;
+  send: (input: OutgoingMessage) => Promise<SentResult | null>;
   notifyTyping: () => void;
   /** Subscribes this connection to one more channel room, e.g. a channel just granted (AC-081). */
   joinChannel: (channelId: string) => void;
@@ -136,11 +136,14 @@ export const useChatSocket = ({
     socket.emit('chat:join', { channelIds: roomKey.split(',') });
   }, [roomKey]);
 
-  const send = useCallback((input: OutgoingMessage): Promise<ChatMessage | null> => {
+  const send = useCallback((input: OutgoingMessage): Promise<SentResult | null> => {
     const socket = socketRef.current;
     if (!socket?.connected) return Promise.resolve(null);
     return new Promise(resolve => {
-      socket.emit('chat:send', input, (ack: SocketAck) => resolve(ack?.ok && ack.message ? ack.message : null));
+      // The ack carries the parent summary too, so a reply's author sees the new count at once (AC-123)
+      socket.emit('chat:send', input, (ack: SocketAck) => {
+        resolve(ack?.ok && ack.message ? { message: ack.message, thread: ack.thread ?? null } : null);
+      });
     });
   }, []);
 

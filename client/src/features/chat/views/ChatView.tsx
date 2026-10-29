@@ -21,9 +21,11 @@ import { useChatChannels } from '../hooks/useChatChannels';
 import { useChatMessages } from '../hooks/useChatMessages';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { notifyConversations } from '../lib/conversationEvents';
-import { applyIncomingMessage, grantChannel, mergeConversations, renameChannel } from '../lib/conversations';
+import {
+  applyIncomingMessage, applySentMessage, grantChannel, markConversationRead, mergeConversations, renameChannel,
+} from '../lib/conversations';
 import { formatCounter, nextIndex } from '../lib/search';
-import type { ChatMessage, ConversationCard, PresenceMap } from '../types';
+import type { ChatMessage, ChatThreadUpdate, ConversationCard, PresenceMap } from '../types';
 
 /** How long a typing indicator stays visible without a new event. */
 const TYPING_TTL_MS = 4000;
@@ -130,8 +132,11 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     chatApi.conversations(workspaceSlug)
       .then(payload => {
         if (cancelled) return;
-        setTeams(payload.teams);
-        setDirects(payload.directs);
+        // A conversation opened by its route is already read by the time the list arrives (a deep link
+        // or a first paint after the read marker), so the payload must not re-light its badge (EC-051)
+        const openId = channelRef.current;
+        setTeams(openId ? markConversationRead(payload.teams, openId) : payload.teams);
+        setDirects(openId ? markConversationRead(payload.directs, openId) : payload.directs);
       })
       .catch(() => {
         if (cancelled) return;
@@ -204,36 +209,64 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Opening a channel marks it read
+  // Opening a channel marks it read: locally, in the sidebar and on the server
   useEffect(() => {
     if (!currentChannelId) return;
     markRead(currentChannelId);
+    // The list badge clears from the click alone: no refetch and no waiting for the next load (AC-121).
+    // The route is the external event this effect responds to, so the patch belongs here
+    /* eslint-disable react-hooks/set-state-in-effect -- a route change is the external event */
+    setDirects(current => markConversationRead(current, currentChannelId));
+    setTeams(current => markConversationRead(current, currentChannelId));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [currentChannelId, markRead]);
 
   // Highlighting @mentions needs the member names available in this channel
   const memberNames = useMemo(() => members.map(member => member.name), [members]);
 
-  /** Sends over the socket when possible, otherwise REST; the ack message is merged either way. */
+  /** Sends over the socket when possible, otherwise REST; both paths settle through `settle`. */
   const deliver = async (
     body: string,
     options: { parentId?: string | null; mentionIds: string[]; attachmentIds: string[] },
   ): Promise<void> => {
     if (!workspaceSlug || !currentChannelId) return;
     const input = { channelId: currentChannelId, body, ...options };
+
+    /**
+     * The sender's own socket never receives their message or its thread event, so the result of the
+     * send is applied here: the conversation rises to the top with the new preview (AC-122) and a
+     * reply's parent takes the authoritative count the server returned (AC-123).
+     */
+    const settle = (sent: ChatMessage, thread: ChatThreadUpdate | null) => {
+      setDirects(current => applySentMessage(current, sent, user?._id));
+      setTeams(current => applySentMessage(current, sent, user?._id));
+      if (!thread) return;
+      applyThread(thread);
+      setThreadParent(current => (
+        current?._id === thread.messageId
+          ? { ...current, replyCount: thread.replyCount, lastReplyAuthor: thread.lastReplyAuthor ?? current.lastReplyAuthor ?? null }
+          : current
+      ));
+    };
+
     const overSocket = await send(input);
     if (overSocket) {
-      if (overSocket.parent && threadParent?._id === overSocket.parent) {
-        setReplies(current => [...current, overSocket]);
-      } else if (!overSocket.parent) {
-        applyMessage(overSocket);
+      const { message, thread } = overSocket;
+      settle(message, thread);
+      if (message.parent && threadParent?._id === message.parent) {
+        setReplies(current => [...current, message]);
+      } else if (!message.parent) {
+        applyMessage(message);
       }
       return;
     }
+
     const created = await chatApi.send(workspaceSlug, input);
-    if (created.parent && threadParent?._id === created.parent) {
-      setReplies(current => [...current, created]);
+    settle(created.message, created.thread);
+    if (created.message.parent && threadParent?._id === created.message.parent) {
+      setReplies(current => [...current, created.message]);
     } else {
-      applyMessage(created);
+      applyMessage(created.message);
     }
   };
 
@@ -697,8 +730,16 @@ export const ChatView = ({ channelId }: ChatViewProps) => {
         />
         </div>
       ) : (
-        <div className={cn('relative min-h-0 min-w-0 flex-1 bg-white', listOpen ? 'hidden lg:flex' : 'flex')}>
+        <div
+          className={cn(
+            'min-h-0 min-w-0 flex-1 items-center justify-center bg-white p-6',
+            listOpen ? 'hidden lg:flex' : 'flex',
+          )}
+        >
           <EmptyState
+            // Centred as one block with a narrowed description, so it never reads as a single line
+            // spanning the pane (AC-119); EmptyState keeps its own text-centre and icon treatment
+            className="py-0 [&>p]:max-w-sm [&>p]:text-balance"
             title={unresolved ? 'Conversation not available' : 'No conversation selected'}
             description={
               unresolved

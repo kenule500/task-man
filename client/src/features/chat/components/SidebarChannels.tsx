@@ -1,25 +1,25 @@
-import { useCallback, useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import {
   SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getStoredUser } from '@/utils/session';
 import { chatApi } from '../api';
 import { onConversations } from '../lib/conversationEvents';
 import { allLastRead, setLastRead } from '../lib/readState';
 import { unreadCount } from '../lib/messages';
-import type { ChatChannel, ChatUser } from '../types';
+import type { ChatChannel } from '../types';
 
 /**
- * The direct-message rows of the sidebar's chat group.
+ * The workspace-wide channel row of the sidebar's chat group.
  *
- * The group itself and the single `Project chat` destination belong to `Sidebar`; this list only adds
- * the member's direct conversations, so the seeded channels are no longer two ambiguous sidebar rows
- * (AC-100, AC-102). It is hidden without `chat:read` and when the member has no direct conversation.
+ * The group and the single `Project chat` destination belong to `Sidebar`; this list adds `General`,
+ * the channel every member of the workspace with `chat:read` can see without joining a project
+ * (AC-117, AC-118). Direct messages are deliberately not sidebar rows - they live in the conversation
+ * list - and the seeded `team` channel is reached through `Project chat`.
  *
- * The chat screen announces a grant, a rename or a read through `conversationEvents`, so the sidebar
- * never needs its own socket and the two panes cannot disagree (AC-113).
+ * The chat screen announces a rename or a read through `conversationEvents`, so the sidebar never
+ * needs its own socket and the two panes cannot disagree (AC-113).
  */
 export const SidebarChannels = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
@@ -28,26 +28,24 @@ export const SidebarChannels = () => {
   const { can, loading } = usePermissions();
 
   const [channels, setChannels] = useState<ChatChannel[]>([]);
-  const [members, setMembers] = useState<ChatUser[]>([]);
-  // A grant or a rename means the list itself changed; a read only means the rows must repaint
+  // A rename means the list itself changed; a read only means the rows must repaint
   const [reloads, setReloads] = useState(0);
   // A read does not change the list, only its badge, so it forces a repaint and nothing else
   const [, repaint] = useReducer((count: number) => count + 1, 0);
 
   const canRead = !loading && can('chat:read');
-  const currentUserId = getStoredUser()?._id;
   // Visiting a conversation writes the read state; every render re-reads it, so a badge clears at once
   const readState = allLastRead();
 
   useEffect(() => {
     if (!workspaceSlug || !canRead) return undefined;
     let cancelled = false;
-    Promise.all([chatApi.channels(workspaceSlug), chatApi.members(workspaceSlug)])
-      .then(([list, directory]) => {
+    chatApi.channels(workspaceSlug)
+      .then(list => {
         if (cancelled) return;
         setChannels(list.filter(channel => !channel.archived));
-        setMembers(directory);
-      })      .catch(() => {
+      })
+      .catch(() => {
         // The chat screen surfaces the failure; the sidebar stays quiet
         if (!cancelled) setChannels([]);
       });
@@ -61,16 +59,12 @@ export const SidebarChannels = () => {
     else repaint();
   }), []);
 
-  // Only direct conversations are sidebar rows: the seeded channels live in the conversation list
-  const conversations = canRead && workspaceSlug
-    ? channels.filter(channel => channel.kind === 'direct')
+  // General is the workspace-wide channel: no project membership is needed to read it (AC-118)
+  const generalChannels = canRead && workspaceSlug
+    ? channels.filter(channel => channel.kind === 'general')
     : [];
 
-  const nameOf = useCallback((userId: string) => (
-    members.find(member => member._id === userId)?.name ?? 'Teammate'
-  ), [members]);
-
-  if (!canRead || !workspaceSlug || conversations.length === 0) return null;
+  if (!canRead || !workspaceSlug || generalChannels.length === 0) return null;
 
   const close = () => {
     if (isMobile) setOpenMobile(false);
@@ -79,14 +73,14 @@ export const SidebarChannels = () => {
   return (
     <SidebarGroup data-testid="sidebar-chat">
       <SidebarMenu>
-        {conversations.map(channel => {
+        {generalChannels.map(channel => {
           const href = `/${workspaceSlug}/chat/${channel._id}`;
           const active = pathname === href;
-          // The member's own read state decides; the server flag only covers a conversation this
-          // browser has never opened, so a stale flag cannot re-light a cleared badge (AC-111)
+          // The member's own read state decides; the server flag only covers a channel this browser
+          // has never opened, so a stale flag cannot re-light a cleared badge (AC-111, AC-118)
           const seen = readState[channel._id];
           const unread = seen ? unreadCount(channel, readState) : (channel.unread ? 1 : 0);
-          const label = nameOf(channel.participants.find(id => id !== currentUserId) ?? '');
+          const label = channel.name;
 
           return (
             <SidebarMenuItem key={channel._id}>
@@ -105,7 +99,7 @@ export const SidebarChannels = () => {
                     className="w-full"
                   >
                     <span aria-hidden className="flex size-4 shrink-0 items-center justify-center text-xs opacity-70">
-                      ·
+                      #
                     </span>
                     <span className="min-w-0 flex-1 truncate">{label}</span>
                     {unread > 0 && !active && (

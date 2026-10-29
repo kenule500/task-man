@@ -12,7 +12,7 @@ import { emitToChannel, emitToChannelExcept, emitToUser } from '../realtime/bus.
 import { recordActivity } from '../utils/activity.js';
 import { canModerate } from '../utils/chatAccess.js';
 import { snippetOf, uniqueIds } from '../utils/chatMentions.js';
-import { threadUpdateOf } from '../utils/chatThread.js';
+import { threadUpdateOf, type ChatThreadUpdate } from '../utils/chatThread.js';
 import { clampPageSize, decodeMessageCursor, encodeMessageCursor, olderThanCursor, searchFilter } from '../utils/chatQuery.js';
 import { MessageInput, parseMessageInput } from '../utils/chatValidation.js';
 import { deleteFiles, fileInfoOf, openFileStream, saveFile } from '../utils/gridfs.js';
@@ -97,8 +97,10 @@ export interface CreateMessageArgs {
  */
 export const createMessageInChannel = async ({
   workspaceId, channel, authorId, input, exceptSocketId,
-}: CreateMessageArgs): Promise<IChatMessage> => {
+}: CreateMessageArgs): Promise<{ message: IChatMessage; thread: ChatThreadUpdate | null }> => {
   let parentId: mongoose.Types.ObjectId | null = null;
+  // The parent summary a reply returns, so its author sees the new count without waiting for the room
+  let thread: ChatThreadUpdate | null = null;
   if (input.parentId) {
     const parent = await ChatMessage.findOne({
       _id: input.parentId,
@@ -142,20 +144,22 @@ export const createMessageInChannel = async ({
   await message.populate('author', PUBLIC_USER_FIELDS);
 
   if (parentId) {
-    // The stored count comes back with the increment, so the thread event carries the truth rather
-    // than a delta a client would have to add to a number it may never have seen (AC-115, RISK-016)
+    // The stored count comes back with the increment, so both the room event and the sender's own
+    // acknowledgement carry the truth rather than a delta a client would have to add to a number it
+    // may never have seen (AC-115, AC-123, RISK-016)
     const parent = await ChatMessage.findOneAndUpdate(
       { _id: parentId },
       { $inc: { replyCount: 1 }, $set: { lastReplyAuthor: authorId } },
       { new: true, projection: { replyCount: 1, lastReplyAuthor: 1 } },
     ).lean();
     if (parent) {
-      emitToChannel(String(channel._id), 'chat:thread', threadUpdateOf({
+      thread = threadUpdateOf({
         channelId: String(channel._id),
         parentId: String(parentId),
         replyCount: parent.replyCount,
         lastReplyAuthor: parent.lastReplyAuthor,
-      }));
+      });
+      emitToChannel(String(channel._id), 'chat:thread', thread);
     }
   }
 
@@ -168,7 +172,7 @@ export const createMessageInChannel = async ({
 
   await notifyMentions({ workspaceId, channel, message, actorId: authorId, mentioned: mentions });
 
-  return message;
+  return { message, thread };
 };
 
 const reactionSummary = async (messageId: mongoose.Types.ObjectId) => {
@@ -335,14 +339,15 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    const message = await createMessageInChannel({
+    const { message, thread } = await createMessageInChannel({
       workspaceId: workspaceIdOf(req),
       channel: lookup.channel,
       authorId: objectId(req.user?._id),
       input: parsed.value,
     });
 
-    res.status(201).json(messageView(message.toObject() as unknown as Record<string, unknown>));
+    // The sender gets the same parent summary the room event carries, so their count is never stale
+    res.status(201).json({ ...messageView(message.toObject() as unknown as Record<string, unknown>), thread });
   } catch (error) {
     if (error instanceof ChatRuleError) {
       res.status(400).json({ message: error.message });

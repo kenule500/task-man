@@ -357,7 +357,7 @@ const Sidebar = ({ user, onLogout, children }: SidebarProps) => {
             permissionsLoading={permissionsLoading}
           />
           <SidebarProjects slug={targetSlug} canRead={!permissionsLoading && can('projects:read')} />
-          {/* Chat: one destination for every conversation, then the member's direct messages */}
+          {/* Chat: one destination for every conversation, then the workspace-wide General channel */}
           {!permissionsLoading && can('chat:read') && (
             <SidebarGroup>
               <SidebarGroupLabel>Chat</SidebarGroupLabel>

@@ -61,6 +61,41 @@ export const mergeConversations = (
   teams: readonly ConversationCard[],
 ): ConversationCard[] => sortConversations([...teams, ...directs]);
 
+/**
+ * Clears a conversation's unread state in place (AC-121).
+ *
+ * Opening a conversation is a local fact, so the row is patched instead of re-fetched: the badge
+ * disappears with the click, costs no request (NFR-048), and a card that is not in the list is simply
+ * left untouched (EC-051). The same array is returned when nothing changed so React can skip a render.
+ */
+export const markConversationRead = (
+  cards: readonly ConversationCard[],
+  channelId: string,
+): ConversationCard[] => {
+  let changed = false;
+  const next = cards.map(card => {
+    if (card._id !== channelId) return card;
+    if (!card.unread && (card.unreadCount ?? 0) === 0) return card;
+    changed = true;
+    return { ...card, unread: false, unreadCount: 0 };
+  });
+  return changed ? next : [...cards];
+};
+
+/**
+ * A message this member just sent (AC-122).
+ *
+ * The sender's own socket is excluded from `chat:message` (the server skips the sending connection),
+ * so without this the sender's row would keep its old preview and position until a reload. It reuses
+ * the receiver's patch, which already treats a message from the current user as read, so the row
+ * rises to the top with the same ordering as everybody else's.
+ */
+export const applySentMessage = (
+  cards: readonly ConversationCard[],
+  message: ChatMessage,
+  currentUserId?: string,
+): ConversationCard[] => applyIncomingMessage(cards, message, currentUserId);
+
 /** Badge copy: a four-digit count would widen the row, so it caps at 9+ (spec AC-064). */
 export const unreadLabel = (count: number): string => (count > 9 ? '9+' : String(Math.max(count, 1)));
 

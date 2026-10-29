@@ -96,6 +96,17 @@ export interface SocketAck {
   ok: boolean;
   error?: string;
   message?: ChatMessage;
+  /** The parent summary of a reply, so its author sees the new count without the room event (AC-123). */
+  thread?: ChatThreadUpdate | null;
+}
+
+/**
+ * What a send resolves with on either transport: the stored message, plus the parent summary when the
+ * message was a reply, so the author's count is as live as everyone else's (AC-123).
+ */
+export interface SentResult {
+  message: ChatMessage;
+  thread: ChatThreadUpdate | null;
 }
 
 /** One row of a conversation section (direct messages and team channels share the shape). */

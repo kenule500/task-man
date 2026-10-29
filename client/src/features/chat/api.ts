@@ -1,7 +1,7 @@
 import api from '@/utils/api';
 import type {
-  ChannelMembersPayload, ChannelSummary, ChatChannel, ChatMessage, ChatUser, ConversationsPayload,
-  ConversationCard, MessagePage, OutgoingMessage, Reaction, SearchPage,
+  ChannelMembersPayload, ChannelSummary, ChatChannel, ChatMessage, ChatThreadUpdate, ChatUser,
+  ConversationsPayload, ConversationCard, MessagePage, OutgoingMessage, Reaction, SearchPage, SentResult,
 } from './types';
 
 const base = (slug: string) => `/workspaces/${encodeURIComponent(slug)}`;
@@ -29,14 +29,18 @@ export const chatApi = {
     };
   },
 
-  send: async (slug: string, input: OutgoingMessage): Promise<ChatMessage> => {
+  /** The stored message, plus the parent summary when it is a reply (AC-123). */
+  send: async (slug: string, input: OutgoingMessage): Promise<SentResult> => {
     const { data } = await api.post(`${channelBase(slug, input.channelId)}/messages`, {
       body: input.body,
       parentId: input.parentId ?? null,
       mentionIds: input.mentionIds ?? [],
       attachmentIds: input.attachmentIds ?? [],
     });
-    return data;
+    return {
+      message: data as ChatMessage,
+      thread: (data?.thread ?? null) as ChatThreadUpdate | null,
+    };
   },
 
   replies: async (slug: string, channelId: string, messageId: string): Promise<ChatMessage[]> => {

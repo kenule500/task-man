@@ -56,7 +56,7 @@ const resolveChannel = async (
   return decision === 'allow' ? channel : null;
 };
 
-type Ack = (response: { ok: boolean; error?: string; message?: unknown; joined?: number }) => void;
+type Ack = (response: { ok: boolean; error?: string; message?: unknown; joined?: number; thread?: unknown }) => void;
 
 // One join may subscribe a member to a whole panel; the cap keeps a crafted payload from being a
 // cheap way to make the server run thousands of access checks.
@@ -128,14 +128,16 @@ export const registerChatEvents = (_io: Server, socket: Socket): void => {
     if (!channel) return ack?.({ ok: false, error: 'You cannot post in this channel' });
 
     try {
-      const message = await createMessageInChannel({
+      const { message, thread } = await createMessageInChannel({
         workspaceId: new mongoose.Types.ObjectId(ctx.workspaceId),
         channel,
         authorId: new mongoose.Types.ObjectId(ctx.userId),
         input: parsed.value,
         exceptSocketId: socket.id,
       });
-      ack?.({ ok: true, message: messageView(message.toObject() as unknown as Record<string, unknown>) });
+      // The sender's own socket is excluded from chat:message and chat:thread, so the ack carries the
+      // parent summary; without it the author would never see their reply count (AC-123)
+      ack?.({ ok: true, message: messageView(message.toObject() as unknown as Record<string, unknown>), thread });
     } catch (error) {
       ack?.({ ok: false, error: error instanceof Error ? error.message : 'Could not send the message' });
     }
