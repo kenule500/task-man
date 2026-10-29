@@ -11,6 +11,7 @@ import Session from '../models/sessionModel.js';
 import User from '../models/userModel.js';
 import Workspace from '../models/workspaceModel.js';
 import { hashToken } from '../utils/tokens.js';
+import { isAllowedOrigin } from '../utils/corsOrigins.js';
 import { attachBus, auditRoom, detachBus, projectRoom, userRoom, workspaceRoom } from './bus.js';
 import { registerActivityRealtime } from './activityEvents.js';
 import { registerChatEvents } from './chatEvents.js';
@@ -128,8 +129,13 @@ export const createSocketServer = (httpServer: HttpServer): Server => {
   const config = getConfig();
 
   const io = new Server(httpServer, {
-    // The allow-list comes from validated configuration, never a literal (CON-206, spec NFR-013)
-    cors: { origin: config.corsOrigins, credentials: true },
+    // The allow-list comes from validated configuration, never a literal (CON-206, spec NFR-013). It
+    // shares the API's rule, so the handshake and the REST calls agree on which dev port is welcome
+    cors: {
+      origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) =>
+        callback(null, isAllowedOrigin(origin, config.corsOrigins, { allowLoopback: !config.isProduction })),
+      credentials: true,
+    },
     pingInterval: 25_000,
     pingTimeout: 20_000,
   });

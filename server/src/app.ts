@@ -20,6 +20,7 @@ import { seedSystemRoles, repairMemberRoles } from './utils/seedRoles.js';
 import { registerFlowTracking } from './utils/flow/register.js';
 import { registerAutomations } from './utils/automation/register.js';
 import { registerWebhooks } from './utils/webhooks/register.js';
+import { isAllowedOrigin } from './utils/corsOrigins.js';
 
 // ============================================================
 // 1. Validate environment first
@@ -74,9 +75,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(helmet());
-// Exact origins only: the list comes from CORS_ORIGIN (or CLIENT_URL); a wildcard entry is never honoured
+// Exact origins only: the list comes from CORS_ORIGIN (or CLIENT_URL); a wildcard entry is never honoured.
+// In development a loopback origin is accepted on any port, because Vite moves to the next free port when
+// another project holds 5173 and a static list would then block every request from the app (CON-512)
 const allowedOrigins = new Set(config.corsOrigins.filter(origin => origin !== '*'));
-app.use(cors({ origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)) }));
+app.use(cors({
+  origin: (origin, callback) => callback(
+    null,
+    isAllowedOrigin(origin, [...allowedOrigins], { allowLoopback: !config.isProduction }),
+  ),
+}));
 // GitHub signs the exact bytes it sends, so its webhook gets the raw body (must come before express.json)
 app.use('/api/integrations/github', express.raw({ type: 'application/json', limit: '1mb' }));
 // Import files are text up to 2 MB (a little more once JSON-escaped), so that path gets a larger parser first
