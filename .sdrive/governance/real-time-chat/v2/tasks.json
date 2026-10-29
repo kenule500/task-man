@@ -800,6 +800,155 @@
           "completed": true
         }
       ]
+    },
+    {
+      "phaseId": "P33",
+      "name": "Sidebar composition",
+      "dependencies": [
+        "P28"
+      ],
+      "tasks": [
+        {
+          "id": "T33.1",
+          "title": "Render General as the only sidebar channel row",
+          "description": "In SidebarChannels.tsx filter to kind === 'general', keep the group hidden without chat:read, keep the read-state badge and the grant/rename notice.",
+          "linkedRequirements": [
+            "FR-106"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-117"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T33.2",
+          "title": "Confirm General is readable by every workspace member",
+          "description": "Confirm General needs no project membership because it is a base kind in visibleChannelClause, and that its row badge comes from the member's own read state.",
+          "linkedRequirements": [
+            "FR-107"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-118"
+          ],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P34",
+      "name": "Pane and overlay",
+      "dependencies": [
+        "P33"
+      ],
+      "tasks": [
+        {
+          "id": "T34.1",
+          "title": "Centre the nothing-selected pane",
+          "description": "Wrap EmptyState in a centred flex container that fills the pane and narrow the description (max-w-sm, balanced lines) so the block reads as composed rather than edge to edge.",
+          "linkedRequirements": [
+            "FR-108",
+            "NFR-047"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-119"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T34.2",
+          "title": "Darken the image overlay",
+          "description": "Replace the lightbox backdrop bg-slate-900/80 with a theme-independent dark scrim (bg-black/80), keeping the title, close and download controls on the inverse tokens.",
+          "linkedRequirements": [
+            "FR-109",
+            "NFR-047"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-120"
+          ],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P35",
+      "name": "Badge and ordering",
+      "dependencies": [
+        "P33"
+      ],
+      "tasks": [
+        {
+          "id": "T35.1",
+          "title": "Clear the opened conversation card",
+          "description": "Add markConversationRead(cards, channelId) to lib/conversations.ts and apply it to both lists when a conversation is opened, so the list badge clears with the sidebar without a request.",
+          "linkedRequirements": [
+            "FR-110",
+            "NFR-048"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-121"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T35.2",
+          "title": "Raise the sender card on a successful send",
+          "description": "Add applySentMessage(cards, message, currentUserId) sharing applyIncomingMessage's preview and ordering, and apply it on the socket ack and the REST response for every send, replies included.",
+          "linkedRequirements": [
+            "FR-111",
+            "NFR-048"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-122"
+          ],
+          "completed": false
+        }
+      ]
+    },
+    {
+      "phaseId": "P36",
+      "name": "The reply reaches its author",
+      "dependencies": [
+        "P35"
+      ],
+      "tasks": [
+        {
+          "id": "T36.1",
+          "title": "Return the parent summary from a reply send",
+          "description": "Return the parent summary shaped by threadUpdateOf from sendMessage and from the chat:send acknowledgement, so a reply author receives what chat:thread gives everyone else.",
+          "linkedRequirements": [
+            "FR-111"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-123"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T36.2",
+          "title": "Patch the parent from the send result",
+          "description": "Type the acknowledgement's thread in useChatSocket, return it with the sent message and patch the parent row (and the open thread's parent) from it, keeping the chat:thread handler for everybody else.",
+          "linkedRequirements": [
+            "FR-111"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-123"
+          ],
+          "completed": false
+        },
+        {
+          "id": "T36.3",
+          "title": "Run the gates and the browser pass",
+          "description": "Run the server and client typechecks, the client lint and build, the governance validator and sdrive verify (recording the CON-614 attribution if it fails), then check the chat root, a channel, an opened image and a thread at 320px and in the dark theme.",
+          "linkedRequirements": [
+            "NFR-047"
+          ],
+          "linkedAcceptanceCriteria": [
+            "AC-119",
+            "AC-120"
+          ],
+          "completed": false
+        }
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@ title: Real-time chat v2 - technical plan
 status: in_progress
 version: v2
 created: 2026-10-27
-updated: 2026-10-28
+updated: 2026-10-29
 ---
 
 # real-time-chat v2 - technical plan
@@ -333,3 +333,112 @@ Production code only; test authoring and execution belong to `/sdrive:test` (CON
 `node .sdrive/scripts/validate-governance.js`, plus a browser pass over `/{workspace}/chat` (root, list, conversation, thread, attachment)
 at 320px, at 200% zoom and with the keyboard only, and a second account to confirm that a granted project channel opens without a reload and
 that a non-moderator project member can open a posted file (CON-703).
+
+---
+
+## 12. Amendment 2 - sidebar composition, overlay contrast and delivery (update-propose, 2026-10-29)
+
+### 12.1 Approach
+
+A fourth, small pass over the same module. Every change lands in a file the feature already owns; nothing is rebased, and no
+dependency, route, model or permission is added.
+
+Four decisions:
+
+1. **The sidebar shows the workspace-wide channel again.** `SidebarChannels` swaps its filter from `kind === 'direct'` to
+   `kind === 'general'`, so the chat group is `Project chat` plus `General` and no direct-message row (AC-117). `General` needs no
+   access work: `visibleChannelClause` already lists `general` among the base kinds every member with `chat:read` can see, so
+   FR-107 pins existing behaviour, and the row keeps deriving its badge from the member's read state (AC-118).
+2. **Centre the block, not only its text.** `EmptyState` is already `text-center`; the pane now centres it in the available space
+   and narrows its description, so the state reads as one composed block instead of a line that spans the pane (AC-119).
+3. **A scrim the theme cannot remap.** `Lightbox` stops using `bg-slate-900/80` - `.bg-slate-900` is rewritten to
+   `--color-inverse` in the dark theme, which turns the scrim into a light wash - and uses a fixed black scrim instead (AC-120).
+4. **Patch what the client already holds.** Opening a conversation clears its card in place (`markConversationRead`) and a
+   successful send patches the sender's card (`applySentMessage`), so neither costs a request (AC-121, AC-122, NFR-048). The reply
+   path completes the same idea on the server: the acknowledgement and the REST response carry the parent summary
+   (`threadUpdateOf`), so the author's count is as live as everyone else's (AC-123).
+
+### 12.2 Architecture
+
+| Component | Action | Responsibility |
+|---|---|---|
+| `client/src/features/chat/components/SidebarChannels.tsx` | modify | Filter to `kind === 'general'`; keep the group hidden without `chat:read`, the read-state badge and the grant/rename notice subscription |
+| `client/src/features/chat/views/ChatView.tsx` | modify | Centre the nothing-selected pane and narrow its description; clear the opened card; patch the sender's card on the ack and on the REST response; apply the parent summary a send returns |
+| `client/src/features/chat/lib/conversations.ts` | modify | `markConversationRead(cards, channelId)` (pure, a no-op when the card is absent) and `applySentMessage(cards, message, currentUserId)` sharing `applyIncomingMessage`'s ordering |
+| `client/src/features/chat/components/Lightbox.tsx` | modify | Replace the remapped surface with a fixed dark scrim and keep the dialog chrome on inverse tokens |
+| `client/src/components/ds/primitives.tsx` | reuse | `EmptyState` unchanged; the pane supplies the centring and the narrower description through `className` |
+| `client/src/features/chat/hooks/useChatSocket.ts` | modify | Type the acknowledgement's `thread` summary and return it with the sent message |
+| `client/src/features/chat/hooks/useChatMessages.ts` | modify | Patch the parent from the send result, including the open thread's parent |
+| `server/src/controllers/chatMessageController.ts` | modify | Return the parent summary (`thread`) from `sendMessage`, reusing the value that already feeds `chat:thread` |
+| `server/src/realtime/chatEvents.ts` | modify | Put the same summary on the socket acknowledgement |
+| `server/src/utils/chatThread.ts` | reuse | The shaper stays the single place the summary is shaped |
+
+### 12.3 Data model
+
+| Entity | Action | Fields | Notes |
+|---|---|---|---|
+| `ChatChannel` | no_change | - | `kind` still decides the audience; `general` stays a base kind |
+| `ChatMessage` | no_change | - | `replyCount`/`lastReplyAuthor` are read after the increment, as before |
+| `ChatRead` | no_change | - | The list badge reuses the same read state the sidebar uses |
+
+No migration, no backfill, no new collection.
+
+### 12.4 API contracts
+
+| Method | Path | Action | Notes |
+|---|---|---|---|
+| POST | `/api/workspaces/:slug/chat/:channelId/messages` | modify (response body) | The 201 body gains `thread` (parent summary) when the message is a reply; nothing else changes |
+| socket | `chat:send` | modify (ack payload) | The ack gains the same `thread` summary; `chat:thread` keeps going to the room for everyone else |
+| GET | `/chat/channels`, `/chat/conversations` | reuse | Unchanged; the sidebar filters what it already receives |
+
+No endpoint is added, removed or renamed, and no permission or validation chain changes.
+
+### 12.5 Security
+
+- **No access change.** `General` is already readable by every member with `chat:read`; the sidebar only stops hiding it, and it
+  never exposes a channel the API would refuse (`chatApi.channels` is already scoped).
+- **No new route.** The send response only gains a summary of a parent the caller was already allowed to read.
+- **Same disclosure rules.** A parent outside the caller's channel is never returned; the summary is shaped from the parent row the
+  send already updated.
+- **No token in a URL**, and the overlay still renders bytes from the object-URL cache rather than a protected link.
+
+### 12.6 Performance
+
+- **Zero extra requests.** Clearing a badge and raising the sender's card are local state patches over data already loaded.
+- **One write per open, unchanged.** `markRead` keeps its single POST; the card patch rides the same render.
+- **The ack carries one small object.** No extra query: the parent is already loaded to increment its count.
+- **No polling.** The list order and badges stay event-driven.
+
+### 12.7 UI/UX
+
+- **Sidebar.** `Project chat` (destination) then `General` (channel) with its unread badge; no direct-message rows. On mobile the
+  group closes the sheet after navigation, as before.
+- **Empty pane.** Icon, title and description centred as one block; description constrained (`max-w-sm`, balanced lines) so it never
+  runs edge to edge (AC-119).
+- **Image overlay.** A fixed dark scrim (at least 80% black) behind the image, with the title, close and download controls on the
+  inverse tokens so they stay legible in both themes (AC-120, NFR-047).
+- **List feedback.** Opening a row clears its badge immediately; sending moves the row to the top with the new preview; a reply
+  updates the parent's count for everyone, including its author (AC-121..AC-123).
+
+### 12.8 Dependencies
+
+| Dependency | Type | Action | Notes |
+|---|---|---|---|
+| `socket.io` / `socket.io-client` | library | no_change | The ack payload grows one field |
+| `tailwindcss` | library | no_change | A fixed black scrim uses existing utilities; no token is added |
+| `ChatChannel` / `ChatMessage` / `ChatRead` | internal | no_change | No schema change |
+| `EmptyState` / `Lightbox` / `lib/conversations.ts` | internal | reuse / modify | Existing assets, no new component |
+
+### 12.9 Risks
+
+| Risk | Mitigation |
+|---|---|
+| RISK-018 - a fixed dark scrim can swallow the dialog's own controls in the light theme | Keep the chrome on the inverse tokens and re-check contrast in both themes |
+| RISK-019 - an optimistic card patch can disagree with the server order when clocks differ | Use the timestamp from the server response and let the next list load replace it |
+
+### 12.10 Verification
+
+Production code only; test authoring belongs to `/sdrive:test` (CON-401). Before hand-off: `pnpm --filter server typecheck`,
+`pnpm --filter client typecheck`, `pnpm --filter client lint`, `pnpm --filter client build`, `node .sdrive/scripts/validate-governance.js`
+and `sdrive verify` (recording the CON-614 attribution if it reports fail again), plus a browser pass over the chat root, a channel,
+an opened image and a thread at 320px and in the dark theme where the environment allows it.

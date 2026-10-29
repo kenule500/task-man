@@ -228,6 +228,56 @@
         "name": "client/src/index.css",
         "action": "reuse",
         "description": "No token change: the inverse surface, inverse text and the dark-theme remaps the code card now uses already exist."
+      },
+      {
+        "name": "client/src/features/chat/components/SidebarChannels.tsx",
+        "action": "modify",
+        "description": "Filter to kind === 'general' so the chat group is the Project chat destination plus the workspace-wide General row, with no direct-message rows; keep the read-state badge and the grant/rename notice."
+      },
+      {
+        "name": "client/src/features/chat/views/ChatView.tsx",
+        "action": "modify",
+        "description": "Centre the nothing-selected pane and narrow its description, clear the opened card's badge, patch the sender's card on the ack and on the REST response, and apply the parent summary a reply returns."
+      },
+      {
+        "name": "client/src/features/chat/lib/conversations.ts",
+        "action": "modify",
+        "description": "Add markConversationRead(cards, channelId) and applySentMessage(cards, message, currentUserId), both pure and both reusing the existing ordering."
+      },
+      {
+        "name": "client/src/features/chat/components/Lightbox.tsx",
+        "action": "modify",
+        "description": "Replace the remapped bg-slate-900 backdrop with a fixed dark scrim so the overlay stays dark in both themes."
+      },
+      {
+        "name": "client/src/components/ds/primitives.tsx",
+        "action": "reuse",
+        "description": "EmptyState stays unchanged; the chat pane supplies centring and a narrower description through className."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatSocket.ts",
+        "action": "modify",
+        "description": "Type the acknowledgement's thread summary and return it beside the sent message."
+      },
+      {
+        "name": "client/src/features/chat/hooks/useChatMessages.ts",
+        "action": "modify",
+        "description": "Patch the parent row from a send result, including the open thread's parent."
+      },
+      {
+        "name": "server/src/controllers/chatMessageController.ts",
+        "action": "modify",
+        "description": "Return the parent summary (thread) from sendMessage so the REST path matches the socket event."
+      },
+      {
+        "name": "server/src/realtime/chatEvents.ts",
+        "action": "modify",
+        "description": "Put the same parent summary on the chat:send acknowledgement."
+      },
+      {
+        "name": "server/src/utils/chatThread.ts",
+        "action": "reuse",
+        "description": "The shaper stays the single place the parent summary is built."
       }
     ],
     "referencedRequirementIds": [
@@ -282,7 +332,15 @@
       "NFR-043",
       "NFR-044",
       "NFR-045",
-      "NFR-046"
+      "NFR-046",
+      "FR-106",
+      "FR-107",
+      "FR-108",
+      "FR-109",
+      "FR-110",
+      "FR-111",
+      "NFR-047",
+      "NFR-048"
     ]
   },
   "dataModel": {
@@ -448,6 +506,48 @@
             "action": "no_change"
           }
         ]
+      },
+      {
+        "name": "ChatChannel",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "String (team|general|project|direct)",
+            "nullable": false,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatMessage",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "replyCount",
+            "type": "Number",
+            "nullable": false,
+            "action": "no_change"
+          },
+          {
+            "name": "lastReplyAuthor",
+            "type": "ObjectId (User)",
+            "nullable": true,
+            "action": "no_change"
+          }
+        ]
+      },
+      {
+        "name": "ChatRead",
+        "action": "no_change",
+        "fields": [
+          {
+            "name": "lastReadAt",
+            "type": "Date",
+            "nullable": true,
+            "action": "no_change"
+          }
+        ]
       }
     ],
     "flowDescription": "assignee -> addAssigneesToProjectMembers returns the newly added ids -> createProjectChannel ensures the project channel exists -> chatGrant collapses the pairs -> emitToUser('chat:channel-granted', channelCard) -> client appends, dedupes and joins the channel room. Separately: MessageItem -> AttachmentCard -> useAttachmentUrl -> axios blob fetch with the bearer token -> cached object URL -> thumbnail or lightbox, revoked on last unmount. And: project detail header -> GET /chat/projects/:projectId/channel (get-or-create) -> navigate to /{workspaceSlug}/chat/{channelId}. Amendment flow (2026-10-28): the sidebar's Project chat item links to the chat root, which renders the merged conversation list with nothing selected, ordered by mergeConversations plus sortConversations with the header outside the message scroll container; an attachment is fetched through AttachmentCard and the route now passes the caller's project membership into decideChannelAccess; a reply persists, increments the parent and emits chat:thread with the authoritative count, and the client patches that parent row and appends the reply to an open thread panel."
@@ -494,6 +594,13 @@
       "action": "reuse",
       "authenticationRequired": true,
       "linkedRequirements": ["FR-094"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspaces/:slug/chat/:channelId/messages",
+      "action": "modify",
+      "authenticationRequired": true,
+      "linkedRequirements": ["FR-111"]
     }
   ],
   "securityConsiderations": [
@@ -558,6 +665,10 @@
     {
       "requirementId": "NFR-045",
       "strategy": "Unread reconciliation compares the stored read timestamp with the channel's activity and writes at most one read state per conversation open; the sidebar patches rows from the events it already receives instead of re-fetching, and no polling interval is added."
+    },
+    {
+      "requirementId": "NFR-048",
+      "strategy": "Clearing a badge and raising the sender's card are local state patches over data already loaded: no extra request, no polling, and the existing single markRead write is unchanged."
     }
   ],
   "dependencies": [
@@ -620,6 +731,24 @@
       "type": "internal",
       "action": "no_change",
       "notes": "Kept and refactored to delegate rows; retiring them is a separate decision that moves their tests with them."
+    },
+    {
+      "name": "socket.io / socket.io-client",
+      "type": "library",
+      "action": "no_change",
+      "notes": "The acknowledgement payload grows one small object; no new event and no new transport."
+    },
+    {
+      "name": "tailwindcss",
+      "type": "library",
+      "action": "no_change",
+      "notes": "The fixed dark scrim and the centred pane use existing utilities; no token is added."
+    },
+    {
+      "name": "EmptyState / Lightbox / lib/conversations.ts",
+      "type": "internal",
+      "action": "no_change",
+      "notes": "Existing assets, modified in place; no new component is introduced."
     }
   ],
   "risks": [
@@ -666,6 +795,14 @@
     {
       "description": "RISK-017: one merged list changes a surface that AC-056 and AC-065 fixed.",
       "mitigation": "The row rendering is extracted rather than rewritten, so previews, badges and the picker position are preserved, and the spec records the amendment explicitly."
+    },
+    {
+      "description": "RISK-018: a fixed dark scrim can swallow the dialog's own controls in the light theme.",
+      "mitigation": "Keep the title, close and download controls on the inverse tokens and re-check their contrast in both themes."
+    },
+    {
+      "description": "RISK-019: patching the sender's card optimistically can disagree with the server's order when clocks differ.",
+      "mitigation": "Use the timestamp in the server response for the card and let the next list load replace the local value."
     }
   ]
 }
