@@ -195,10 +195,10 @@
         {
           "id": "v2",
           "phase": "ongoing",
-          "currentStep": "specification",
+          "currentStep": "planning",
           "gates": {
-            "specification": "pending",
-            "planning": "approved",
+            "specification": "approved",
+            "planning": "pending",
             "implementation": "in_progress",
             "review": "pending"
           },
@@ -254,6 +254,11 @@
               "by": "update-proposal",
               "summary": "Amendment 2 (/sdrive:update-propose, second walkthrough): appended US-049..US-054, AC-117..AC-123 (7 acceptance criteria), FR-106..FR-111 (6 functional), NFR-047..NFR-048 (2 non-functional), EC-050..EC-054 (5 edge cases) and RISK-018..RISK-019 (2 risks) to spec.md and spec.json, plus 8 rows in traceability.json (in_progress, plan section 12, task column provisional until Gate 2). It narrows section 9's sidebar change: the chat group keeps a General channel row again and stops listing direct messages, so the sidebar holds Project chat plus General while direct messages live only in the conversation list; General stays readable by every workspace member with chat:read. It also pins six defects found in the build: the empty pane does not centre its block or narrow its description; the image overlay uses bg-slate-900, which the dark theme remaps to a light inverse surface instead of a dark scrim; opening a conversation never clears the ConversationCard unread flag, so the list badge survives; the sender never receives their own chat:message or chat:thread, so their card does not rise and their reply count stays stale. Existing IDs, text and rows are untouched. The specification gate is reset to pending for re-approval and the implementation gate returns to in_progress because P33-P36 are unbuilt; plan.md, tasks.md, plan.json and tasks.json are unchanged until Gate 1 is approved.",
               "timestamp": "2026-10-29T01:40:00.000Z"
+            },
+            {
+              "event": "Gate 1 approved by the user in session on 2026-10-29 for amendment 2 (sidebar = Project chat + General with no direct-message rows, General readable by every workspace member with chat:read; centred nothing-selected pane; dark image scrim; badge cleared on open; sender's card raised; reply count returned to its author). Gate 2 delivered: plan section 12 and phases P33-P36 with 9 tasks (T33.1-T36.3), plan.json (10 components, 8 referenced requirements, 3 no-change entities, the send contract, 1 performance entry, 3 dependency notes, 2 risks) and tasks.json (4 phases) appended and validated. Because new plan content invalidates the previous planning approval, the planning gate is pending for this Gate 2 review.",
+              "by": "user",
+              "timestamp": "2026-10-29T02:10:00.000Z"
             }
           ]
         }
