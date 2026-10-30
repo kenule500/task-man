@@ -7,6 +7,7 @@ A MERN task manager for teams: users sign up, create or join workspaces, and pla
 |---|---|
 | Web (`client/`) | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn (Base UI), axios |
 | API (`server/`) | Node.js, Express 5, TypeScript, Mongoose 9 (MongoDB), JWT + DB sessions |
+| Analyzer (`services/document-analyzer/`) | Python 3.12, uv, FastAPI, DocuMind SDK 0.2.2 |
 | Tests | Jest (`@swc/jest`), Testing Library |
 | Tooling | pnpm workspace, ESLint, GitHub Actions CI |
 
@@ -203,6 +204,25 @@ pnpm dev       # API on http://localhost:5000
 # in another terminal
 pnpm --filter client dev                 # web app on http://localhost:5173
 ```
+
+### Optional: document analyzer service
+
+The standard document-to-plan path is a small Python service in `services/document-analyzer/`. It uses
+the DocuMind SDK, which **generates** a Markdown plan from the cleaned document text; it is not an
+analysis/OCR API, and its internal pipeline may make several provider calls. The API keeps its v1
+workspace-provider path (`DOCUMENT_ANALYZER_MODE=ai`) until the analyzer is deployed and measured.
+
+```bash
+cd services/document-analyzer
+cp .env.example .env                      # DOCUMENT_ANALYZER_TOKEN + DocuMind provider key
+uv sync
+uv run uvicorn app.main:app --port 8000
+```
+
+Then in `server/.env` set `DOCUMENT_ANALYZER_MODE=documind`,
+`DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000` and the same 32+ byte
+`DOCUMENT_ANALYZER_TOKEN`. See the service README for the API, limits and rollback.
+
 
 ### Optional: Web Push (device notifications)
 

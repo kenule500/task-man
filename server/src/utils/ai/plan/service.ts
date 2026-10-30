@@ -6,9 +6,11 @@ import { generateJson } from '../provider.js';
 import { AiQueueError, STALE_AFTER_MS, startOfUtcDay } from '../reviewService.js';
 import { AiReviewError } from '../types.js';
 import { resolveWorkspaceAiConfig, type WorkspaceAiConfig, type WorkspaceAiSettings } from '../workspaceConfig.js';
-import { readPlanConfig } from './config.js';
+import { readAnalyzerConfig, readPlanConfig } from './config.js';
+import { analyzePlan, isInfrastructureFailure } from './analyzer.js';
 import { buildPlanMessages } from './prompt.js';
-import { finalizePlan, modelPlanSchema, type PlanLanguage } from './schema.js';
+import { finalizePlan, modelPlanSchema, type PlanContent, type PlanLanguage } from './schema.js';
+import { shortenForModel } from './text.js';
 
 // Queues and runs the generation of a project plan from a document. The document text is only ever held in memory:
 // it is handed to `runPlan` by the request that read it and is gone when the generation ends.
@@ -16,7 +18,7 @@ import { finalizePlan, modelPlanSchema, type PlanLanguage } from './schema.js';
 type Id = mongoose.Types.ObjectId;
 
 /** Failures that still cost the workspace a generation: the model was called (or the person cancelled mid-way). */
-const COUNTED_FAILURES = ['CANCELLED', 'AI_INVALID_OUTPUT'];
+const COUNTED_FAILURES = ['CANCELLED', 'AI_INVALID_OUTPUT', 'ANALYZER_INVALID_OUTPUT'];
 
 /** Plans that count against the workspace's daily limit (one that failed before reaching the model does not). */
 export const countPlansUsedToday = (workspaceId: Id | string, now = new Date()): Promise<number> =>
@@ -46,8 +48,16 @@ export const assertPlanFeatureOn = (workspaceId: Id | string, settings: Workspac
 };
 
 /** Everything that can refuse a new generation before any work is done: feature off, one already running, daily limit. */
-export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: WorkspaceAiSettings | undefined }): Promise<WorkspaceAiConfig> => {
-  const ai = assertPlanFeatureOn(input.workspaceId, input.settings);
+export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: WorkspaceAiSettings | undefined }): Promise<WorkspaceAiConfig | null> => {
+  const analyzer = readAnalyzerConfig();
+  let ai: WorkspaceAiConfig | null = null;
+  if (analyzer.mode === 'documind') {
+    if (!analyzer.configured) {
+      throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
+    }
+  } else {
+    ai = assertPlanFeatureOn(input.workspaceId, input.settings);
+  }
   const config = readPlanConfig();
 
   await AiPlan.updateMany(
@@ -124,6 +134,45 @@ export interface PreparedDocument {
   truncated: boolean;
 }
 
+interface ProviderPlan {
+  content: PlanContent;
+  model: string;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
+/** The v1 path: the workspace's own provider. It is also the only permitted fallback. */
+const runProviderPlan = async (
+  plan: Pick<IAiPlan, 'options'>,
+  document: PreparedDocument,
+  config: ReturnType<typeof readPlanConfig>,
+  workspace: { _id: unknown; ai?: WorkspaceAiSettings },
+): Promise<ProviderPlan> => {
+  const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
+  if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
+  if (!ai.available) throw new AiReviewError('AI is no longer configured for this workspace.', 'AI_NOT_CONFIGURED');
+
+  const messages = buildPlanMessages({
+    document: document.text,
+    truncated: document.truncated,
+    options: {
+      projectName: plan.options.projectName || undefined,
+      projectKey: plan.options.projectKey || undefined,
+      sprintLengthWeeks: plan.options.sprintLengthWeeks,
+      teamSize: plan.options.teamSize ?? undefined,
+      extraInstructions: plan.options.extraInstructions || undefined,
+      language: plan.options.language,
+      existingProject: Boolean(plan.options.targetProjectId),
+    },
+  });
+
+  const answer = await generateJson(modelPlanSchema, messages, {
+    maxTokens: config.maxOutputTokens,
+    timeoutMs: config.timeoutMs,
+    config: ai,
+  });
+  return { content: answer.output, model: answer.model, usage: answer.usage };
+};
+
 /** Does the whole generation for a queued plan. Never throws: problems end up on the plan as a safe message. */
 export const runPlan = async (planId: Id | string, document: PreparedDocument): Promise<void> => {
   const plan = await AiPlan.findOneAndUpdate(
@@ -135,34 +184,49 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
 
   try {
     const config = readPlanConfig();
+    const analyzer = readAnalyzerConfig();
     const workspace = await Workspace.findById(plan.workspace).select('+ai.apiKeyEncrypted').lean();
     if (!workspace) throw new AiReviewError('The workspace no longer exists.', 'WORKSPACE_GONE');
-    const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
-    if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
-    if (!ai.available) throw new AiReviewError('AI is no longer configured for this workspace.', 'AI_NOT_CONFIGURED');
 
-    const messages = buildPlanMessages({
-      document: document.text,
-      truncated: document.truncated,
-      options: {
-        projectName: plan.options.projectName || undefined,
-        projectKey: plan.options.projectKey || undefined,
-        sprintLengthWeeks: plan.options.sprintLengthWeeks,
-        teamSize: plan.options.teamSize ?? undefined,
-        extraInstructions: plan.options.extraInstructions || undefined,
-        language: plan.options.language,
-        existingProject: Boolean(plan.options.targetProjectId),
-      },
-    });
-
-    const answer = await generateJson(modelPlanSchema, messages, {
-      maxTokens: config.maxOutputTokens,
-      timeoutMs: config.timeoutMs,
-      config: ai,
-    });
+    let generated: ProviderPlan & { engine: 'documind' | 'ai' };
+    if (analyzer.mode === 'documind') {
+      try {
+        const shortened = shortenForModel(document.text, analyzer.maxChars);
+        if (shortened.truncated && !document.truncated) {
+          await AiPlan.updateOne({ _id: plan._id }, { $set: { 'source.truncated': true } });
+        }
+        const result = await analyzePlan({
+          fileName: plan.source.fileName,
+          mimeType: plan.source.mimeType,
+          text: shortened.text,
+          options: {
+            projectName: plan.options.projectName,
+            projectKey: plan.options.projectKey,
+            sprintLengthWeeks: plan.options.sprintLengthWeeks,
+            startDate: plan.options.startDate,
+            teamSize: plan.options.teamSize ?? null,
+            extraInstructions: plan.options.extraInstructions,
+            language: plan.options.language,
+            targetProjectId: plan.options.targetProjectId ? String(plan.options.targetProjectId) : null,
+          },
+        }, analyzer);
+        generated = {
+          content: result.plan,
+          model: result.model || 'documind',
+          usage: { inputTokens: 0, outputTokens: 0 },
+          engine: 'documind',
+        };
+      } catch (error) {
+        const known = error instanceof AiReviewError;
+        if (!known || !analyzer.fallback || !isInfrastructureFailure(error.code)) throw error;
+        generated = { ...(await runProviderPlan(plan, document, config, workspace)), engine: 'ai' };
+      }
+    } else {
+      generated = { ...(await runProviderPlan(plan, document, config, workspace)), engine: 'ai' };
+    }
 
     const { names, keys } = await usedProjectNames(plan.workspace);
-    const content = finalizePlan(answer.output, {
+    const content = finalizePlan(generated.content, {
       startDate: plan.options.startDate,
       sprintLengthWeeks: plan.options.sprintLengthWeeks,
       projectName: plan.options.projectName,
@@ -174,7 +238,7 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
       { _id: plan._id, status: 'running' },
       {
         $set: {
-          status: 'ready', active: false, plan: content, model: answer.model, usage: answer.usage, error: '', errorCode: '', completedAt: new Date(),
+          status: 'ready', active: false, plan: content, analyzer: generated.engine, model: generated.model, usage: generated.usage, error: '', errorCode: '', completedAt: new Date(),
         },
       },
     );

@@ -5,7 +5,7 @@ import { body, validationResult } from 'express-validator';
 import AiPlan, { type IAiPlan } from '../models/aiPlanModel.js';
 import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import { sanitizeFilename } from '../middleware/uploadMiddleware.js';
-import { readPlanConfig } from '../utils/ai/plan/config.js';
+import { readAnalyzerConfig, readPlanConfig } from '../utils/ai/plan/config.js';
 import { createFromPlan as writePlan } from '../utils/ai/plan/create.js';
 import { isDateKey, nextMonday } from '../utils/ai/plan/dates.js';
 import { DocumentError, extractDocument } from '../utils/ai/plan/extract.js';
@@ -26,7 +26,7 @@ const workspaceOf = (req: Request): IWorkspace => req.workspace as IWorkspace;
 const userIdOf = (req: Request): Id => req.user?._id as Id;
 
 /** A plan as the API returns it. The list leaves out the content (plan, preview); the detail route has them. */
-export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'options' | 'model' | 'usage' | 'error' | 'errorCode' | 'projectId' | 'createdAt' | 'startedAt' | 'completedAt'>
+export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'options' | 'model' | 'usage' | 'analyzer' | 'error' | 'errorCode' | 'projectId' | 'createdAt' | 'startedAt' | 'completedAt'>
   & { plan?: IAiPlan['plan']; createdBy?: unknown }, detail: boolean, targetProject: PlanTarget | null = null) => ({
   _id: String(plan._id),
   status: plan.status,
@@ -35,6 +35,7 @@ export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'opti
   counts: plan.plan ? countPlan(plan.plan) : null,
   model: plan.model,
   usage: plan.usage,
+  analyzer: plan.analyzer ?? 'ai',
   error: plan.error,
   errorCode: plan.errorCode,
   projectId: plan.projectId ? String(plan.projectId) : null,
@@ -85,6 +86,14 @@ export const requireTaskWrite = (req: Request, res: Response, next: NextFunction
 /** Answers 503 before the file is read when AI is off, so nothing large is processed for nothing. */
 export const ensurePlansEnabled = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const analyzer = readAnalyzerConfig();
+    if (analyzer.mode === 'documind') {
+      if (!analyzer.configured) {
+        throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
+      }
+      next();
+      return;
+    }
     const workspaceId = workspaceOf(req)._id as Id;
     const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
     assertPlanFeatureOn(workspaceId, stored?.ai);
@@ -179,7 +188,7 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
         fileName, mimeType: extracted.mimeType, size: req.file.size, chars: extracted.text.length, truncated: shortened.truncated, text: extracted.text,
       },
       options,
-      model: ai.model,
+      model: ai?.model ?? '',
     });
     // The work continues after the response (kept alive by waitUntil on Vercel); the text lives only in this closure
     runInBackground(runPlan(plan._id as Id, { text: shortened.text, truncated: shortened.truncated }));

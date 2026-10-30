@@ -1,0 +1,20 @@
+﻿?? .github/copilot-instructions.md
+?? .sdrive/agents/
+?? .sdrive/audit-log.json
+?? .sdrive/commands/
+?? .sdrive/config.json
+?? .sdrive/constitution.md
+?? .sdrive/dashboard/
+?? .sdrive/framework-manifest.json
+?? .sdrive/logo.png
+?? .sdrive/mcp/
+?? .sdrive/migrations/
+?? .sdrive/package.json
+?? .sdrive/reports/browser/
+?? .sdrive/schemas/
+?? .sdrive/scripts/
+?? .sdrive/team.json
+?? .sdrive/templates/
+?? apply-status.txt
+feature/upload-document-v2
+839911b specdrive(propose): add upload-document v2 DocuMind service proposal

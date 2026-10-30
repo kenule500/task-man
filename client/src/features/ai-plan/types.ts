@@ -108,6 +108,8 @@ export interface AiPlan {
   counts: PlanCounts | null;
   model: string;
   usage: { inputTokens: number; outputTokens: number };
+  /** Which engine produced the plan. */
+  analyzer?: 'documind' | 'ai';
   error: string;
   errorCode: string;
   projectId: string | null;

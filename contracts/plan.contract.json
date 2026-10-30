@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://taskman.local/contracts/plan.contract.json",
+  "title": "Document plan contract",
+  "description": "contractVersion 1. The unfinalised plan the analyzer returns and Node finalises. Mirrors PlanContent in server/src/utils/ai/plan/schema.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "sprints", "epics", "items", "assumptions", "risks"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "key", "description", "color"],
+      "properties": {
+        "name": { "type": "string", "maxLength": 60 },
+        "key": { "type": "string", "pattern": "^[A-Z0-9]{2,6}$" },
+        "description": { "type": "string", "maxLength": 500 },
+        "color": { "enum": ["blue", "violet", "rose", "orange", "amber", "emerald", "teal", "slate"] }
+      }
+    },
+    "sprints": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "goal", "startDate", "endDate"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 60 },
+          "goal": { "type": "string", "maxLength": 300 },
+          "startDate": { "type": "string", "maxLength": 10 },
+          "endDate": { "type": "string", "maxLength": 10 }
+        }
+      }
+    },
+    "epics": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "title", "description"],
+        "properties": {
+          "ref": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,24}$" },
+          "title": { "type": "string", "maxLength": 140 },
+          "description": { "type": "string", "maxLength": 500 }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ref", "sprintIndex", "epicRef", "title", "description", "type", "priority", "storyPoints", "labels", "acceptanceCriteria", "subtasks"],
+        "properties": {
+          "ref": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,24}$" },
+          "sprintIndex": { "type": ["integer", "null"], "minimum": 0 },
+          "epicRef": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]{1,24}$" },
+          "title": { "type": "string", "maxLength": 140 },
+          "description": { "type": "string", "maxLength": 1000 },
+          "type": { "enum": ["story", "task", "bug", "spike"] },
+          "priority": { "enum": ["low", "medium", "high"] },
+          "storyPoints": { "enum": [1, 2, 3, 5, 8, 13, null] },
+          "labels": { "type": "array", "maxItems": 5, "items": { "type": "string", "maxLength": 40 } },
+          "acceptanceCriteria": { "type": "array", "maxItems": 6, "items": { "type": "string", "maxLength": 300 } },
+          "subtasks": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "acceptanceCriteria"],
+              "properties": {
+                "title": { "type": "string", "maxLength": 140 },
+                "acceptanceCriteria": { "type": "array", "maxItems": 6, "items": { "type": "string", "maxLength": 300 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assumptions": { "type": "array", "maxItems": 12, "items": { "type": "string", "maxLength": 300 } },
+    "risks": { "type": "array", "maxItems": 12, "items": { "type": "string", "maxLength": 300 } }
+  }
+}

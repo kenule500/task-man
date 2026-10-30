@@ -34,6 +34,8 @@ export interface IAiPlan extends Omit<Document, 'model'> {
   plan: PlanContent | null;
   model: string;
   usage: { inputTokens: number; outputTokens: number };
+  /** Which path produced the plan; existing records and older fixtures may omit it. */
+  analyzer?: 'documind' | 'ai';
   error: string;
   errorCode: string;
   projectId: mongoose.Types.ObjectId | null;
@@ -75,6 +77,7 @@ const aiPlanSchema = new Schema<IAiPlan>({
     inputTokens: { type: Number, default: 0 },
     outputTokens: { type: Number, default: 0 },
   },
+  analyzer: { type: String, enum: ['documind', 'ai'], default: 'ai' },
   error: { type: String, default: '', maxlength: 500 },
   errorCode: { type: String, default: '', maxlength: 40 },
   projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null },

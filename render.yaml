@@ -33,3 +33,43 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      - key: DOCUMENT_ANALYZER_MODE
+        value: ai
+      - key: DOCUMENT_ANALYZER_URL
+        sync: false
+      - key: DOCUMENT_ANALYZER_TOKEN
+        fromService:
+          type: web
+          name: taskman-document-analyzer
+          envVarKey: DOCUMENT_ANALYZER_TOKEN
+      - key: DOCUMENT_ANALYZER_FALLBACK
+        value: "false"
+
+  # Private Python service that turns a document into a plan with the DocuMind SDK.
+  # Keep DOCUMENT_ANALYZER_MODE=ai on the API until RISK-022 has been measured.
+  - type: web
+    name: taskman-document-analyzer
+    runtime: docker
+    plan: free
+    dockerfilePath: ./services/document-analyzer/Dockerfile
+    dockerContext: ./services/document-analyzer
+    healthCheckPath: /healthz
+    envVars:
+      - key: ANALYZER_ENV
+        value: production
+      - key: DOCUMENT_ANALYZER_TOKEN
+        generateValue: true
+      - key: DOCUMIND_LLM_PROVIDER
+        value: openai
+      - key: DOCUMIND_LLM_MODEL
+        value: gpt-4o
+      - key: DOCUMIND_LLM_API_KEY
+        sync: false
+      - key: ANALYZER_MAX_CHARS
+        value: "24000"
+      - key: ANALYZER_MAX_BYTES
+        value: "2097152"
+      - key: ANALYZER_MAX_CONCURRENCY
+        value: "2"
+      - key: ANALYZER_TIMEOUT_SECONDS
+        value: "200"

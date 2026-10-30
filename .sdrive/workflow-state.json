@@ -752,8 +752,8 @@
         },
         {
           "id": "v2",
-          "phase": "backlog",
-          "currentStep": "specification",
+          "phase": "ongoing",
+          "currentStep": "implementation",
           "gates": {
             "specification": "approved",
             "planning": "approved",

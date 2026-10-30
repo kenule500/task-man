@@ -7,6 +7,7 @@ Guide for anyone (human or AI agent) contributing to **TaskMan**, a MERN task ma
 | Part | Tech |
 |---|---|
 | `server/` | Node + Express 5 + Mongoose 9, TypeScript (NodeNext, run with `tsx`), JWT auth with DB sessions |
+| `services/document-analyzer/` | Python 3.12 + uv + FastAPI + DocuMind SDK 0.2.2 (document plan generation) |
 | `client/` | React 19 + Vite + Tailwind v4 + shadcn (**Base UI** primitives, `base-nova` style), lucide icons, axios |
 | Tests | Jest everywhere (`@swc/jest`); Testing Library + jsdom on the client |
 | Package manager | pnpm workspace (`pnpm-workspace.yaml`) |
@@ -23,6 +24,13 @@ MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm dev    # http://localhost:5000
 
 # Web app
 pnpm --filter client dev             # http://localhost:5173
+
+# Document analyzer (optional; the API defaults to its own provider path)
+cd services/document-analyzer
+cp .env.example .env                 # token + DocuMind provider key
+uv sync
+uv run uvicorn app.main:app --port 8000
+# Point the API at it with DOCUMENT_ANALYZER_MODE=documind and DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000
 
 # Quality gates (run before every commit)
 pnpm --filter server typecheck && pnpm --filter server test
@@ -45,6 +53,13 @@ server/src/
   utils/         Pure helpers (taskQuery, taskGraph...) — unit tested
   scripts/seed.ts
   __tests__/     Jest tests
+
+services/document-analyzer/
+  app/           FastAPI surface, Pydantic contract, DocuMind adapter
+  pyproject.toml uv project (documind==0.2.2)
+  Dockerfile     Multi-stage uv build
+
+contracts/       plan.contract.json + golden fixture, validated by Python and Node
 
 client/src/
   components/ui/ shadcn Base UI primitives (generated; adjust via tokens, not per call)
@@ -95,6 +110,11 @@ client/src/
 - `tsc -b` uses the root `client/tsconfig.json`; tests are type-checked by `tsconfig.test.json`.
 - Native HTML5 drag and drop is used for board/calendar; the Gantt uses pointer events
   (keyboard: arrows move, Shift+arrows resize).
+- `documind` 0.2.2 is a **generation** SDK: it has no analysis/OCR API and its internal pipeline may
+  make several provider calls. The analyzer feeds it cleaned text and parses one fenced JSON block.
+- Document plans default to `DOCUMENT_ANALYZER_MODE=ai` (the v1 provider path). `documind` becomes the
+  default only after the cost/latency/provider-call measurement recorded in v2 `RISK-022`.
+- The analyzer receives text only; `extract.ts`, upload limits and `finalizePlan` stay in Node.
 
 ## Definition of done
 
