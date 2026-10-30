@@ -1,0 +1,244 @@
+{
+  "feature": "upload-document",
+  "title": "Generate document plans in a Python DocuMind service",
+  "version": 2,
+  "overview": {
+    "problemStatement": "v1 ships the upload-to-plan flow, but analysis lives inside the Node API: the controller extracts text and the plan service calls the workspace provider directly. Every prompt, model, retry or provider change edits the API server, and the document-to-plan logic cannot be reused by another surface or runtime. v2 moves plan generation behind one standard Python service managed by uv and built on the DocuMind SDK.",
+    "proposedSolution": "Add services/document-analyzer, a stateless Python service managed by uv. Node keeps upload validation, hardened extraction, permissions, finalizePlan and creation. It sends cleaned text plus the v1 options to POST /v1/plans:analyze, where the service invokes documind exactly once with format=md and needs_research=False, extracts one fenced JSON block, validates it with Pydantic, deletes its temporary files and returns an unfinalised plan. A mode switch (documind or ai), an explicit fallback policy, a shared plan contract and measured limits keep the v1 path intact. The verified limitation is recorded: documind 0.2.2 generates documents and has no analysis API, and its internal pipeline may make several provider calls, so one request describes only TaskMan to the service.",
+    "targetAudience": "Workspace members with projects:write and tasks:write who upload requirement documents; platform operators who deploy, key and monitor the analyzer; maintainers who need one reusable document service boundary instead of provider code in the API server.",
+    "assumptions": [
+      "The requester reviewed the verified capability finding and still wants documind 0.2.2 as the generation engine; it is not an analysis or extraction SDK.",
+      "The v1 provider path remains in the codebase and stays selectable.",
+      "Node keeps PDF, DOCX, TXT and Markdown extraction; the service receives text, never an untrusted file.",
+      "DocuMind provider credentials are installation-level, not per workspace.",
+      "The md pipeline can be constrained to return one fenced JSON block; this is validated before documind becomes the default.",
+      "Deployment targets are Render and local Docker with a private network or HTTPS.",
+      "No external research available: the declared upstream repository could not be verified here (GitHub API rate limit) and the package publishes no provenance."
+    ],
+    "outOfScope": [
+      "Moving file upload or text extraction into Python (candidate for v3).",
+      "Streaming DocuMind progress to the browser; the client keeps polling status.",
+      "Using DocuMind for AI code review, chat or any feature other than document plans.",
+      "Per-workspace DocuMind credentials.",
+      "Returning generated PPTX, DOCX, XLSX or HWPX artefacts to users.",
+      "Removing or rewriting the v1 provider path."
+    ]
+  },
+  "userStories": [
+    {
+      "id": "US-017",
+      "title": "Standard document planning through one service",
+      "role": "workspace member",
+      "want": "a document to become a reviewable plan through one standard service",
+      "benefit": "the result is consistent and the API server no longer carries provider-specific logic",
+      "acceptanceCriteria": [
+        { "id": "AC-047", "text": "Given DOCUMENT_ANALYZER_MODE=documind and a configured analyzer, when a member with projects:write and tasks:write uploads a valid PDF, DOCX, TXT or Markdown document, then Node makes exactly one request to POST /v1/plans:analyze, the service makes exactly one documind SDK invocation, and a ready plan appears through the unchanged status endpoint." },
+        { "id": "AC-048", "text": "Given that request, when it is built, then it carries the cleaned text, the v1 plan options, contractVersion and a correlation id; the plan stores analyzer documind, the model reported by the service, and source.truncated stays true when Node shortened the text further." },
+        { "id": "AC-049", "text": "Given a successful analyzer response, when the plan is stored, then the service returned an unfinalised plan, Node applied the existing finalizePlan, and no public route, permission, request field or client component changed." }
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Keep planning reliable when the analyzer is unavailable",
+      "role": "workspace member",
+      "want": "a clear result when the new service is down",
+      "benefit": "I am not left with a silent failure or a half-created project",
+      "acceptanceCriteria": [
+        { "id": "AC-050", "text": "Given an unreachable analyzer, a timeout or a 429, when DOCUMENT_ANALYZER_FALLBACK=true, then the v1 path produces the plan within the existing budget and marks analyzer ai; when false, the plan fails with ANALYZER_UNAVAILABLE or ANALYZER_TIMEOUT and the review UI explains it." },
+        { "id": "AC-051", "text": "Given ANALYZER_INVALID_OUTPUT, ANALYZER_UNAUTHORIZED, a disabled AI feature or the daily limit, when the request is handled, then no fallback occurs, the plan fails with the stable code, and no project, sprint, task or activity record is written." }
+      ]
+    },
+    {
+      "id": "US-019",
+      "title": "Operate and audit the analyzer safely",
+      "role": "platform operator",
+      "want": "the service to be private, bounded and observable",
+      "benefit": "a document or a key cannot leak and a failure can be traced",
+      "acceptanceCriteria": [
+        { "id": "AC-052", "text": "Given the service is running, when GET /healthz is called, then it answers 200 without authentication and without a secret; in production the service refuses to start without a token of at least 32 bytes and a provider key; no endpoint echoes a key." },
+        { "id": "AC-053", "text": "Given a request without or with a wrong token, an oversized body, an unknown field or a bad type, when it arrives, then it is refused with 401, 413 or 422 before any SDK call; when the concurrency cap is reached, the answer is 429 with Retry-After." },
+        { "id": "AC-054", "text": "Given any success, failure or timeout, when the response is sent, then the per-request temporary directory no longer exists, and logs contain only the correlation id, sizes, latency, engine and error code, never the text, file name, key or plan content." }
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "Know which engine produced a plan",
+      "role": "workspace member",
+      "want": "the review step to say which engine produced the plan",
+      "benefit": "I can judge the result and report a defect to the right place",
+      "acceptanceCriteria": [
+        { "id": "AC-055", "text": "Given a plan produced by either path, when its detail or list response is read, then it contains analyzer (documind or ai) and the model string; usage keeps its existing shape and is never fabricated when DocuMind reports no token counts." },
+        { "id": "AC-056", "text": "Given English, French or Arabic at 320, 375, 768, 1024 and 1280 px, when the review step renders the engine label, the usage-not-reported state and each new error code, then the copy is translated, keyboard accessible, RTL-correct and free of horizontal overflow." }
+      ]
+    },
+    {
+      "id": "US-021",
+      "title": "Keep both sides on one plan contract",
+      "role": "maintainer",
+      "want": "one machine-readable plan contract validated by Python and Node",
+      "benefit": "the service and the API cannot drift apart silently",
+      "acceptanceCriteria": [
+        { "id": "AC-057", "text": "Given contracts/plan.contract.json and its golden fixture, when either side changes its model, then the fixture is validated by the Python Pydantic model and the Node zod schema, and a mismatch fails the check." },
+        { "id": "AC-058", "text": "Given a clean checkout, when the service is built and deployed, then the Dockerfile installs from uv.lock with uv sync --frozen, render.yaml declares the service with /healthz, and .env.example lists every variable with placeholders only." }
+      ]
+    }
+  ],
+  "functionalRequirements": [
+    {
+      "id": "FR-035",
+      "text": "The repository MUST contain a Python service at services/document-analyzer/, managed by uv (pyproject.toml plus a committed uv.lock), requiring Python >=3.11 and pinning documind==0.2.2 with a recorded hash.",
+      "linkedAcceptanceCriteria": ["AC-047", "AC-058"]
+    },
+    {
+      "id": "FR-036",
+      "text": "The service MUST expose POST /v1/plans:analyze on a private interface and authenticate every call with an installation-level bearer token compared in constant time; it MUST NOT expose any other plan, user or workspace route.",
+      "linkedAcceptanceCriteria": ["AC-047", "AC-052", "AC-053"]
+    },
+    {
+      "id": "FR-037",
+      "text": "The request MUST carry contractVersion, a correlation id, fileName, mimeType, the cleaned text and the v1 plan options; the service MUST reject unknown fields, bad types, text longer than ANALYZER_MAX_CHARS and bodies larger than ANALYZER_MAX_BYTES before invoking the SDK.",
+      "linkedAcceptanceCriteria": ["AC-048", "AC-053"]
+    },
+    {
+      "id": "FR-038",
+      "text": "The service MUST invoke the DocuMind SDK exactly once per request using DocuMind.generate or generate_document with format=md, needs_research=False and the request locale, on an engine constructed with a per-request storage_local_path; it MUST NOT issue its own provider calls outside that invocation.",
+      "linkedAcceptanceCriteria": ["AC-047", "AC-049"]
+    },
+    {
+      "id": "FR-039",
+      "text": "The generated Markdown MUST contain exactly one fenced JSON block that validates against contracts/plan.contract.json; the service MUST parse it with a Pydantic model and fail with ANALYZER_INVALID_OUTPUT rather than return a partial or guessed plan.",
+      "linkedAcceptanceCriteria": ["AC-049", "AC-051"]
+    },
+    {
+      "id": "FR-040",
+      "text": "The service MUST delete the generated files and the per-request directory in a finally block before responding, and MUST NOT persist, cache or log the document text, the file name or the plan content.",
+      "linkedAcceptanceCriteria": ["AC-051", "AC-054"]
+    },
+    {
+      "id": "FR-041",
+      "text": "The Node API MUST keep POST /api/workspaces/:slug/ai/plans, its permissions and its response shapes unchanged; it MUST select documind or ai from DOCUMENT_ANALYZER_MODE, keep extraction in Node, and keep finalizePlan as the single place that applies dates, sprint lengths and name/key deduplication.",
+      "linkedAcceptanceCriteria": ["AC-047", "AC-049"]
+    },
+    {
+      "id": "FR-042",
+      "text": "The Node client MUST enforce a connect and read timeout, retry at most once and only before request bytes are sent, open a circuit breaker after repeated failures, and map outcomes to ANALYZER_UNAVAILABLE, ANALYZER_TIMEOUT, ANALYZER_INVALID_OUTPUT, ANALYZER_UNAUTHORIZED and ANALYZER_RATE_LIMITED.",
+      "linkedAcceptanceCriteria": ["AC-050", "AC-051"]
+    },
+    {
+      "id": "FR-043",
+      "text": "The fallback MUST be opt-in through DOCUMENT_ANALYZER_FALLBACK; it MAY run the v1 path on ANALYZER_UNAVAILABLE, ANALYZER_TIMEOUT or ANALYZER_RATE_LIMITED only, MUST NOT run on invalid output, authorization failure, a disabled feature or the daily limit, and MUST record which path produced the plan.",
+      "linkedAcceptanceCriteria": ["AC-050", "AC-051"]
+    },
+    {
+      "id": "FR-044",
+      "text": "The plan record MUST store analyzer (documind or ai) and the model reported by the service; usage MUST keep the existing inputTokens and outputTokens shape and MUST NOT invent counts when DocuMind reports none.",
+      "linkedAcceptanceCriteria": ["AC-048", "AC-055"]
+    },
+    {
+      "id": "FR-045",
+      "text": "The service MUST ship a Dockerfile that builds from uv.lock with uv sync --frozen, a GET /healthz endpoint, a render.yaml declaration and an .env.example entry for every variable with placeholders only.",
+      "linkedAcceptanceCriteria": ["AC-052", "AC-058"]
+    },
+    {
+      "id": "FR-046",
+      "text": "The service MUST cap in-flight requests at ANALYZER_MAX_CONCURRENCY, answer excess with 429 and Retry-After, enforce ANALYZER_TIMEOUT_SECONDS around the SDK call, and cancel and clean up on timeout.",
+      "linkedAcceptanceCriteria": ["AC-053"]
+    },
+    {
+      "id": "FR-047",
+      "text": "The plan contract MUST exist once at contracts/plan.contract.json with a golden fixture validated by the Python model and the Node zod schema, so a one-sided change fails the check.",
+      "linkedAcceptanceCriteria": ["AC-057"]
+    },
+    {
+      "id": "FR-048",
+      "text": "The service MUST read provider settings only from DOCUMIND_LLM_PROVIDER, DOCUMIND_LLM_MODEL, DOCUMIND_LLM_API_KEY and an optional base URL, MUST refuse to start in production without the token and key, and MUST never return or log them.",
+      "linkedAcceptanceCriteria": ["AC-052", "AC-053"]
+    },
+    {
+      "id": "FR-049",
+      "text": "This version MUST NOT change the client workflow, the public request fields, the permission model or the creation and rollback behaviour; the only user-visible additions are the engine label, the missing-usage state and the new error messages.",
+      "linkedAcceptanceCriteria": ["AC-049", "AC-056"]
+    }
+  ],
+  "nonFunctionalRequirements": [
+    {
+      "id": "NFR-020",
+      "text": "TaskMan MUST make at most one HTTP request to the analyzer per plan, and the analyzer MUST make at most one DocuMind SDK invocation per request; this does not bound the provider calls DocuMind makes internally, which are measured under RISK-022 rather than assumed.",
+      "linkedAcceptanceCriteria": ["AC-047", "AC-050"]
+    },
+    {
+      "id": "NFR-021",
+      "text": "For a 60,000-character document the analyzer MUST answer within 180 seconds at p95 and MUST be cut off at ANALYZER_TIMEOUT_SECONDS, default 200 seconds, inside the existing plan budget.",
+      "linkedAcceptanceCriteria": ["AC-050"]
+    },
+    {
+      "id": "NFR-022",
+      "text": "No document text, file name, key, plan content or generated artefact MAY appear in logs, error responses or metrics; per-request directories MUST be owner-only and removed in a finally block.",
+      "linkedAcceptanceCriteria": ["AC-054"]
+    },
+    {
+      "id": "NFR-023",
+      "text": "The service token MUST be at least 32 bytes from the environment and compared in constant time; outside development the service MUST refuse to start without it and without a provider key.",
+      "linkedAcceptanceCriteria": ["AC-052", "AC-053"]
+    },
+    {
+      "id": "NFR-024",
+      "text": "The engine label, the usage-not-reported state and every new error message MUST exist in English, French and Arabic and MUST meet CON-305 and CON-306: keyboard operable, visible focus, logical order and no horizontal overflow from 320 to 1280 pixels, including RTL.",
+      "linkedAcceptanceCriteria": ["AC-056"]
+    },
+    {
+      "id": "NFR-025",
+      "text": "The container MUST reach a ready /healthz within 60 seconds of start; image size, cold start and memory MUST be measured and recorded because the SDK brings LangGraph, several provider families, boto3, python-pptx, lxml and Pillow.",
+      "linkedAcceptanceCriteria": ["AC-058"]
+    },
+    {
+      "id": "NFR-026",
+      "text": "The v1 provider path MUST remain selectable and behaviourally unchanged for workspaces that rely on BYOK or on a provider DocuMind does not support.",
+      "linkedAcceptanceCriteria": ["AC-050"]
+    },
+    {
+      "id": "NFR-027",
+      "text": "documind MUST be pinned to 0.2.2 in uv.lock; a transitive upgrade MUST require an explicit change review because the package publishes no provenance and its declared repository could not be verified.",
+      "linkedAcceptanceCriteria": ["AC-058"]
+    }
+  ],
+  "edgeCases": [
+    { "id": "EC-033", "description": "DOCUMENT_ANALYZER_MODE=documind but DOCUMENT_ANALYZER_URL or the service token is missing.", "expectedBehavior": "The upload route answers 503 ANALYZER_NOT_CONFIGURED before reading the file, the UI names the operator action, and nothing is queued." },
+    { "id": "EC-034", "description": "The analyzer accepts the request but exceeds ANALYZER_TIMEOUT_SECONDS.", "expectedBehavior": "The service cancels the SDK task, deletes the temp directory and answers 504 ANALYZER_TIMEOUT; Node falls back only when the flag is on, otherwise the plan fails with that code." },
+    { "id": "EC-035", "description": "DocuMind returns Markdown without a fenced JSON block, with two blocks, or with a block that fails the contract.", "expectedBehavior": "422 ANALYZER_INVALID_OUTPUT; no partial plan, no fallback, and the rejected shape is logged by code only, never by content." },
+    { "id": "EC-036", "description": "The cleaned text is longer than ANALYZER_MAX_CHARS.", "expectedBehavior": "Node truncates to the limit, sets source.truncated true, and the review shows the existing partial-plan notice." },
+    { "id": "EC-037", "description": "The analyzer concurrency cap is reached.", "expectedBehavior": "429 ANALYZER_RATE_LIMITED with Retry-After; Node retries once when the header allows and the budget permits, then applies the fallback policy." },
+    { "id": "EC-038", "description": "The service token is missing or wrong.", "expectedBehavior": "401 ANALYZER_UNAUTHORIZED with no SDK call and no document text in the response; Node records the code and does not fall back, because the configuration is wrong." },
+    { "id": "EC-039", "description": "DocuMind writes files and then fails, or the process is cancelled mid-generation.", "expectedBehavior": "The finally cleanup removes the whole per-request directory; the response is 502 ANALYZER_UNAVAILABLE and a warning metric is recorded." },
+    { "id": "EC-040", "description": "The document contains instructions aimed at the model, such as ignoring the schema or printing the API key.", "expectedBehavior": "The brief keeps the document inside a delimited data block and forbids following it; the contract rejects unknown fields; Node zod validation and text rendering remain the last line of defence; no secret exists in the service response." },
+    { "id": "EC-041", "description": "The analyzer returns a valid plan after the plan budget has expired.", "expectedBehavior": "Node ignores the late result for that plan, the plan is already failed by the stale sweep, and no duplicate record is written." },
+    { "id": "EC-042", "description": "Both the analyzer and the v1 provider path fail.", "expectedBehavior": "The plan is failed once with the path attempted last, the original analyzer code is preserved in the log, and the UI shows a single retry action." }
+  ],
+  "dependencies": [
+    { "name": "documind", "type": "library", "notes": "Pin ==0.2.2 (Apache-2.0, Python >=3.11). Generation-only, no analysis API. Hash-pinned in uv.lock; no published skill." },
+    { "name": "uv", "type": "library", "notes": "Service dependency management and lockfile; 0.10.3 is available locally." },
+    { "name": "fastapi", "type": "library", "notes": "HTTP surface of the analyzer; brings Pydantic validation." },
+    { "name": "uvicorn", "type": "library", "notes": "ASGI server used by the container and local development." },
+    { "name": "pydantic", "type": "library", "notes": "Request and plan models; documind already requires pydantic>=2.7." },
+    { "name": "pytest and httpx", "type": "library", "notes": "Dev-only dependencies for the Test agent; no test tasks are created in this phase." },
+    { "name": "services/document-analyzer", "type": "internal", "notes": "New uv project with app/, pyproject.toml, uv.lock, Dockerfile and README." },
+    { "name": "contracts/plan.contract.json", "type": "internal", "notes": "Shared JSON Schema and golden fixture validated by both Python and Node." },
+    { "name": "server/src/utils/ai/plan/analyzer.ts", "type": "internal", "notes": "New Node client with timeout, retry, circuit breaker and error mapping." },
+    { "name": "server/src/utils/ai/plan/service.ts", "type": "internal", "notes": "Modified to branch on mode while keeping finalizePlan and failure accounting." },
+    { "name": "server/src/utils/ai/plan/config.ts", "type": "internal", "notes": "Modified with mode, URL, token, timeout, fallback and analyzer max chars." },
+    { "name": "server/src/models/aiPlanModel.ts", "type": "internal", "notes": "Modified with the analyzer field, defaulting to ai for existing records." },
+    { "name": "client/src/features/ai-plan and locales", "type": "internal", "notes": "Modified for the engine label, usage-not-reported state and new error copy in en, fr and ar." },
+    { "name": "Existing extraction and v1 provider", "type": "internal", "notes": "No change: extraction stays the only source of text; the v1 provider remains the ai path and fallback." },
+    { "name": "DocuMind provider account", "type": "external", "notes": "Installation-level OpenAI-compatible, Anthropic, Bedrock, Vertex, Gemini, Ollama, vLLM or custom endpoint and key." },
+    { "name": "render.yaml and server/.env.example", "type": "internal", "notes": "Modified to declare the analyzer service and every variable with placeholders only." }
+  ],
+  "risks": [
+    { "id": "RISK-021", "description": "Capability mismatch: the SDK generates documents and does not analyse them, so the plan is generated prose parsed through a JSON block, which is less reliable than the v1 schema-constrained call.", "mitigation": "Versioned brief, one fenced JSON block, Pydantic and zod validation, golden fixtures, a quality comparison on real documents before documind becomes the default, and the ai mode always available." },
+    { "id": "RISK-022", "description": "No reduction in provider calls: DocuMind runs a multi-agent LangGraph pipeline and may call its provider several times; one request describes only TaskMan to the service.", "mitigation": "Measure provider calls, latency and cost on ten real documents and publish the numbers; keep the v1 single-call path; cap concurrency; if the numbers are worse, the mode stays ai." },
+    { "id": "RISK-023", "description": "Heavy image and cold start: langgraph, several provider families, boto3, python-pptx, lxml and Pillow make the image large and slow to start.", "mitigation": "Multi-stage build from uv.lock with --no-dev, no build tools in the runtime layer, measure size, start and memory, and warm /healthz before traffic." },
+    { "id": "RISK-024", "description": "Supply chain: the package is Beta, publishes no provenance, its declared repository could not be verified, and it installs a top-level src package that can collide with our layout.", "mitigation": "Pin 0.2.2 with a hash, review the diff before upgrading, isolate it in its own container, never install it on the host, name our package app or document_analyzer, and run as a non-root user." },
+    { "id": "RISK-025", "description": "Document privacy: text and generated files cross a process boundary and land in a temporary directory.", "mitigation": "Text only, TLS or private network, per-request owner-only directories removed in finally, no persistence, no content logging, and a redaction test in the Test agent suite." },
+    { "id": "RISK-026", "description": "Workspace BYOK is bypassed on the DocuMind path, so workspace admins lose control of provider and cost.", "mitigation": "Explicit installation setting, admin-facing README, unchanged per-workspace daily plan limit, analyzer recorded on every plan, and the ai mode retained for BYOK." },
+    { "id": "RISK-027", "description": "Availability coupling: a service outage stops plan generation when fallback is off.", "mitigation": "Health check, timeout, circuit breaker, explicit fallback flag, measurable error codes, and a single retry action in the UI." }
+  ]
+}

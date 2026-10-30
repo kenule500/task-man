@@ -1,0 +1,87 @@
+{
+  "feature": "upload-document",
+  "version": 2,
+  "phases": [
+    {
+      "phaseId": "P1",
+      "name": "Contract and service foundation",
+      "dependencies": [],
+      "tasks": [
+        { "id": "T1.1", "title": "Define the shared plan contract and golden fixture", "description": "Create contracts/plan.contract.json with the v1 PlanContent shape, additionalProperties false, bounded strings, unique ref, Fibonacci-or-null storyPoints, and contracts/fixtures/plan.golden.json.", "linkedRequirements": ["FR-047"], "linkedAcceptanceCriteria": ["AC-057"], "completed": false },
+        { "id": "T1.2", "title": "Scaffold the uv service and pin DocuMind", "description": "Create services/document-analyzer with pyproject.toml (Python >=3.11, fastapi, uvicorn, pydantic, documind==0.2.2, dev pytest/httpx/ruff), app package, uv.lock, .python-version, ruff config and README stub. Never name the package src.", "linkedRequirements": ["FR-035", "NFR-027"], "linkedAcceptanceCriteria": ["AC-047", "AC-058"], "completed": false },
+        { "id": "T1.3", "title": "Implement the request, plan and response models", "description": "In app/contracts.py define AnalyzeRequest, DocumentPayload, PlanOptions, PlanContract, AnalyzerInfo, AnalyzeResponse and ErrorEnvelope with extra=forbid, contractVersion Literal[1], enums and the v1 length limits.", "linkedRequirements": ["FR-037", "FR-047", "NFR-020"], "linkedAcceptanceCriteria": ["AC-048", "AC-053", "AC-057"], "completed": false },
+        { "id": "T1.4", "title": "Implement configuration and production guards", "description": "In app/config.py read the token, port, environment, provider settings and limits; map providers to SDK keyword arguments; refuse to start in production without a >=32-byte token and provider key; never log either.", "linkedRequirements": ["FR-048", "NFR-023"], "linkedAcceptanceCriteria": ["AC-052", "AC-053"], "completed": false },
+        { "id": "T1.5", "title": "Implement fenced-JSON extraction", "description": "In app/parsing.py extract exactly one json fenced block; reject zero, multiple, trailing content or non-object JSON with ANALYZER_INVALID_OUTPUT and no content echo.", "linkedRequirements": ["FR-039"], "linkedAcceptanceCriteria": ["AC-049", "AC-051"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P2",
+      "name": "DocuMind adapter",
+      "dependencies": ["P1"],
+      "tasks": [
+        { "id": "T2.1", "title": "Create the DocuMind engine and per-request storage", "description": "In app/engine.py build one DocuMind per worker from app.config, with provider arguments and a placeholder storage_local_path; per request create tempfile.mkdtemp(prefix=documind-) with 0700 and bind generation to it.", "linkedRequirements": ["FR-038", "NFR-022"], "linkedAcceptanceCriteria": ["AC-047", "AC-049", "AC-054"], "completed": false },
+        { "id": "T2.2", "title": "Build the versioned brief", "description": "In app/brief.py compose the deterministic brief: role, contract version, exactly-one-json-block rule, plan schema summary, options, and the document inside a random delimiter declared as data, never instructions.", "linkedRequirements": ["FR-038", "FR-039", "NFR-022"], "linkedAcceptanceCriteria": ["AC-049", "AC-054"], "completed": false },
+        { "id": "T2.3", "title": "Orchestrate one invocation and guaranteed cleanup", "description": "In app/analyze.py call engine.generate once with format=md, locale and needs_research=False; require success and output_path; read, parse, validate and return AnalyzeResponse; delete the temp directory in finally; map SDK and parse failures to stable codes; never log content.", "linkedRequirements": ["FR-038", "FR-039", "FR-040", "NFR-020"], "linkedAcceptanceCriteria": ["AC-047", "AC-049", "AC-051", "AC-054"], "completed": false },
+        { "id": "T2.4", "title": "Add concurrency, timeout and cancellation", "description": "In app/limits.py add a semaphore at ANALYZER_MAX_CONCURRENCY with 429 and Retry-After, wrap generation in asyncio.wait_for(ANALYZER_TIMEOUT_SECONDS), cancel on timeout and still remove the temp directory.", "linkedRequirements": ["FR-046", "NFR-021"], "linkedAcceptanceCriteria": ["AC-050", "AC-053"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P3",
+      "name": "HTTP surface and container",
+      "dependencies": ["P1", "P2"],
+      "tasks": [
+        { "id": "T3.1", "title": "Build the FastAPI app and routes", "description": "In app/main.py expose POST /v1/plans:analyze and GET /healthz only; wire auth, semaphore, timeout and the error envelope; disable docs routes in production; health returns status and SDK version only.", "linkedRequirements": ["FR-036", "FR-045"], "linkedAcceptanceCriteria": ["AC-047", "AC-052", "AC-058"], "completed": false },
+        { "id": "T3.2", "title": "Implement constant-time service authentication", "description": "In app/auth.py require a bearer token, compare with hmac.compare_digest, answer 401 ANALYZER_UNAUTHORIZED before reading the body or calling the SDK, and keep the token out of logs and responses.", "linkedRequirements": ["FR-036", "NFR-023"], "linkedAcceptanceCriteria": ["AC-052", "AC-053"], "completed": false },
+        { "id": "T3.3", "title": "Enforce request bounds and stable errors", "description": "Reject oversized bodies (413), unknown fields or bad types (422), over-long text (422) and wrong contractVersion (422) before generation; normalise errors to requestId, code and safe message.", "linkedRequirements": ["FR-037"], "linkedAcceptanceCriteria": ["AC-048", "AC-053"], "completed": false },
+        { "id": "T3.4", "title": "Add structured, redacted logging", "description": "Configure JSON logging with requestId, route, sizes, latency, engine and code; redact token, key, document text, file name and plan content; log one startup line with engine and limits and no secrets.", "linkedRequirements": ["NFR-022"], "linkedAcceptanceCriteria": ["AC-054"], "completed": false },
+        { "id": "T3.5", "title": "Containerise the service", "description": "Add a multi-stage Dockerfile using uv sync --frozen --no-dev, a non-root user, read-only root, writable temp root, .dockerignore and an entrypoint honouring PORT; document the health check.", "linkedRequirements": ["FR-045", "NFR-025"], "linkedAcceptanceCriteria": ["AC-052", "AC-058"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P4",
+      "name": "Node integration",
+      "dependencies": ["P1"],
+      "tasks": [
+        { "id": "T4.1", "title": "Add analyzer configuration", "description": "Extend plan/config.ts with mode, url, token, timeoutMs, fallback, maxChars and maxBytes, read per call; validate https outside development with loopback allowed; clamp the timeout below the plan budget.", "linkedRequirements": ["FR-041", "FR-042", "FR-048"], "linkedAcceptanceCriteria": ["AC-047", "AC-050", "AC-052"], "completed": false },
+        { "id": "T4.2", "title": "Implement the analyzer HTTP client", "description": "Create plan/analyzer.ts: POST the contract with bearer token and requestId, AbortSignal timeout, one retry only for connection or 429 with remaining budget, 5-failure circuit breaker, shared-contract validation and the error-code map; log no content.", "linkedRequirements": ["FR-042", "NFR-020"], "linkedAcceptanceCriteria": ["AC-050", "AC-051"], "completed": false },
+        { "id": "T4.3", "title": "Branch runPlan on the mode", "description": "In service.ts use the analyzer when mode=documind, keep finalizePlan as the only finaliser, persist analyzer, model and usage ({0,0} for DocuMind), keep COUNTED_FAILURES and the daily limit, and skip workspace provider resolution on the DocuMind path.", "linkedRequirements": ["FR-041", "FR-044", "NFR-026"], "linkedAcceptanceCriteria": ["AC-047", "AC-049", "AC-055"], "completed": false },
+        { "id": "T4.4", "title": "Persist and expose the analyzer", "description": "Add analyzer to aiPlanModel.ts (enum, default ai) and to planView in aiPlanController.ts so list and detail responses carry it alongside model.", "linkedRequirements": ["FR-044"], "linkedAcceptanceCriteria": ["AC-055"], "completed": false },
+        { "id": "T4.5", "title": "Preflight the analyzer before reading the file", "description": "Extend ensurePlansEnabled so mode=documind without URL or token answers 503 ANALYZER_NOT_CONFIGURED before multer reads the upload; keep the existing AI checks for the ai path.", "linkedRequirements": ["FR-041"], "linkedAcceptanceCriteria": ["AC-050"], "completed": false },
+        { "id": "T4.6", "title": "Implement the fallback policy", "description": "Apply DOCUMENT_ANALYZER_FALLBACK to infrastructure codes only, record the path that produced the plan, never fall back on invalid output, auth failure, disabled AI or the daily limit, and ignore late results once the plan is failed or stale.", "linkedRequirements": ["FR-043", "NFR-026"], "linkedAcceptanceCriteria": ["AC-050", "AC-051"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P5",
+      "name": "Client and localisation",
+      "dependencies": ["P4"],
+      "tasks": [
+        { "id": "T5.1", "title": "Show the engine and honest usage", "description": "Add analyzer to the client AiPlan type; render the engine label from analyzer and model in the review metadata and the usage-not-reported state for documind; do not change the four-step flow.", "linkedRequirements": ["FR-044", "FR-049"], "linkedAcceptanceCriteria": ["AC-055", "AC-056"], "completed": false },
+        { "id": "T5.2", "title": "Add the new copy in English, French and Arabic", "description": "Add keys for the engine label, the usage state and every new analyzer error code to the three aiPlan locale files; each message says what happened, whether retrying helps and who can fix it.", "linkedRequirements": ["FR-049", "NFR-024"], "linkedAcceptanceCriteria": ["AC-056"], "completed": false },
+        { "id": "T5.3", "title": "Keep the review layout accessible", "description": "Adjust only what the new line requires: no overflow from 320 to 1280 px, logical reading order and RTL in Arabic, visible focus and keyboard reachability for new controls.", "linkedRequirements": ["FR-049", "NFR-024"], "linkedAcceptanceCriteria": ["AC-056"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P6",
+      "name": "Deployment and documentation",
+      "dependencies": ["P3", "P4"],
+      "tasks": [
+        { "id": "T6.1", "title": "Declare the analyzer in Render", "description": "Add taskman-document-analyzer to render.yaml with Docker, /healthz, no public URL, sync:false secrets, and the DOCUMENT_ANALYZER_* variables on the API service.", "linkedRequirements": ["FR-045"], "linkedAcceptanceCriteria": ["AC-058"], "completed": false },
+        { "id": "T6.2", "title": "Document every variable without secrets", "description": "Add DOCUMENT_ANALYZER_* to server/.env.example and a service .env.example with token, provider settings, limits and timeouts; placeholders only.", "linkedRequirements": ["FR-045", "FR-048"], "linkedAcceptanceCriteria": ["AC-052", "AC-058"], "completed": false },
+        { "id": "T6.3", "title": "Write the service README", "description": "Cover local uv sync and run, provider selection, token generation, limits, temp-file lifecycle, the generation-not-analysis fact, the RISK-022 measurement steps and the rollback switch.", "linkedRequirements": ["FR-045", "NFR-025"], "linkedAcceptanceCriteria": ["AC-058"], "completed": false },
+        { "id": "T6.4", "title": "Update the repository docs", "description": "Add the service to the stack table, layout and commands in AGENTS.md and to the local-development section of README.md; state that documind is generation-only and pinned.", "linkedRequirements": ["FR-035", "FR-045"], "linkedAcceptanceCriteria": ["AC-058"], "completed": false }
+      ]
+    },
+    {
+      "phaseId": "P7",
+      "name": "Verification",
+      "dependencies": ["P1", "P2", "P3", "P4", "P5", "P6"],
+      "tasks": [
+        { "id": "T7.1", "title": "Lint and smoke-check the service", "description": "Run uv sync --frozen and ruff check in services/document-analyzer; start the service and manually exercise /healthz, a valid request, 401, 413, 422 and 429 with a fake provider; record commands and outcomes.", "linkedRequirements": ["FR-035", "FR-045", "FR-046"], "linkedAcceptanceCriteria": ["AC-047", "AC-053", "AC-058"], "completed": false },
+        { "id": "T7.2", "title": "Run the repository typechecks and build", "description": "Run server typecheck, client typecheck, client lint and client build, using a larger Node heap if needed; record the results.", "linkedRequirements": ["FR-049"], "linkedAcceptanceCriteria": ["AC-056"], "completed": false },
+        { "id": "T7.3", "title": "Validate governance and scan for secrets", "description": "Run node .sdrive/scripts/validate-governance.js and a changed-file secret scan; confirm no token, key, real endpoint or document text is committed.", "linkedRequirements": ["NFR-027"], "linkedAcceptanceCriteria": ["AC-058"], "completed": false },
+        { "id": "T7.4", "title": "Manually check the review screen", "description": "At 320, 375, 768, 1024 and 1280 px, keyboard only, in en/fr/ar and RTL, check the engine label, usage-not-reported state, every new error message and the unchanged upload-review-create flow with no horizontal overflow.", "linkedRequirements": ["FR-049", "NFR-024"], "linkedAcceptanceCriteria": ["AC-056"], "completed": false },
+        { "id": "T7.5", "title": "Run the mode matrix and record measurements", "description": "Check ai, documind configured, documind unconfigured, fallback on/off and analyzer stopped mid-run; record image size, cold start, memory, p95 latency and the provider calls DocuMind made for ten documents.", "linkedRequirements": ["NFR-020", "NFR-021", "NFR-025"], "linkedAcceptanceCriteria": ["AC-050", "AC-058"], "completed": false }
+      ]
+    }
+  ]
+}

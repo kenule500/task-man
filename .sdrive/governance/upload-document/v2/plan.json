@@ -1,0 +1,129 @@
+{
+  "feature": "upload-document",
+  "version": 2,
+  "architecture": {
+    "approach": "Keep the public API, permissions, extraction, finalizePlan and creation in Node. Add a stateless Python service at services/document-analyzer managed by uv, built on documind==0.2.2. Node sends the cleaned text and the v1 plan options to POST /v1/plans:analyze over an authenticated private channel. The service invokes DocuMind exactly once with format=md and needs_research=False, reads the generated Markdown, extracts one fenced JSON block, validates it with Pydantic against the shared contract, deletes its temp directory and returns an unfinalised plan. Node validates again with zod, finalises and persists analyzer, model and usage. DOCUMENT_ANALYZER_MODE selects documind or ai; the ai path keeps the v1 provider and BYOK and is the only fallback, allowed on infrastructure failures only. documind is a generation SDK with no analysis API, and its internal pipeline may make several provider calls; both facts are recorded rather than assumed.",
+    "components": [
+      { "name": "contracts/plan.contract.json", "action": "create", "description": "Single JSON Schema for the plan object, contractVersion 1, additionalProperties false." },
+      { "name": "contracts/fixtures/plan.golden.json", "action": "create", "description": "Golden plan fixture accepted by the Python model and the Node zod schema." },
+      { "name": "services/document-analyzer", "action": "create", "description": "uv project with pyproject.toml, uv.lock, app package, Dockerfile and README." },
+      { "name": "services/document-analyzer/app/config.py", "action": "create", "description": "Environment, provider mapping, production guards and limits." },
+      { "name": "services/document-analyzer/app/contracts.py", "action": "create", "description": "Pydantic request, plan, analyzer and response models." },
+      { "name": "services/document-analyzer/app/brief.py", "action": "create", "description": "Versioned brief with data delimiters, injection guard and JSON-only rule." },
+      { "name": "services/document-analyzer/app/engine.py", "action": "create", "description": "DocuMind engine factory and per-request storage_local_path." },
+      { "name": "services/document-analyzer/app/parsing.py", "action": "create", "description": "Exactly-one fenced JSON block extraction and error mapping." },
+      { "name": "services/document-analyzer/app/analyze.py", "action": "create", "description": "One-invocation orchestration, result read, cleanup in finally, error mapping." },
+      { "name": "services/document-analyzer/app/limits.py", "action": "create", "description": "Semaphore, 429 with Retry-After, timeout and cancellation cleanup." },
+      { "name": "services/document-analyzer/app/auth.py", "action": "create", "description": "Constant-time bearer token check before body or SDK work." },
+      { "name": "services/document-analyzer/app/main.py", "action": "create", "description": "FastAPI app with POST /v1/plans:analyze and GET /healthz only." },
+      { "name": "services/document-analyzer/Dockerfile", "action": "create", "description": "Multi-stage uv build, non-root runtime, health check." },
+      { "name": "services/document-analyzer/README.md", "action": "create", "description": "Local run, provider keys, limits, temp-file lifecycle and measurements." },
+      { "name": "server/src/utils/ai/plan/analyzer.ts", "action": "create", "description": "Node HTTP client with timeout, one retry, circuit breaker and error codes." },
+      { "name": "server/src/utils/ai/plan/config.ts", "action": "modify", "description": "Mode, URL, token, timeout, fallback and analyzer limits." },
+      { "name": "server/src/utils/ai/plan/service.ts", "action": "modify", "description": "Branch on mode; keep finalizePlan and failure accounting." },
+      { "name": "server/src/models/aiPlanModel.ts", "action": "modify", "description": "Add analyzer enum with default ai." },
+      { "name": "server/src/controllers/aiPlanController.ts", "action": "modify", "description": "Analyzer preflight and analyzer in planView." },
+      { "name": "client/src/features/ai-plan/types.ts", "action": "modify", "description": "Add analyzer to AiPlan." },
+      { "name": "client/src/features/ai-plan/components", "action": "modify", "description": "Engine label and usage-not-reported state in review." },
+      { "name": "client/src/i18n/locales/en,fr,ar/aiPlan.json", "action": "modify", "description": "Engine label and new error copy in three locales." },
+      { "name": "render.yaml", "action": "modify", "description": "Analyzer service, Docker, health check and private env." },
+      { "name": "server/.env.example", "action": "modify", "description": "DOCUMENT_ANALYZER_* placeholders only." },
+      { "name": "AGENTS.md and README.md", "action": "modify", "description": "Stack, layout and commands for the service." },
+      { "name": "server/src/utils/ai/plan/extract.ts", "action": "reuse", "description": "Remains the only text extractor and upload guard." },
+      { "name": "server/src/utils/ai/provider.ts", "action": "reuse", "description": "Remains the ai path and the only fallback." },
+      { "name": "client/src/features/ai-plan flow", "action": "reuse", "description": "Upload, destination, review, create and rollback unchanged." }
+    ],
+    "referencedRequirementIds": [
+      "FR-035", "FR-036", "FR-037", "FR-038", "FR-039", "FR-040", "FR-041", "FR-042",
+      "FR-043", "FR-044", "FR-045", "FR-046", "FR-047", "FR-048", "FR-049",
+      "NFR-020", "NFR-021", "NFR-022", "NFR-023", "NFR-024", "NFR-025", "NFR-026", "NFR-027"
+    ]
+  },
+  "dataModel": {
+    "entities": [
+      {
+        "name": "AiPlan",
+        "action": "update",
+        "fields": [
+          { "name": "analyzer", "type": "'documind' | 'ai'", "action": "add" },
+          { "name": "model", "type": "string", "action": "no_change" },
+          { "name": "usage", "type": "{ inputTokens: number, outputTokens: number }", "action": "no_change" },
+          { "name": "plan", "type": "PlanContent", "action": "no_change" },
+          { "name": "source", "type": "PlanSource", "action": "no_change" },
+          { "name": "status", "type": "'queued' | 'running' | 'ready' | 'failed' | 'created'", "action": "no_change" }
+        ]
+      },
+      {
+        "name": "PlanContract",
+        "action": "create",
+        "fields": [
+          { "name": "contractVersion", "type": "1", "action": "add" },
+          { "name": "project", "type": "{ name, key, description, color }", "action": "add" },
+          { "name": "sprints", "type": "array<{ name, goal, startDate, endDate }>", "action": "add" },
+          { "name": "epics", "type": "array<{ ref, title, description }>", "action": "add" },
+          { "name": "items", "type": "array<PlanItem>", "action": "add" },
+          { "name": "assumptions", "type": "array<string>", "action": "add" },
+          { "name": "risks", "type": "array<string>", "action": "add" }
+        ]
+      },
+      {
+        "name": "AnalyzeRequest",
+        "action": "create",
+        "fields": [
+          { "name": "requestId", "type": "string (uuid)", "action": "add" },
+          { "name": "contractVersion", "type": "1", "action": "add" },
+          { "name": "document", "type": "{ fileName, mimeType, text }", "action": "add" },
+          { "name": "options", "type": "PlanOptions", "action": "add" }
+        ]
+      },
+      {
+        "name": "AnalyzeResponse",
+        "action": "create",
+        "fields": [
+          { "name": "requestId", "type": "string", "action": "add" },
+          { "name": "plan", "type": "PlanContract", "action": "add" },
+          { "name": "analyzer", "type": "{ engine, sdkVersion, model, latencyMs }", "action": "add" },
+          { "name": "warnings", "type": "array<string>", "action": "add" }
+        ]
+      }
+    ],
+    "flowDescription": "The browser uploads to the unchanged Node route. Node validates permissions, reads the multipart file in memory, extracts and shortens the text, stores a queued AiPlan and starts runPlan. In documind mode runPlan posts one request to the analyzer with the cleaned text and plan options. The analyzer authenticates, validates with Pydantic, takes a concurrency slot, builds the versioned brief, invokes DocuMind once with format=md, reads the generated Markdown, extracts one fenced JSON block, validates it, deletes its temp directory and returns an unfinalised plan. Node validates with zod, runs finalizePlan for dates and name/key deduplication, persists analyzer, model and usage, and marks the plan ready. The browser keeps polling the existing detail route. In ai mode, or on an allowed infrastructure failure with fallback enabled, Node calls the v1 provider instead and records analyzer as ai."
+  },
+  "apiContracts": [
+    { "method": "POST", "path": "/v1/plans:analyze", "action": "create", "authenticationRequired": true, "linkedRequirements": ["FR-036", "FR-037", "FR-038", "FR-039", "FR-040", "NFR-020", "NFR-022"] },
+    { "method": "GET", "path": "/healthz", "action": "create", "authenticationRequired": false, "linkedRequirements": ["FR-045"] },
+    { "method": "POST", "path": "/api/workspaces/:slug/ai/plans", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-041", "FR-049"] },
+    { "method": "GET", "path": "/api/workspaces/:slug/ai/plans/:id", "action": "reuse", "authenticationRequired": true, "linkedRequirements": ["FR-044"] }
+  ],
+  "securityConsiderations": [
+    { "requirementId": "NFR-023", "description": "The analyzer requires a bearer token of at least 32 bytes from the environment, compared with hmac.compare_digest, refuses to start without it in production, is reachable only on the private network or HTTPS, and keeps provider credentials in its own environment only." },
+    { "requirementId": "NFR-022", "description": "Document text stays in memory, generated files live in a 0700 per-request directory removed in finally, nothing is cached or persisted, and logs carry only requestId, sizes, latency, engine and code." },
+    { "requirementId": "NFR-027", "description": "documind is pinned to 0.2.2 with a hash in uv.lock, runs in an isolated non-root container, is never installed on the host, and any transitive upgrade requires an explicit review." }
+  ],
+  "performanceConsiderations": [
+    { "requirementId": "NFR-020", "strategy": "At most one HTTP request from Node and one DocuMind invocation per plan; provider calls inside the SDK pipeline are instrumented and recorded rather than assumed to be one." },
+    { "requirementId": "NFR-021", "strategy": "ANALYZER_TIMEOUT_SECONDS defaults to 200 s inside the existing plan budget; p95 target 180 s for 60,000 characters; a semaphore caps concurrency, excess gets 429 with Retry-After, and Node clamps its own timeout below the budget." },
+    { "requirementId": "NFR-025", "strategy": "Multi-stage uv build with --no-dev, a warm /healthz, measured image size, cold start and memory; the service is kept warm before traffic." }
+  ],
+  "dependencies": [
+    { "name": "documind", "type": "library", "action": "add", "notes": "documind==0.2.2, Apache-2.0, Python >=3.11, generation-only with no analysis API; hash-pinned in uv.lock; no published skill." },
+    { "name": "uv", "type": "library", "action": "add", "notes": "Service dependency management and lockfile; 0.10.3 available locally." },
+    { "name": "fastapi", "type": "library", "action": "add", "notes": "HTTP surface and Pydantic integration for the analyzer." },
+    { "name": "uvicorn", "type": "library", "action": "add", "notes": "ASGI server for the container and local development." },
+    { "name": "pydantic", "type": "library", "action": "add", "notes": "Request, plan and response validation; documind already requires pydantic>=2.7." },
+    { "name": "pytest and httpx", "type": "library", "action": "add", "notes": "Dev-only dependencies for the Test agent; no test tasks are created here." },
+    { "name": "Node global fetch", "type": "library", "action": "no_change", "notes": "Node 22 fetch with AbortSignal; no new HTTP client dependency." },
+    { "name": "Existing extraction", "type": "internal", "action": "no_change", "notes": "utils/ai/plan/extract.ts remains the only upload and text extractor." },
+    { "name": "Existing v1 provider", "type": "internal", "action": "no_change", "notes": "utils/ai/provider.ts remains the ai mode and the only fallback." },
+    { "name": "Render analyzer service", "type": "service", "action": "add", "notes": "Private Docker service with /healthz and sync:false secrets." }
+  ],
+  "risks": [
+    { "description": "RISK-021: documind generates documents rather than analysing them, so the plan is generated prose parsed from a fenced JSON block and may be less reliable than the v1 schema-constrained call.", "mitigation": "Versioned brief, exactly-one-block contract, Pydantic and zod validation, golden fixtures, side-by-side review of ten real documents before the default switch, and the ai mode retained." },
+    { "description": "RISK-022: the SDK's LangGraph pipeline may make several provider calls, so one request does not imply fewer AI calls or lower cost.", "mitigation": "Instrument provider calls, latency and cost on ten documents and publish the numbers before switching the default; keep the v1 single-call path; cap concurrency." },
+    { "description": "RISK-023: the SDK pulls LangGraph, langchain providers, boto3, python-pptx, lxml, Pillow and tiktoken, making the image large and cold starts slow.", "mitigation": "Multi-stage uv build with --no-dev, no build tools in runtime, measured size/start/memory, warm health check." },
+    { "description": "RISK-024: the package is Beta, publishes no provenance, its declared repository could not be verified, and it installs a top-level src package that can collide with our code.", "mitigation": "Hash-pinned 0.2.2, isolated container, no host install, app package name, non-root user, diff review before upgrades." },
+    { "description": "RISK-025: document text and generated files cross a process boundary and land on disk.", "mitigation": "Text only, TLS or private network, 0700 per-request directories removed in finally, no persistence or content logging, redaction tests owned by the Test agent." },
+    { "description": "RISK-026: workspace BYOK is bypassed on the DocuMind path because provider credentials are installation-level.", "mitigation": "Explicit setting, admin documentation, unchanged per-workspace daily limit, analyzer recorded on every plan, ai mode retained for BYOK." },
+    { "description": "RISK-027: a service outage blocks plan generation when fallback is disabled.", "mitigation": "Health check, timeout, circuit breaker, explicit fallback flag, stable error codes and one retry action in the UI." }
+  ]
+}

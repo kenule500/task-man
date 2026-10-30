@@ -566,9 +566,9 @@
     },
     {
       "name": "upload-document",
-      "branch": "feature/upload-document",
+      "branch": "feature/upload-document-v2",
       "base": "main",
-      "currentVersion": "v1",
+      "currentVersion": "v2",
       "versions": [
         {
           "id": "v1",
@@ -747,6 +747,48 @@
               "version": "v1",
               "mergeCommit": "",
               "timestamp": "2026-10-25T23:31:59.267Z"
+            }
+          ]
+        },
+        {
+          "id": "v2",
+          "phase": "backlog",
+          "currentStep": "specification",
+          "gates": {
+            "specification": "approved",
+            "planning": "approved",
+            "implementation": "pending",
+            "review": "pending"
+          },
+          "history": [
+            {
+              "event": "version_created",
+              "timestamp": "2026-10-30T13:41:36.818Z"
+            },
+            {
+              "event": "Specification and traceability drafted by /sdrive:propose on feature/upload-document-v2 (base main). Adds a uv-managed Python DocuMind analyzer service, a mode switch with an explicit fallback, and a shared plan contract. Records the verified limitation that documind 0.2.2 is a generation SDK with no analysis API, and withdraws the claim that it reduces provider calls. Awaiting Gate 1 approval before plan and tasks.",
+              "by": "specification",
+              "timestamp": "2026-10-30T14:05:00.000Z"
+            },
+            {
+              "event": "Gate 1 approved by the user: the specification and traceability capture the DocuMind Python service, with documind as the default only after the RISK-022 measurements.",
+              "by": "kenule500",
+              "timestamp": "2026-10-30T14:20:00.000Z"
+            },
+            {
+              "event": "Technical plan and 32 tasks across seven phases drafted (plan.md, plan.json, tasks.md, tasks.json); traceability now links every requirement to a plan section and task IDs. No test tasks were created. Awaiting Gate 2 approval before implementation.",
+              "by": "specification",
+              "timestamp": "2026-10-30T14:25:00.000Z"
+            },
+            {
+              "event": "Gate 2 approved by the user: the technical plan and 32 tasks are approved for implementation. documind becomes the default only after the RISK-022 measurements; the ai path stays the default and the BYOK fallback.",
+              "by": "kenule500",
+              "timestamp": "2026-10-30T14:40:00.000Z"
+            },
+            {
+              "event": "Proposal complete: v2 spec, plan, tasks and traceability committed on feature/upload-document-v2. No production code was written and no tests were authored. Next command: /sdrive:apply.",
+              "by": "specification",
+              "timestamp": "2026-10-30T14:41:00.000Z"
             }
           ]
         }
