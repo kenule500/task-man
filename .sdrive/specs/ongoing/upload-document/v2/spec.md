@@ -20,8 +20,8 @@ updated: 2026-10-30
 ### Problem Statement
 
 v1 ships a working four-step flow (upload, analyze, review, create), but the analysis stage lives
-inside the Node API: `server/src/controllers/aiPlanController.ts` extracts text in-process and
-`server/src/utils/ai/plan/service.ts` calls the workspace's OpenAI-compatible provider through
+inside the Node API: `services/api/src/controllers/aiPlanController.ts` extracts text in-process and
+`services/api/src/utils/ai/plan/service.ts` calls the workspace's OpenAI-compatible provider through
 `generateJson`. Every change to prompt, model, retry or provider behaviour therefore edits the API
 server, and the same document-to-plan logic cannot be reused by another product surface or another
 runtime.
@@ -78,7 +78,7 @@ default plan-generation path while keeping the v1 provider path as a selectable 
    block; the service extracts that block, validates it with Pydantic, deletes the generated files,
    and returns the plan. No document text, generated file or key is retained or logged.
 4. **The Node side gains a thin client, not new provider logic.**
-   `server/src/utils/ai/plan/analyzer.ts` posts the request with a hard timeout, at most one retry
+   `services/api/src/utils/ai/plan/analyzer.ts` posts the request with a hard timeout, at most one retry
    before any bytes are sent, a circuit breaker and stable error codes, then runs the existing
    `finalizePlan` so dates, sprint lengths and name/key deduplication are unchanged.
 5. **Mode and fallback are explicit.** `DOCUMENT_ANALYZER_MODE=documind|ai` selects the path
@@ -408,13 +408,13 @@ Additional controls specific to this design:
 | `pytest`, `httpx` | library | add | Dev-only, for the Test agent; no test tasks are created here. |
 | `services/document-analyzer` | internal | create | New `uv` project: `app/`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `README.md`. |
 | `contracts/plan.contract.json` | internal | create | Shared JSON Schema + golden fixture validated by Python and Node. |
-| `server/src/utils/ai/plan/analyzer.ts` | internal | create | Node HTTP client, timeout, retry, circuit breaker, error mapping. |
-| `server/src/utils/ai/plan/service.ts` | internal | modify | Branch on mode; keep `finalizePlan` and failure accounting unchanged. |
-| `server/src/utils/ai/plan/config.ts` | internal | modify | Add mode, URL, token, timeout, fallback and analyzer max chars. |
-| `server/src/models/aiPlanModel.ts` | internal | modify | Add `analyzer`; default `'ai'` for existing records. |
+| `services/api/src/utils/ai/plan/analyzer.ts` | internal | create | Node HTTP client, timeout, retry, circuit breaker, error mapping. |
+| `services/api/src/utils/ai/plan/service.ts` | internal | modify | Branch on mode; keep `finalizePlan` and failure accounting unchanged. |
+| `services/api/src/utils/ai/plan/config.ts` | internal | modify | Add mode, URL, token, timeout, fallback and analyzer max chars. |
+| `services/api/src/models/aiPlanModel.ts` | internal | modify | Add `analyzer`; default `'ai'` for existing records. |
 | `client/src/features/ai-plan` | internal | modify | Engine label, usage-not-reported state, new error copy; no flow change. |
 | `client/src/i18n/locales/{en,fr,ar}/aiPlan.json` | internal | modify | New keys in three locales. |
-| `render.yaml`, `server/.env.example`, `client/.env.example` | internal | modify | New service declaration and variables, placeholders only. |
+| `render.yaml`, `services/api/.env.example`, `client/.env.example` | internal | modify | New service declaration and variables, placeholders only. |
 | Existing extraction (`utils/ai/plan/extract.ts`) | internal | no_change | Reused; text is the only payload. |
 | Existing v1 provider (`utils/ai/provider.ts`) | internal | no_change | Stays as the `ai` path and fallback. |
 | DocuMind provider (OpenAI-compatible, Anthropic, Bedrock, Vertex, Gemini, Ollama, vLLM or custom) | external | add | Installation-level account and key; no SDK outside `documind`. |

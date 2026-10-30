@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, TypeVar
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
+from typing import TypeVar
 
 from .contracts import AnalyzerError
 

@@ -76,19 +76,19 @@ BYOK configuration.
 | `services/document-analyzer/app/main.py` | create | FastAPI app, `/v1/plans:analyze`, `/healthz`. |
 | `services/document-analyzer/Dockerfile` | create | Multi-stage uv build, non-root runtime. |
 | `services/document-analyzer/README.md` | create | Local run, keys, limits, measurement. |
-| `server/src/utils/ai/plan/analyzer.ts` | create | Node client: timeout, retry, breaker, error codes. |
-| `server/src/utils/ai/plan/config.ts` | modify | Mode, URL, token, timeout, fallback, analyzer limits. |
-| `server/src/utils/ai/plan/service.ts` | modify | Branch on mode; keep finalize and failure accounting. |
-| `server/src/models/aiPlanModel.ts` | modify | Add `analyzer` with default `ai`. |
-| `server/src/controllers/aiPlanController.ts` | modify | Preflight config, expose `analyzer` in `planView`. |
+| `services/api/src/utils/ai/plan/analyzer.ts` | create | Node client: timeout, retry, breaker, error codes. |
+| `services/api/src/utils/ai/plan/config.ts` | modify | Mode, URL, token, timeout, fallback, analyzer limits. |
+| `services/api/src/utils/ai/plan/service.ts` | modify | Branch on mode; keep finalize and failure accounting. |
+| `services/api/src/models/aiPlanModel.ts` | modify | Add `analyzer` with default `ai`. |
+| `services/api/src/controllers/aiPlanController.ts` | modify | Preflight config, expose `analyzer` in `planView`. |
 | `client/src/features/ai-plan/types.ts` | modify | Add `analyzer` to `AiPlan`. |
 | `client/src/features/ai-plan/components/*` | modify | Engine label and usage-not-reported state. |
 | `client/src/i18n/locales/{en,fr,ar}/aiPlan.json` | modify | New label and error copy. |
 | `render.yaml` | modify | Analyzer service, Docker, `/healthz`, private env. |
-| `server/.env.example` | modify | Analyzer variables, placeholders only. |
+| `services/api/.env.example` | modify | Analyzer variables, placeholders only. |
 | `AGENTS.md`, `README.md` | modify | Stack, layout and commands for the service. |
-| `server/src/utils/ai/plan/extract.ts` | no_change | Stays the only text extractor. |
-| `server/src/utils/ai/provider.ts` | no_change | v1 path and fallback only. |
+| `services/api/src/utils/ai/plan/extract.ts` | no_change | Stays the only text extractor. |
+| `services/api/src/utils/ai/provider.ts` | no_change | v1 path and fallback only. |
 | `client/src/features/ai-plan` flow | no_change | Upload, review, destination, create unchanged. |
 
 ## 4. Data model
@@ -267,7 +267,7 @@ the daily limit are unchanged.
   `ANALYZER_MAX_CHARS`, `ANALYZER_MAX_BYTES`, `ANALYZER_MAX_CONCURRENCY`,
   `ANALYZER_TIMEOUT_SECONDS`, `ANALYZER_ENV`.
 - Local development: `cd services/document-analyzer && uv sync && uv run uvicorn app.main:app
-  --port 8000`, with `DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000` in `server/.env`.
+  --port 8000`, with `DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000` in `services/api/.env`.
 - Startup fails fast in production when the token, provider key or HTTPS URL is missing; in
   development it may start with a fake provider for UI work, logged once as `analyzer.dev_mode`.
 

@@ -7,11 +7,11 @@ const path = require('node:path');
 const root = process.cwd();
 const node = process.execPath;
 const checks = [
-  { id: 'server-tsc', args: ['server/node_modules/typescript/bin/tsc', '--noEmit', '-p', 'server/tsconfig.json'] },
-  { id: 'server-tsc-test', args: ['server/node_modules/typescript/bin/tsc', '-p', 'server/tsconfig.test.json'] },
-  { id: 'client-tsc', args: ['client/node_modules/typescript/bin/tsc', '-b', 'client/tsconfig.json'] },
-  { id: 'client-tsc-test', args: ['client/node_modules/typescript/bin/tsc', '-p', 'client/tsconfig.test.json'] },
-  { id: 'client-eslint', args: ['client/node_modules/eslint/bin/eslint.js', '.'], cwd: path.join(root, 'client') },
+  { id: 'server-tsc', args: ['services/api/node_modules/typescript/lib/tsc.js', '--noEmit', '-p', 'services/api/tsconfig.json'] },
+  { id: 'server-tsc-test', args: ['services/api/node_modules/typescript/lib/tsc.js', '-p', 'services/api/tsconfig.test.json'] },
+  { id: 'client-tsc', args: ['client/node_modules/typescript/lib/tsc.js', '-b', 'client/tsconfig.json'] },
+  { id: 'client-tsc-test', args: ['client/node_modules/typescript/lib/tsc.js', '-p', 'client/tsconfig.test.json'] },
+  { id: 'client-eslint', args: ['node_modules/eslint/bin/eslint.js', '.'], cwd: path.join(root, 'client') },
 ];
 
 const results = [];

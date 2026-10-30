@@ -1,6 +1,6 @@
 packages:
   - 'client'
-  - 'server'
+  - 'services/api'
 allowBuilds:
   esbuild: false
   '@swc/core': false

@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from .analyze import analyze
 from .auth import authorize
 from .config import DEVELOPMENT, SDK_VERSION, Settings, load_settings
-from .contracts import AnalyzeRequest, AnalyzeResponse, AnalyzerError
+from .contracts import AnalyzeRequest, AnalyzerError, AnalyzeResponse
 from .limits import Limiter, with_timeout
 
 logger = logging.getLogger("document_analyzer")

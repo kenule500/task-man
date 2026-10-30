@@ -4,8 +4,8 @@
 // (vercel.json); the client reconnects and meanwhile polls the REST history. Events cross instances
 // through MongoDB (@socket.io/mongo-adapter), see server/src/realtime.
 import http from 'node:http';
-import { ensureReady } from '../server/src/app.js';
-import { createChatServer } from '../server/src/realtime/socket.js';
+import { ensureReady } from '../services/api/src/app.js';
+import { createChatServer } from '../services/api/src/realtime/socket.js';
 
 const server = http.createServer((_req, res) => {
   res.statusCode = 426;

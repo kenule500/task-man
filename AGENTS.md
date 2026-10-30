@@ -6,7 +6,7 @@ Guide for anyone (human or AI agent) contributing to **TaskMan**, a MERN task ma
 
 | Part | Tech |
 |---|---|
-| `server/` | Node + Express 5 + Mongoose 9, TypeScript (NodeNext, run with `tsx`), JWT auth with DB sessions |
+| `services/api/` | Node + Express 5 + Mongoose 9, TypeScript (NodeNext, run with `tsx`), JWT auth with DB sessions |
 | `services/document-analyzer/` | Python 3.12 + uv + FastAPI + DocuMind SDK 0.2.2 (document plan generation) |
 | `client/` | React 19 + Vite + Tailwind v4 + shadcn (**Base UI** primitives, `base-nova` style), lucide icons, axios |
 | Tests | Jest everywhere (`@swc/jest`); Testing Library + jsdom on the client |
@@ -18,7 +18,7 @@ Guide for anyone (human or AI agent) contributing to **TaskMan**, a MERN task ma
 pnpm install                         # once, from the repo root
 
 # API (local MongoDB recommended for development)
-cd server
+cd services/api
 MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm seed   # demo account + tasks (local only)
 MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm dev    # http://localhost:5000
 
@@ -38,14 +38,14 @@ pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter cli
 pnpm --filter client build
 ```
 
-Environment: copy `server/.env.example` to `server/.env` and `client/.env.example` to `client/.env`.
+Environment: copy `services/api/.env.example` to `services/api/.env` and `client/.env.example` to `client/.env`.
 Variables already set in the shell win over `.env` (dotenv does not override), which is how the
 commands above point the API at a local database.
 
 ## Layout
 
 ```
-server/src/
+services/api/src/
   models/        Mongoose schemas (User, Session, Workspace, Task)
   controllers/   Route handlers + express-validator chains
   middleware/    protect (JWT + session), requirePermission (RBAC), uploads
@@ -79,10 +79,13 @@ client/src/
 
 ## Conventions
 
+- **Backend services live under `services/`:** `services/api` is the Node/Express API and
+  `services/document-analyzer` is the Python analyzer. `client/` is the web app; the root `api/`
+  folder is only the Vercel serverless adapter (it imports the API, it is not a server).
 - **Branches:** never commit to `main`. Work on `feature/<topic>` and open a PR.
 - **Commits:** Conventional Commits (`feat(client): …`, `fix(server): …`), imperative, explain the why.
 - **Workspace routes are permission scoped:** every route goes through `protect` then
-  `requirePermission('<area>:<action>')` (see `server/src/config/permissions.ts`), which attaches
+  `requirePermission('<area>:<action>')` (see `services/api/src/config/permissions.ts`), which attaches
   `req.workspace`, `req.role` and `req.permissions`; queries always filter by `req.workspace._id`.
 - **Roles:** assign roles only through `utils/roleAccess.ts` (`findAssignableRole`, `canGrantRole`).
 - **Dates are calendar days:** send/receive `YYYY-MM-DD`; on the client use `lib/date.ts`
@@ -92,7 +95,7 @@ client/src/
   never read `localStorage` directly — use `utils/session.ts`.
 - **UI:** follow `DESIGN.md`. Use shadcn primitives from `components/ui`; no new UI libraries without discussion.
 - **Pure logic first:** anything non-visual goes in `lib/` or `utils/` with a Jest test.
-- **Secrets:** never commit `.env`. Seed credentials are test-only and live in `server/src/scripts/seed.ts`.
+- **Secrets:** never commit `.env`. Seed credentials are test-only and live in `services/api/src/scripts/seed.ts`.
 
 ## Working rules for contributors and coding agents
 

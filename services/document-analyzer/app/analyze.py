@@ -14,8 +14,8 @@ from .brief import build_query
 from .config import SDK_VERSION, Settings
 from .contracts import (
     AnalyzeRequest,
-    AnalyzeResponse,
     AnalyzerError,
+    AnalyzeResponse,
     AnalyzerInfo,
     PlanContract,
 )

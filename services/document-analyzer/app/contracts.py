@@ -7,7 +7,7 @@ inside the limits the Node schema enforces.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -17,33 +17,33 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
-class Locale(str, Enum):
+class Locale(StrEnum):
     EN = "en"
     FR = "fr"
     AR = "ar"
 
 
-class DocumentMime(str, Enum):
+class DocumentMime(StrEnum):
     PDF = "application/pdf"
     DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     TEXT = "text/plain"
     MARKDOWN = "text/markdown"
 
 
-class ItemType(str, Enum):
+class ItemType(StrEnum):
     STORY = "story"
     TASK = "task"
     BUG = "bug"
     SPIKE = "spike"
 
 
-class Priority(str, Enum):
+class Priority(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
 
-class ProjectColor(str, Enum):
+class ProjectColor(StrEnum):
     BLUE = "blue"
     VIOLET = "violet"
     ROSE = "rose"

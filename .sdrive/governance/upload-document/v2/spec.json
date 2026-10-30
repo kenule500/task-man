@@ -223,14 +223,14 @@
     { "name": "pytest and httpx", "type": "library", "notes": "Dev-only dependencies for the Test agent; no test tasks are created in this phase." },
     { "name": "services/document-analyzer", "type": "internal", "notes": "New uv project with app/, pyproject.toml, uv.lock, Dockerfile and README." },
     { "name": "contracts/plan.contract.json", "type": "internal", "notes": "Shared JSON Schema and golden fixture validated by both Python and Node." },
-    { "name": "server/src/utils/ai/plan/analyzer.ts", "type": "internal", "notes": "New Node client with timeout, retry, circuit breaker and error mapping." },
-    { "name": "server/src/utils/ai/plan/service.ts", "type": "internal", "notes": "Modified to branch on mode while keeping finalizePlan and failure accounting." },
-    { "name": "server/src/utils/ai/plan/config.ts", "type": "internal", "notes": "Modified with mode, URL, token, timeout, fallback and analyzer max chars." },
-    { "name": "server/src/models/aiPlanModel.ts", "type": "internal", "notes": "Modified with the analyzer field, defaulting to ai for existing records." },
+    { "name": "services/api/src/utils/ai/plan/analyzer.ts", "type": "internal", "notes": "New Node client with timeout, retry, circuit breaker and error mapping." },
+    { "name": "services/api/src/utils/ai/plan/service.ts", "type": "internal", "notes": "Modified to branch on mode while keeping finalizePlan and failure accounting." },
+    { "name": "services/api/src/utils/ai/plan/config.ts", "type": "internal", "notes": "Modified with mode, URL, token, timeout, fallback and analyzer max chars." },
+    { "name": "services/api/src/models/aiPlanModel.ts", "type": "internal", "notes": "Modified with the analyzer field, defaulting to ai for existing records." },
     { "name": "client/src/features/ai-plan and locales", "type": "internal", "notes": "Modified for the engine label, usage-not-reported state and new error copy in en, fr and ar." },
     { "name": "Existing extraction and v1 provider", "type": "internal", "notes": "No change: extraction stays the only source of text; the v1 provider remains the ai path and fallback." },
     { "name": "DocuMind provider account", "type": "external", "notes": "Installation-level OpenAI-compatible, Anthropic, Bedrock, Vertex, Gemini, Ollama, vLLM or custom endpoint and key." },
-    { "name": "render.yaml and server/.env.example", "type": "internal", "notes": "Modified to declare the analyzer service and every variable with placeholders only." }
+    { "name": "render.yaml and services/api/.env.example", "type": "internal", "notes": "Modified to declare the analyzer service and every variable with placeholders only." }
   ],
   "risks": [
     { "id": "RISK-021", "description": "Capability mismatch: the SDK generates documents and does not analyse them, so the plan is generated prose parsed through a JSON block, which is less reliable than the v1 schema-constrained call.", "mitigation": "Versioned brief, one fenced JSON block, Pydantic and zod validation, golden fixtures, a quality comparison on real documents before documind becomes the default, and the ai mode always available." },

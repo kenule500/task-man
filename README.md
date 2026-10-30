@@ -6,10 +6,14 @@ A MERN task manager for teams: users sign up, create or join workspaces, and pla
 | Layer | Stack |
 |---|---|
 | Web (`client/`) | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn (Base UI), axios |
-| API (`server/`) | Node.js, Express 5, TypeScript, Mongoose 9 (MongoDB), JWT + DB sessions |
+| API (`services/api/`) | Node.js, Express 5, TypeScript, Mongoose 9 (MongoDB), JWT + DB sessions |
 | Analyzer (`services/document-analyzer/`) | Python 3.12, uv, FastAPI, DocuMind SDK 0.2.2 |
 | Tests | Jest (`@swc/jest`), Testing Library |
 | Tooling | pnpm workspace, ESLint, GitHub Actions CI |
+
+All backend services live under `services/` (`services/api` for the Node API,
+`services/document-analyzer` for Python). The root `api/` folder is only the Vercel serverless
+adapter; `client/` is the web app.
 
 Design references: [Renza tasks screen](https://dribbble.com/shots/27514201-Task-Management-Dashboard-Tasks-Screen-UI-Design) ·
 [Planora](https://dribbble.com/shots/25991082-Planora-Minimal-Task-Management-Dashboard-UI). UI rules live in [DESIGN.md](DESIGN.md);
@@ -22,7 +26,7 @@ contributor conventions in [AGENTS.md](AGENTS.md).
 Try every permission level with the seeded accounts (one per role) in `demo-workspace`:
 `demo@taskman.test` (Product Owner), `scrum@taskman.test` (Scrum Master), `dev@taskman.test` (Developer),
 `member@taskman.test` (Team Member), `viewer@taskman.test` (Viewer). The shared test password is the
-`DEMO_PASSWORD` constant in `server/src/scripts/seed.ts`.
+`DEMO_PASSWORD` constant in `services/api/src/scripts/seed.ts`.
 
 Docs: [Presentation guide](docs/PRESENTATION_GUIDE.md) (demo script, architecture, tests) ·
 [Implementation report](docs/IMPLEMENTATION_REPORT.md) (what changed, how, every file) ·
@@ -178,7 +182,7 @@ All endpoints are under `/api` and need `Authorization: Bearer <token>` except a
 | Projects and sprints | `GET/POST /api/workspaces/:slug/projects` · `PATCH/DELETE …/projects/:id` · `POST …/projects/:id/sprints` · `PATCH/DELETE …/sprints/:sprintId` · `POST …/sprints/:sprintId/start` · `POST …/sprints/:sprintId/complete` |
 | Activity and audit | `GET /api/workspaces/:slug/tasks/:id/activity` · `GET /api/workspaces/:slug/activity?area=&actor=&before=&format=csv` |
 | Sessions | `GET /api/profile/sessions` · `DELETE /api/profile/sessions/:id` · `POST /api/profile/sessions/revoke-others` |
-| Workspaces, members, roles, invitations, profile | see `server/src/routes/` |
+| Workspaces, members, roles, invitations, profile | see `services/api/src/routes/` |
 
 Task list query parameters: `status`, `search` (title or description), `project`, `label`, `assignee=me|<userId>`,
 `sort=createdAt|deadline|priority|position`, `from`, `to`. Tasks are shared by the workspace team (RBAC decides who
@@ -194,10 +198,10 @@ node -v && pnpm -v && mongosh --quiet --eval "db.runCommand({ ping: 1 })"
 
 ```bash
 pnpm install
-cp server/.env.example server/.env      # then set JWT_SECRET (openssl rand -hex 32)
+cp services/api/.env.example services/api/.env      # then set JWT_SECRET (openssl rand -hex 32)
 cp client/.env.example client/.env
 
-cd server
+cd services/api
 pnpm seed      # local demo workspace and tasks (refuses non-local databases)
 pnpm dev       # API on http://localhost:5000
 
@@ -219,14 +223,14 @@ uv sync
 uv run uvicorn app.main:app --port 8000
 ```
 
-Then in `server/.env` set `DOCUMENT_ANALYZER_MODE=documind`,
+Then in `services/api/.env` set `DOCUMENT_ANALYZER_MODE=documind`,
 `DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000` and the same 32+ byte
 `DOCUMENT_ANALYZER_TOKEN`. See the service README for the API, limits and rollback.
 
 
 ### Optional: Web Push (device notifications)
 
-Push is off until the API has a VAPID key pair. Generate one and add it to `server/.env` (or the host settings):
+Push is off until the API has a VAPID key pair. Generate one and add it to `services/api/.env` (or the host settings):
 
 ```bash
 npx web-push generate-vapid-keys
@@ -285,11 +289,11 @@ The AI code review agent checks whether a ticket's GitHub pull request really im
 **acceptance criteria**, a linked GitHub pull request, a review, and a result of **Match**, **Partial** or **Mismatch** with evidence
 (file paths) for every criterion, the list of criteria that are missing, and code issues grouped by severity (security, bug, quality,
 tests, performance). It uses the OpenAI-compatible endpoint of Alibaba Cloud Model Studio (DashScope) through the official `openai`
-package, behind `server/src/utils/ai/provider.ts` so the provider can be swapped.
+package, behind `services/api/src/utils/ai/provider.ts` so the provider can be swapped.
 
 **Setup**
 
-1. Create an API key in the Alibaba Cloud Model Studio console and add it to `server/.env` or the host settings. The feature stays off
+1. Create an API key in the Alibaba Cloud Model Studio console and add it to `services/api/.env` or the host settings. The feature stays off
    (`503 AI_DISABLED`) until `DASHSCOPE_API_KEY` is set.
 2. Pick the endpoint that matches your account region. International accounts use the default; mainland China accounts use
    `https://dashscope.aliyuncs.com/compatible-mode/v1`.
@@ -401,7 +405,7 @@ Typing `@` suggests members; a tagged member gets a bell notification (and a dev
 `chat:message_updated`, `chat:message_deleted`, `chat:activity` (unread badges), `chat:channel`, `chat:typing` and
 `presence:update`.
 
-- **Locally** the Socket.IO server is attached to the API's HTTP server (`server/src/server.ts`), nothing else to run.
+- **Locally** the Socket.IO server is attached to the API's HTTP server (`services/api/src/server.ts`), nothing else to run.
 - **On Vercel** a second function, `api/socket.ts`, exports an `http.Server` running Socket.IO (Vercel Functions accept
   WebSocket upgrades, but not long polling, hence websocket-only). `vercel.json` routes `/api/socket/*` to it before the
   `/api/*` catch-all, gives it `maxDuration: 300` and lets the Content Security Policy open `wss:` connections.

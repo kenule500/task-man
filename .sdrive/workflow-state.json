@@ -794,6 +794,11 @@
               "event": "Implementation written on feature/upload-document-v2 for P1-P6: the uv/FastAPI analyzer, the DocuMind adapter and contract, the Node client/config/branch, the analyzer field, the review label and en/fr/ar copy, render.yaml and docs. Verification is incomplete: governance validation and Python compileall pass; server/client typecheck, lint, build and the Python import checks could not complete because pnpm tried to reinstall node_modules without a TTY and the terminal stopped reporting command completion. Tasks were not marked complete and no commit or push was made.",
               "by": "implementation",
               "timestamp": "2026-10-30T19:20:00.000Z"
+            },
+            {
+              "event": "Repository layout refactor: server/ moved to services/api. pnpm workspace and lock importer, Vercel adapters and root tsconfig, Render startCommand, CI working-directory, Sonar paths, current docs and v2 artifacts updated; archived v1 records untouched. Server/client typechecks (including test configs), ESLint, root adapter typecheck, server build, client build, Python ruff/imports/golden fixture and governance validation all pass.",
+              "by": "implementation",
+              "timestamp": "2026-10-30T21:40:00.000Z"
             }
           ]
         }

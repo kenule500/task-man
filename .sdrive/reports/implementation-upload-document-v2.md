@@ -32,12 +32,12 @@
 
 ### P4 — Node integration
 
-- `server/src/utils/ai/plan/config.ts` adds `readAnalyzerConfig` and URL validation.
-- `server/src/utils/ai/plan/analyzer.ts` adds the HTTP client, timeout, one retry, breaker and codes.
-- `server/src/utils/ai/plan/service.ts` branches on the mode, keeps `finalizePlan`, records
+- `services/api/src/utils/ai/plan/config.ts` adds `readAnalyzerConfig` and URL validation.
+- `services/api/src/utils/ai/plan/analyzer.ts` adds the HTTP client, timeout, one retry, breaker and codes.
+- `services/api/src/utils/ai/plan/service.ts` branches on the mode, keeps `finalizePlan`, records
   `analyzer`, and permits fallback only on infrastructure failures.
-- `server/src/models/aiPlanModel.ts` adds `analyzer` (default `ai`).
-- `server/src/controllers/aiPlanController.ts` adds the analyzer preflight and exposes `analyzer`.
+- `services/api/src/models/aiPlanModel.ts` adds `analyzer` (default `ai`).
+- `services/api/src/controllers/aiPlanController.ts` adds the analyzer preflight and exposes `analyzer`.
 
 ### P5 — Client and localisation
 
@@ -47,7 +47,7 @@
 ### P6 — Deployment and documentation
 
 - `render.yaml` declares the analyzer and the API variables.
-- `server/.env.example` and the service `.env.example` document every variable with placeholders.
+- `services/api/.env.example` and the service `.env.example` document every variable with placeholders.
 - Root `README.md` and `AGENTS.md` describe the service and the honest SDK limitation.
 
 ## Deliberate deviations
@@ -57,34 +57,34 @@
   cannot share `storage_local_path`. This follows T2.1's "build or rebind" wording.
 - Logging uses the standard library rather than `structlog` (not a direct dependency of the service).
 
+## Repository layout
+
+`server/` was moved to `services/api/` so every backend service lives under `services/`. The pnpm
+workspace, `pnpm-lock.yaml` importer, Vercel adapters (`api/index.ts`, `api/socket.ts`), root
+`tsconfig.json`, Render `startCommand`, CI `working-directory`, Sonar paths, current docs and the v2
+artifacts were updated. The root `api/` folder remains the Vercel serverless adapter only. Archived
+v1 records were left untouched.
+
 ## Verification
 
-See `.sdrive/reports/implementation-verification.json` and
-`.sdrive/reports/typecheck-verification.json` (when present).
+See `.sdrive/reports/implementation-verification.json`,
+`.sdrive/reports/typecheck-verification.json`, `.sdrive/reports/build-verification.json`,
+`.sdrive/reports/client-build-verification.json` and `.sdrive/reports/python-verification.json`.
 
 | Check | Result |
 | --- | --- |
-| `node .sdrive/scripts/validate-governance.js` | **PASS** — all v1/v2 artifacts and workflow-state valid |
-| `python -m compileall -q app` | **PASS** |
-| `uvx ruff check .` | First run failed on `N815` (intentional camelCase contract) and `UP037`; both fixed (per-file ignore + unquoted annotation). Re-run could not be completed. |
-| Python import + golden fixture | Harness quoting fixed; re-run could not be completed. |
-| Server typecheck | **Not verified** — pnpm wanted to reinstall `node_modules` and aborted without a TTY; the terminal then stopped reporting completion. |
-| Client typecheck | **Not verified** — same pnpm issue. |
-| Client lint / build | **Not verified** — same pnpm issue. |
+| `validate-governance.js` | **PASS** — all v1/v2 artifacts and workflow-state valid |
+| Python `compileall` | **PASS** |
+| `ruff check .` | **PASS** after StrEnum, `TypeVar` and import-order fixes |
+| Golden plan fixture (`PlanContract`) | **PASS** |
+| FastAPI app import | **PASS** |
+| Server typecheck + test tsconfig | **PASS** |
+| Client typecheck + test tsconfig | **PASS** |
+| Client ESLint | **PASS** |
+| Root `tsconfig.json` (Vercel adapters) | **PASS** |
+| Server build | **PASS** — `services/api/dist/server.js` |
+| Client build | **PASS** |
 | Test suite | Not run. Owned by `/sdrive:test`. |
-
-### To finish verification
-
-The terminal used for this run stopped executing new commands after a pnpm install
-deadlock. From a fresh terminal:
-
-```bash
-node .sdrive/verify-ts.js        # direct tsc + eslint, writes typecheck-verification.json
-node .sdrive/verify-apply.js     # python compile/import, ruff, governance (set CI=true)
-pnpm --filter server typecheck
-pnpm --filter client typecheck && pnpm --filter client lint
-NODE_OPTIONS=--max-old-space-size=3072 pnpm --filter client build
-```
 
 No test suite was authored or run; that belongs to `/sdrive:test`.
 

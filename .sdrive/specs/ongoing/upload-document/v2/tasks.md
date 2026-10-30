@@ -121,13 +121,13 @@ Depends on: P1 contract (`T1.1`, `T1.3`). Can start before the service is finish
 stub.
 
 - [ ] **T4.1 — Add analyzer configuration**
-  Extend `server/src/utils/ai/plan/config.ts` with `mode`, `url`, `token`, `timeoutMs`, `fallback`,
+  Extend `services/api/src/utils/ai/plan/config.ts` with `mode`, `url`, `token`, `timeoutMs`, `fallback`,
   `maxChars`, `maxBytes`, read per call like the existing plan config. Validate the URL (`https`
   outside development, loopback allowed) and clamp the timeout below the plan budget.
   Requirements: FR-041, FR-042, FR-048.
 
 - [ ] **T4.2 — Implement the analyzer HTTP client**
-  Create `server/src/utils/ai/plan/analyzer.ts`: POST the contract, bearer token, `requestId`,
+  Create `services/api/src/utils/ai/plan/analyzer.ts`: POST the contract, bearer token, `requestId`,
   `AbortSignal` timeout, one retry only for connection/`429` with remaining budget, a 5-failure
   circuit breaker, response validation against the shared contract, and the error-code map.
   Never log text, token or response body.
@@ -189,7 +189,7 @@ Depends on: P3 (`T3.5`), P4 (`T4.1`).
   Requirements: FR-045.
 
 - [ ] **T6.2 — Document every variable without secrets**
-  Add `DOCUMENT_ANALYZER_*` to `server/.env.example` and a service `.env.example` with
+  Add `DOCUMENT_ANALYZER_*` to `services/api/.env.example` and a service `.env.example` with
   `DOCUMENT_ANALYZER_TOKEN`, provider settings, limits and timeouts. Placeholders only; no real
   endpoint, key or token.
   Requirements: FR-045, FR-048.

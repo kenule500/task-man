@@ -1,14 +1,14 @@
 {
   "feature": "upload-document",
   "version": "v2",
-  "generatedAt": "2026-10-30T20:18:14.307Z",
-  "ok": false,
+  "generatedAt": "2026-10-30T21:00:48.511Z",
+  "ok": true,
   "results": [
     {
       "id": "server-tsc",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 83910,
+      "durationMs": 37990,
       "stdout": "",
       "stderr": ""
     },
@@ -16,7 +16,7 @@
       "id": "server-tsc-test",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 51725,
+      "durationMs": 39629,
       "stdout": "",
       "stderr": ""
     },
@@ -24,7 +24,7 @@
       "id": "client-tsc",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 90285,
+      "durationMs": 52265,
       "stdout": "",
       "stderr": ""
     },
@@ -32,17 +32,17 @@
       "id": "client-tsc-test",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 85824,
+      "durationMs": 78311,
       "stdout": "",
       "stderr": ""
     },
     {
       "id": "client-eslint",
-      "status": "fail",
-      "exitCode": 1,
-      "durationMs": 442,
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 176335,
       "stdout": "",
-      "stderr": "node:internal/modules/cjs/loader:1568\r\n  throw err;\r\n  ^\r\n\r\nError: Cannot find module 'C:\\Users\\KENULE-NWINEE\\Documents\\Task-Man\\client\\client\\node_modules\\eslint\\bin\\eslint.js'\r\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1564:15)\r\n    at wrapResolveFilename (node:internal/modules/cjs/loader:1118:27)\r\n    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1142:10)\r\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1169:12)\r\n    at Module._load (node:internal/modules/cjs/loader:1341:5)\r\n    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)\r\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\r\n    at node:internal/main/run_main_module:33:47 {\r\n  code: 'MODULE_NOT_FOUND',\r\n  requireStack: []\r\n}\r\n\r\nNode.js v24.20.0\r\n"
+      "stderr": ""
     }
   ]
 }

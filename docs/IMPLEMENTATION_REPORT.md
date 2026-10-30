@@ -174,7 +174,7 @@ https://taskman-mauve.vercel.app
                      └── MongoDB Atlas (database: taskman_prod, GridFS for attachments)
 ```
 
-- `server/src/app.ts` builds the Express app with a **memoized readiness step** (connect → seed system roles → repair
+- `services/api/src/app.ts` builds the Express app with a **memoized readiness step** (connect → seed system roles → repair
   member roles) on the first request, so the same app runs as a long-lived server (`server.ts`) and as a serverless function.
   The DB connection is reused across warm starts and never calls `process.exit`.
 - Same origin means **no CORS in production** and a strict `connect-src 'self'` CSP.
@@ -193,7 +193,7 @@ https://taskman-mauve.vercel.app
 | Team Member | `member@taskman.test` |
 | Viewer | `viewer@taskman.test` |
 
-The shared demo password is the `DEMO_PASSWORD` constant in `server/src/scripts/seed.ts` (test-only data).
+The shared demo password is the `DEMO_PASSWORD` constant in `services/api/src/scripts/seed.ts` (test-only data).
 
 ---
 
@@ -241,7 +241,7 @@ removed `About`, `Pricing`, `TrustedBy` (fake content).
 
 ## 10. Follow-up additions
 
-- **Email via Resend:** `server/src/utils/sendEmail.ts` sends through the Resend HTTP API when `RESEND_API_KEY` is set
+- **Email via Resend:** `services/api/src/utils/sendEmail.ts` sends through the Resend HTTP API when `RESEND_API_KEY` is set
   (falls back to SMTP, then to console output in development; production refuses to silently drop emails).
   Auto-verification stays on until a sending domain is verified.
 - **Signup screen:** shows "Your account is ready" when the server auto-verified the account (it always said
@@ -344,7 +344,7 @@ code; Kanboard and Wekan are MIT but PHP/Meteor.
 ## 13. Owner actions and known limitations
 
 1. **Rotate the MongoDB Atlas password now.** The old credentials were committed in the repository history before
-   `server/.env` was untracked, and they still work. After rotating, update `MONGO_URI` in Vercel.
+   `services/api/.env` was untracked, and they still work. After rotating, update `MONGO_URI` in Vercel.
 2. **Email:** add `RESEND_API_KEY` in Vercel (and verify a domain + set `EMAIL_FROM` to reach any inbox), then set
    `DEV_AUTO_VERIFY=false` to re-enable email verification; password-reset emails need a provider.
 3. The JWT is stored in `localStorage`; moving to an HttpOnly cookie is now simpler because the app is same-origin.
