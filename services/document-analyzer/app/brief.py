@@ -15,8 +15,14 @@ from .contracts import AnalyzeRequest
 CONTRACT_VERSION = 1
 
 _SHAPE = """{
-  "project": { "name": string, "key": "2-6 A-Z0-9", "description": string, "color": "blue|violet|rose|orange|amber|emerald|teal|slate" },
-  "sprints": [{ "name": string, "goal": string, "startDate": "YYYY-MM-DD or empty", "endDate": "YYYY-MM-DD or empty" }],
+  "project": {
+    "name": string, "key": "2-6 A-Z0-9", "description": string,
+    "color": "blue|violet|rose|orange|amber|emerald|teal|slate"
+  },
+  "sprints": [{
+    "name": string, "goal": string, "startDate": "YYYY-MM-DD or empty",
+    "endDate": "YYYY-MM-DD or empty"
+  }],
   "epics": [{ "ref": string, "title": string, "description": string }],
   "items": [{
     "ref": string, "sprintIndex": number or null, "epicRef": string or null,

@@ -91,6 +91,11 @@ export const ensurePlansEnabled = async (req: Request, res: Response, next: Next
       if (!analyzer.configured) {
         throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
       }
+      const workspaceId = workspaceOf(req)._id as Id;
+      const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
+      if (stored?.ai?.enabled !== true) {
+        throw new AiQueueError(503, 'AI_DISABLED', 'AI is turned off for this workspace. An administrator can turn it on in the settings.');
+      }
       next();
       return;
     }

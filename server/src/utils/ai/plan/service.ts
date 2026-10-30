@@ -55,6 +55,9 @@ export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; s
     if (!analyzer.configured) {
       throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
     }
+    if (input.settings?.enabled !== true) {
+      throw new AiQueueError(503, 'AI_DISABLED', 'AI is turned off for this workspace. An administrator can turn it on in the settings.');
+    }
   } else {
     ai = assertPlanFeatureOn(input.workspaceId, input.settings);
   }

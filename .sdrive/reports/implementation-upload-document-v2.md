@@ -59,5 +59,32 @@
 
 ## Verification
 
-See `.sdrive/reports/implementation-verification.json`. No test suite was authored or run; that
-belongs to `/sdrive:test`.
+See `.sdrive/reports/implementation-verification.json` and
+`.sdrive/reports/typecheck-verification.json` (when present).
+
+| Check | Result |
+| --- | --- |
+| `node .sdrive/scripts/validate-governance.js` | **PASS** — all v1/v2 artifacts and workflow-state valid |
+| `python -m compileall -q app` | **PASS** |
+| `uvx ruff check .` | First run failed on `N815` (intentional camelCase contract) and `UP037`; both fixed (per-file ignore + unquoted annotation). Re-run could not be completed. |
+| Python import + golden fixture | Harness quoting fixed; re-run could not be completed. |
+| Server typecheck | **Not verified** — pnpm wanted to reinstall `node_modules` and aborted without a TTY; the terminal then stopped reporting completion. |
+| Client typecheck | **Not verified** — same pnpm issue. |
+| Client lint / build | **Not verified** — same pnpm issue. |
+| Test suite | Not run. Owned by `/sdrive:test`. |
+
+### To finish verification
+
+The terminal used for this run stopped executing new commands after a pnpm install
+deadlock. From a fresh terminal:
+
+```bash
+node .sdrive/verify-ts.js        # direct tsc + eslint, writes typecheck-verification.json
+node .sdrive/verify-apply.js     # python compile/import, ruff, governance (set CI=true)
+pnpm --filter server typecheck
+pnpm --filter client typecheck && pnpm --filter client lint
+NODE_OPTIONS=--max-old-space-size=3072 pnpm --filter client build
+```
+
+No test suite was authored or run; that belongs to `/sdrive:test`.
+
