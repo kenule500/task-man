@@ -48,8 +48,8 @@ export const slugifyChannel = (name: string): string => {
 export const dmKeyOf = (a: Id, b: Id): string => [String(a), String(b)].sort().join('_').slice(0, 60);
 
 /** One line of a message for lists and notifications: whitespace collapsed, cut with an ellipsis. */
-export const previewOf = (text: string, max = PREVIEW_LENGTH): string => {
-  const flat = text.replace(/\s+/g, ' ').trim();
+export const previewOf = (text: string | null | undefined, max = PREVIEW_LENGTH): string => {
+  const flat = (text ?? '').replace(/\s+/g, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 };
 

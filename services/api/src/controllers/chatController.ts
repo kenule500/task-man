@@ -131,12 +131,13 @@ export const listChannels = async (req: Request, res: Response): Promise<void> =
           .populate('author', PUBLIC_USER_FIELDS)
           .lean(),
       ]);
+      const author = last ? (last.author as unknown as { _id?: unknown; name?: string } | null) : null;
       const lastMessage = last
         ? {
           _id: String(last._id),
           text: previewOf(last.text),
           createdAt: last.createdAt,
-          author: { _id: String((last.author as unknown as { _id: unknown })._id), name: (last.author as unknown as { name?: string }).name ?? '' },
+          author: { _id: author?._id ? String(author._id) : '', name: author?.name ?? '' },
         }
         : null;
       return serializeChannel(channel, { members: membersOf(channel, profiles), unread, lastMessage });
