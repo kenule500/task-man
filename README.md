@@ -218,6 +218,12 @@ analysis/OCR API, and its internal pipeline may make several provider calls. The
 workspace-provider path (`DOCUMENT_ANALYZER_MODE=ai`) until the analyzer is deployed and measured.
 
 ```bash
+pnpm dev:analyzer                         # from the repo root; uv syncs on first run
+```
+
+Or run it manually:
+
+```bash
 cd services/document-analyzer
 cp .env.example .env                      # DOCUMENT_ANALYZER_TOKEN + DocuMind provider key
 uv sync

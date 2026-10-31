@@ -8,7 +8,9 @@
   "scripts": {
     "dev:server": "pnpm --filter server dev",
     "dev:client": "pnpm --filter client dev",
+    "dev:analyzer": "cd services/document-analyzer && uv run --env-file .env uvicorn app.main:app --reload --port 8000",
     "test": "pnpm --filter server test && pnpm --filter client test",
-    "build": "pnpm --filter server build && pnpm --filter client build"
+    "build": "pnpm --filter server build && pnpm --filter client build",
+    "check:analyzer": "cd services/document-analyzer && uvx ruff check . && python -m compileall -q app"
   }
 }

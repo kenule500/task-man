@@ -26,6 +26,8 @@ MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm dev    # http://localhost:5000
 pnpm --filter client dev             # http://localhost:5173
 
 # Document analyzer (optional; the API defaults to its own provider path)
+pnpm dev:analyzer                    # http://localhost:8000; uv syncs on first run
+# or manually:
 cd services/document-analyzer
 cp .env.example .env                 # token + DocuMind provider key
 uv sync
@@ -36,6 +38,7 @@ uv run --env-file .env uvicorn app.main:app --port 8000
 pnpm --filter server typecheck && pnpm --filter server test
 pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter client lint
 pnpm --filter client build
+pnpm check:analyzer
 ```
 
 Environment: copy `services/api/.env.example` to `services/api/.env` and `client/.env.example` to `client/.env`.
