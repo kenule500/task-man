@@ -24,7 +24,8 @@ uv run --env-file .env uvicorn app.main:app --reload --port 8000
 ```
 
 `--env-file .env` is required: the service reads environment variables, it does not parse `.env`
-itself. In Docker or Render, set the same variables in the service settings instead.
+itself. In Docker or Render, set the same variables in the service settings instead. Uvicorn's
+`--reload` watches Python files, not `.env`; restart the service after changing it.
 
 If `uv` reports that `.venv` is not a valid Python environment (for example after an interrupted
 `uv sync`), delete the generated directory and sync again:
