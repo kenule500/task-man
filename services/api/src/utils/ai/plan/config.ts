@@ -58,6 +58,9 @@ export const DEFAULT_ANALYZER_MAX_MB = 2;
 
 const boolean = (value: string | undefined): boolean => value === 'true' || value === '1';
 
+/** Values copied from .env.example are not credentials, even when they are long enough. */
+const isPlaceholder = (value: string): boolean => /^(replace-with-|change-me|changeme)/i.test(value.trim());
+
 /** https everywhere; http only for loopback in development. */
 export const isAnalyzerUrlAllowed = (value: string, environment = process.env.NODE_ENV ?? 'development'): boolean => {
   if (!value) return false;
@@ -82,7 +85,7 @@ export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): Ana
     mode,
     url,
     token,
-    configured: mode === 'documind' && isAnalyzerUrlAllowed(url, source.NODE_ENV ?? 'development') && token.length >= 32,
+    configured: mode === 'documind' && isAnalyzerUrlAllowed(url, source.NODE_ENV ?? 'development') && token.length >= 32 && !isPlaceholder(token),
     timeoutMs: Math.min(timeout, plan.timeoutMs),
     fallback: boolean(source.DOCUMENT_ANALYZER_FALLBACK),
     maxChars: positiveInt(source.DOCUMENT_ANALYZER_MAX_CHARS, DEFAULT_ANALYZER_MAX_CHARS, 200_000),

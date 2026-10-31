@@ -42,6 +42,13 @@ def _text(env: Mapping[str, str], name: str, default: str = "") -> str:
     return (env.get(name) or default).strip()
 
 
+_PLACEHOLDER_PREFIXES = ("replace-with-", "change-me", "changeme")
+
+
+def _is_placeholder(value: str) -> bool:
+    return value.strip().lower().startswith(_PLACEHOLDER_PREFIXES)
+
+
 def _positive_int(env: Mapping[str, str], name: str, default: int, maximum: int) -> int:
     raw = _text(env, name)
     if not raw:
@@ -138,6 +145,14 @@ class Settings:
         if self.provider not in SUPPORTED_PROVIDERS:
             raise ConfigurationError(
                 f"DOCUMIND_LLM_PROVIDER must be one of: {', '.join(SUPPORTED_PROVIDERS)}"
+            )
+        if _is_placeholder(self.token):
+            raise ConfigurationError(
+                "DOCUMENT_ANALYZER_TOKEN is still the placeholder; generate a real 32+ byte token"
+            )
+        if _is_placeholder(self.api_key):
+            raise ConfigurationError(
+                "DOCUMIND_LLM_API_KEY is still the placeholder; use a real provider key"
             )
         if self.provider in {"azure", "custom"} and not self.base_url:
             raise ConfigurationError("DOCUMIND_LLM_BASE_URL is required for this provider")
