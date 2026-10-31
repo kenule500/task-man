@@ -63,6 +63,7 @@ BYOK configuration.
 | --- | --- | --- |
 | `packages/contracts/plan.contract.json` | create | Single JSON Schema for the plan object; `contractVersion` 1. |
 | `packages/contracts/fixtures/plan.golden.json` | create | Golden plan accepted by Python and Node. |
+| `packages/contracts/README.md` | create | Explains `contractVersion` 1 and the shared fixture. |
 | `services/document-analyzer/pyproject.toml` | create | uv project, Python ≥3.11, pinned dependencies. |
 | `services/document-analyzer/uv.lock` | create | Reproducible lock, `documind==0.2.2` with hash. |
 | `services/document-analyzer/app/config.py` | create | Environment, provider mapping, production guards. |

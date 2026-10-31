@@ -93,6 +93,8 @@ const CANDIDATE_ROOTS = [
   "lib",
   "pages",
   "server",
+  "services",
+  "client",
   "internal",
   "cmd",
   "pkg",
@@ -119,7 +121,9 @@ const IGNORED_DIRS = new Set([
   "out",
   ".sdrive",
   ".cache",
-  "vendor"
+  "vendor",
+  ".venv",
+  "__pycache__"
 ]);
 
 const CODE_EXTENSIONS = [

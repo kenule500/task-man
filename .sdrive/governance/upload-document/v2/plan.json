@@ -6,6 +6,7 @@
     "components": [
       { "name": "packages/contracts/plan.contract.json", "action": "create", "description": "Single JSON Schema for the plan object, contractVersion 1, additionalProperties false." },
       { "name": "packages/contracts/fixtures/plan.golden.json", "action": "create", "description": "Golden plan fixture accepted by the Python model and the Node zod schema." },
+      { "name": "packages/contracts/README.md", "action": "create", "description": "Explains contractVersion 1 and how Python and Node validate the shared fixture." },
       { "name": "services/document-analyzer", "action": "create", "description": "uv project with pyproject.toml, uv.lock, app package, Dockerfile and README." },
       { "name": "services/document-analyzer/app/config.py", "action": "create", "description": "Environment, provider mapping, production guards and limits." },
       { "name": "services/document-analyzer/app/contracts.py", "action": "create", "description": "Pydantic request, plan, analyzer and response models." },
