@@ -20,8 +20,11 @@ the number of provider calls. Measure them before making it the default (see bel
 cd services/document-analyzer
 cp .env.example .env          # fill in the token and provider key
 uv sync
-uv run uvicorn app.main:app --reload --port 8000
+uv run --env-file .env uvicorn app.main:app --reload --port 8000
 ```
+
+`--env-file .env` is required: the service reads environment variables, it does not parse `.env`
+itself. In Docker or Render, set the same variables in the service settings instead.
 
 Health check:
 

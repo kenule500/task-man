@@ -29,7 +29,7 @@ pnpm --filter client dev             # http://localhost:5173
 cd services/document-analyzer
 cp .env.example .env                 # token + DocuMind provider key
 uv sync
-uv run uvicorn app.main:app --port 8000
+uv run --env-file .env uvicorn app.main:app --port 8000
 # Point the API at it with DOCUMENT_ANALYZER_MODE=documind and DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000
 
 # Quality gates (run before every commit)

@@ -221,7 +221,7 @@ workspace-provider path (`DOCUMENT_ANALYZER_MODE=ai`) until the analyzer is depl
 cd services/document-analyzer
 cp .env.example .env                      # DOCUMENT_ANALYZER_TOKEN + DocuMind provider key
 uv sync
-uv run uvicorn app.main:app --port 8000
+uv run --env-file .env uvicorn app.main:app --port 8000
 ```
 
 Then in `services/api/.env` set `DOCUMENT_ANALYZER_MODE=documind`,
