@@ -1,6 +1,6 @@
 """Request, plan and response models for the analyzer.
 
-The plan models mirror ``contracts/plan.contract.json`` and the Node ``PlanContent`` shape.
+The plan models mirror ``packages/contracts/plan.contract.json`` and the Node ``PlanContent`` shape.
 Validation is strict: unknown fields are refused, references must resolve, and counts stay
 inside the limits the Node schema enforces.
 """

@@ -8,12 +8,13 @@ A MERN task manager for teams: users sign up, create or join workspaces, and pla
 | Web (`client/`) | React 19, Vite, TypeScript, Tailwind CSS v4, shadcn (Base UI), axios |
 | API (`services/api/`) | Node.js, Express 5, TypeScript, Mongoose 9 (MongoDB), JWT + DB sessions |
 | Analyzer (`services/document-analyzer/`) | Python 3.12, uv, FastAPI, DocuMind SDK 0.2.2 |
+| Contracts (`packages/contracts/`) | JSON Schema + golden fixture shared by Node and Python |
 | Tests | Jest (`@swc/jest`), Testing Library |
 | Tooling | pnpm workspace, ESLint, GitHub Actions CI |
 
 All backend services live under `services/` (`services/api` for the Node API,
-`services/document-analyzer` for Python). The root `api/` folder is only the Vercel serverless
-adapter; `client/` is the web app.
+`services/document-analyzer` for Python). Shared contracts live under `packages/contracts/`.
+The root `api/` folder is only the Vercel serverless adapter; `client/` is the web app.
 
 Design references: [Renza tasks screen](https://dribbble.com/shots/27514201-Task-Management-Dashboard-Tasks-Screen-UI-Design) ·
 [Planora](https://dribbble.com/shots/25991082-Planora-Minimal-Task-Management-Dashboard-UI). UI rules live in [DESIGN.md](DESIGN.md);

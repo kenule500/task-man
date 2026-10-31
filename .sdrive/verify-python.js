@@ -11,7 +11,7 @@ const checks = [
     id: 'python-golden',
     command: 'uv',
     args: ['run', '--no-project', '--with', 'pydantic', 'python', '-c',
-      'import json; from app.contracts import PlanContract; PlanContract.model_validate(json.load(open("../../contracts/fixtures/plan.golden.json"))); print("golden plan valid")'],
+      'import json; from app.contracts import PlanContract; PlanContract.model_validate(json.load(open("../../packages/contracts/fixtures/plan.golden.json"))); print("golden plan valid")'],
   },
   {
     id: 'python-app-import',

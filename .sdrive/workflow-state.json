@@ -799,6 +799,11 @@
               "event": "Repository layout refactor: server/ moved to services/api. pnpm workspace and lock importer, Vercel adapters and root tsconfig, Render startCommand, CI working-directory, Sonar paths, current docs and v2 artifacts updated; archived v1 records untouched. Server/client typechecks (including test configs), ESLint, root adapter typecheck, server build, client build, Python ruff/imports/golden fixture and governance validation all pass.",
               "by": "implementation",
               "timestamp": "2026-10-30T21:40:00.000Z"
+            },
+            {
+              "event": "Shared plan contract moved from contracts/ to packages/contracts/. Python docstring, v2 spec/plan/tasks/governance, README/AGENTS and the verification harness were updated; archived v1 records untouched. Python compile/ruff/imports/golden fixture and governance validation pass.",
+              "by": "implementation",
+              "timestamp": "2026-10-30T22:00:00.000Z"
             }
           ]
         }

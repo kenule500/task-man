@@ -211,7 +211,7 @@ service and the API cannot drift apart silently.
 
 **Acceptance Criteria:**
 
-- AC-057: Given `contracts/plan.contract.json` and its golden fixture, when either side changes its
+- AC-057: Given `packages/contracts/plan.contract.json` and its golden fixture, when either side changes its
   model, then the fixture is validated by the Python Pydantic model and by the Node zod schema, and a
   mismatch fails the check.
 - AC-058: Given a clean checkout, when the service is built and deployed, then the Dockerfile
@@ -236,7 +236,7 @@ service and the API cannot drift apart silently.
   locale, on an engine constructed with a per-request `storage_local_path`; it MUST NOT issue its own
   provider calls outside that invocation.
 - FR-039: The generated Markdown MUST contain exactly one fenced JSON block that validates against
-  `contracts/plan.contract.json`; the service MUST parse that block with a Pydantic model and MUST
+  `packages/contracts/plan.contract.json`; the service MUST parse that block with a Pydantic model and MUST
   fail with `ANALYZER_INVALID_OUTPUT` rather than return a partial or guessed plan.
 - FR-040: The service MUST delete the generated files and the per-request directory in a `finally`
   block before responding, and MUST NOT persist, cache or log the document text, the file name or the
@@ -263,7 +263,7 @@ service and the API cannot drift apart silently.
 - FR-046: The service MUST cap in-flight requests at `ANALYZER_MAX_CONCURRENCY`, answer excess with
   `429` and `Retry-After`, enforce `ANALYZER_TIMEOUT_SECONDS` around the SDK call, and cancel and
   clean up on timeout.
-- FR-047: The plan contract MUST exist once at `contracts/plan.contract.json` with a golden fixture
+- FR-047: The plan contract MUST exist once at `packages/contracts/plan.contract.json` with a golden fixture
   validated by the Python model and the Node zod schema, so a one-sided change fails the check.
 - FR-048: The service MUST read provider settings only from `DOCUMIND_LLM_PROVIDER`,
   `DOCUMIND_LLM_MODEL`, `DOCUMIND_LLM_API_KEY` and an optional base URL, MUST refuse to start in
@@ -407,7 +407,7 @@ Additional controls specific to this design:
 | `pydantic` | library | add | Request/plan models; `documind` already depends on `pydantic>=2.7`. |
 | `pytest`, `httpx` | library | add | Dev-only, for the Test agent; no test tasks are created here. |
 | `services/document-analyzer` | internal | create | New `uv` project: `app/`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `README.md`. |
-| `contracts/plan.contract.json` | internal | create | Shared JSON Schema + golden fixture validated by Python and Node. |
+| `packages/contracts/plan.contract.json` | internal | create | Shared JSON Schema + golden fixture validated by Python and Node. |
 | `services/api/src/utils/ai/plan/analyzer.ts` | internal | create | Node HTTP client, timeout, retry, circuit breaker, error mapping. |
 | `services/api/src/utils/ai/plan/service.ts` | internal | modify | Branch on mode; keep `finalizePlan` and failure accounting unchanged. |
 | `services/api/src/utils/ai/plan/config.ts` | internal | modify | Add mode, URL, token, timeout, fallback and analyzer max chars. |

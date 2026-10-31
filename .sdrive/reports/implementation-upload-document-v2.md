@@ -9,7 +9,7 @@
 
 ### P1 — Contract and service foundation
 
-- `contracts/plan.contract.json` (contractVersion 1) and `contracts/fixtures/plan.golden.json`.
+- `packages/contracts/plan.contract.json` (contractVersion 1) and `packages/contracts/fixtures/plan.golden.json`.
 - `services/document-analyzer/` uv project (`pyproject.toml`, `uv.lock`, `.python-version`, `app/`).
 - Pydantic request/plan/response models with `extra="forbid"`, enum and reference validation.
 - `app/config.py` provider mapping and production guards.
@@ -59,11 +59,11 @@
 
 ## Repository layout
 
-`server/` was moved to `services/api/` so every backend service lives under `services/`. The pnpm
-workspace, `pnpm-lock.yaml` importer, Vercel adapters (`api/index.ts`, `api/socket.ts`), root
-`tsconfig.json`, Render `startCommand`, CI `working-directory`, Sonar paths, current docs and the v2
-artifacts were updated. The root `api/` folder remains the Vercel serverless adapter only. Archived
-v1 records were left untouched.
+`server/` was moved to `services/api/` so every backend service lives under `services/`, and the
+shared plan contract moved to `packages/contracts/`. The pnpm workspace, `pnpm-lock.yaml` importer,
+Vercel adapters (`api/index.ts`, `api/socket.ts`), root `tsconfig.json`, Render `startCommand`, CI
+`working-directory`, Sonar paths, current docs and the v2 artifacts were updated. The root `api/`
+folder remains the Vercel serverless adapter only. Archived v1 records were left untouched.
 
 ## Verification
 

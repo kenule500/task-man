@@ -1,14 +1,14 @@
 {
   "feature": "upload-document",
   "version": "v2",
-  "generatedAt": "2026-10-30T21:37:21.510Z",
+  "generatedAt": "2026-10-31T01:35:29.384Z",
   "ok": true,
   "results": [
     {
       "id": "python-compile",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 1720,
+      "durationMs": 499,
       "stdout": "",
       "stderr": ""
     },
@@ -16,7 +16,7 @@
       "id": "python-ruff",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 4767,
+      "durationMs": 10039,
       "stdout": "All checks passed!\n",
       "stderr": ""
     },
@@ -24,7 +24,7 @@
       "id": "python-golden",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 6093,
+      "durationMs": 5156,
       "stdout": "golden plan valid\r\n",
       "stderr": ""
     },
@@ -32,7 +32,7 @@
       "id": "python-app-import",
       "status": "pass",
       "exitCode": 0,
-      "durationMs": 14217,
+      "durationMs": 3145,
       "stdout": "app imports\r\n",
       "stderr": ""
     }

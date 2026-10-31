@@ -78,7 +78,7 @@
       "want": "one machine-readable plan contract validated by Python and Node",
       "benefit": "the service and the API cannot drift apart silently",
       "acceptanceCriteria": [
-        { "id": "AC-057", "text": "Given contracts/plan.contract.json and its golden fixture, when either side changes its model, then the fixture is validated by the Python Pydantic model and the Node zod schema, and a mismatch fails the check." },
+        { "id": "AC-057", "text": "Given packages/contracts/plan.contract.json and its golden fixture, when either side changes its model, then the fixture is validated by the Python Pydantic model and the Node zod schema, and a mismatch fails the check." },
         { "id": "AC-058", "text": "Given a clean checkout, when the service is built and deployed, then the Dockerfile installs from uv.lock with uv sync --frozen, render.yaml declares the service with /healthz, and .env.example lists every variable with placeholders only." }
       ]
     }
@@ -106,7 +106,7 @@
     },
     {
       "id": "FR-039",
-      "text": "The generated Markdown MUST contain exactly one fenced JSON block that validates against contracts/plan.contract.json; the service MUST parse it with a Pydantic model and fail with ANALYZER_INVALID_OUTPUT rather than return a partial or guessed plan.",
+      "text": "The generated Markdown MUST contain exactly one fenced JSON block that validates against packages/contracts/plan.contract.json; the service MUST parse it with a Pydantic model and fail with ANALYZER_INVALID_OUTPUT rather than return a partial or guessed plan.",
       "linkedAcceptanceCriteria": ["AC-049", "AC-051"]
     },
     {
@@ -146,7 +146,7 @@
     },
     {
       "id": "FR-047",
-      "text": "The plan contract MUST exist once at contracts/plan.contract.json with a golden fixture validated by the Python model and the Node zod schema, so a one-sided change fails the check.",
+      "text": "The plan contract MUST exist once at packages/contracts/plan.contract.json with a golden fixture validated by the Python model and the Node zod schema, so a one-sided change fails the check.",
       "linkedAcceptanceCriteria": ["AC-057"]
     },
     {
@@ -222,7 +222,7 @@
     { "name": "pydantic", "type": "library", "notes": "Request and plan models; documind already requires pydantic>=2.7." },
     { "name": "pytest and httpx", "type": "library", "notes": "Dev-only dependencies for the Test agent; no test tasks are created in this phase." },
     { "name": "services/document-analyzer", "type": "internal", "notes": "New uv project with app/, pyproject.toml, uv.lock, Dockerfile and README." },
-    { "name": "contracts/plan.contract.json", "type": "internal", "notes": "Shared JSON Schema and golden fixture validated by both Python and Node." },
+    { "name": "packages/contracts/plan.contract.json", "type": "internal", "notes": "Shared JSON Schema and golden fixture validated by both Python and Node." },
     { "name": "services/api/src/utils/ai/plan/analyzer.ts", "type": "internal", "notes": "New Node client with timeout, retry, circuit breaker and error mapping." },
     { "name": "services/api/src/utils/ai/plan/service.ts", "type": "internal", "notes": "Modified to branch on mode while keeping finalizePlan and failure accounting." },
     { "name": "services/api/src/utils/ai/plan/config.ts", "type": "internal", "notes": "Modified with mode, URL, token, timeout, fallback and analyzer max chars." },

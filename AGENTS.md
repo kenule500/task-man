@@ -59,7 +59,7 @@ services/document-analyzer/
   pyproject.toml uv project (documind==0.2.2)
   Dockerfile     Multi-stage uv build
 
-contracts/       plan.contract.json + golden fixture, validated by Python and Node
+packages/contracts/  plan.contract.json + golden fixture, validated by Python and Node
 
 client/src/
   components/ui/ shadcn Base UI primitives (generated; adjust via tokens, not per call)
@@ -82,6 +82,8 @@ client/src/
 - **Backend services live under `services/`:** `services/api` is the Node/Express API and
   `services/document-analyzer` is the Python analyzer. `client/` is the web app; the root `api/`
   folder is only the Vercel serverless adapter (it imports the API, it is not a server).
+- **Shared cross-language artifacts live under `packages/`:** `packages/contracts` holds the plan
+  JSON Schema and golden fixture validated by both the Node and Python sides.
 - **Branches:** never commit to `main`. Work on `feature/<topic>` and open a PR.
 - **Commits:** Conventional Commits (`feat(client): …`, `fix(server): …`), imperative, explain the why.
 - **Workspace routes are permission scoped:** every route goes through `protect` then

@@ -15,9 +15,9 @@ an analyser.
 Depends on: none.
 
 - [ ] **T1.1 — Define the shared plan contract and golden fixture**
-  Create `contracts/plan.contract.json` with the v1 `PlanContent` shape
+  Create `packages/contracts/plan.contract.json` with the v1 `PlanContent` shape
   (`project`, `sprints`, `epics`, `items`, `assumptions`, `risks`), `additionalProperties: false`,
-  bounded strings, unique `ref`, Fibonacci-or-null `storyPoints`, and `contracts/fixtures/plan.golden.json`.
+  bounded strings, unique `ref`, Fibonacci-or-null `storyPoints`, and `packages/contracts/fixtures/plan.golden.json`.
   Add `README.md` lines explaining `contractVersion: 1`.
   Requirements: FR-047, NFR-027.
 

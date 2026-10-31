@@ -61,8 +61,8 @@ BYOK configuration.
 
 | Component | Action | Responsibility |
 | --- | --- | --- |
-| `contracts/plan.contract.json` | create | Single JSON Schema for the plan object; `contractVersion` 1. |
-| `contracts/fixtures/plan.golden.json` | create | Golden plan accepted by Python and Node. |
+| `packages/contracts/plan.contract.json` | create | Single JSON Schema for the plan object; `contractVersion` 1. |
+| `packages/contracts/fixtures/plan.golden.json` | create | Golden plan accepted by Python and Node. |
 | `services/document-analyzer/pyproject.toml` | create | uv project, Python ≥3.11, pinned dependencies. |
 | `services/document-analyzer/uv.lock` | create | Reproducible lock, `documind==0.2.2` with hash. |
 | `services/document-analyzer/app/config.py` | create | Environment, provider mapping, production guards. |
@@ -108,7 +108,7 @@ No new Mongo collection. The service is stateless.
 
 ### 4.2 `PlanContract` (shared JSON, create)
 
-`contracts/plan.contract.json` mirrors the existing `PlanContent`:
+`packages/contracts/plan.contract.json` mirrors the existing `PlanContent`:
 
 - `project`: `{ name, key, description, color }`
 - `sprints[]`: `{ name, goal, startDate, endDate }` — dates may be empty from the generator.
