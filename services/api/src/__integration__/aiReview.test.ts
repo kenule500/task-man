@@ -232,8 +232,8 @@ describe('AI settings', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       available: true, enabled: false, autoReview: false, model: 'qwen-plus', dailyLimit: 50, usedToday: 0, githubTokenSet: false,
-      provider: { id: 'qwen', label: 'Qwen' }, problem: null,
-      plan: { dailyLimit: 20, usedToday: 0, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 },
+      provider: { id: 'qwen', label: 'Qwen' }, problem: null, planSource: 'provider',
+      plan: { dailyLimit: 20, usedToday: 0, maxChars: 60_000, maxBytes: 20 * 1024 * 1024 },
     });
     expect(JSON.stringify(res.body)).not.toContain('sk-test');
     expect((await http().get(aiUrl())).status).toBe(401);
@@ -291,7 +291,7 @@ describe('AI settings', () => {
       await http().get(`/api/workspaces/${slug}/activity`).set(bearer(team.owner.token)),
     ];
     for (const body of bodies) expect(JSON.stringify(body.body)).not.toContain(GITHUB_TOKEN);
-    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'problem', 'provider', 'usedToday']);
+    expect(Object.keys(bodies[0].body).sort()).toEqual(['autoReview', 'available', 'dailyLimit', 'enabled', 'githubTokenSet', 'model', 'plan', 'planSource', 'problem', 'provider', 'usedToday']);
   });
 
   it('AC-026: clears the token with null and audits every change without the token', async () => {

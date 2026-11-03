@@ -6,6 +6,7 @@ import {
   type ICustomFieldOption,
 } from '../models/customFieldModel.js';
 import type { IActivityChange } from '../models/activityModel.js';
+import { trimChar } from './slug.js';
 import { formatChangeValue } from './activity.js';
 
 export const MAX_TEXT_VALUE = 500;
@@ -205,9 +206,9 @@ export const describeCustomChanges = (before: unknown, after: unknown, defs: rea
 
 /** "Story size" -> "story_size"; unique among `taken`, always a valid key. */
 export const slugFromName = (name: string, taken: ReadonlySet<string>): string => {
-  let base = name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  if (!/^[a-z]/.test(base)) base = `f_${base}`.replace(/_+$/, '');
-  base = base.slice(0, 26).replace(/_+$/, '') || 'field';
+  let base = trimChar(name.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '_'), '_');
+  if (!/^[a-z]/.test(base)) base = trimChar(`f_${base}`, '_');
+  base = trimChar(base.slice(0, 26), '_') || 'field';
   if (!taken.has(base)) return base;
   for (let n = 2; n < 1000; n += 1) {
     const candidate = `${base}_${n}`;

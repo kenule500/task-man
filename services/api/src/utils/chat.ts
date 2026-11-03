@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { formatCursor, parseCursor, type ChangeCursor } from './changeCursor.js';
 import { resolveMentions } from './notify.js';
+import { trimChar } from './slug.js';
 
 // Pure helpers for team chat (unit tested): mentions, cursors, slugs, previews
 
@@ -34,13 +35,10 @@ export const beforeCursor = (cursor: ChangeCursor): Record<string, unknown> =>
 
 /** Lower-case URL-safe slug that keeps letters of any script (Arabic and French names stay readable). */
 export const slugifyChannel = (name: string): string => {
-  const slug = name
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 50)
-    .replace(/-+$/, '');
+  const slug = trimChar(
+    trimChar(name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-'), '-').slice(0, 50),
+    '-',
+  );
   return slug || 'channel';
 };
 

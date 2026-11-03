@@ -182,7 +182,7 @@ describe('AI is opt-in', () => {
 
   it('AC-022: shows the plan limits with the AI settings', async () => {
     const res = await settings(team.viewer);
-    expect(res.body.plan).toMatchObject({ dailyLimit: 1000, usedToday: expect.any(Number), maxChars: 60_000, maxBytes: 4 * 1024 * 1024 });
+    expect(res.body.plan).toMatchObject({ dailyLimit: 1000, usedToday: expect.any(Number), maxChars: 60_000, maxBytes: 20 * 1024 * 1024 });
   });
 });
 

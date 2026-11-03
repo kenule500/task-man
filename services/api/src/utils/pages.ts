@@ -1,17 +1,14 @@
 import { MAX_PAGE_DEPTH } from '../models/pageModel.js';
+import { trimChar } from './slug.js';
 
 // Pure helpers for the wiki (see controllers/pageController.ts)
 
 /** "Release plan: Q3 (draft)" -> "release-plan-q3-draft"; never empty. */
 export const slugify = (title: string): string => {
-  const slug = title
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80)
-    .replace(/-+$/g, '');
+  const slug = trimChar(
+    trimChar(title.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), '-').slice(0, 80),
+    '-',
+  );
   return slug || 'page';
 };
 

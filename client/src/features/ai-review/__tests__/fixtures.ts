@@ -2,7 +2,7 @@ import type { AiReview, AiSettings } from '../types';
 
 export const settings = (overrides: Partial<AiSettings> = {}): AiSettings => ({
   available: true, enabled: true, autoReview: false, model: 'qwen-max', dailyLimit: 50, usedToday: 3, githubTokenSet: false,
-  plan: { dailyLimit: 20, usedToday: 2, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 }, ...overrides,
+  plan: { dailyLimit: 20, usedToday: 2, maxChars: 60_000, maxBytes: 20 * 1024 * 1024 }, ...overrides,
 });
 
 export const review = (overrides: Partial<AiReview> = {}): AiReview => ({

@@ -1,13 +1,20 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { consumeUpload, removeUpload, uploadDir } from '../utils/ai/plan/upload.js';
 
+// Each run gets its own random directory inside the upload dir; a predictable name in the shared
+// temp dir is what CodeQL calls an insecure temporary file.
 const writeUpload = async (name: string, contents = 'brief'): Promise<string> => {
-  const path = join(await uploadDir(), name);
+  const dir = await mkdtemp(join(await uploadDir(), 'test-'));
+  const path = join(dir, name);
   await writeFile(path, contents);
   return path;
 };
+
+afterAll(async () => {
+  await rm(await uploadDir(), { recursive: true, force: true }).catch(() => undefined);
+});
 
 describe('temporary plan uploads', () => {
   it('gives the caller the bytes and deletes the file afterwards', async () => {
@@ -30,5 +37,11 @@ describe('temporary plan uploads', () => {
     await readFile(path);
     await removeUpload(path);
     await expect(removeUpload(path)).resolves.toBeUndefined();
+  });
+
+  it('refuses to read or delete a file outside the upload directory', async () => {
+    const outside = join(await uploadDir(), '..', 'not-ours.txt');
+    await expect(consumeUpload(outside, async () => 'unreachable')).rejects.toThrow('outside the plan upload directory');
+    await expect(removeUpload(outside)).resolves.toBeUndefined();
   });
 });
