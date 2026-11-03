@@ -58,19 +58,43 @@ const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(r
 const isAbort = (error: unknown): boolean =>
   (error as { name?: string } | null)?.name === 'AbortError' || (error as { name?: string } | null)?.name === 'TimeoutError';
 
-/** Seconds the service asked us to wait, clamped to something a plan budget can absorb. */
-const retryAfterSeconds = (response: Response): number => {
-  const raw = Number.parseInt(response.headers.get('retry-after') ?? '', 10);
-  return Number.isInteger(raw) && raw > 0 ? Math.min(raw, 10) : 5;
+/**
+ * Only a failure that happened before the request was sent may be retried.
+ *
+ * Retrying after the body left the socket is not safe on a streamed body (the service may have
+ * begun the work and written the same analysis again under the same request id). The service
+ * caches a finished answer by request id, so a retry would be cheap, but a failure it never
+ * answers -- a dropped connection -- is not covered by that cache. The connect failures below
+ * are the ones Node reports while dialling, before any bytes are written.
+ */
+const CONNECT_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT']);
+const isConnectFailure = (error: unknown): boolean => {
+  const cause = (error as { cause?: { code?: unknown } } | null)?.cause;
+  const code = (error as { code?: unknown } | null)?.code;
+  return [cause?.code, code].some(value => typeof value === 'string' && CONNECT_CODES.has(value));
 };
 
 const failure = (message: string, code: string): AiReviewError => new AiReviewError(message, code);
+
+/** The service's own refusal: { requestId, code, message } with a stable ANALYZER_* code. */
+const readServiceError = async (response: Response): Promise<{ code: string; message: string } | null> => {
+  try {
+    const body = (await response.json()) as { code?: unknown; message?: unknown } | null;
+    const code = typeof body?.code === 'string' && /^ANALYZER_[A-Z_]{2,40}$/.test(body.code) ? body.code : '';
+    const message = typeof body?.message === 'string' ? body.message.replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+    return code || message ? { code, message } : null;
+  } catch {
+    return null;
+  }
+};
 
 /** Posts one analysis request and returns the validated, still unfinalised plan. */
 export const analyzePlan = async (
   input: AnalyzePlanInput,
   config: AnalyzerConfig,
   fetchImpl: typeof fetch = fetch,
+  /** Reuse the id of an earlier attempt, so a retried request is answered from the service's cache. */
+  requestId: string = randomUUID(),
 ): Promise<AnalyzePlanResult> => {
   if (!config.configured) {
     throw failure(
@@ -82,7 +106,6 @@ export const analyzePlan = async (
     throw failure('The document analyzer is temporarily unavailable. Try again shortly.', 'ANALYZER_UNAVAILABLE');
   }
 
-  const requestId = randomUUID();
   const body = JSON.stringify({
     contractVersion: 1,
     requestId,
@@ -107,6 +130,8 @@ export const analyzePlan = async (
         headers: {
           'content-type': 'application/json',
           authorization: `Bearer ${config.token}`,
+          // The same id on every attempt of this plan: the service caches by it, so a resend
+          // of a request it already answered never runs the generation twice.
           'x-request-id': requestId,
         },
         body,
@@ -117,7 +142,8 @@ export const analyzePlan = async (
         recordInfrastructureFailure();
         throw failure('The document analyzer took too long. Try again or use a shorter document.', 'ANALYZER_TIMEOUT');
       }
-      if (attempt === 1) {
+      if (attempt === 1 && isConnectFailure(error)) {
+        // Nothing was sent yet, so one more try cannot run DocuMind twice
         await sleep(250);
         continue;
       }
@@ -126,22 +152,35 @@ export const analyzePlan = async (
     }
 
     if (response.status === 429) {
-      if (attempt === 1) {
-        await sleep(retryAfterSeconds(response) * 1000);
-        continue;
-      }
+      // The concurrency limiter refused it before any work: sending it again would be a second
+      // request for the same plan, so the person retries instead.
+      const problem = await readServiceError(response);
       recordInfrastructureFailure();
-      throw failure('The document analyzer is busy. Try again in a few minutes.', 'ANALYZER_RATE_LIMITED');
+      throw failure(problem?.message || 'The document analyzer is busy. Try again in a few minutes.', 'ANALYZER_RATE_LIMITED');
     }
     if (response.status === 401 || response.status === 403) {
       throw failure('The document analyzer refused the service token. An operator must check DOCUMENT_ANALYZER_TOKEN.', 'ANALYZER_UNAUTHORIZED');
     }
     if (!response.ok) {
+      // Keep the service's own code and sentence: a body that is too large, an answer that
+      // was cut off and a plan that breaks the contract are different failures, and each
+      // leads to a different fix.
+      const problem = await readServiceError(response);
       if (response.status >= 500) {
         recordInfrastructureFailure();
-        throw failure('The document analyzer failed. Try again shortly.', 'ANALYZER_UNAVAILABLE');
+        const code = problem && isInfrastructureFailure(problem.code) ? problem.code : 'ANALYZER_UNAVAILABLE';
+        throw failure(problem?.message || 'The document analyzer failed. Try again shortly.', code);
       }
-      throw failure('The document analyzer refused the request or returned an unusable plan.', 'ANALYZER_INVALID_OUTPUT');
+      if (response.status === 413) {
+        throw failure(
+          problem?.message || 'The document is too large for the document analyzer.',
+          'ANALYZER_BODY_TOO_LARGE',
+        );
+      }
+      throw failure(
+        problem?.message || 'The document analyzer refused the request or returned an unusable plan.',
+        problem?.code || 'ANALYZER_INVALID_OUTPUT',
+      );
     }
 
     let payload: unknown;
@@ -171,4 +210,3 @@ export const analyzePlan = async (
   recordInfrastructureFailure();
   throw failure('The document analyzer could not be reached. Try again shortly.', 'ANALYZER_UNAVAILABLE');
 };
-

@@ -1,4 +1,8 @@
-"""Run exactly one DocuMind generation and turn it into a validated plan."""
+"""Run one DocuMind generation and turn it into a validated plan.
+
+Normally that is exactly one generation. A second is spent only when the first answer wrote prose
+where the plan JSON belongs, which has no recoverable content to repair.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +16,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from .brief import build_query
+from .brief import build_query, repair_query
 from .config import SDK_VERSION, Settings
 from .contracts import (
     AnalyzeRequest,
@@ -22,7 +26,7 @@ from .contracts import (
     PlanContract,
 )
 from .engine import generate_markdown
-from .parsing import extract_plan
+from .parsing import extract_plan, has_plan_object, is_truncated_plan
 
 
 async def analyze(request: AnalyzeRequest, settings: Settings) -> AnalyzeResponse:
@@ -47,6 +51,21 @@ async def analyze(request: AnalyzeRequest, settings: Settings) -> AnalyzeRespons
             request.options.language.value,
             workdir,
         )
+
+        if not has_plan_object(markdown) and not is_truncated_plan(markdown):
+            # The one failure with nothing to repair: the model answered in prose instead of
+            # JSON. Quote that answer back and ask once more. A cut-off object is not retried;
+            # it would be cut off again.
+            logging.getLogger("document_analyzer").warning(
+                json.dumps({"event": "plan_retry", "reason": "no_json_object"}, separators=(",", ":"))
+            )
+            markdown = await generate_markdown(
+                settings,
+                repair_query(request, markdown),
+                request.options.language.value,
+                workdir,
+            )
+
         payload = extract_plan(markdown)
         try:
             # Repairs unknown fields, dangling references and off-scale estimates instead of

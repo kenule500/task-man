@@ -8,7 +8,9 @@ using the [DocuMind SDK](https://pypi.org/project/documind/) 0.2.2.
 DocuMind 0.2.2 is a **document generation** SDK. It has no parse, OCR or extraction API. The
 service therefore uses it as a generator: it sends a versioned brief containing the cleaned
 document text and asks for one Markdown document containing exactly one fenced JSON plan.
-The service parses and validates that block, then deletes the generated files.
+DocuMind wraps that answer in a publication document (front matter, headings, a closing rule),
+so the service reads the one fenced JSON *object* in it and ignores everything around it, then
+validates the object and deletes the generated files.
 
 The SDK runs a multi-agent pipeline internally and may make several provider calls. The
 "one request" guarantee is about TaskMan → this service → one `generate` invocation, not about
@@ -26,6 +28,15 @@ uv run --env-file .env uvicorn app.main:app --reload --port 8000
 `--env-file .env` is required: the service reads environment variables, it does not parse `.env`
 itself. In Docker or Render, set the same variables in the service settings instead. Uvicorn's
 `--reload` watches Python files, not `.env`; restart the service after changing it.
+
+`--env-file` fills in variables that are not already set; it never overrides one that is. Some
+shells export a `PORT` of their own (MSYS2/Git Bash export `PORT=0`), which would otherwise shadow
+the `PORT=8000` in `.env`. An unusable `PORT` falls back to the default, so this does not stop the
+service, but if you need a specific port set it explicitly:
+
+```bash
+PORT=8000 pnpm dev:analyzer
+```
 
 If `uv` reports that `.venv` is not a valid Python environment (for example after an interrupted
 `uv sync`), delete the generated directory and sync again:

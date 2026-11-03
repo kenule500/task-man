@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
@@ -10,11 +11,12 @@ import { createFromPlan as writePlan } from '../utils/ai/plan/create.js';
 import { isDateKey, nextMonday } from '../utils/ai/plan/dates.js';
 import { DocumentError, extractDocument } from '../utils/ai/plan/extract.js';
 import {
-  assertCanQueuePlan, assertPlanFeatureOn, createQueuedPlan, runPlan, type PlanOptionsInput,
+  assertCanQueuePlan, assertPlanFeatureOn, countPlansUsedToday, createQueuedPlan, runPlan, type PlanOptionsInput,
 } from '../utils/ai/plan/service.js';
 import { countPlan, describePlanProblem, editedPlanSchema, finalizePlan, PLAN_LANGUAGES, type PlanLanguage } from '../utils/ai/plan/schema.js';
 import { findTargetProject, resolveTargetProject, type PlanTarget } from '../utils/ai/plan/target.js';
 import { shortenForModel } from '../utils/ai/plan/text.js';
+import { consumeUpload, removeUpload, uploadDir } from '../utils/ai/plan/upload.js';
 import { AiQueueError, runInBackground } from '../utils/ai/reviewService.js';
 
 type Id = mongoose.Types.ObjectId;
@@ -108,11 +110,20 @@ export const ensurePlansEnabled = async (req: Request, res: Response, next: Next
   }
 };
 
-/** Parses one multipart "file" into req.file (memory). The limit is read per request so it can follow the environment. */
+/**
+ * Parses one multipart "file" into req.file, written to a temporary file so the body is not held in
+ * memory while it arrives. The limit is read per request so it can follow the environment.
+ */
 export const uploadPlanFile = (req: Request, res: Response, next: NextFunction): void => {
   const config = readPlanConfig();
   const upload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.diskStorage({
+      destination: (_req, _file, done) => {
+        uploadDir().then(dir => done(null, dir)).catch(error => done(error as Error, ''));
+      },
+      // A random name: the client's filename is never used on disk, so no path traversal
+      filename: (_req, _file, done) => done(null, `${randomUUID()}.upload`),
+    }),
     defParamCharset: 'utf8',
     limits: { fileSize: config.maxBytes, files: 1, fields: 12, fieldSize: 4096, parts: 16 },
   }).single('file');
@@ -121,6 +132,8 @@ export const uploadPlanFile = (req: Request, res: Response, next: NextFunction):
       next();
       return;
     }
+    // Multer leaves the partial file on disk when it rejects a request: remove it before answering
+    if (req.file?.path) void removeUpload(req.file.path);
     if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
       res.status(413).json({ message: `The file is too large (the limit is ${Math.floor(config.maxBytes / 1024 / 1024)} MB).`, code: 'FILE_TOO_LARGE' });
       return;
@@ -172,7 +185,8 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
     const targetProject = field('targetProjectId') ? await resolveTargetProject(workspaceId, field('targetProjectId')) : null;
 
     const fileName = sanitizeFilename(req.file.originalname);
-    const extracted = await extractDocument(fileName, req.file.buffer);
+    // Disk -> Buffer -> text; the temporary file is removed whether extraction succeeds or not
+    const extracted = await consumeUpload(req.file.path, buffer => extractDocument(fileName, buffer));
     const shortened = shortenForModel(extracted.text, config.maxChars);
 
     const options: PlanOptionsInput = {
@@ -197,7 +211,12 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
     });
     // The work continues after the response (kept alive by waitUntil on Vercel); the text lives only in this closure
     runInBackground(runPlan(plan._id as Id, { text: shortened.text, truncated: shortened.truncated }));
-    res.status(202).json(planView(plan.toObject(), true, targetProject));
+    // Today's allowance travels with the answer, so the client does not have to re-read the whole
+    // settings object just to know how much of the plan quota is left
+    res.status(202).json({
+      ...planView(plan.toObject(), true, targetProject),
+      planUsage: { dailyLimit: config.dailyLimit, usedToday: await countPlansUsedToday(workspaceId) },
+    });
   } catch (error) {
     failure(res, error, 'uploadPlan');
   }

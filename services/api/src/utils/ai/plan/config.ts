@@ -3,7 +3,8 @@
 
 export const DEFAULT_PLAN_DAILY_LIMIT = 20;
 export const DEFAULT_PLAN_MAX_CHARS = 60_000;
-export const DEFAULT_PLAN_MAX_MB = 4;
+/** Uploads stream to a temporary file, so a large brief no longer has to fit the old 4 MB Vercel body limit. */
+export const DEFAULT_PLAN_MAX_MB = 20;
 /** Output budget for one plan. qwen-plus accepts up to 8192 in every mode; raise it for models that allow more. */
 export const DEFAULT_PLAN_MAX_OUTPUT_TOKENS = 8192;
 /** One generation may take this long before it is given up (the function limit is 300 s). */
@@ -28,7 +29,7 @@ const positiveInt = (value: string | undefined, fallback: number, max: number): 
 export const readPlanConfig = (source: NodeJS.ProcessEnv = process.env): PlanConfig => ({
   dailyLimit: positiveInt(source.AI_PLAN_DAILY_LIMIT, DEFAULT_PLAN_DAILY_LIMIT, 10_000),
   maxChars: positiveInt(source.AI_PLAN_MAX_CHARS, DEFAULT_PLAN_MAX_CHARS, 400_000),
-  maxBytes: positiveInt(source.AI_PLAN_MAX_MB, DEFAULT_PLAN_MAX_MB, 25) * 1024 * 1024,
+  maxBytes: positiveInt(source.AI_PLAN_MAX_MB, DEFAULT_PLAN_MAX_MB, 100) * 1024 * 1024,
   maxOutputTokens: positiveInt(source.AI_PLAN_MAX_OUTPUT_TOKENS, DEFAULT_PLAN_MAX_OUTPUT_TOKENS, 65_536),
   timeoutMs: positiveInt(source.AI_PLAN_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 280) * 1000,
 });
@@ -77,6 +78,9 @@ export const isAnalyzerUrlAllowed = (value: string, environment = process.env.NO
 
 export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): AnalyzerConfig => {
   const plan = readPlanConfig(source);
+  // Plans use the workspace provider: one JSON call that returns the plan shape directly.
+  // The analyzer re-authors a supplied plan with a second model call, which turns large real
+  // briefs into prose, so it is opt-in only (DOCUMENT_ANALYZER_MODE=documind).
   const mode: DocumentAnalyzerMode = source.DOCUMENT_ANALYZER_MODE === 'documind' ? 'documind' : 'ai';
   const url = (source.DOCUMENT_ANALYZER_URL ?? '').trim().replace(/\/+$/, '');
   const token = (source.DOCUMENT_ANALYZER_TOKEN ?? '').trim();
@@ -91,4 +95,10 @@ export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): Ana
     maxChars: positiveInt(source.DOCUMENT_ANALYZER_MAX_CHARS, DEFAULT_ANALYZER_MAX_CHARS, 200_000),
     maxBytes: positiveInt(source.DOCUMENT_ANALYZER_MAX_MB, DEFAULT_ANALYZER_MAX_MB, 10) * 1024 * 1024,
   };
+};
+
+/** Where a document plan runs, as the settings screen shows it. */
+export const planSourceOf = (analyzer: AnalyzerConfig): 'provider' | 'analyzer' | 'analyzer_unconfigured' => {
+  if (analyzer.mode !== 'documind') return 'provider';
+  return analyzer.configured ? 'analyzer' : 'analyzer_unconfigured';
 };

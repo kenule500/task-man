@@ -16,6 +16,8 @@ from .analyze import analyze
 from .auth import authorize
 from .config import DEVELOPMENT, SDK_VERSION, Settings, load_settings
 from .contracts import AnalyzeRequest, AnalyzerError, AnalyzeResponse
+from .engine import begin_provider_call_count, provider_call_count
+from .idempotency import ResponseCache
 from .limits import Limiter, with_timeout
 
 logger = logging.getLogger("document_analyzer")
@@ -53,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         active = settings or load_settings()
         app.state.settings = active
         app.state.limiter = Limiter(active.max_concurrency)
+        app.state.responses = ResponseCache()
         logging.basicConfig(level=logging.INFO)
         _log(
             "startup",
@@ -62,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             maxChars=active.max_chars,
             maxConcurrency=active.max_concurrency,
             timeoutSeconds=active.timeout_seconds,
+            maxProviderCalls=active.max_provider_calls,
         )
         yield
 
@@ -141,23 +145,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         limiter: Limiter = getattr(request.app.state, "limiter", None) or Limiter(
             active.max_concurrency
         )
+        cache: ResponseCache | None = getattr(request.app.state, "responses", None)
+        cached = cache.get(payload.requestId) if cache is not None else None
+        if cached is not None:
+            # The same request id already produced an answer: never run DocuMind twice for it
+            _log("analyze_cached", requestId=payload.requestId)
+            return cached
+
         started = time.monotonic()
+        # The holder lives in this task; the SDK's child tasks share it, so their calls are
+        # counted, and the budget stops a request that would keep calling the provider.
+        begin_provider_call_count(active.max_provider_calls)
         try:
             async with limiter.slot():
                 result = await with_timeout(analyze(payload, active), active.timeout_seconds)
         except AnalyzerError as error:
+            # The request id is returned with every refusal, so the client can send the same one
+            # again and be answered from the cache if the answer did exist after all.
             _log(
                 "analyze_failed",
                 requestId=payload.requestId,
                 code=error.code,
+                providerCalls=provider_call_count(),
                 latencyMs=int((time.monotonic() - started) * 1000),
             )
             raise
+        if cache is not None:
+            cache.put(payload.requestId, result)
         _log(
             "analyze_ok",
             requestId=payload.requestId,
             engine=result.analyzer.engine,
             model=result.analyzer.model,
+            providerCalls=provider_call_count(),
             latencyMs=result.analyzer.latencyMs,
             items=len(result.plan.items),
         )

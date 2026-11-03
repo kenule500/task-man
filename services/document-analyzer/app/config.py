@@ -32,6 +32,12 @@ DEFAULT_MAX_CHARS = 24_000
 DEFAULT_MAX_BYTES = 2 * 1024 * 1024
 DEFAULT_MAX_CONCURRENCY = 2
 DEFAULT_TIMEOUT_SECONDS = 200
+DEFAULT_PORT = 8000
+MAX_PORT = 65535
+# Transport retries inside the provider client are off (see app.engine): one retry there repeats
+# a whole agent step. A plan normally costs one document-generation step, or two when the first
+# answer wrote prose instead of the plan JSON. The cap allows for that worst case with margin.
+DEFAULT_MAX_PROVIDER_CALLS = 4
 
 
 class ConfigurationError(RuntimeError):
@@ -62,6 +68,26 @@ def _positive_int(env: Mapping[str, str], name: str, default: int, maximum: int)
     return value
 
 
+def _port(env: Mapping[str, str], name: str, default: int) -> int:
+    """Resolve ``PORT`` for the container entrypoint.
+
+    The service binds through uvicorn's ``--port`` flag, not through this value: it is read here
+    only so a container setting is visible in the startup log. Some shells export an unusable
+    ``PORT`` of their own (MSYS2/Git Bash export ``PORT=0``), and ``--env-file`` does not override
+    a variable that is already set, so an unusable value falls back to the default instead of
+    stopping startup. A genuinely wrong port still stops the container, because the entrypoint
+    binds ``PORT`` itself.
+    """
+    raw = _text(env, name)
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if 0 < value <= MAX_PORT else default
+
+
 @dataclass(frozen=True)
 class Settings:
     environment: str
@@ -75,6 +101,7 @@ class Settings:
     max_concurrency: int
     timeout_seconds: int
     port: int
+    max_provider_calls: int = DEFAULT_MAX_PROVIDER_CALLS
     extra: dict[str, str] = field(default_factory=dict)
 
     @property
@@ -188,7 +215,10 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         timeout_seconds=_positive_int(
             source, "ANALYZER_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS, 280
         ),
-        port=_positive_int(source, "PORT", 8000, 65535),
+        port=_port(source, "PORT", DEFAULT_PORT),
+        max_provider_calls=_positive_int(
+            source, "ANALYZER_MAX_PROVIDER_CALLS", DEFAULT_MAX_PROVIDER_CALLS, 16
+        ),
         extra={
             "aws_region": _text(source, "DOCUMIND_AWS_REGION", "us-east-1"),
             "aws_secret_access_key": _text(source, "DOCUMIND_AWS_SECRET_ACCESS_KEY"),
@@ -204,4 +234,3 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     )
     settings.validate()
     return settings
-

@@ -1,5 +1,5 @@
 import { addDays, isDateKey, nextMonday, sprintWindow } from '../utils/ai/plan/dates.js';
-import { readPlanConfig } from '../utils/ai/plan/config.js';
+import { planSourceOf, readAnalyzerConfig, readPlanConfig } from '../utils/ai/plan/config.js';
 import { draftTasks } from '../utils/ai/plan/create.js';
 import {
   PLAN_LIMITS, countPlan, editedPlanSchema, finalizePlan, modelPlanSchema, snapStoryPoints, uniqueKey, uniqueName, type PlanContent,
@@ -260,10 +260,35 @@ describe('dates', () => {
 
 describe('readPlanConfig', () => {
   it('has the documented defaults and clamps bad numbers', () => {
-    expect(readPlanConfig({})).toEqual({ dailyLimit: 20, maxChars: 60_000, maxBytes: 4 * 1024 * 1024, maxOutputTokens: 8192, timeoutMs: 200_000 });
+    expect(readPlanConfig({})).toEqual({ dailyLimit: 20, maxChars: 60_000, maxBytes: 20 * 1024 * 1024, maxOutputTokens: 8192, timeoutMs: 200_000 });
     expect(readPlanConfig({ AI_PLAN_DAILY_LIMIT: '3', AI_PLAN_MAX_CHARS: '1000', AI_PLAN_MAX_MB: '2', AI_PLAN_TIMEOUT_SECONDS: '9999' }))
       .toMatchObject({ dailyLimit: 3, maxChars: 1000, maxBytes: 2 * 1024 * 1024, timeoutMs: 280_000 });
     expect(readPlanConfig({ AI_PLAN_DAILY_LIMIT: '-1', AI_PLAN_MAX_CHARS: 'x' })).toMatchObject({ dailyLimit: 20, maxChars: 60_000 });
+  });
+});
+
+describe('planSourceOf', () => {
+  const token = 'a'.repeat(40);
+
+  it('says provider by default, because plans use the workspace provider in one call', () => {
+    expect(planSourceOf(readAnalyzerConfig({}))).toBe('provider');
+  });
+
+  it('says analyzer when documind is on and the service is usable', () => {
+    expect(planSourceOf(readAnalyzerConfig({
+      DOCUMENT_ANALYZER_MODE: 'documind',
+      DOCUMENT_ANALYZER_URL: 'http://127.0.0.1:8000',
+      DOCUMENT_ANALYZER_TOKEN: token,
+      NODE_ENV: 'development',
+    }))).toBe('analyzer');
+  });
+
+  it('says the analyzer still needs setting up when documind is on without a token', () => {
+    expect(planSourceOf(readAnalyzerConfig({
+      DOCUMENT_ANALYZER_MODE: 'documind',
+      DOCUMENT_ANALYZER_URL: 'http://127.0.0.1:8000',
+      NODE_ENV: 'development',
+    }))).toBe('analyzer_unconfigured');
   });
 });
 

@@ -223,7 +223,37 @@ export interface GenerateResult<T> {
   usage: { inputTokens: number; outputTokens: number };
 }
 
-const CUT_OFF_HINT = 'The answer was cut off because it was too long. Return a shorter complete JSON object: fewer items, shorter text, at most 3 acceptance criteria per item.';
+const CUT_OFF_HINT = 'The answer was cut off because it was too long. Return a shorter complete JSON object: at most 40 items, at most 4 sprints, at most 6 epics, at most 2 acceptance criteria per item, no subtasks, and descriptions under 160 characters.';
+
+/** How much of the document a repair keeps: enough to name items, far less than the first call. */
+/** True when the answer already parses as JSON, so only its shape was wrong. */
+const isJsonObject = (raw: string): boolean => {
+  const trimmed = raw.trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed);
+  try {
+    const value: unknown = JSON.parse(fenced ? fenced[1] : trimmed);
+    return value !== null && typeof value === 'object';
+  } catch {
+    return false;
+  }
+};
+
+const REPAIR_DIGEST_CHARS = 6000;
+
+/**
+ * Messages for a shape-only repair: the same instructions, but the user turn is cut down to the head of
+ * the document. Used after the model already returned parseable JSON, so it knows the format and only
+ * needs the gist to fix fields.
+ */
+const buildRepairDigest = (messages: ChatMessage[]): ChatMessage[] =>
+  messages.map((message, index) => {
+    if (index !== messages.length - 1 || message.content.length <= REPAIR_DIGEST_CHARS) return message;
+    return {
+      ...message,
+      content: `${message.content.slice(0, REPAIR_DIGEST_CHARS)}
+[The rest of the document is omitted; complete the object with the same coverage.]`,
+    };
+  });
 
 /**
  * Asks the model for a JSON object and returns it validated and cleaned by `schema` (zod). When the answer does not
@@ -257,8 +287,11 @@ export const generateJson = async <S extends z.ZodType>(
     const remaining = hardLimitMs - (runtime.now() - started);
     if (remaining > 30_000) {
       const problem = completion.finishReason === 'length' ? CUT_OFF_HINT : parsed.problem;
+      // The first answer was valid JSON, so only its shape was wrong: repair from a short digest of the
+      // document instead of paying for the whole document again (a plan's input is the expensive part).
+      const base = isJsonObject(completion.content) ? buildRepairDigest(messages) : messages;
       const repairLimits: CallLimits = { ...limits, timeoutMs: Math.min(timeoutMs, remaining - 5000) };
-      completion = await complete(client, model, buildRepairMessages(messages, completion.content, problem), started, runtime, repairLimits, 0);
+      completion = await complete(client, model, buildRepairMessages(base, completion.content, problem), started, runtime, repairLimits, 0);
       usage.inputTokens += completion.inputTokens;
       usage.outputTokens += completion.outputTokens;
       parsed = parseJsonWith(schema, completion.content);

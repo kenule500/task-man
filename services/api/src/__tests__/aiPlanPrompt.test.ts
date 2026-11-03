@@ -105,6 +105,17 @@ describe('generateJson', () => {
     expect(repair.at(-2)?.role).toBe('assistant');
   });
 
+  it('AC-024: repairs a wrongly shaped answer from a digest instead of resending the whole document', async () => {
+    const { client, create } = clientFrom([() => reply('{"items": []}'), () => reply(goodPlan)]);
+    const long = buildPlanMessages({ ...input(), document: 'x'.repeat(40_000) }, BOUNDARY);
+    await generateJson(modelPlanSchema, long, { client, ...fast });
+    const repair = (create.mock.calls[1] as unknown as [{ messages: { role: string; content: string }[] }])[0].messages;
+    expect(repair[0].content).toBe(long[0].content);
+    expect(repair[1].content.length).toBeLessThan(7_000);
+    expect(repair[1].content).toContain('rest of the document is omitted');
+    expect(repair.at(-1)?.content).toContain('at least one item');
+  });
+
   it('AC-024: tells the model to be shorter when its answer was cut off', async () => {
     const { client, create } = clientFrom([() => reply('{"project": {"name": "Sho', 'length'), () => reply(goodPlan)]);
     await generateJson(modelPlanSchema, messages, { client, ...fast });
