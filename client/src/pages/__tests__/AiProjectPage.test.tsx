@@ -197,6 +197,18 @@ describe('AiProjectPage', () => {
     expect(await screen.findByRole('region', { name: 'Generated project' }, { timeout: 10000 })).toBeInTheDocument();
   });
 
+  it('AC-006: takes today\'s allowance from the upload answer, so analyzing costs no second settings request', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    plans.upload.mockResolvedValue({ ...queued(), planUsage: { dailyLimit: 20, usedToday: 3 } });
+    plans.get.mockResolvedValue(makeAiPlan({ status: 'failed', plan: null, counts: null, errorCode: 'AI_PLAN_FAILED', error: 'raw' }));
+    renderPage();
+    await analyze(user);
+    await waitFor(() => expect(plans.upload).toHaveBeenCalledTimes(1));
+
+    // The upload response already said how much of the allowance is left
+    expect(aiSettings.getSettings).toHaveBeenCalledTimes(1);
+  });
+
   it('AC-006: shows a refused upload without leaving the first step', async () => {
     const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     plans.upload.mockRejectedValue({ response: { status: 503, data: { code: 'AI_DISABLED', message: 'raw' } } });

@@ -8,6 +8,7 @@ import { AiReviewError } from '../types.js';
 import { resolveWorkspaceAiConfig, type WorkspaceAiConfig, type WorkspaceAiSettings } from '../workspaceConfig.js';
 import { readAnalyzerConfig, readPlanConfig } from './config.js';
 import { analyzePlan, isInfrastructureFailure } from './analyzer.js';
+import { publishPlanUpdated } from './events.js';
 import { buildPlanMessages } from './prompt.js';
 import { finalizePlan, modelPlanSchema, type PlanContent, type PlanLanguage } from './schema.js';
 import { shortenForModel } from './text.js';
@@ -124,11 +125,14 @@ export const usedProjectNames = async (workspaceId: Id): Promise<{ names: Set<st
   };
 };
 
-const failPlan = async (planId: Id, message: string, code: string): Promise<void> => {
-  await AiPlan.updateOne(
-    { _id: planId, status: { $in: ['queued', 'running'] } },
+const failPlan = async (plan: Pick<IAiPlan, '_id' | 'createdBy'>, message: string, code: string): Promise<void> => {
+  const failed = await AiPlan.findOneAndUpdate(
+    { _id: plan._id, status: { $in: ['queued', 'running'] } },
     { $set: { status: 'failed', active: false, error: message.slice(0, 500), errorCode: code.slice(0, 40), completedAt: new Date() } },
+    { returnDocument: 'after' },
   );
+  // Tell the waiting page at once; a missed event only leaves its slow fallback in place
+  if (failed) await publishPlanUpdated(failed);
 };
 
 export interface PreparedDocument {
@@ -237,14 +241,16 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
       takenNames: names,
       takenKeys: keys,
     });
-    await AiPlan.findOneAndUpdate(
+    const saved = await AiPlan.findOneAndUpdate(
       { _id: plan._id, status: 'running' },
       {
         $set: {
           status: 'ready', active: false, plan: content, analyzer: generated.engine, model: generated.model, usage: generated.usage, error: '', errorCode: '', completedAt: new Date(),
         },
       },
+      { returnDocument: 'after' },
     );
+    if (saved) await publishPlanUpdated(saved);
   } catch (error) {
     const known = error instanceof AiReviewError;
     if (!known) console.error('ai plan error:', (error as Error).message);
@@ -252,6 +258,6 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
     const message = known
       ? (code === 'AI_BAD_REQUEST' ? 'The AI provider refused the request (the document may be too long for the model). Try a shorter document.' : error.message)
       : 'The generation failed unexpectedly. Try again.';
-    await failPlan(plan._id as Id, message, code);
+    await failPlan(plan, message, code);
   }
 };

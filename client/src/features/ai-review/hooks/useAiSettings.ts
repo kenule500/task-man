@@ -30,6 +30,20 @@ export const useAiSettings = (slug: string | undefined) => {
     setAttempt(current => current + 1);
   }, []);
 
+  /**
+   * Records locally that one plan of today's allowance was just queued.
+   *
+   * The upload response already says the plan exists, so the notice ("N of M used") can be kept
+   * in step without a second request for the whole settings object after every upload.
+   */
+  const countPlanUsed = useCallback((usedToday: number) => {
+    setSettings(current => {
+      if (!current) return current;
+      if (current.plan.usedToday === usedToday) return current;
+      return { ...current, plan: { ...current.plan, usedToday } };
+    });
+  }, []);
+
   /** Saves and shows the server's answer; rejects with a readable message. */
   const update = useCallback(async (patch: AiSettingsPatch): Promise<AiSettings> => {
     if (!slug) throw new Error('No workspace selected');
@@ -78,6 +92,6 @@ export const useAiSettings = (slug: string | undefined) => {
   }, [slug, reload]);
 
   return {
-    settings, loading: Boolean(slug) && !settings && !error, error, reload, update, saveProvider, removeProvider, testProvider,
+    settings, loading: Boolean(slug) && !settings && !error, error, reload, countPlanUsed, update, saveProvider, removeProvider, testProvider,
   };
 };
