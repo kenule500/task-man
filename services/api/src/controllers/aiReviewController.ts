@@ -5,7 +5,7 @@ import AiReview, { type IAiReview } from '../models/aiReviewModel.js';
 import Task from '../models/taskModel.js';
 import Workspace, { IWorkspace } from '../models/workspaceModel.js';
 import { recordActivity } from '../utils/activity.js';
-import { readPlanConfig } from '../utils/ai/plan/config.js';
+import { planSourceOf, readAnalyzerConfig, readPlanConfig } from '../utils/ai/plan/config.js';
 import { countPlansUsedToday } from '../utils/ai/plan/service.js';
 import { testAiConnection } from '../utils/ai/provider.js';
 import { AI_PROVIDER_IDS, AI_PROVIDER_PRESETS, normalizeBaseURL, type AiProviderId } from '../utils/ai/providers.js';
@@ -165,6 +165,8 @@ const settingsView = async (req: Request) => {
   const canManage = (req.permissions ?? []).includes('settings:manage');
   return {
     available: config.available,
+    // Who runs a document plan: this workspace's provider, or the analyzer service (no key needed)
+    planSource: planSourceOf(readAnalyzerConfig()),
     provider: config.provider,
     problem: config.problem,
     enabled: ai?.enabled === true,
@@ -344,8 +346,9 @@ export const updateAiSettings = async (req: Request, res: Response): Promise<voi
     const unset: Record<string, ''> = {};
     const changes: { field: string; from?: string; to?: string }[] = [];
 
-    // Turning the feature on is only possible once the workspace has a usable provider and key.
-    if (req.body.enabled === true && !before.available) {
+    // Turning the feature on needs a usable provider and key, or the analyzer service for plans
+    // (code review still needs a provider, so autoReview keeps its own check below).
+    if (req.body.enabled === true && !before.available && before.planSource !== 'analyzer') {
       res.status(400).json({
         message: 'Save a provider and API key before turning AI code review on.',
         code: 'AI_NOT_CONFIGURED',

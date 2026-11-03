@@ -81,6 +81,11 @@ export interface AiProviderConfigView {
 export interface AiSettings {
   /** The workspace has a usable provider, endpoint, model and key. */
   available: boolean;
+  /**
+   * Who runs a document plan: the workspace's own `provider`, the `analyzer` service (which needs
+   * no provider key), or `analyzer_unconfigured` when an operator still has to set it up.
+   */
+  planSource?: 'provider' | 'analyzer' | 'analyzer_unconfigured';
   /** Provider configured for this workspace. Null/absent while unconfigured. */
   provider?: { id: AiProviderId; label: string } | null;
   /** Why AI is unavailable, when the server can tell. */

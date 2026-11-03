@@ -158,6 +158,8 @@
     "retry": "Réessayer",
     "saveError": "Impossible d'enregistrer ce paramètre.",
     "unavailable": "Aucun fournisseur d'IA utilisable n'est configuré pour cet espace de travail. Un propriétaire ou un administrateur peut en ajouter un ci-dessous.",
+    "analyzerPlans": "Les plans de documents utilisent l'analyseur de documents : aucune clé de fournisseur n'est nécessaire. La revue de pull requests reste désactivée jusqu'à l'ajout d'un fournisseur.",
+    "analyzerNotConfigured": "L'analyseur de documents n'est pas configuré. Un opérateur doit définir son URL et son jeton avant d'activer l'IA.",
     "notice": {
       "title": "Votre code est envoyé à un tiers",
       "body": "Lorsque cette option est active, les modifications des pull requests que vous révisez (le diff) et le texte du ticket sont envoyés à {{provider}} ({{model}}), un prestataire externe, pour produire la revue. Rien n'est envoyé tant que l'option est désactivée. Ne l'activez pas pour du code que vos accords n'autorisent pas à quitter l'organisation."
