@@ -105,10 +105,25 @@ Run ten real documents through both paths and record:
 1. provider calls per plan (provider dashboard or SDK logs),
 2. p95 latency,
 3. token cost,
-4. plan quality (items, criteria, obvious errors).
-
-Publish the numbers with the switch. If they are worse than the v1 single-call path, keep
+4. plan quality (items, criteria, obvious errors).Publish the numbers with the switch. If they are worse than the v1 single-call path, keep
 `DOCUMENT_ANALYZER_MODE=ai`.
+
+`scripts/measure_risk_022.py` produces 1, 2 and a prompt-size proxy for token cost, and leaves
+any column it could not measure empty instead of estimating it. It drives the running service
+over its own routes, so the counts come from the hook in `app/engine.py`. Without `--url` and
+`--token` it sends nothing and only reports prompt sizes.
+
+Measured on the local container (Docker 29.7.2, Windows):
+
+| Measure | Value |
+| --- | --- |
+| Image size | 172.5 MiB (180,898,985 bytes) |
+| Cold start to first `/healthz` 200 | 2.9 s |
+| Idle RSS | 46 MiB |
+| RSS after a 34 KB document | 80 MiB |
+| Prompt for a 20,000-char document | 23,668 chars |
+| Provider calls, analyzer running without a key | 0, failing as `ANALYZER_UNAVAILABLE` in 2 ms |
+| Latency, provider calls and token cost on real documents | **not measured**: needs a keyed run |
 
 ## Rollback
 

@@ -37,3 +37,6 @@ select = ["E", "F", "I", "N", "W", "UP", "B"]
 # The contract uses the same camelCase field names as the TypeScript PlanContent and the JSON
 # schema; renaming them would break the shared contract.
 "app/contracts.py" = ["N815"]
+# The report rows are pasted into the T7.5 table next to the response fields, so they keep the
+# same names, and the harness prints its own table with aligned columns.
+"scripts/measure_risk_022.py" = ["N815", "E501"]
