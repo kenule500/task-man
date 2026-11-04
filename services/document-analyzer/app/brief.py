@@ -10,6 +10,11 @@ string inside `blocks`), and a long, dense document tempts it to write prose the
 brief therefore states the literal first and last characters of `code`, and `repair_query`
 re-asks once with that block quoted back when the first answer still has no JSON object.
 
+The `code` value must not start with `{`. DocuMind's spec normaliser reads any such value as a
+Python literal and re-flattens the object into a space-joined string of its values, so the plan
+would reach the renderer as prose. The brief therefore asks for a `PLAN-JSON` sentinel line
+first, which the normaliser leaves alone, and `app.parsing` removes it again.
+
 The document is passed as delimited data and the model is told, explicitly, that it is never
 instructions. The delimiter is derived from the request id, so the same request always produces
 the same brief (which makes it reviewable) without being guessable from the document.
@@ -23,6 +28,13 @@ import json
 from .contracts import AnalyzeRequest
 
 CONTRACT_VERSION = 1
+
+# DocuMind's spec normaliser (``src/formats/rich_document/spec.py``, ``_text_value``) reads a
+# ``code`` value that starts with "{" as a Python literal and re-flattens the object into its
+# values joined by spaces -- the plan then reaches the Markdown as prose and nothing can read it
+# back. A value that starts with anything else is kept verbatim, so the block opens with this
+# sentinel line and ``app.parsing.plan_body`` drops it again.
+PLAN_SENTINEL = "PLAN-JSON"
 
 _SHAPE = """{
   "project": {
@@ -54,7 +66,7 @@ _SPEC = """{
 }
 
 The "Plan JSON" block is:
-{ "type": "code_block", "language": "json", "code": "<the plan object, serialized as JSON text>" }"""
+{ "type": "code_block", "language": "json", "code": "PLAN-JSON\\n<the plan object, serialized as JSON text>" }"""
 
 
 def boundary_for(request_id: str) -> str:
@@ -75,7 +87,8 @@ The document must have exactly two sections:
 1. "Summary": one paragraph block that describes the product in two or three sentences.
 2. "Plan JSON": exactly one block of type "code_block" with language "json". Its "code" value is
    a STRING holding the plan object below, serialized as JSON text: not an object, no comments,
-   no markdown, no text around it. The first character of that string is {{ and the last is }}.
+   no markdown, no text around it. The FIRST LINE of that string is {PLAN_SENTINEL} and the plan
+   object starts on the SECOND line; the LAST character is }}.
 
 The plan object has exactly this shape:
 {_SHAPE}
@@ -86,8 +99,9 @@ Rules:
 - Keep the plan JSON COMPACT so it always fits in one answer: at most 4 sprints, 6 epics,
   30 items, 2 acceptance criteria per item and no subtasks; descriptions under 200 characters,
   titles under 90, at most 2 labels per item, at most 6 assumptions and 6 risks.
-- The "code" value must be one complete, valid JSON object. If the plan would be longer, include
-  fewer items: never stop in the middle of the object and never split the plan into two blocks.
+- The "code" value starts with the line {PLAN_SENTINEL}, then one complete, valid JSON object on
+  the next line. If the plan would be longer, include fewer items: never stop in the middle of
+  the object and never split the plan into two blocks.
 - Never write prose, outlines or bullet lists inside "code". A summary of the document belongs in
   the first section only; "code" holds the JSON and nothing else.
 - "epicRef" must be one of the epic "ref" values or null. "ref" values are short and unique
@@ -125,8 +139,8 @@ Here is what its "code" value began with:
 ---
 
 Rewrite that document. Keep the "Summary" section. In "Plan JSON", the "code" value must be the
-plan object serialized as JSON text: the FIRST character is {{, the LAST is }}, and there is no
-other text inside it.
+plan object serialized as JSON text: the FIRST LINE is {PLAN_SENTINEL}, the object starts on the
+next line and the LAST character is }}, and there is no other text inside it.
 
 The plan object has exactly this shape:
 {_SHAPE}
@@ -137,6 +151,7 @@ Rules:
 - Keep the plan JSON COMPACT so it always fits in one answer: at most 4 sprints, 6 epics,
   30 items, 2 acceptance criteria per item and no subtasks; descriptions under 200 characters,
   titles under 90, at most 2 labels per item, at most 6 assumptions and 6 risks.
+- Keep the {PLAN_SENTINEL} line exactly as written, then the complete JSON object.
 - "epicRef" must be one of the epic "ref" values or null. "ref" values are short and unique
   (E1, E2 for epics; T1, T2 for items).
 - "sprintIndex" is 0 for the first sprint, 1 for the second, and so on; it must be less than the

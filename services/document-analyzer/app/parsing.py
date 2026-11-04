@@ -7,15 +7,31 @@ import json
 import re
 from typing import Any
 
+from .brief import PLAN_SENTINEL
 from .contracts import AnalyzerError
 
 # Any fenced block. The info string (json, JSON, or empty) is not trusted: the body has to
 # parse as a JSON object, so other fences DocuMind adds (diagrams, examples) are skipped.
 _FENCE = re.compile(r"```[^\n`]*\r?\n(?P<body>.*?)```", re.DOTALL)
+# The brief opens the code block with the sentinel; a model can also glue the object to it
+_SENTINEL = re.compile(rf"{re.escape(PLAN_SENTINEL)}\s*:?\s*", re.IGNORECASE)
+
+
+def plan_body(body: str | None) -> str:
+    """A fenced body without the brief's sentinel line.
+
+    DocuMind's spec normaliser (``src/formats/rich_document/spec.py``, ``_text_value``) reads a
+    ``code`` value that starts with "{" as a Python literal and flattens the object into its
+    values joined by spaces, so a bare plan object reaches the Markdown as prose. The sentinel
+    keeps the value a string; it is removed here, before anything looks for JSON.
+    """
+    text = (body or "").strip()
+    match = _SENTINEL.match(text)
+    return text[match.end():].strip() if match else text
 
 
 def _object_in(body: str) -> dict[str, Any] | None:
-    text = body.strip()
+    text = plan_body(body)
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
@@ -52,8 +68,8 @@ def is_truncated_plan(markdown: str) -> bool:
 
     The answer ran out of room, so asking again produces the same cut-off plan: no retry.
     """
-    block = first_code_block(markdown)
-    return bool(block) and block.lstrip().startswith("{") and not block.rstrip().endswith("}")
+    block = plan_body(first_code_block(markdown))
+    return bool(block) and block.startswith("{") and not block.endswith("}")
 
 
 def extract_plan(markdown: str) -> dict[str, Any]:
@@ -70,7 +86,7 @@ def extract_plan(markdown: str) -> dict[str, Any]:
         raise AnalyzerError(422, "ANALYZER_INVALID_OUTPUT", "DocuMind returned an empty document.")
 
     blocks = list(_FENCE.finditer(markdown))
-    bodies = [block.group("body").strip() for block in blocks]
+    bodies = [plan_body(block.group("body")) for block in blocks]
     candidates = [plan for body in bodies if (plan := _object_in(body)) is not None]
 
     if len(candidates) == 1:

@@ -6,8 +6,9 @@ import json
 
 import pytest
 
+from app.brief import PLAN_SENTINEL
 from app.contracts import AnalyzerError
-from app.parsing import extract_plan
+from app.parsing import extract_plan, has_plan_object, is_truncated_plan, plan_body
 
 
 def plan() -> dict:
@@ -92,4 +93,34 @@ class TestExtractPlan:
         assert caught.value.code == "ANALYZER_INVALID_OUTPUT"
         assert caught.value.status == 422
         assert message in caught.value.message
+
+
+class TestSentinel:
+    """The brief opens "code" with a sentinel line.
+
+    DocuMind's spec normaliser reads a ``code`` value that starts with "{" as a Python literal
+    and flattens the plan into prose, so the value has to start with something else; the sentinel
+    is dropped here, before anything looks for a JSON object.
+    """
+
+    def test_reads_a_block_that_opens_with_the_sentinel(self) -> None:
+        assert extract_plan(document(f"{PLAN_SENTINEL}\n{json.dumps(plan())}")) == plan()
+
+    def test_reads_the_sentinel_glued_to_the_object(self) -> None:
+        assert extract_plan(document(f"{PLAN_SENTINEL} {json.dumps(plan())}"))["items"][0]["ref"] == "T1"
+
+    def test_the_sentinel_line_alone_is_not_a_plan(self) -> None:
+        with pytest.raises(AnalyzerError) as caught:
+            extract_plan(document(PLAN_SENTINEL))
+        assert "could not be parsed" in caught.value.message
+
+    def test_has_plan_object_sees_through_the_sentinel(self) -> None:
+        assert has_plan_object(document(f"{PLAN_SENTINEL}\n{json.dumps(plan())}")) is True
+        assert has_plan_object(document(f"{PLAN_SENTINEL}\nSprint 1 covers onboarding.")) is False
+
+    def test_a_cut_off_plan_behind_the_sentinel_is_still_detected(self) -> None:
+        assert is_truncated_plan(document(f'{PLAN_SENTINEL}\n{{"project": {{"name": "Half')) is True
+
+    def test_plan_body_leaves_an_unsentinelled_body_alone(self) -> None:
+        assert plan_body('{"project": {}}') == '{"project": {}}'
 

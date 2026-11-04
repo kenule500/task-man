@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.analyze import analyze
+from app.brief import PLAN_SENTINEL
 from app.config import Settings
 from app.contracts import AnalyzeRequest, AnalyzerError, AnalyzeResponse, AnalyzerInfo, PlanContract
 from app.main import create_app
@@ -82,6 +83,22 @@ class TestOneInvocation:
         assert len(calls) == 1
         assert result.plan.project.key == "SHOP"
         assert len(result.plan.items) == 1
+
+    def test_accepts_a_plan_behind_the_sentinel_without_a_retry(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[int] = []
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            calls.append(1)
+            head = '---\ntitle: "Plan"\n---\n\n## Summary\n\nText.\n\n## Plan JSON\n\n```json\n'
+            return head + f"{PLAN_SENTINEL}\n{json.dumps(plan())}\n```\n\n---\n"
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        result = asyncio.run(analyze(request(), settings()))
+        # The normal shape of a good answer: one generation, no repair
+        assert len(calls) == 1
+        assert result.plan.project.key == "SHOP"
 
     def test_retries_once_when_the_answer_holds_prose_instead_of_json(
         self, monkeypatch: pytest.MonkeyPatch
