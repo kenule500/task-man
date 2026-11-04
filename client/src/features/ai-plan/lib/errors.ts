@@ -26,6 +26,10 @@ const FAILURE_CODES = new Set([
   'BASE_URL_UNRESOLVED', 'STALE', 'CANCELLED',
   'ANALYZER_UNAVAILABLE', 'ANALYZER_TIMEOUT', 'ANALYZER_INVALID_OUTPUT', 'ANALYZER_UNAUTHORIZED', 'ANALYZER_RATE_LIMITED',
   'ANALYZER_BODY_TOO_LARGE',
+  // The analyzer refuses a request it cannot parse (contractVersion mismatch) or one whose text is
+  // longer than its ANALYZER_MAX_CHARS. Neither can be fixed from this screen, so the message says
+  // so instead of asking for a shorter document.
+  'ANALYZER_INVALID_REQUEST',
 ]);
 
 /** Why a generation ended without a plan. */

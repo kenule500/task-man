@@ -209,6 +209,21 @@ describe('reading refusals', () => {
     expect(describeFailure({ errorCode: 'ODD', error: 'The server says no' }, t)).toBe('The server says no');
     expect(describeFailure({ errorCode: 'ODD', error: '' }, t)).toContain('failed');
   });
+
+  it('does not blame the document for an analyzer parse failure', () => {
+    // ANALYZER_INVALID_OUTPUT means the answer could not be read, not that the document was too long.
+    // Telling the person to shorten it sends them to fix the wrong thing.
+    const text = describeFailure({ errorCode: 'ANALYZER_INVALID_OUTPUT', error: 'raw' }, t);
+    expect(text).toContain('could not be read');
+    expect(text).not.toContain('shorter document');
+  });
+
+  it('explains a request the analyzer refused, and still asks for a shorter one on timeouts', () => {
+    const refused = describeFailure({ errorCode: 'ANALYZER_INVALID_REQUEST', error: 'raw' }, t);
+    expect(refused).toContain('server setting');
+    // A timeout is genuinely helped by a shorter document, so that advice stays
+    expect(describeFailure({ errorCode: 'ANALYZER_TIMEOUT', error: 'raw' }, t)).toContain('shorter document');
+  });
 });
 
 describe('progress while waiting', () => {
