@@ -354,7 +354,7 @@ It reuses the provider, key, model and workspace opt-in of the [AI code review](
 **Using it.** *Projects > Create with AI* (or the command palette, Ctrl/Cmd+K, "Create project with AI"), needs `projects:write` and
 `tasks:write`.
 
-1. **Upload.** Drop a PDF, DOCX, TXT or Markdown file (up to 4 MB). Optional: project name and key, sprint length (1 to 4 weeks),
+1. **Upload.** Drop a PDF, DOCX, TXT or Markdown file (up to 20 MB). Optional: project name and key, sprint length (1 to 4 weeks),
    the day the first sprint starts (next Monday by default), team size, the language of the plan (English, French or Arabic; your
    interface language by default) and up to 500 characters of extra instructions. The page says plainly that the document text is sent
    to Alibaba Cloud Model Studio and links to the setting that turns AI on.
@@ -375,7 +375,7 @@ It reuses the provider, key, model and workspace opt-in of the [AI code review](
 |---|---|---|
 | `AI_PLAN_DAILY_LIMIT` | `20` | Plan generations a workspace may start per UTC day (`429 AI_DAILY_LIMIT`). Separate from `AI_REVIEW_DAILY_LIMIT`; failures before the model is reached do not count, cancelled ones do |
 | `AI_PLAN_MAX_CHARS` | `60000` | Characters of the document sent to the model. A longer document keeps its beginning (about 70%) and the section headings of the rest, and the plan is marked partial |
-| `AI_PLAN_MAX_MB` | `4` | Largest upload. Vercel refuses request bodies above 4.5 MB before the API sees them, so keep it at 4 or below there |
+| `AI_PLAN_MAX_MB` | `20` | Largest upload, streamed to a temporary file so it no longer has to fit Vercel's 4.5 MB body limit. Lower it where the platform still buffers bodies |
 | `AI_PLAN_MAX_OUTPUT_TOKENS` | `8192` | Size of the model's answer. Raise it for models that allow more (more items fit); a plan holds at most 120 tasks |
 | `AI_PLAN_TIMEOUT_SECONDS` | `200` | Time the provider gets to answer (the function limit is 300 s, so a retry only happens when it still fits) |
 

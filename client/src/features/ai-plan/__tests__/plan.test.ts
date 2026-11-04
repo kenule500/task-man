@@ -154,7 +154,9 @@ describe('choosing the document', () => {
     expect(fileProblem({ name: 'noextension', size: 100 })).toBe('type');
     expect(fileProblem({ name: 'old.doc', size: 100 })).toBe('doc');
     expect(fileProblem({ name: 'empty.txt', size: 0 })).toBe('empty');
-    expect(fileProblem({ name: 'big.pdf', size: 6 * 1024 * 1024 })).toBe('size');
+    expect(fileProblem({ name: 'big.pdf', size: 21 * 1024 * 1024 })).toBe('size');
+    expect(fileProblem({ name: 'big.pdf', size: 6 * 1024 * 1024 })).toBeNull();
+    expect(fileProblem({ name: 'big.pdf', size: 6 * 1024 * 1024 }, 4 * 1024 * 1024)).toBe('size');
     expect(fileProblem({ name: 'big.pdf', size: 6 * 1024 * 1024 }, 10 * 1024 * 1024)).toBeNull();
   });
 

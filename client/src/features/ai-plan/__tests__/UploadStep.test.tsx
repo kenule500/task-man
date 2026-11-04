@@ -107,8 +107,8 @@ describe('UploadStep', () => {
     expect(screen.getByText(/Old Word files \(\.doc\) are not supported/)).toBeInTheDocument();
     await user.upload(dropzone(), new File([], 'empty.txt'));
     expect(screen.getByText('This file is empty.')).toBeInTheDocument();
-    await user.upload(dropzone(), pdf('huge.pdf', 4 * 1024 * 1024 + 1));
-    expect(screen.getByText(/too large\. The limit is 4\.2 MB/)).toBeInTheDocument();
+    await user.upload(dropzone(), pdf('huge.pdf', 20 * 1024 * 1024 + 1));
+    expect(screen.getByText(/too large\. The limit is 21\.0 MB/)).toBeInTheDocument();
     expect(analyze()).toBeDisabled();
     expect(onStart).not.toHaveBeenCalled();
   });
@@ -135,7 +135,7 @@ describe('UploadStep', () => {
 
   it('AC-001: blocks the upload at the daily limit', async () => {
     const user = userEvent.setup();
-    setup({ settings: settings({ plan: { dailyLimit: 20, usedToday: 20, maxChars: 60_000, maxBytes: 4 * 1024 * 1024 } }) });
+    setup({ settings: settings({ plan: { dailyLimit: 20, usedToday: 20, maxChars: 60_000, maxBytes: 20 * 1024 * 1024 } }) });
     expect(screen.getByText('Daily limit reached')).toBeInTheDocument();
     await user.upload(dropzone(), pdf());
     expect(analyze()).toBeDisabled();

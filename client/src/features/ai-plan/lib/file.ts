@@ -5,8 +5,8 @@ import type { PlanApiError } from '../types';
 
 export const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md', '.markdown'] as const;
 export const ACCEPT_ATTRIBUTE = ACCEPTED_EXTENSIONS.join(',');
-/** Fallback when the server did not say (AI_PLAN_MAX_MB defaults to 4). */
-export const DEFAULT_MAX_BYTES = 4 * 1024 * 1024;
+/** Fallback when the server did not say (AI_PLAN_MAX_MB defaults to 20). */
+export const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 
 export type FileProblem = 'type' | 'doc' | 'empty' | 'size';
 
