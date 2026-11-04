@@ -43,7 +43,7 @@ importers:
         specifier: ^26.4.5
         version: 26.4.5(typescript@6.0.3)
       i18next-browser-languagedetector:
-        specifier: ^8.2.4
+        specifier: ^8.2.1
         version: 8.2.4
       lucide-react:
         specifier: ^1.61.0
