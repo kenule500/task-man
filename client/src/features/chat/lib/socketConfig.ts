@@ -7,6 +7,12 @@ export const POLL_INTERVAL_MS = 4000;
 /** The channel list (unread badges) refreshes this often while the socket is down. */
 export const CHANNEL_POLL_INTERVAL_MS = 20000;
 
+/**
+ * Reconnect attempts before the socket gives up and leaves the REST polling in charge. Unbounded
+ * retries meant an unreachable server was re-dialled every 15s for as long as the tab stayed open.
+ */
+export const MAX_RECONNECT_ATTEMPTS = 10;
+
 /** The server origin Socket.IO connects to: the API's origin (a relative API URL means this page's origin). */
 export const socketOrigin = (apiUrl: string, pageOrigin: string): string => {
   try {

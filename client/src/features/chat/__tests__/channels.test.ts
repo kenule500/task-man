@@ -2,7 +2,7 @@ import {
   applyActivity, canManageChannel, clearUnread, dmPartner, groupChannels, removeChannel, sumUnread, upsertChannel,
 } from '../lib/channels';
 import { activeTypers, noteTyping, pruneTyping, TYPING_TTL_MS } from '../lib/typing';
-import { CHANNEL_POLL_INTERVAL_MS, POLL_INTERVAL_MS, SOCKET_PATH, socketOrigin } from '../lib/socketConfig';
+import { CHANNEL_POLL_INTERVAL_MS, MAX_RECONNECT_ATTEMPTS, POLL_INTERVAL_MS, SOCKET_PATH, socketOrigin } from '../lib/socketConfig';
 import type { ChatActivity } from '../types';
 import { ANA, BEN, makeChannel } from './fixtures';
 
@@ -95,5 +95,10 @@ describe('socket configuration', () => {
     expect(SOCKET_PATH).toBe('/api/socket');
     expect(POLL_INTERVAL_MS).toBeLessThan(CHANNEL_POLL_INTERVAL_MS);
     expect(POLL_INTERVAL_MS).toBe(4000);
+  });
+
+  it('gives up reconnecting after a bounded number of attempts so an unreachable server is not dialled forever', () => {
+    expect(MAX_RECONNECT_ATTEMPTS).toBeGreaterThan(0);
+    expect(Number.isInteger(MAX_RECONNECT_ATTEMPTS)).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import { getToken } from '@/utils/session';
 import { chatApi } from '../api';
 import type { ChannelEvent, ChatActivity, ChatChannel, ConnectionStatus, PresenceUpdate } from '../types';
 import { applyActivity, clearUnread, removeChannel, sumUnread, upsertChannel } from './channels';
-import { CHANNEL_POLL_INTERVAL_MS, SOCKET_PATH, socketOrigin } from './socketConfig';
+import { CHANNEL_POLL_INTERVAL_MS, MAX_RECONNECT_ATTEMPTS, SOCKET_PATH, socketOrigin } from './socketConfig';
 
 /**
  * One chat connection per signed-in session: the Socket.IO socket, the channel list with unread counts and
@@ -84,6 +84,7 @@ class ChatClient {
   }
 
   private connect(): void {
+    let hasConnected = false;
     const socket = io(socketOrigin(API_URL, window.location.origin), {
       path: SOCKET_PATH,
       // Same as the server: /api/socket?EIO=4… (the Vercel function's own path, no sub-path)
@@ -94,16 +95,28 @@ class ChatClient {
       auth: callback => callback({ token: getToken() ?? '' }),
       reconnectionDelay: 1000,
       reconnectionDelayMax: 15000,
+      // Bound the retries: an unreachable server used to mean a dial every 15s for as long as the tab
+      // stayed open. The fallback polling keeps the screens usable once the attempts are spent.
+      reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
     });
     this.socket = socket;
 
     socket.on('connect', () => {
+      // A dial that only ever failed still counts as the first connection: start() already read both lists,
+      // and the events of that attempt were never sent either. Only a live connection that went away has a
+      // gap to catch up on.
+      const reconnected = hasConnected;
+      hasConnected = true;
       this.set({ status: 'connected' });
       this.stopPolling();
       // Rooms are per connection: join again, then catch up on what was missed while away
       this.joined.forEach(id => socket.emit('chat:join', { channelId: id }));
-      void this.refreshChannels();
-      void this.refreshOnline();
+      // The first connection already fetched both lists in start(); a reconnect catches them up once,
+      // because the gap's events are not sent again
+      if (reconnected) {
+        void this.refreshChannels();
+        void this.refreshOnline();
+      }
       this.emitLocal('chat:reconnected', undefined as never);
     });
     const lost = () => {

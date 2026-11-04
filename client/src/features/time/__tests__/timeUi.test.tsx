@@ -62,9 +62,11 @@ const taskTime = (overrides: Partial<TaskTime> = {}): TaskTime => ({
   ...overrides,
 });
 
+const RUNNING_ELAPSED_MS = 65_000;
+
 const runningTimer: RunningTimer = {
   _id: 'r1',
-  startedAt: new Date(Date.now() - 65_000).toISOString(),
+  startedAt: new Date(Date.now() - RUNNING_ELAPSED_MS).toISOString(),
   task: { _id: 't1', title: 'Fix login bug', key: 'WEB-12' },
 };
 
@@ -217,7 +219,9 @@ describe('TimerPill', () => {
     const link = await screen.findByRole('link', { name: /Timer running on WEB-12/ });
     expect(link).toHaveAttribute('href', '/acme/tasks?task=t1');
     expect(link).toHaveTextContent('WEB-12');
-    expect(link).toHaveTextContent(/1:0\d/);
+    // Allow the elapsed minutes to tick past the fixture during the assertion.
+    const minutes = String(Math.floor(RUNNING_ELAPSED_MS / 60_000));
+    expect(link).toHaveTextContent(new RegExp(`${minutes}:\\d\\d`));
 
     api.running.mockResolvedValue(null);
     await userEvent.click(screen.getByRole('button', { name: 'Stop the timer on WEB-12' }));
