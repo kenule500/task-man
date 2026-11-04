@@ -34,7 +34,7 @@ Jest · GitHub Actions · Vercel.
 ## 3. Demo script (≈10 minutes)
 
 Seeded accounts in `demo-workspace` — one per role. The shared test password is `DEMO_PASSWORD` in
-`server/src/scripts/seed.ts`.
+`services/api/src/scripts/seed.ts`.
 
 | Role | Email | What it shows |
 |---|---|---|
@@ -74,7 +74,7 @@ Browser (React SPA, PWA)
    │  same origin
    ▼
 Vercel ── static web app (client/dist)
-   └── /api/*  → Vercel function → Express app (server/src/app.ts)
+   └── /api/*  → Vercel function → Express app (services/api/src/app.ts)
                                     ├── protect (JWT + hashed DB sessions)
                                     ├── requirePermission('tasks:write' …)  ← RBAC on every workspace route
                                     └── MongoDB Atlas (data + GridFS for attachments)
@@ -114,7 +114,7 @@ The integration suite found 12 real bugs before release; browser end-to-end test
 ```bash
 pnpm install
 # API (local MongoDB) — auto-verifies signups so no email is needed
-cd server
+cd services/api
 MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm seed            # demo workspace + role accounts
 DEV_AUTO_VERIFY=true MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm dev
 # Web app (another terminal, from the repo root)

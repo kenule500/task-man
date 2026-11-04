@@ -1,0 +1,48 @@
+{
+  "feature": "upload-document",
+  "version": "v2",
+  "generatedAt": "2026-10-30T21:00:48.511Z",
+  "ok": true,
+  "results": [
+    {
+      "id": "server-tsc",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 37990,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "server-tsc-test",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 39629,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "client-tsc",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 52265,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "client-tsc-test",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 78311,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "client-eslint",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 176335,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

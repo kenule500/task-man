@@ -45,7 +45,7 @@ jobs:
           --health-retries 10
     defaults:
       run:
-        working-directory: server
+        working-directory: services/api
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6

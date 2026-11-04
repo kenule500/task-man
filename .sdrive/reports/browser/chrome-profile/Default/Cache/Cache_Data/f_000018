@@ -1,0 +1,209 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/auth/TwoFactorStep.tsx");const useState = __vite__cjsImport0_react["useState"];const _jsxDEV = __vite__cjsImport8_react_jsxDevRuntime["jsxDEV"]; const _Fragment = __vite__cjsImport8_react_jsxDevRuntime["Fragment"];import __vite__cjsImport0_react from "/node_modules/.vite/deps/react.js?v=77ae205a";
+import { ArrowRight, ShieldCheck } from "/node_modules/.vite/deps/lucide-react.js?v=161283d7";
+import { Alert, Field, fieldMessageId, Spinner } from "/src/components/ds/index.ts";
+import { AuthStatusHeader } from "/src/components/auth/AuthPageShell.tsx";
+import { Button } from "/src/components/ui/button.tsx";
+import { Input } from "/src/components/ui/input.tsx";
+import { OneTimeCodeField } from "/src/components/auth/OneTimeCodeField.tsx";
+import { isCompleteCode, isCompleteRecoveryCode, normalizeRecoveryInput } from "/src/features/account/lib/twoFactor.ts";
+var _jsxFileName = "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/auth/TwoFactorStep.tsx";
+import __vite__cjsImport8_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=77ae205a";
+var _s = $RefreshSig$();
+/** Second step of sign-in: the 6-digit authenticator code, or a recovery code instead. */
+export const TwoFactorStep = ({ email, loading, error, onSubmit, onBack }) => {
+	_s();
+	const [useRecovery, setUseRecovery] = useState(false);
+	const [code, setCode] = useState("");
+	const [recoveryCode, setRecoveryCode] = useState("");
+	const [touched, setTouched] = useState(false);
+	const complete = useRecovery ? isCompleteRecoveryCode(recoveryCode) : isCompleteCode(code);
+	const invalid = touched && !complete;
+	const submit = (event) => {
+		event.preventDefault();
+		setTouched(true);
+		if (!complete) return;
+		onSubmit(useRecovery ? { recoveryCode } : { code });
+	};
+	const switchMode = () => {
+		setUseRecovery((current) => !current);
+		setTouched(false);
+	};
+	return /* @__PURE__ */ _jsxDEV(_Fragment, { children: [
+		/* @__PURE__ */ _jsxDEV(AuthStatusHeader, {
+			icon: /* @__PURE__ */ _jsxDEV(ShieldCheck, {}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 50,
+				columnNumber: 15
+			}, this),
+			title: "Enter the 6-digit code",
+			description: useRecovery ? "Enter one of the recovery codes you saved when you turned on two-factor authentication." : /* @__PURE__ */ _jsxDEV(_Fragment, { children: [
+				"Open your authenticator app and enter the code",
+				email ? /* @__PURE__ */ _jsxDEV(_Fragment, { children: [" for ", /* @__PURE__ */ _jsxDEV("span", {
+					className: "font-semibold text-slate-800",
+					children: email
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 55,
+					columnNumber: 79
+				}, this)] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 55,
+					columnNumber: 72
+				}, this) : null,
+				"."
+			] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 55,
+				columnNumber: 15
+			}, this)
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 49,
+			columnNumber: 7
+		}, this),
+		error && /* @__PURE__ */ _jsxDEV(Alert, {
+			tone: "error",
+			className: "mb-6",
+			children: error
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 59,
+			columnNumber: 17
+		}, this),
+		/* @__PURE__ */ _jsxDEV("form", {
+			onSubmit: submit,
+			noValidate: true,
+			className: "space-y-5",
+			children: [useRecovery ? /* @__PURE__ */ _jsxDEV(Field, {
+				label: "Recovery code",
+				htmlFor: "recovery-code",
+				error: invalid ? "Enter the 8-character code, like abcd-efgh." : undefined,
+				hint: "Each recovery code works once.",
+				children: /* @__PURE__ */ _jsxDEV(Input, {
+					id: "recovery-code",
+					name: "recovery-code",
+					type: "text",
+					autoComplete: "off",
+					autoCapitalize: "none",
+					autoFocus: true,
+					spellCheck: false,
+					placeholder: "abcd-efgh",
+					value: recoveryCode,
+					onChange: (event) => setRecoveryCode(normalizeRecoveryInput(event.target.value)),
+					"aria-invalid": invalid,
+					"aria-describedby": fieldMessageId("recovery-code"),
+					className: "h-12 rounded-xl border-slate-300 bg-white text-center font-mono text-lg tracking-widest text-slate-900 shadow-sm placeholder:tracking-normal placeholder:text-slate-500 md:text-lg"
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 69,
+					columnNumber: 13
+				}, this)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 63,
+				columnNumber: 11
+			}, this) : /* @__PURE__ */ _jsxDEV(OneTimeCodeField, {
+				id: "two-factor-code",
+				label: "Authentication code",
+				value: code,
+				onChange: setCode,
+				error: invalid ? "Enter the 6-digit code." : undefined,
+				autoFocus: true
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 86,
+				columnNumber: 11
+			}, this), /* @__PURE__ */ _jsxDEV(Button, {
+				type: "submit",
+				disabled: loading,
+				className: "h-12 w-full rounded-xl bg-primary text-base font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary-hover",
+				children: loading ? /* @__PURE__ */ _jsxDEV(_Fragment, { children: [/* @__PURE__ */ _jsxDEV(Spinner, { decorative: true }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 103,
+					columnNumber: 15
+				}, this), " Verifying..."] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 102,
+					columnNumber: 13
+				}, this) : /* @__PURE__ */ _jsxDEV(_Fragment, { children: ["Verify and sign in ", /* @__PURE__ */ _jsxDEV(ArrowRight, {
+					className: "size-4",
+					"aria-hidden": true
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 107,
+					columnNumber: 34
+				}, this)] }, void 0, true, {
+					fileName: _jsxFileName,
+					lineNumber: 106,
+					columnNumber: 13
+				}, this)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 96,
+				columnNumber: 9
+			}, this)]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 61,
+			columnNumber: 7
+		}, this),
+		/* @__PURE__ */ _jsxDEV("div", {
+			className: "mt-6 flex flex-col items-center gap-1 text-sm",
+			children: [/* @__PURE__ */ _jsxDEV("button", {
+				type: "button",
+				onClick: switchMode,
+				className: "inline-flex min-h-10 items-center px-2 font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary",
+				children: useRecovery ? "Use my authenticator app instead" : "Use a recovery code instead"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 114,
+				columnNumber: 9
+			}, this), /* @__PURE__ */ _jsxDEV("button", {
+				type: "button",
+				onClick: onBack,
+				className: "inline-flex min-h-10 items-center px-2 text-slate-600 hover:underline focus-visible:outline-2 focus-visible:outline-primary",
+				children: "Back to sign in"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 121,
+				columnNumber: 9
+			}, this)]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 113,
+			columnNumber: 7
+		}, this)
+	] }, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 48,
+		columnNumber: 5
+	}, this);
+};
+_s(TwoFactorStep, "N8z6dqc7q1fTH3NIBd3PjkF9Pgo=");
+_c = TwoFactorStep;
+var _c;
+$RefreshReg$(_c, "TwoFactorStep");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
+import * as __vite_react_currentExports from "/src/components/auth/TwoFactorStep.tsx";
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+
+  const currentExports = __vite_react_currentExports;
+  queueMicrotask(() => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/auth/TwoFactorStep.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/auth/TwoFactorStep.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) { return RefreshRuntime.register(type, "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/auth/TwoFactorStep.tsx" + ' ' + id); }
+function $RefreshSig$() { return RefreshRuntime.createSignatureFunctionForTransform(); }
+
+//# sourceMappingURL=data:application/json;base64,eyJtYXBwaW5ncyI6IkFBQUEsU0FBUyxnQkFBZ0M7QUFDekMsU0FBUyxZQUFZLG1CQUFtQjtBQUN4QyxTQUFTLE9BQU8sT0FBTyxnQkFBZ0IsZUFBZTtBQUN0RCxTQUFTLHdCQUF3QjtBQUNqQyxTQUFTLGNBQWM7QUFDdkIsU0FBUyxhQUFhO0FBQ3RCLFNBQVMsd0JBQXdCO0FBQ2pDLFNBQ0UsZ0JBQWdCLHdCQUF3Qiw4QkFDbkM7Ozs7O0FBZ0JQLE9BQU8sTUFBTSxpQkFBaUIsRUFBRSxPQUFPLFNBQVMsT0FBTyxVQUFVLGFBQWlDOztDQUNoRyxNQUFNLENBQUMsYUFBYSxrQkFBa0IsU0FBUyxLQUFLO0NBQ3BELE1BQU0sQ0FBQyxNQUFNLFdBQVcsU0FBUyxFQUFFO0NBQ25DLE1BQU0sQ0FBQyxjQUFjLG1CQUFtQixTQUFTLEVBQUU7Q0FDbkQsTUFBTSxDQUFDLFNBQVMsY0FBYyxTQUFTLEtBQUs7Q0FFNUMsTUFBTSxXQUFXLGNBQWMsdUJBQXVCLFlBQVksSUFBSSxlQUFlLElBQUk7Q0FDekYsTUFBTSxVQUFVLFdBQVcsQ0FBQztDQUU1QixNQUFNLFVBQVUsVUFBcUI7RUFDbkMsTUFBTSxlQUFlO0VBQ3JCLFdBQVcsSUFBSTtFQUNmLElBQUksQ0FBQyxVQUFVO0VBQ2YsU0FBUyxjQUFjLEVBQUUsYUFBYSxJQUFJLEVBQUUsS0FBSyxDQUFDO0NBQ3BEO0NBRUEsTUFBTSxtQkFBbUI7RUFDdkIsZ0JBQWdCLFlBQVksQ0FBQyxPQUFPO0VBQ3BDLFdBQVcsS0FBSztDQUNsQjtDQUVBLE9BQ0U7RUFDRSx3QkFBQyxrQkFBRDtHQUNFLE1BQU0sd0JBQUMsYUFBRCxDQUFjOzs7OztHQUNwQixPQUFNO0dBQ04sYUFDRSxjQUNJLDRGQUNBO0lBQUU7SUFBK0MsUUFBUSxnREFBRSxTQUFLLHdCQUFDLFFBQUQ7S0FBTSxXQUFVO2VBQWdDO0lBQVk7Ozs7WUFBRzs7OztlQUFJO0lBQUs7R0FBRzs7Ozs7RUFFbEo7Ozs7O0VBRUEsU0FBUyx3QkFBQyxPQUFEO0dBQU8sTUFBSztHQUFRLFdBQVU7YUFBUTtFQUFhOzs7OztFQUU3RCx3QkFBQyxRQUFEO0dBQU0sVUFBVTtHQUFRO0dBQVcsV0FBVTthQUE3QyxDQUNHLGNBQ0Msd0JBQUMsT0FBRDtJQUNFLE9BQU07SUFDTixTQUFRO0lBQ1IsT0FBTyxVQUFVLGdEQUFnRDtJQUNqRSxNQUFLO2NBRUwsd0JBQUMsT0FBRDtLQUNFLElBQUc7S0FDSCxNQUFLO0tBQ0wsTUFBSztLQUNMLGNBQWE7S0FDYixnQkFBZTtLQUNmO0tBQ0EsWUFBWTtLQUNaLGFBQVk7S0FDWixPQUFPO0tBQ1AsV0FBVyxVQUFVLGdCQUFnQix1QkFBdUIsTUFBTSxPQUFPLEtBQUssQ0FBQztLQUMvRSxnQkFBYztLQUNkLG9CQUFrQixlQUFlLGVBQWU7S0FDaEQsV0FBVTtJQUNYOzs7OztHQUNJOzs7O2NBRVAsd0JBQUMsa0JBQUQ7SUFDRSxJQUFHO0lBQ0gsT0FBTTtJQUNOLE9BQU87SUFDUCxVQUFVO0lBQ1YsT0FBTyxVQUFVLDRCQUE0QjtJQUM3QztHQUNEOzs7O2FBR0gsd0JBQUMsUUFBRDtJQUNFLE1BQUs7SUFDTCxVQUFVO0lBQ1YsV0FBVTtjQUVULFVBQ0MsZ0RBQ0Usd0JBQUMsU0FBRCxFQUFTLGlCQUFZOzs7O2NBQUMsZUFDdEI7Ozs7ZUFFRixnREFBRSx1QkFDbUIsd0JBQUMsWUFBRDtLQUFZLFdBQVU7S0FBUztJQUFhOzs7O1lBQy9EOzs7OztHQUVFOzs7O1dBQ0o7Ozs7OztFQUVOLHdCQUFDLE9BQUQ7R0FBSyxXQUFVO2FBQWYsQ0FDRSx3QkFBQyxVQUFEO0lBQ0UsTUFBSztJQUNMLFNBQVM7SUFDVCxXQUFVO2NBRVQsY0FBYyxxQ0FBcUM7R0FDOUM7Ozs7YUFDUix3QkFBQyxVQUFEO0lBQ0UsTUFBSztJQUNMLFNBQVM7SUFDVCxXQUFVO2NBQ1g7R0FFTzs7OztXQUNMOzs7Ozs7Q0FDTDs7Ozs7QUFFTiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJUd29GYWN0b3JTdGVwLnRzeCJdLCJ2ZXJzaW9uIjozLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyB1c2VTdGF0ZSwgdHlwZSBGb3JtRXZlbnQgfSBmcm9tICdyZWFjdCc7XG5pbXBvcnQgeyBBcnJvd1JpZ2h0LCBTaGllbGRDaGVjayB9IGZyb20gJ2x1Y2lkZS1yZWFjdCc7XG5pbXBvcnQgeyBBbGVydCwgRmllbGQsIGZpZWxkTWVzc2FnZUlkLCBTcGlubmVyIH0gZnJvbSAnQC9jb21wb25lbnRzL2RzJztcbmltcG9ydCB7IEF1dGhTdGF0dXNIZWFkZXIgfSBmcm9tICdAL2NvbXBvbmVudHMvYXV0aC9BdXRoUGFnZVNoZWxsJztcbmltcG9ydCB7IEJ1dHRvbiB9IGZyb20gJ0AvY29tcG9uZW50cy91aS9idXR0b24nO1xuaW1wb3J0IHsgSW5wdXQgfSBmcm9tICdAL2NvbXBvbmVudHMvdWkvaW5wdXQnO1xuaW1wb3J0IHsgT25lVGltZUNvZGVGaWVsZCB9IGZyb20gJ0AvY29tcG9uZW50cy9hdXRoL09uZVRpbWVDb2RlRmllbGQnO1xuaW1wb3J0IHtcbiAgaXNDb21wbGV0ZUNvZGUsIGlzQ29tcGxldGVSZWNvdmVyeUNvZGUsIG5vcm1hbGl6ZVJlY292ZXJ5SW5wdXQsXG59IGZyb20gJ0AvZmVhdHVyZXMvYWNjb3VudC9saWIvdHdvRmFjdG9yJztcblxuZXhwb3J0IGludGVyZmFjZSBTZWNvbmRGYWN0b3JJbnB1dCB7XG4gIGNvZGU/OiBzdHJpbmc7XG4gIHJlY292ZXJ5Q29kZT86IHN0cmluZztcbn1cblxuaW50ZXJmYWNlIFR3b0ZhY3RvclN0ZXBQcm9wcyB7XG4gIGVtYWlsOiBzdHJpbmc7XG4gIGxvYWRpbmc6IGJvb2xlYW47XG4gIGVycm9yOiBzdHJpbmc7XG4gIG9uU3VibWl0OiAoaW5wdXQ6IFNlY29uZEZhY3RvcklucHV0KSA9PiB2b2lkO1xuICBvbkJhY2s6ICgpID0+IHZvaWQ7XG59XG5cbi8qKiBTZWNvbmQgc3RlcCBvZiBzaWduLWluOiB0aGUgNi1kaWdpdCBhdXRoZW50aWNhdG9yIGNvZGUsIG9yIGEgcmVjb3ZlcnkgY29kZSBpbnN0ZWFkLiAqL1xuZXhwb3J0IGNvbnN0IFR3b0ZhY3RvclN0ZXAgPSAoeyBlbWFpbCwgbG9hZGluZywgZXJyb3IsIG9uU3VibWl0LCBvbkJhY2sgfTogVHdvRmFjdG9yU3RlcFByb3BzKSA9PiB7XG4gIGNvbnN0IFt1c2VSZWNvdmVyeSwgc2V0VXNlUmVjb3ZlcnldID0gdXNlU3RhdGUoZmFsc2UpO1xuICBjb25zdCBbY29kZSwgc2V0Q29kZV0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFtyZWNvdmVyeUNvZGUsIHNldFJlY292ZXJ5Q29kZV0gPSB1c2VTdGF0ZSgnJyk7XG4gIGNvbnN0IFt0b3VjaGVkLCBzZXRUb3VjaGVkXSA9IHVzZVN0YXRlKGZhbHNlKTtcblxuICBjb25zdCBjb21wbGV0ZSA9IHVzZVJlY292ZXJ5ID8gaXNDb21wbGV0ZVJlY292ZXJ5Q29kZShyZWNvdmVyeUNvZGUpIDogaXNDb21wbGV0ZUNvZGUoY29kZSk7XG4gIGNvbnN0IGludmFsaWQgPSB0b3VjaGVkICYmICFjb21wbGV0ZTtcblxuICBjb25zdCBzdWJtaXQgPSAoZXZlbnQ6IEZvcm1FdmVudCkgPT4ge1xuICAgIGV2ZW50LnByZXZlbnREZWZhdWx0KCk7XG4gICAgc2V0VG91Y2hlZCh0cnVlKTtcbiAgICBpZiAoIWNvbXBsZXRlKSByZXR1cm47XG4gICAgb25TdWJtaXQodXNlUmVjb3ZlcnkgPyB7IHJlY292ZXJ5Q29kZSB9IDogeyBjb2RlIH0pO1xuICB9O1xuXG4gIGNvbnN0IHN3aXRjaE1vZGUgPSAoKSA9PiB7XG4gICAgc2V0VXNlUmVjb3ZlcnkoKGN1cnJlbnQpID0+ICFjdXJyZW50KTtcbiAgICBzZXRUb3VjaGVkKGZhbHNlKTtcbiAgfTtcblxuICByZXR1cm4gKFxuICAgIDw+XG4gICAgICA8QXV0aFN0YXR1c0hlYWRlclxuICAgICAgICBpY29uPXs8U2hpZWxkQ2hlY2sgLz59XG4gICAgICAgIHRpdGxlPVwiRW50ZXIgdGhlIDYtZGlnaXQgY29kZVwiXG4gICAgICAgIGRlc2NyaXB0aW9uPXtcbiAgICAgICAgICB1c2VSZWNvdmVyeVxuICAgICAgICAgICAgPyAnRW50ZXIgb25lIG9mIHRoZSByZWNvdmVyeSBjb2RlcyB5b3Ugc2F2ZWQgd2hlbiB5b3UgdHVybmVkIG9uIHR3by1mYWN0b3IgYXV0aGVudGljYXRpb24uJ1xuICAgICAgICAgICAgOiA8Pk9wZW4geW91ciBhdXRoZW50aWNhdG9yIGFwcCBhbmQgZW50ZXIgdGhlIGNvZGV7ZW1haWwgPyA8PiBmb3IgPHNwYW4gY2xhc3NOYW1lPVwiZm9udC1zZW1pYm9sZCB0ZXh0LXNsYXRlLTgwMFwiPntlbWFpbH08L3NwYW4+PC8+IDogbnVsbH0uPC8+XG4gICAgICAgIH1cbiAgICAgIC8+XG5cbiAgICAgIHtlcnJvciAmJiA8QWxlcnQgdG9uZT1cImVycm9yXCIgY2xhc3NOYW1lPVwibWItNlwiPntlcnJvcn08L0FsZXJ0Pn1cblxuICAgICAgPGZvcm0gb25TdWJtaXQ9e3N1Ym1pdH0gbm9WYWxpZGF0ZSBjbGFzc05hbWU9XCJzcGFjZS15LTVcIj5cbiAgICAgICAge3VzZVJlY292ZXJ5ID8gKFxuICAgICAgICAgIDxGaWVsZFxuICAgICAgICAgICAgbGFiZWw9XCJSZWNvdmVyeSBjb2RlXCJcbiAgICAgICAgICAgIGh0bWxGb3I9XCJyZWNvdmVyeS1jb2RlXCJcbiAgICAgICAgICAgIGVycm9yPXtpbnZhbGlkID8gJ0VudGVyIHRoZSA4LWNoYXJhY3RlciBjb2RlLCBsaWtlIGFiY2QtZWZnaC4nIDogdW5kZWZpbmVkfVxuICAgICAgICAgICAgaGludD1cIkVhY2ggcmVjb3ZlcnkgY29kZSB3b3JrcyBvbmNlLlwiXG4gICAgICAgICAgPlxuICAgICAgICAgICAgPElucHV0XG4gICAgICAgICAgICAgIGlkPVwicmVjb3ZlcnktY29kZVwiXG4gICAgICAgICAgICAgIG5hbWU9XCJyZWNvdmVyeS1jb2RlXCJcbiAgICAgICAgICAgICAgdHlwZT1cInRleHRcIlxuICAgICAgICAgICAgICBhdXRvQ29tcGxldGU9XCJvZmZcIlxuICAgICAgICAgICAgICBhdXRvQ2FwaXRhbGl6ZT1cIm5vbmVcIlxuICAgICAgICAgICAgICBhdXRvRm9jdXNcbiAgICAgICAgICAgICAgc3BlbGxDaGVjaz17ZmFsc2V9XG4gICAgICAgICAgICAgIHBsYWNlaG9sZGVyPVwiYWJjZC1lZmdoXCJcbiAgICAgICAgICAgICAgdmFsdWU9e3JlY292ZXJ5Q29kZX1cbiAgICAgICAgICAgICAgb25DaGFuZ2U9eyhldmVudCkgPT4gc2V0UmVjb3ZlcnlDb2RlKG5vcm1hbGl6ZVJlY292ZXJ5SW5wdXQoZXZlbnQudGFyZ2V0LnZhbHVlKSl9XG4gICAgICAgICAgICAgIGFyaWEtaW52YWxpZD17aW52YWxpZH1cbiAgICAgICAgICAgICAgYXJpYS1kZXNjcmliZWRieT17ZmllbGRNZXNzYWdlSWQoJ3JlY292ZXJ5LWNvZGUnKX1cbiAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaC0xMiByb3VuZGVkLXhsIGJvcmRlci1zbGF0ZS0zMDAgYmctd2hpdGUgdGV4dC1jZW50ZXIgZm9udC1tb25vIHRleHQtbGcgdHJhY2tpbmctd2lkZXN0IHRleHQtc2xhdGUtOTAwIHNoYWRvdy1zbSBwbGFjZWhvbGRlcjp0cmFja2luZy1ub3JtYWwgcGxhY2Vob2xkZXI6dGV4dC1zbGF0ZS01MDAgbWQ6dGV4dC1sZ1wiXG4gICAgICAgICAgICAvPlxuICAgICAgICAgIDwvRmllbGQ+XG4gICAgICAgICkgOiAoXG4gICAgICAgICAgPE9uZVRpbWVDb2RlRmllbGRcbiAgICAgICAgICAgIGlkPVwidHdvLWZhY3Rvci1jb2RlXCJcbiAgICAgICAgICAgIGxhYmVsPVwiQXV0aGVudGljYXRpb24gY29kZVwiXG4gICAgICAgICAgICB2YWx1ZT17Y29kZX1cbiAgICAgICAgICAgIG9uQ2hhbmdlPXtzZXRDb2RlfVxuICAgICAgICAgICAgZXJyb3I9e2ludmFsaWQgPyAnRW50ZXIgdGhlIDYtZGlnaXQgY29kZS4nIDogdW5kZWZpbmVkfVxuICAgICAgICAgICAgYXV0b0ZvY3VzXG4gICAgICAgICAgLz5cbiAgICAgICAgKX1cblxuICAgICAgICA8QnV0dG9uXG4gICAgICAgICAgdHlwZT1cInN1Ym1pdFwiXG4gICAgICAgICAgZGlzYWJsZWQ9e2xvYWRpbmd9XG4gICAgICAgICAgY2xhc3NOYW1lPVwiaC0xMiB3LWZ1bGwgcm91bmRlZC14bCBiZy1wcmltYXJ5IHRleHQtYmFzZSBmb250LXNlbWlib2xkIHRleHQtd2hpdGUgc2hhZG93LWxnIHNoYWRvdy1wcmltYXJ5LzI1IGhvdmVyOmJnLXByaW1hcnktaG92ZXJcIlxuICAgICAgICA+XG4gICAgICAgICAge2xvYWRpbmcgPyAoXG4gICAgICAgICAgICA8PlxuICAgICAgICAgICAgICA8U3Bpbm5lciBkZWNvcmF0aXZlIC8+IFZlcmlmeWluZy4uLlxuICAgICAgICAgICAgPC8+XG4gICAgICAgICAgKSA6IChcbiAgICAgICAgICAgIDw+XG4gICAgICAgICAgICAgIFZlcmlmeSBhbmQgc2lnbiBpbiA8QXJyb3dSaWdodCBjbGFzc05hbWU9XCJzaXplLTRcIiBhcmlhLWhpZGRlbiAvPlxuICAgICAgICAgICAgPC8+XG4gICAgICAgICAgKX1cbiAgICAgICAgPC9CdXR0b24+XG4gICAgICA8L2Zvcm0+XG5cbiAgICAgIDxkaXYgY2xhc3NOYW1lPVwibXQtNiBmbGV4IGZsZXgtY29sIGl0ZW1zLWNlbnRlciBnYXAtMSB0ZXh0LXNtXCI+XG4gICAgICAgIDxidXR0b25cbiAgICAgICAgICB0eXBlPVwiYnV0dG9uXCJcbiAgICAgICAgICBvbkNsaWNrPXtzd2l0Y2hNb2RlfVxuICAgICAgICAgIGNsYXNzTmFtZT1cImlubGluZS1mbGV4IG1pbi1oLTEwIGl0ZW1zLWNlbnRlciBweC0yIGZvbnQtc2VtaWJvbGQgdGV4dC1wcmltYXJ5IGhvdmVyOnVuZGVybGluZSBmb2N1cy12aXNpYmxlOm91dGxpbmUtMiBmb2N1cy12aXNpYmxlOm91dGxpbmUtcHJpbWFyeVwiXG4gICAgICAgID5cbiAgICAgICAgICB7dXNlUmVjb3ZlcnkgPyAnVXNlIG15IGF1dGhlbnRpY2F0b3IgYXBwIGluc3RlYWQnIDogJ1VzZSBhIHJlY292ZXJ5IGNvZGUgaW5zdGVhZCd9XG4gICAgICAgIDwvYnV0dG9uPlxuICAgICAgICA8YnV0dG9uXG4gICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgb25DbGljaz17b25CYWNrfVxuICAgICAgICAgIGNsYXNzTmFtZT1cImlubGluZS1mbGV4IG1pbi1oLTEwIGl0ZW1zLWNlbnRlciBweC0yIHRleHQtc2xhdGUtNjAwIGhvdmVyOnVuZGVybGluZSBmb2N1cy12aXNpYmxlOm91dGxpbmUtMiBmb2N1cy12aXNpYmxlOm91dGxpbmUtcHJpbWFyeVwiXG4gICAgICAgID5cbiAgICAgICAgICBCYWNrIHRvIHNpZ24gaW5cbiAgICAgICAgPC9idXR0b24+XG4gICAgICA8L2Rpdj5cbiAgICA8Lz5cbiAgKTtcbn07XG4iXX0=

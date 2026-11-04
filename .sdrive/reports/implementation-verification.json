@@ -1,0 +1,80 @@
+{
+  "feature": "upload-document",
+  "version": "v2",
+  "generatedAt": "2026-10-30T19:06:57.567Z",
+  "ok": false,
+  "results": [
+    {
+      "id": "server-typecheck",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 30622,
+      "stdout": "Scope: all 3 workspace projects\n[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY] Aborted removal of modules directory due to no TTY\n\nIf you are running pnpm in CI, set the CI environment variable to \"true\", or set \"confirmModulesPurge\" to \"false\".\n[ERROR] Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n\npnpm: Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n    at getFinalError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:89203:14)\n    at makeError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:91510:21)\n    at getSyncResult (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93354:10)\n    at spawnSubprocessSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93314:14)\n    at execaCoreSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93244:23)\n    at callBoundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95772:23)\n    at boundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95749:49)\n    at sync2 (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95908:10)\n    at runPnpmCli (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:271523:5)\n    at runDepsStatusCheck (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:273323:7)\n",
+      "stderr": ""
+    },
+    {
+      "id": "client-typecheck",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 43249,
+      "stdout": "Scope: all 3 workspace projects\n[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY] Aborted removal of modules directory due to no TTY\n\nIf you are running pnpm in CI, set the CI environment variable to \"true\", or set \"confirmModulesPurge\" to \"false\".\n[ERROR] Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n\npnpm: Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n    at getFinalError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:89203:14)\n    at makeError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:91510:21)\n    at getSyncResult (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93354:10)\n    at spawnSubprocessSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93314:14)\n    at execaCoreSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93244:23)\n    at callBoundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95772:23)\n    at boundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95749:49)\n    at sync2 (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95908:10)\n    at runPnpmCli (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:271523:5)\n    at runDepsStatusCheck (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:273323:7)\n",
+      "stderr": ""
+    },
+    {
+      "id": "client-lint",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 33158,
+      "stdout": "Scope: all 3 workspace projects\n[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY] Aborted removal of modules directory due to no TTY\n\nIf you are running pnpm in CI, set the CI environment variable to \"true\", or set \"confirmModulesPurge\" to \"false\".\n[ERROR] Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n\npnpm: Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n    at getFinalError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:89203:14)\n    at makeError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:91510:21)\n    at getSyncResult (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93354:10)\n    at spawnSubprocessSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93314:14)\n    at execaCoreSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93244:23)\n    at callBoundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95772:23)\n    at boundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95749:49)\n    at sync2 (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95908:10)\n    at runPnpmCli (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:271523:5)\n    at runDepsStatusCheck (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:273323:7)\n",
+      "stderr": ""
+    },
+    {
+      "id": "client-build",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 24657,
+      "stdout": "Scope: all 3 workspace projects\n[ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY] Aborted removal of modules directory due to no TTY\n\nIf you are running pnpm in CI, set the CI environment variable to \"true\", or set \"confirmModulesPurge\" to \"false\".\n[ERROR] Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n\npnpm: Command failed with exit code 1: \"C:\\Program Files\\nodejs\\node.exe\" \"C:\\Users\\KENULE-NWINEE\\AppData\\Roaming\\npm\\node_modules\\pnpm\\bin\\pnpm.mjs\" install\n    at getFinalError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:89203:14)\n    at makeError (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:91510:21)\n    at getSyncResult (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93354:10)\n    at spawnSubprocessSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93314:14)\n    at execaCoreSync (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:93244:23)\n    at callBoundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95772:23)\n    at boundExeca (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95749:49)\n    at sync2 (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:95908:10)\n    at runPnpmCli (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:271523:5)\n    at runDepsStatusCheck (file:///C:/Users/KENULE-NWINEE/AppData/Roaming/npm/node_modules/pnpm/dist/pnpm.mjs:273323:7)\n",
+      "stderr": ""
+    },
+    {
+      "id": "python-compile",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 4488,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "python-import-contracts",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 5735,
+      "stdout": "",
+      "stderr": "  File \"<string>\", line 1\r\n    import\r\n          ^\r\nSyntaxError: invalid syntax\r\n"
+    },
+    {
+      "id": "python-import-app",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 6046,
+      "stdout": "",
+      "stderr": "  File \"<string>\", line 1\r\n    from\r\n        ^\r\nSyntaxError: invalid syntax\r\n"
+    },
+    {
+      "id": "python-ruff",
+      "status": "fail",
+      "exitCode": 1,
+      "durationMs": 77341,
+      "stdout": "   |     ^^^^^^^\n133 |     title: str = Field(min_length=1, max_length=140)\n134 |     description: str = Field(default=\"\", max_length=1000)\n    |\n\nN815 Variable `storyPoints` in class scope should not be mixedCase\n   --> app\\contracts.py:137:5\n    |\n135 |     type: ItemType = ItemType.TASK\n136 |     priority: Priority = Priority.MEDIUM\n137 |     storyPoints: int | None = None\n    |     ^^^^^^^^^^^\n138 |     labels: list[str] = Field(default_factory=list, max_length=5)\n139 |     acceptanceCriteria: list[str] = Field(default_factory=list, max_length=6)\n    |\n\nN815 Variable `acceptanceCriteria` in class scope should not be mixedCase\n   --> app\\contracts.py:139:5\n    |\n137 |     storyPoints: int | None = None\n138 |     labels: list[str] = Field(default_factory=list, max_length=5)\n139 |     acceptanceCriteria: list[str] = Field(default_factory=list, max_length=6)\n    |     ^^^^^^^^^^^^^^^^^^\n140 |     subtasks: list[PlanSubtask] = Field(default_factory=list, max_length=8)\n    |\n\nUP037 [*] Remove quotes from type annotation\n   --> app\\contracts.py:169:37\n    |\n168 |     @model_validator(mode=\"after\")\n169 |     def references_resolve(self) -> \"PlanContract\":\n    |                                     ^^^^^^^^^^^^^^\n170 |         epic_refs = [epic.ref for epic in self.epics]\n171 |         if len(set(epic_refs)) != len(epic_refs):\n    |\nhelp: Remove quotes\n    |\n168 |     @model_validator(mode=\"after\")\r\n    -     def references_resolve(self) -> \"PlanContract\":\r\n169 +     def references_resolve(self) -> PlanContract:\r\n170 |         epic_refs = [epic.ref for epic in self.epics]\r\n    |\n\nN815 Variable `contractVersion` in class scope should not be mixedCase\n   --> app\\contracts.py:192:5\n    |\n191 | class AnalyzeResponse(StrictModel):\n192 |     contractVersion: Literal[1] = 1\n    |     ^^^^^^^^^^^^^^^\n193 |     requestId: str\n194 |     plan: PlanContract\n    |\n\nN815 Variable `requestId` in class scope should not be mixedCase\n   --> app\\contracts.py:193:5\n    |\n191 | class AnalyzeResponse(StrictModel):\n192 |     contractVersion: Literal[1] = 1\n193 |     requestId: str\n    |     ^^^^^^^^^\n194 |     plan: PlanContract\n195 |     analyzer: AnalyzerInfo\n    |\n\nI001 [*] Import block is un-sorted or un-formatted\n  --> app\\main.py:3:1\n   |\n 1 |   \"\"\"HTTP surface: one analysis route and a health check, nothing else.\"\"\"\n 2 |\n 3 | / from __future__ import annotations\n 4 | |\n 5 | | import json\n 6 | | import logging\n 7 | | import os\n 8 | | import time\n 9 | | from contextlib import asynccontextmanager\n10 | |\n11 | | from fastapi import Depends, FastAPI, Header, Request\n12 | | from fastapi.exceptions import RequestValidationError\n13 | | from fastapi.responses import JSONResponse\n14 | |\n15 | | from .analyze import analyze\n16 | | from .auth import authorize\n17 | | from .config import DEVELOPMENT, SDK_VERSION, Settings, load_settings\n18 | | from .contracts import AnalyzeRequest, AnalyzeResponse, AnalyzerError\n19 | | from .limits import Limiter, with_timeout\n   | |_________________________________________^\n20 |\n21 |   logger = logging.getLogger(\"document_analyzer\")\n   |\nhelp: Organize imports\n   |\n17 | from .config import DEVELOPMENT, SDK_VERSION, Settings, load_settings\r\n   - from .contracts import AnalyzeRequest, AnalyzeResponse, AnalyzerError\r\n18 + from .contracts import AnalyzeRequest, AnalyzerError, AnalyzeResponse\r\n19 | from .limits import Limiter, with_timeout\r\n   |\n\nE501 Line too long (102 > 100)\n   --> app\\main.py:140:101\n    |\n138 |         _: None = Depends(require_token),\n139 |     ) -> AnalyzeResponse:\n140 |         active: Settings = getattr(request.app.state, \"settings\", None) or settings or load_settings()\n    |                                                                                                     ^^\n141 |         limiter: Limiter = getattr(request.app.state, \"limiter\", None) or Limiter(\n142 |             active.max_concurrency\n    |\n\nFound 35 errors.\n[*] 4 fixable with `--fix` (5 unsafe fixes available with `--fix --unsafe-fixes`).\n",
+      "stderr": "Downloading ruff (9.9MiB)\n Downloaded ruff\nInstalled 1 package in 2.37s\n"
+    },
+    {
+      "id": "governance",
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 11715,
+      "stdout": "🔍 SpecDrive Governance Validation\n\n✅ config.json is valid.\n✅ workflow-state.json is valid.\n\n📁 Validating feature: upload-document\n✅ upload-document/v1/spec.json is valid.\n✅ upload-document/v1/plan.json is valid.\n✅ upload-document/v1/tasks.json is valid.\n✅ upload-document/v1/traceability.json is valid.\n✅ upload-document/v1/test-evidence.json is valid.\n✅ upload-document/v1/review.json is valid.\n✅ upload-document/v2/spec.json is valid.\n✅ upload-document/v2/plan.json is valid.\n✅ upload-document/v2/tasks.json is valid.\n✅ upload-document/v2/traceability.json is valid.\n⚠️  upload-document/v2/test-evidence.json not found. Skipping.\n⚠️  upload-document/v2/review.json not found. Skipping.\n\n----------------------------------------\n✅ Governance validation complete. All files are valid.\n",
+      "stderr": ""
+    }
+  ]
+}

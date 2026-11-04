@@ -157,6 +157,13 @@ export const ReviewStep = ({
         keyProblem={keyTaken ? createError.message : undefined}
       />
 
+      <p className="px-1 text-xs text-text-subtle">
+        {plan.analyzer === 'documind'
+          ? t('review.engine.documind', { model: plan.model })
+          : t('review.engine.ai', { model: plan.model })}
+        {plan.analyzer === 'documind' && <> · {t('review.usageUnavailable')}</>}
+      </p>
+
       {(nameTaken || keyTaken) && createError?.suggestion && (
         <Alert tone="warning" title={nameTaken ? t('review.nameTakenTitle') : t('review.keyTakenTitle')} onDismiss={onDismissError}>
           <Button

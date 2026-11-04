@@ -1,0 +1,47 @@
+{
+  "project": {
+    "name": "Shop Revamp",
+    "key": "SHO",
+    "description": "Rebuild the storefront checkout.",
+    "color": "blue"
+  },
+  "sprints": [
+    { "name": "Sprint 1", "goal": "Checkout foundations", "startDate": "2026-11-02", "endDate": "2026-11-15" },
+    { "name": "Sprint 2", "goal": "Payments and rollout", "startDate": "2026-11-16", "endDate": "2026-11-29" }
+  ],
+  "epics": [
+    { "ref": "E1", "title": "Checkout", "description": "Cart, address and payment steps." }
+  ],
+  "items": [
+    {
+      "ref": "T1",
+      "sprintIndex": 0,
+      "epicRef": "E1",
+      "title": "Build the cart summary",
+      "description": "Show items, quantities and totals.",
+      "type": "story",
+      "priority": "high",
+      "storyPoints": 5,
+      "labels": ["checkout"],
+      "acceptanceCriteria": ["Totals match the server calculation."],
+      "subtasks": [
+        { "title": "Add the summary component", "acceptanceCriteria": ["Renders on mobile and desktop."] }
+      ]
+    },
+    {
+      "ref": "T2",
+      "sprintIndex": 1,
+      "epicRef": "E1",
+      "title": "Add the payment step",
+      "description": "Collect a card and confirm the order.",
+      "type": "task",
+      "priority": "medium",
+      "storyPoints": 8,
+      "labels": ["payments"],
+      "acceptanceCriteria": ["A declined card shows a retry."],
+      "subtasks": []
+    }
+  ],
+  "assumptions": ["The payment provider stays the same."],
+  "risks": ["The provider sandbox may be unavailable."]
+}

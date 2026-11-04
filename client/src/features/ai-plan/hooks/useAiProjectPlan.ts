@@ -3,6 +3,7 @@ import i18n from '@/i18n';
 import { aiPlanApi } from '../api';
 import { readPlanError } from '../lib/file';
 import { tidyPlan } from '../lib/plan';
+import { subscribePlanUpdates } from '../lib/planSocket';
 import type { AiPlan, CreatedFromPlan, PlanApiError, PlanContent, PlanUploadOptions } from '../types';
 
 export type PlanPhase = 'upload' | 'analyzing' | 'review' | 'creating';
@@ -50,9 +51,60 @@ export const useAiProjectPlan = (
 
   const planId = plan?._id;
   const planStatus = plan?.status;
+  /** The server pushes plan status changes, so polling is only a fallback while that channel is down. */
+  const [live, setLive] = useState(false);
 
-  // ---- Polling while the server works
+  const applyPlan = useCallback((next: AiPlan) => {
+    setPlan(next);
+    if (next.status === 'ready') {
+      setDraft(next.plan ?? null);
+      setDirty(false);
+    }
+  }, []);
+
+  /** The plan whose status was already read once on connect: a re-subscribe does not read it again. */
+  const caughtUpFor = useRef<string | null>(null);
+
+  // ---- Push while the server works (no status request at all while the socket is connected)
   useEffect(() => {
+    if (!slug || !planId || (planStatus !== 'queued' && planStatus !== 'running')) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const next = await aiPlanApi.get(slug, planId);
+        if (!cancelled) applyPlan(next);
+      } catch {
+        // The event did not help after all: fall back to the slow status polling
+        if (!cancelled) setLive(false);
+      }
+    };
+    const subscription = subscribePlanUpdates(
+      update => { if (!cancelled && update.planId === planId) void refresh(); },
+      connected => {
+        if (cancelled) return;
+        setLive(connected);
+        if (!connected) {
+          // A later reconnect must catch up: an event sent while the channel was down is not replayed
+          caughtUpFor.current = null;
+          return;
+        }
+        // One catch-up read per plan, and one after every reconnect. Re-subscribing because the
+        // status changed is not a reconnect, so it costs no extra request.
+        if (caughtUpFor.current !== planId) {
+          caughtUpFor.current = planId;
+          void refresh();
+        }
+      },
+    );
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [slug, planId, planStatus, applyPlan]);
+
+  // ---- Polling while the server works (fallback: no socket, no token or a dropped connection)
+  useEffect(() => {
+    if (live) return;
     if (!slug || !planId || (planStatus !== 'queued' && planStatus !== 'running')) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -103,7 +155,7 @@ export const useAiProjectPlan = (
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [slug, planId, planStatus, pollMs, maxWaitMs]);
+  }, [slug, planId, planStatus, pollMs, maxWaitMs, live]);
 
   const reset = useCallback(() => {
     setPlan(null);
@@ -114,9 +166,9 @@ export const useAiProjectPlan = (
     onPlanIdRef.current?.(null);
   }, []);
 
-  /** Uploads the document; the generation continues on the server. */
-  const start = useCallback(async (file: File, options: PlanUploadOptions): Promise<boolean> => {
-    if (!slug) return false;
+  /** Uploads the document; the generation continues on the server. Returns the queued plan (null when it did not start). */
+  const start = useCallback(async (file: File, options: PlanUploadOptions): Promise<AiPlan | null> => {
+    if (!slug) return null;
     const target = targetProjectId ?? null;
     const payload: PlanUploadOptions = { ...options, destination: target ? 'existing' : 'new', targetProjectId: target };
     setUploading(true);
@@ -130,10 +182,10 @@ export const useAiProjectPlan = (
       setDirty(false);
       setCreateError(null);
       onPlanIdRef.current?.(queued._id);
-      return true;
+      return queued;
     } catch (err) {
       setError(readPlanError(err, i18n.t('aiPlan:errors.uploadFailed')));
-      return false;
+      return null;
     } finally {
       setUploading(false);
     }
@@ -193,7 +245,7 @@ export const useAiProjectPlan = (
     const previous = plan;
     reset();
     if (previous) await aiPlanApi.remove(slug, previous._id).catch(() => undefined);
-    return start(request.file, request.options);
+    return (await start(request.file, request.options)) !== null;
   }, [slug, request, plan, reset, start]);
 
   /** Edits the draft; nothing is sent until the project is created. */

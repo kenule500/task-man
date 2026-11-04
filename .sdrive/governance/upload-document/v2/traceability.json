@@ -1,0 +1,29 @@
+{
+  "feature": "upload-document",
+  "version": 2,
+  "rows": [
+    { "requirementId": "FR-035", "acceptanceCriteriaIds": ["AC-047", "AC-058"], "planSection": "P1 Contract and service foundation", "taskIds": ["T1.2", "T6.4"], "status": "not_started" },
+    { "requirementId": "FR-036", "acceptanceCriteriaIds": ["AC-047", "AC-052", "AC-053"], "planSection": "P3 HTTP surface and container", "taskIds": ["T3.1", "T3.2"], "status": "not_started" },
+    { "requirementId": "FR-037", "acceptanceCriteriaIds": ["AC-048", "AC-053"], "planSection": "P3 HTTP surface and container", "taskIds": ["T1.3", "T3.3"], "status": "not_started" },
+    { "requirementId": "FR-038", "acceptanceCriteriaIds": ["AC-047", "AC-049"], "planSection": "P2 DocuMind adapter", "taskIds": ["T2.1", "T2.2", "T2.3"], "status": "not_started" },
+    { "requirementId": "FR-039", "acceptanceCriteriaIds": ["AC-049", "AC-051"], "planSection": "P2 DocuMind adapter", "taskIds": ["T1.5", "T2.2", "T2.3"], "status": "not_started" },
+    { "requirementId": "FR-040", "acceptanceCriteriaIds": ["AC-051", "AC-054"], "planSection": "P2 DocuMind adapter", "taskIds": ["T2.3"], "status": "not_started" },
+    { "requirementId": "FR-041", "acceptanceCriteriaIds": ["AC-047", "AC-049"], "planSection": "P4 Node integration", "taskIds": ["T4.1", "T4.3", "T4.5"], "status": "not_started" },
+    { "requirementId": "FR-042", "acceptanceCriteriaIds": ["AC-050", "AC-051"], "planSection": "P4 Node integration", "taskIds": ["T4.1", "T4.2"], "status": "not_started" },
+    { "requirementId": "FR-043", "acceptanceCriteriaIds": ["AC-050", "AC-051"], "planSection": "P4 Node integration", "taskIds": ["T4.6"], "status": "not_started" },
+    { "requirementId": "FR-044", "acceptanceCriteriaIds": ["AC-048", "AC-055"], "planSection": "P4 Node integration", "taskIds": ["T4.3", "T4.4", "T5.1"], "status": "not_started" },
+    { "requirementId": "FR-045", "acceptanceCriteriaIds": ["AC-052", "AC-058"], "planSection": "P6 Deployment and documentation", "taskIds": ["T3.1", "T3.5", "T6.1", "T6.2", "T6.3", "T6.4"], "status": "not_started" },
+    { "requirementId": "FR-046", "acceptanceCriteriaIds": ["AC-053"], "planSection": "P2 DocuMind adapter", "taskIds": ["T2.4"], "status": "not_started" },
+    { "requirementId": "FR-047", "acceptanceCriteriaIds": ["AC-057"], "planSection": "P1 Contract and service foundation", "taskIds": ["T1.1", "T1.3"], "status": "not_started" },
+    { "requirementId": "FR-048", "acceptanceCriteriaIds": ["AC-052", "AC-053"], "planSection": "P1 Contract and service foundation", "taskIds": ["T1.4", "T3.2", "T6.2"], "status": "not_started" },
+    { "requirementId": "FR-049", "acceptanceCriteriaIds": ["AC-049", "AC-056"], "planSection": "P5 Client and localisation", "taskIds": ["T5.1", "T5.2", "T5.3", "T7.2", "T7.4"], "status": "not_started" },
+    { "requirementId": "NFR-020", "acceptanceCriteriaIds": ["AC-047", "AC-050"], "planSection": "P2 DocuMind adapter", "taskIds": ["T1.3", "T2.3", "T4.2", "T7.5"], "status": "not_started" },
+    { "requirementId": "NFR-021", "acceptanceCriteriaIds": ["AC-050"], "planSection": "P2 DocuMind adapter", "taskIds": ["T2.4", "T7.5"], "status": "not_started" },
+    { "requirementId": "NFR-022", "acceptanceCriteriaIds": ["AC-054"], "planSection": "P3 HTTP surface and container", "taskIds": ["T2.1", "T2.3", "T3.4"], "status": "not_started" },
+    { "requirementId": "NFR-023", "acceptanceCriteriaIds": ["AC-052", "AC-053"], "planSection": "P3 HTTP surface and container", "taskIds": ["T1.4", "T3.2"], "status": "not_started" },
+    { "requirementId": "NFR-024", "acceptanceCriteriaIds": ["AC-056"], "planSection": "P5 Client and localisation", "taskIds": ["T5.2", "T5.3", "T7.4"], "status": "not_started" },
+    { "requirementId": "NFR-025", "acceptanceCriteriaIds": ["AC-058"], "planSection": "P6 Deployment and documentation", "taskIds": ["T3.5", "T6.3", "T7.5"], "status": "not_started" },
+    { "requirementId": "NFR-026", "acceptanceCriteriaIds": ["AC-050"], "planSection": "P4 Node integration", "taskIds": ["T4.3", "T4.6"], "status": "not_started" },
+    { "requirementId": "NFR-027", "acceptanceCriteriaIds": ["AC-058"], "planSection": "P1 Contract and service foundation", "taskIds": ["T1.1", "T1.2", "T7.3"], "status": "not_started" }
+  ]
+}

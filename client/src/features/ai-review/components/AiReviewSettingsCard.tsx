@@ -23,6 +23,8 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
   const { t } = useTranslation('ai');
   const tokenId = useId();
   const { settings, loading, error, reload, update, saveProvider, removeProvider, testProvider } = useAiSettings(workspaceSlug);
+  // Planning can be switched on with the document analyzer alone; code review still needs the key.
+  const canEnable = settings?.available === true || settings?.planSource === 'analyzer';
   const providerLabel = settings?.provider && settings.provider.id !== 'unknown'
     ? settings.provider.id === 'custom'
       ? t('settings.customProvider')
@@ -98,9 +100,15 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
               onTest={testProvider}
             />
 
-            {!settings.available && (
+            {!settings.available && settings.planSource === 'analyzer' && (
               <Alert tone="warning">
-                <p>{t('settings.unavailable')}</p>
+                <p>{t('settings.analyzerPlans')}</p>
+              </Alert>
+            )}
+
+            {!settings.available && settings.planSource !== 'analyzer' && (
+              <Alert tone="warning">
+                <p>{t(settings.planSource === 'analyzer_unconfigured' ? 'settings.analyzerNotConfigured' : 'settings.unavailable')}</p>
                 {settings.problem && <p className="mt-1 text-xs">{t(`settings.problems.${settings.problem}`)}</p>}
               </Alert>
             )}
@@ -116,7 +124,7 @@ const AiReviewSettingsCard = ({ workspaceSlug }: { workspaceSlug: string }) => {
               label={t('settings.enable.label')}
               description={t('settings.enable.description')}
               checked={settings.enabled}
-              disabled={busy || !settings.available}
+              disabled={busy || !canEnable}
               onCheckedChange={value => { void save({ enabled: value }); }}
             />
 

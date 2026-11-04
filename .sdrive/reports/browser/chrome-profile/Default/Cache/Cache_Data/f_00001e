@@ -1,0 +1,197 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/features/sso/components/ConnectedSignIn.tsx");const useCallback = __vite__cjsImport0_react["useCallback"]; const useEffect = __vite__cjsImport0_react["useEffect"]; const useState = __vite__cjsImport0_react["useState"];const _jsxDEV = __vite__cjsImport7_react_jsxDevRuntime["jsxDEV"];import __vite__cjsImport0_react from "/node_modules/.vite/deps/react.js?v=77ae205a";
+import { Button } from "/src/components/ui/button.tsx";
+import { Surface, SectionHeader, toast } from "/src/components/ds/index.ts";
+import ConfirmActionDialog from "/src/components/ConfirmActionDialog.tsx";
+import { getApiErrorMessage } from "/src/utils/api.ts";
+import { ssoApi } from "/src/features/sso/api.ts";
+import { ProviderIcon } from "/src/features/sso/components/ProviderIcon.tsx";
+var _jsxFileName = "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/features/sso/components/ConnectedSignIn.tsx";
+import __vite__cjsImport7_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=77ae205a";
+var _s = $RefreshSig$();
+const LABELS = {
+	google: "Google",
+	microsoft: "Microsoft"
+};
+/**
+* "Connected sign-in methods" on the Security page. Hidden when the server offers no providers and none are linked
+* (and while it loads or fails: the rest of the page does not depend on it).
+*/
+export const ConnectedSignIn = () => {
+	_s();
+	const [state, setState] = useState(null);
+	const [pending, setPending] = useState(null);
+	const [busy, setBusy] = useState(false);
+	useEffect(() => {
+		let cancelled = false;
+		ssoApi.methods().then((loaded) => {
+			if (!cancelled) setState(loaded);
+		}).catch(() => undefined);
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+	const unlink = useCallback(async (method) => {
+		setBusy(true);
+		try {
+			await ssoApi.unlink(method.provider);
+			setState((current) => current && {
+				...current,
+				methods: current.methods.filter((item) => item.provider !== method.provider)
+			});
+			toast.success(`${LABELS[method.provider]} sign-in removed.`);
+		} catch (err) {
+			toast.error(getApiErrorMessage(err, "Could not remove that sign-in method. Try again."));
+		} finally {
+			setBusy(false);
+			setPending(null);
+		}
+	}, []);
+	if (!state || state.methods.length === 0 && state.available.length === 0) return null;
+	const onlyWay = !state.hasPassword && state.methods.length <= 1;
+	return /* @__PURE__ */ _jsxDEV(Surface, {
+		padding: "lg",
+		"aria-labelledby": "connected-sign-in-heading",
+		children: [
+			/* @__PURE__ */ _jsxDEV(SectionHeader, { title: /* @__PURE__ */ _jsxDEV("span", {
+				id: "connected-sign-in-heading",
+				children: "Connected sign-in methods"
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 49,
+				columnNumber: 29
+			}, this) }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 49,
+				columnNumber: 7
+			}, this),
+			state.methods.length === 0 ? /* @__PURE__ */ _jsxDEV("p", {
+				className: "text-sm text-slate-600",
+				children: "No provider is connected. Sign in once with Google or Microsoft using the email address of this account and it is connected automatically, as long as the provider has verified that address."
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 52,
+				columnNumber: 9
+			}, this) : /* @__PURE__ */ _jsxDEV("ul", {
+				className: "divide-y divide-slate-200 rounded-lg border border-slate-200",
+				children: state.methods.map((method) => /* @__PURE__ */ _jsxDEV("li", {
+					className: "flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4",
+					children: [/* @__PURE__ */ _jsxDEV("div", {
+						className: "flex min-w-0 flex-1 items-center gap-3",
+						children: [/* @__PURE__ */ _jsxDEV("span", {
+							"aria-hidden": true,
+							className: "flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700",
+							children: /* @__PURE__ */ _jsxDEV(ProviderIcon, { provider: method.provider }, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 62,
+								columnNumber: 19
+							}, this)
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 61,
+							columnNumber: 17
+						}, this), /* @__PURE__ */ _jsxDEV("div", {
+							className: "min-w-0",
+							children: [/* @__PURE__ */ _jsxDEV("p", {
+								className: "text-sm font-medium text-slate-900",
+								children: LABELS[method.provider]
+							}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 65,
+								columnNumber: 19
+							}, this), /* @__PURE__ */ _jsxDEV("p", {
+								className: "break-words text-xs text-slate-600",
+								children: method.email ?? "Email not shared"
+							}, void 0, false, {
+								fileName: _jsxFileName,
+								lineNumber: 66,
+								columnNumber: 19
+							}, this)]
+						}, void 0, true, {
+							fileName: _jsxFileName,
+							lineNumber: 64,
+							columnNumber: 17
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 60,
+						columnNumber: 15
+					}, this), /* @__PURE__ */ _jsxDEV(Button, {
+						type: "button",
+						variant: "outline",
+						disabled: busy || onlyWay,
+						onClick: () => setPending(method),
+						"aria-label": `Remove ${LABELS[method.provider]} sign-in`,
+						className: "h-11 w-full sm:h-9 sm:w-auto",
+						children: "Remove"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 69,
+						columnNumber: 15
+					}, this)]
+				}, method.provider, true, {
+					fileName: _jsxFileName,
+					lineNumber: 59,
+					columnNumber: 13
+				}, this))
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 57,
+				columnNumber: 9
+			}, this),
+			onlyWay && /* @__PURE__ */ _jsxDEV("p", {
+				className: "mt-4 text-xs text-slate-600",
+				children: "This is the only way to sign in to your account. To remove it, first set a password with “Forgot password” on the sign-in page."
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 85,
+				columnNumber: 9
+			}, this),
+			/* @__PURE__ */ _jsxDEV(ConfirmActionDialog, {
+				open: pending !== null,
+				onOpenChange: (open) => !open && !busy && setPending(null),
+				title: pending ? `Remove ${LABELS[pending.provider]} sign-in?` : "Remove sign-in method?",
+				description: "You will no longer be able to sign in with it. Your account and data stay as they are.",
+				confirmLabel: "Remove",
+				busyLabel: "Removing...",
+				busy,
+				onConfirm: () => pending && void unlink(pending)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 90,
+				columnNumber: 7
+			}, this)
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 48,
+		columnNumber: 5
+	}, this);
+};
+_s(ConnectedSignIn, "4YEjT1jqUED09ab1/WxzR4DgFxI=");
+_c = ConnectedSignIn;
+var _c;
+$RefreshReg$(_c, "ConnectedSignIn");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
+import * as __vite_react_currentExports from "/src/features/sso/components/ConnectedSignIn.tsx";
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+
+  const currentExports = __vite_react_currentExports;
+  queueMicrotask(() => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/features/sso/components/ConnectedSignIn.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/features/sso/components/ConnectedSignIn.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) { return RefreshRuntime.register(type, "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/features/sso/components/ConnectedSignIn.tsx" + ' ' + id); }
+function $RefreshSig$() { return RefreshRuntime.createSignatureFunctionForTransform(); }
+
+//# sourceMappingURL=data:application/json;base64,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QUFVLFVBQVUsT0FBTyxRQUFRLFVBQVUsYUFBYTtJQUNqRSxhQUFZO0lBQ1osY0FBYTtJQUNiLFdBQVU7SUFDSjtJQUNOLGlCQUFpQixXQUFXLEtBQUssT0FBTyxPQUFPO0dBQ2hEOzs7OztFQUNNOzs7Ozs7QUFFYiIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJDb25uZWN0ZWRTaWduSW4udHN4Il0sInZlcnNpb24iOjMsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZUNhbGxiYWNrLCB1c2VFZmZlY3QsIHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgQnV0dG9uIH0gZnJvbSAnQC9jb21wb25lbnRzL3VpL2J1dHRvbic7XG5pbXBvcnQgeyBTdXJmYWNlLCBTZWN0aW9uSGVhZGVyLCB0b2FzdCB9IGZyb20gJ0AvY29tcG9uZW50cy9kcyc7XG5pbXBvcnQgQ29uZmlybUFjdGlvbkRpYWxvZyBmcm9tICdAL2NvbXBvbmVudHMvQ29uZmlybUFjdGlvbkRpYWxvZyc7XG5pbXBvcnQgeyBnZXRBcGlFcnJvck1lc3NhZ2UgfSBmcm9tICdAL3V0aWxzL2FwaSc7XG5pbXBvcnQgeyBzc29BcGkgfSBmcm9tICcuLi9hcGknO1xuaW1wb3J0IHR5cGUgeyBTc29NZXRob2QsIFNzb01ldGhvZHNTdGF0ZSB9IGZyb20gJy4uL3R5cGVzJztcbmltcG9ydCB7IFByb3ZpZGVySWNvbiB9IGZyb20gJy4vUHJvdmlkZXJJY29uJztcblxuY29uc3QgTEFCRUxTID0geyBnb29nbGU6ICdHb29nbGUnLCBtaWNyb3NvZnQ6ICdNaWNyb3NvZnQnIH0gYXMgY29uc3Q7XG5cbi8qKlxuICogXCJDb25uZWN0ZWQgc2lnbi1pbiBtZXRob2RzXCIgb24gdGhlIFNlY3VyaXR5IHBhZ2UuIEhpZGRlbiB3aGVuIHRoZSBzZXJ2ZXIgb2ZmZXJzIG5vIHByb3ZpZGVycyBhbmQgbm9uZSBhcmUgbGlua2VkXG4gKiAoYW5kIHdoaWxlIGl0IGxvYWRzIG9yIGZhaWxzOiB0aGUgcmVzdCBvZiB0aGUgcGFnZSBkb2VzIG5vdCBkZXBlbmQgb24gaXQpLlxuICovXG5leHBvcnQgY29uc3QgQ29ubmVjdGVkU2lnbkluID0gKCkgPT4ge1xuICBjb25zdCBbc3RhdGUsIHNldFN0YXRlXSA9IHVzZVN0YXRlPFNzb01ldGhvZHNTdGF0ZSB8IG51bGw+KG51bGwpO1xuICBjb25zdCBbcGVuZGluZywgc2V0UGVuZGluZ10gPSB1c2VTdGF0ZTxTc29NZXRob2QgfCBudWxsPihudWxsKTtcbiAgY29uc3QgW2J1c3ksIHNldEJ1c3ldID0gdXNlU3RhdGUoZmFsc2UpO1xuXG4gIHVzZUVmZmVjdCgoKSA9PiB7XG4gICAgbGV0IGNhbmNlbGxlZCA9IGZhbHNlO1xuICAgIHNzb0FwaS5tZXRob2RzKClcbiAgICAgIC50aGVuKChsb2FkZWQpID0+IHsgaWYgKCFjYW5jZWxsZWQpIHNldFN0YXRlKGxvYWRlZCk7IH0pXG4gICAgICAuY2F0Y2goKCkgPT4gdW5kZWZpbmVkKTtcbiAgICByZXR1cm4gKCkgPT4geyBjYW5jZWxsZWQgPSB0cnVlOyB9O1xuICB9LCBbXSk7XG5cbiAgY29uc3QgdW5saW5rID0gdXNlQ2FsbGJhY2soYXN5bmMgKG1ldGhvZDogU3NvTWV0aG9kKSA9PiB7XG4gICAgc2V0QnVzeSh0cnVlKTtcbiAgICB0cnkge1xuICAgICAgYXdhaXQgc3NvQXBpLnVubGluayhtZXRob2QucHJvdmlkZXIpO1xuICAgICAgc2V0U3RhdGUoKGN1cnJlbnQpID0+IGN1cnJlbnQgJiYgeyAuLi5jdXJyZW50LCBtZXRob2RzOiBjdXJyZW50Lm1ldGhvZHMuZmlsdGVyKChpdGVtKSA9PiBpdGVtLnByb3ZpZGVyICE9PSBtZXRob2QucHJvdmlkZXIpIH0pO1xuICAgICAgdG9hc3Quc3VjY2VzcyhgJHtMQUJFTFNbbWV0aG9kLnByb3ZpZGVyXX0gc2lnbi1pbiByZW1vdmVkLmApO1xuICAgIH0gY2F0Y2ggKGVycjogdW5rbm93bikge1xuICAgICAgdG9hc3QuZXJyb3IoZ2V0QXBpRXJyb3JNZXNzYWdlKGVyciwgJ0NvdWxkIG5vdCByZW1vdmUgdGhhdCBzaWduLWluIG1ldGhvZC4gVHJ5IGFnYWluLicpKTtcbiAgICB9IGZpbmFsbHkge1xuICAgICAgc2V0QnVzeShmYWxzZSk7XG4gICAgICBzZXRQZW5kaW5nKG51bGwpO1xuICAgIH1cbiAgfSwgW10pO1xuXG4gIGlmICghc3RhdGUgfHwgKHN0YXRlLm1ldGhvZHMubGVuZ3RoID09PSAwICYmIHN0YXRlLmF2YWlsYWJsZS5sZW5ndGggPT09IDApKSByZXR1cm4gbnVsbDtcblxuICBjb25zdCBvbmx5V2F5ID0gIXN0YXRlLmhhc1Bhc3N3b3JkICYmIHN0YXRlLm1ldGhvZHMubGVuZ3RoIDw9IDE7XG5cbiAgcmV0dXJuIChcbiAgICA8U3VyZmFjZSBwYWRkaW5nPVwibGdcIiBhcmlhLWxhYmVsbGVkYnk9XCJjb25uZWN0ZWQtc2lnbi1pbi1oZWFkaW5nXCI+XG4gICAgICA8U2VjdGlvbkhlYWRlciB0aXRsZT17PHNwYW4gaWQ9XCJjb25uZWN0ZWQtc2lnbi1pbi1oZWFkaW5nXCI+Q29ubmVjdGVkIHNpZ24taW4gbWV0aG9kczwvc3Bhbj59IC8+XG5cbiAgICAgIHtzdGF0ZS5tZXRob2RzLmxlbmd0aCA9PT0gMCA/IChcbiAgICAgICAgPHAgY2xhc3NOYW1lPVwidGV4dC1zbSB0ZXh0LXNsYXRlLTYwMFwiPlxuICAgICAgICAgIE5vIHByb3ZpZGVyIGlzIGNvbm5lY3RlZC4gU2lnbiBpbiBvbmNlIHdpdGggR29vZ2xlIG9yIE1pY3Jvc29mdCB1c2luZyB0aGUgZW1haWwgYWRkcmVzcyBvZiB0aGlzIGFjY291bnQgYW5kIGl0IGlzIGNvbm5lY3RlZFxuICAgICAgICAgIGF1dG9tYXRpY2FsbHksIGFzIGxvbmcgYXMgdGhlIHByb3ZpZGVyIGhhcyB2ZXJpZmllZCB0aGF0IGFkZHJlc3MuXG4gICAgICAgIDwvcD5cbiAgICAgICkgOiAoXG4gICAgICAgIDx1bCBjbGFzc05hbWU9XCJkaXZpZGUteSBkaXZpZGUtc2xhdGUtMjAwIHJvdW5kZWQtbGcgYm9yZGVyIGJvcmRlci1zbGF0ZS0yMDBcIj5cbiAgICAgICAgICB7c3RhdGUubWV0aG9kcy5tYXAoKG1ldGhvZCkgPT4gKFxuICAgICAgICAgICAgPGxpIGtleT17bWV0aG9kLnByb3ZpZGVyfSBjbGFzc05hbWU9XCJmbGV4IGZsZXgtY29sIGdhcC0zIHAtMyBzbTpmbGV4LXJvdyBzbTppdGVtcy1jZW50ZXIgc206Z2FwLTQgc206cC00XCI+XG4gICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPVwiZmxleCBtaW4tdy0wIGZsZXgtMSBpdGVtcy1jZW50ZXIgZ2FwLTNcIj5cbiAgICAgICAgICAgICAgICA8c3BhbiBhcmlhLWhpZGRlbiBjbGFzc05hbWU9XCJmbGV4IHNpemUtOSBzaHJpbmstMCBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgcm91bmRlZC1sZyBiZy1zbGF0ZS0xMDAgdGV4dC1zbGF0ZS03MDBcIj5cbiAgICAgICAgICAgICAgICAgIDxQcm92aWRlckljb24gcHJvdmlkZXI9e21ldGhvZC5wcm92aWRlcn0gLz5cbiAgICAgICAgICAgICAgICA8L3NwYW4+XG4gICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9XCJtaW4tdy0wXCI+XG4gICAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9XCJ0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtc2xhdGUtOTAwXCI+e0xBQkVMU1ttZXRob2QucHJvdmlkZXJdfTwvcD5cbiAgICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT1cImJyZWFrLXdvcmRzIHRleHQteHMgdGV4dC1zbGF0ZS02MDBcIj57bWV0aG9kLmVtYWlsID8/ICdFbWFpbCBub3Qgc2hhcmVkJ308L3A+XG4gICAgICAgICAgICAgICAgPC9kaXY+XG4gICAgICAgICAgICAgIDwvZGl2PlxuICAgICAgICAgICAgICA8QnV0dG9uXG4gICAgICAgICAgICAgICAgdHlwZT1cImJ1dHRvblwiXG4gICAgICAgICAgICAgICAgdmFyaWFudD1cIm91dGxpbmVcIlxuICAgICAgICAgICAgICAgIGRpc2FibGVkPXtidXN5IHx8IG9ubHlXYXl9XG4gICAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0UGVuZGluZyhtZXRob2QpfVxuICAgICAgICAgICAgICAgIGFyaWEtbGFiZWw9e2BSZW1vdmUgJHtMQUJFTFNbbWV0aG9kLnByb3ZpZGVyXX0gc2lnbi1pbmB9XG4gICAgICAgICAgICAgICAgY2xhc3NOYW1lPVwiaC0xMSB3LWZ1bGwgc206aC05IHNtOnctYXV0b1wiXG4gICAgICAgICAgICAgID5cbiAgICAgICAgICAgICAgICBSZW1vdmVcbiAgICAgICAgICAgICAgPC9CdXR0b24+XG4gICAgICAgICAgICA8L2xpPlxuICAgICAgICAgICkpfVxuICAgICAgICA8L3VsPlxuICAgICAgKX1cblxuICAgICAge29ubHlXYXkgJiYgKFxuICAgICAgICA8cCBjbGFzc05hbWU9XCJtdC00IHRleHQteHMgdGV4dC1zbGF0ZS02MDBcIj5cbiAgICAgICAgICBUaGlzIGlzIHRoZSBvbmx5IHdheSB0byBzaWduIGluIHRvIHlvdXIgYWNjb3VudC4gVG8gcmVtb3ZlIGl0LCBmaXJzdCBzZXQgYSBwYXNzd29yZCB3aXRoICZsZHF1bztGb3Jnb3QgcGFzc3dvcmQmcmRxdW87IG9uIHRoZSBzaWduLWluIHBhZ2UuXG4gICAgICAgIDwvcD5cbiAgICAgICl9XG5cbiAgICAgIDxDb25maXJtQWN0aW9uRGlhbG9nXG4gICAgICAgIG9wZW49e3BlbmRpbmcgIT09IG51bGx9XG4gICAgICAgIG9uT3BlbkNoYW5nZT17KG9wZW4pID0+ICFvcGVuICYmICFidXN5ICYmIHNldFBlbmRpbmcobnVsbCl9XG4gICAgICAgIHRpdGxlPXtwZW5kaW5nID8gYFJlbW92ZSAke0xBQkVMU1twZW5kaW5nLnByb3ZpZGVyXX0gc2lnbi1pbj9gIDogJ1JlbW92ZSBzaWduLWluIG1ldGhvZD8nfVxuICAgICAgICBkZXNjcmlwdGlvbj1cIllvdSB3aWxsIG5vIGxvbmdlciBiZSBhYmxlIHRvIHNpZ24gaW4gd2l0aCBpdC4gWW91ciBhY2NvdW50IGFuZCBkYXRhIHN0YXkgYXMgdGhleSBhcmUuXCJcbiAgICAgICAgY29uZmlybUxhYmVsPVwiUmVtb3ZlXCJcbiAgICAgICAgYnVzeUxhYmVsPVwiUmVtb3ZpbmcuLi5cIlxuICAgICAgICBidXN5PXtidXN5fVxuICAgICAgICBvbkNvbmZpcm09eygpID0+IHBlbmRpbmcgJiYgdm9pZCB1bmxpbmsocGVuZGluZyl9XG4gICAgICAvPlxuICAgIDwvU3VyZmFjZT5cbiAgKTtcbn07XG4iXX0=

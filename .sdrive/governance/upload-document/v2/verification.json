@@ -1,0 +1,1653 @@
+{
+  "feature": "upload-document",
+  "status": "fail",
+  "checkedAt": "2026-10-31T02:01:42.249Z",
+  "summary": {
+    "matched": 31,
+    "missing": 34,
+    "renamed": 3,
+    "extra": 189,
+    "withdrawn": 0
+  },
+  "items": {
+    "matched": [
+      {
+        "type": "component",
+        "name": "packages/contracts/plan.contract.json",
+        "action": "create",
+        "resolution": null,
+        "file": "packages/contracts/plan.contract.json"
+      },
+      {
+        "type": "component",
+        "name": "packages/contracts/fixtures/plan.golden.json",
+        "action": "create",
+        "resolution": null,
+        "file": "packages/contracts/fixtures/plan.golden.json"
+      },
+      {
+        "type": "component",
+        "name": "packages/contracts/README.md",
+        "action": "create",
+        "resolution": null,
+        "file": "packages/contracts/README.md"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/config.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/config.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/contracts.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/brief.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/brief.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/engine.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/engine.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/parsing.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/parsing.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/analyze.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/analyze.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/limits.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/limits.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/auth.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/auth.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/main.py",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/main.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/README.md",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/README.md"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/analyzer.ts",
+        "action": "create",
+        "resolution": null,
+        "file": "services/api/src/utils/ai/plan/analyzer.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/config.ts",
+        "action": "modify",
+        "resolution": null,
+        "file": "services/api/src/utils/ai/plan/config.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/service.ts",
+        "action": "modify",
+        "resolution": null,
+        "file": "services/api/src/utils/ai/plan/service.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/models/aiPlanModel.ts",
+        "action": "modify",
+        "resolution": null,
+        "file": "services/api/src/models/aiPlanModel.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/controllers/aiPlanController.ts",
+        "action": "modify",
+        "resolution": null,
+        "file": "services/api/src/controllers/aiPlanController.ts"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/types.ts",
+        "action": "modify",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/extract.ts",
+        "action": "reuse",
+        "resolution": null,
+        "file": "services/api/src/utils/ai/plan/extract.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/provider.ts",
+        "action": "reuse",
+        "resolution": null,
+        "file": "services/api/src/utils/ai/provider.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "POST /v1/plans:analyze",
+        "method": "POST",
+        "path": "/v1/plans:analyze",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/main.py"
+      },
+      {
+        "type": "endpoint",
+        "name": "GET /healthz",
+        "method": "GET",
+        "path": "/healthz",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/main.py"
+      },
+      {
+        "type": "entity",
+        "name": "AiPlan",
+        "action": "update",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "model",
+        "fieldType": "string",
+        "action": "no_change",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "usage",
+        "fieldType": "{ inputTokens: number, outputTokens: number }",
+        "action": "no_change",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "source",
+        "fieldType": "PlanSource",
+        "action": "no_change",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "status",
+        "fieldType": "'queued' | 'running' | 'ready' | 'failed' | 'created'",
+        "action": "no_change",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "dependency",
+        "name": "Existing extraction",
+        "action": "no_change",
+        "depType": "internal",
+        "resolution": null,
+        "note": "internal dependency; not manifest-verifiable"
+      },
+      {
+        "type": "dependency",
+        "name": "Existing v1 provider",
+        "action": "no_change",
+        "depType": "internal",
+        "resolution": null,
+        "note": "internal dependency; not manifest-verifiable"
+      },
+      {
+        "type": "dependency",
+        "name": "Render analyzer service",
+        "action": "add",
+        "depType": "service",
+        "resolution": null,
+        "note": "service dependency; not manifest-verifiable"
+      }
+    ],
+    "missing": [
+      {
+        "type": "component",
+        "name": "services/document-analyzer",
+        "action": "create",
+        "resolution": null
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/Dockerfile",
+        "action": "create",
+        "resolution": null
+      },
+      {
+        "type": "component",
+        "name": "render.yaml",
+        "action": "modify",
+        "resolution": null
+      },
+      {
+        "type": "component",
+        "name": "services/api/.env.example",
+        "action": "modify",
+        "resolution": null
+      },
+      {
+        "type": "component",
+        "name": "AGENTS.md and README.md",
+        "action": "modify",
+        "resolution": null
+      },
+      {
+        "type": "endpoint",
+        "name": "POST /api/workspaces/:slug/ai/plans",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/ai/plans",
+        "action": "reuse",
+        "resolution": null
+      },
+      {
+        "type": "endpoint",
+        "name": "GET /api/workspaces/:slug/ai/plans/:id",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/ai/plans/:id",
+        "action": "reuse",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "analyzer",
+        "fieldType": "'documind' | 'ai'",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "plan",
+        "fieldType": "PlanContent",
+        "action": "no_change",
+        "resolution": null
+      },
+      {
+        "type": "entity",
+        "name": "PlanContract",
+        "action": "create",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "contractVersion",
+        "fieldType": "1",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "project",
+        "fieldType": "{ name, key, description, color }",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "sprints",
+        "fieldType": "array<{ name, goal, startDate, endDate }>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "epics",
+        "fieldType": "array<{ ref, title, description }>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "items",
+        "fieldType": "array<PlanItem>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "assumptions",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "risks",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "entity",
+        "name": "AnalyzeRequest",
+        "action": "create",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "requestId",
+        "fieldType": "string (uuid)",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "contractVersion",
+        "fieldType": "1",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "document",
+        "fieldType": "{ fileName, mimeType, text }",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "options",
+        "fieldType": "PlanOptions",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "entity",
+        "name": "AnalyzeResponse",
+        "action": "create",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "requestId",
+        "fieldType": "string",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "plan",
+        "fieldType": "PlanContract",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "analyzer",
+        "fieldType": "{ engine, sdkVersion, model, latencyMs }",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "warnings",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "documind",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "uv",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "fastapi",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "uvicorn",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "pydantic",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "pytest and httpx",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "Node global fetch",
+        "action": "no_change",
+        "depType": "library",
+        "resolution": null
+      }
+    ],
+    "renamed": [
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan/components",
+        "action": "modify",
+        "resolution": null,
+        "to": "client/src/components/ds/__tests__/components.test.tsx",
+        "file": "client/src/components/ds/__tests__/components.test.tsx"
+      },
+      {
+        "type": "component",
+        "name": "client/src/i18n/locales/en,fr,ar/aiPlan.json",
+        "action": "modify",
+        "resolution": null,
+        "to": "client/src/i18n/locales/ar/ai.json",
+        "file": "client/src/i18n/locales/ar/ai.json"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan flow",
+        "action": "reuse",
+        "resolution": null,
+        "to": "client/src/i18n/locales/en/ai.json",
+        "file": "client/src/i18n/locales/en/ai.json"
+      }
+    ],
+    "extra": [
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/create.ts",
+        "file": "services/api/src/utils/ai/plan/create.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/dates.ts",
+        "file": "services/api/src/utils/ai/plan/dates.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/prompt.ts",
+        "file": "services/api/src/utils/ai/plan/prompt.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/schema.ts",
+        "file": "services/api/src/utils/ai/plan/schema.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/sprints.ts",
+        "file": "services/api/src/utils/ai/plan/sprints.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/target.ts",
+        "file": "services/api/src/utils/ai/plan/target.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/text.ts",
+        "file": "services/api/src/utils/ai/plan/text.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/__init__.py",
+        "file": "services/document-analyzer/app/__init__.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/pyproject.toml",
+        "file": "services/document-analyzer/pyproject.toml"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/api/health",
+        "file": "services/api/src/app.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/create",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/aiRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/",
+        "file": "services/api/src/routes/aiRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/provider",
+        "file": "services/api/src/routes/aiRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/provider",
+        "file": "services/api/src/routes/aiRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/provider/test",
+        "file": "services/api/src/routes/aiRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/signup",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/login",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/login/2fa",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/logout",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/currentuser",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/verify-email/:token",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/resend-verification",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/forgot-password",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/reset-password/:token",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/onboarding",
+        "file": "services/api/src/routes/authRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/templates",
+        "file": "services/api/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/automationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/presence",
+        "file": "services/api/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/presence",
+        "file": "services/api/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/presence",
+        "file": "services/api/src/routes/changeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/channels",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/channels",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/channels/:id",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/channels/:id",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/dm",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/channels/:id/messages",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/channels/:id/messages",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/channels/:id/read",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/messages/:id",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/messages/:id",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/members",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/presence",
+        "file": "services/api/src/routes/chatRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/order",
+        "file": "services/api/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/fieldRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/preview",
+        "file": "services/api/src/routes/importRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/commit",
+        "file": "services/api/src/routes/importRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/github/:slug",
+        "file": "services/api/src/routes/integrationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:token",
+        "file": "services/api/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:token/accept",
+        "file": "services/api/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:token/decline",
+        "file": "services/api/src/routes/invitationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/push/public-key",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/push/subscribe",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/push/unsubscribe",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/read-all",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/read",
+        "file": "services/api/src/routes/notificationRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/search",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/move",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/versions",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/versions/:version",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/restore/:version",
+        "file": "services/api/src/routes/pageRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/notifications",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/password",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/2fa",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/setup",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/enable",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/disable",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/2fa/recovery-codes",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/sso",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/sso/:provider",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/sessions",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/sessions/revoke-others",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/sessions/:id",
+        "file": "services/api/src/routes/profileRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id/sprints/:sprintId",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints/:sprintId/start",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/sprints/:sprintId/complete",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/sprints/:sprintId",
+        "file": "services/api/src/routes/projectRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/release",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/notes",
+        "file": "services/api/src/routes/releaseRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/permissions",
+        "file": "services/api/src/routes/roleRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/providers",
+        "file": "services/api/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:provider/start",
+        "file": "services/api/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:provider/callback",
+        "file": "services/api/src/routes/ssoRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/bulk",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/bulk-delete",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:id",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/duplicate",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/watch",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/watch",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/relations",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/relations/:relatedId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/move",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/activity",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/ai-review",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/ai-reviews",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/ai-reviews/:reviewId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/time",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/time",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/timer/start",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/timer/stop",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/time/:entryId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/comments",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/comments/:commentId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/attachments",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/attachments/:attachmentId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id/attachments/:attachmentId",
+        "file": "services/api/src/routes/taskRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/running",
+        "file": "services/api/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/export.csv",
+        "file": "services/api/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/timeRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/tokenRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:id",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:id",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/rotate-secret",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/test",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:id/deliveries",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:id/deliveries/:deliveryId/redeliver",
+        "file": "services/api/src/routes/webhookRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/workflowRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/",
+        "file": "services/api/src/routes/workflowRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/join",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/activate",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/members",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/invite-code",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/board-settings",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/board-settings",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/integrations/github",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/enable",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/regenerate-secret",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/integrations/github/disable",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:slug/integrations/github",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/invitations",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/invitations",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/invitations/:id",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/members/:userId/role",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/members/me",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/members/:userId",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/roles",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/roles",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PUT",
+        "path": "/:slug/roles/:id",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/roles/:id",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/activity",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/views",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "POST",
+        "path": "/:slug/views",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "PATCH",
+        "path": "/:slug/views/:id",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "DELETE",
+        "path": "/:slug/views/:id",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/projects/:projectId/sprints/:sprintId/report",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "/:slug/reports/flow",
+        "file": "services/api/src/routes/workspaceRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "method": "GET",
+        "path": "etag",
+        "file": "services/api/src/__tests__/httpCaching.test.ts"
+      }
+    ],
+    "withdrawn": []
+  }
+}

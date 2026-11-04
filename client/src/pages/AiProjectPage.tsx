@@ -125,7 +125,11 @@ const AiProjectPage = () => {
 
   const start = async (file: File, options: Parameters<typeof flow.start>[1]) => {
     const started = await flow.start(file, options);
-    if (started) void ai.reload();
+    if (!started) return;
+    // The upload answer already carries today's allowance: no second settings request just to
+    // show "N of M used". A server that does not send it still gets the old reload.
+    if (started.planUsage) ai.countPlanUsed(started.planUsage.usedToday);
+    else void ai.reload();
   };
 
   if (!workspaceSlug) return null;

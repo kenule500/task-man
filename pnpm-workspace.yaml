@@ -1,6 +1,6 @@
 packages:
   - 'client'
-  - 'server'
+  - 'services/api'
 allowBuilds:
   esbuild: false
   '@swc/core': false
@@ -17,7 +17,9 @@ overrides:
   '@modelcontextprotocol/sdk': '>=1.31.0'
   '@istanbuljs/load-nyc-config>js-yaml': ^4.1.0
   # Advisories reported by `pnpm audit` on 2026-10-24: patched releases only, no API changes.
-  follow-redirects: '>=1.16.1'
+  # follow-redirects >=1.16.2 for GHSA-mrwp-f3q8-3g9p (cross-realm sensitiveHeaders arrays are
+  # discarded, so custom credentials could follow a redirect); 1.16.1 was vulnerable.
+  follow-redirects: '>=1.16.2'
   ip-address: '>=10.7.4'
   body-parser: '>=2.4.0'
   fast-uri: '>=3.1.9'

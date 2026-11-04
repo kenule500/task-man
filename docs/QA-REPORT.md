@@ -7,8 +7,8 @@ How TaskMan is tested, what was covered feature by feature, and the bugs found a
 
 | Layer | Tool | Size | Where |
 |---|---|---|---|
-| Server unit tests | Jest | 557 tests | `server/src/__tests__` |
-| Server integration tests | Jest + Supertest on a real MongoDB 7 | 631 tests | `server/src/__integration__` |
+| Server unit tests | Jest | 557 tests | `services/api/src/__tests__` |
+| Server integration tests | Jest + Supertest on a real MongoDB 7 | 631 tests | `services/api/src/__integration__` |
 | Client unit and component tests | Jest + Testing Library (jsdom) | 1570 tests | `client/src/**/__tests__` |
 | End-to-end in a real browser | Playwright against the local API + production build | 65 steps | see "End-to-end pass" |
 | Accessibility | axe-core at 1280 px and 375 px | 0 violations | key pages, light and dark |
@@ -113,7 +113,7 @@ Result on the final build: 40/40, 16/16 and 9/9, no page errors in the console.
 pnpm --filter server typecheck && pnpm --filter server test
 pnpm --filter client typecheck && pnpm --filter client test && pnpm --filter client lint
 pnpm --filter client build
-cd server && MONGO_URI=mongodb://127.0.0.1:27017/task-man-test pnpm test:integration
+cd services/api && MONGO_URI=mongodb://127.0.0.1:27017/task-man-test pnpm test:integration
 pnpm audit
 ```
 

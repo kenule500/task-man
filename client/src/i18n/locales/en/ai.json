@@ -154,6 +154,8 @@
     "retry": "Try again",
     "saveError": "We could not save this setting.",
     "unavailable": "No usable AI provider is configured for this workspace. An owner or admin can set one up below.",
+    "analyzerPlans": "Document plans use the document analyzer, so no provider key is needed. AI pull-request review stays off until you add a provider.",
+    "analyzerNotConfigured": "The document analyzer is not configured. An operator must set its URL and token before AI can be turned on.",
     "notice": {
       "title": "Your code is sent to a third party",
       "body": "When this is on, the changes of the pull requests you review (the diff) and the ticket text are sent to {{provider}} ({{model}}), an outside processor, to produce the review. Nothing is sent while it is off. Do not turn it on for code that your agreements do not allow to leave."

@@ -108,17 +108,27 @@ export interface AiPlan {
   counts: PlanCounts | null;
   model: string;
   usage: { inputTokens: number; outputTokens: number };
+  /** Which engine produced the plan. */
+  analyzer?: 'documind' | 'ai';
   error: string;
   errorCode: string;
   projectId: string | null;
   /** Detail response: the resolved destination project, or null when it was deleted. */
   targetProject?: PlanTarget | null;
+  /** Upload response only: today's plan allowance after this plan was queued. */
+  planUsage?: PlanUsage;
   createdBy?: string;
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
   /** Only in the detail response, once the plan is ready. */
   plan?: PlanContent | null;
+}
+
+/** Today's document-plan allowance of the workspace. */
+export interface PlanUsage {
+  dailyLimit: number;
+  usedToday: number;
 }
 
 /** What the person chooses on the upload step. Empty values are left out of the request. */

@@ -64,7 +64,9 @@ export const UploadStep = ({
 
   const maxBytes = settings?.plan.maxBytes ?? DEFAULT_MAX_BYTES;
   const limitReached = settings ? settings.plan.usedToday >= settings.plan.dailyLimit : false;
-  const aiReady = Boolean(settings?.available && settings.enabled) && !limitReached;
+  // The document analyzer needs no provider key, so it alone is enough for a plan.
+  const plansAvailable = Boolean(settings && (settings.available || settings.planSource === 'analyzer'));
+  const aiReady = plansAvailable && Boolean(settings?.enabled) && !limitReached;
   const change = <K extends keyof PlanUploadOptions>(name: K, value: PlanUploadOptions[K]) => setOptions(current => ({ ...current, [name]: value }));
 
   const choose = (chosen: File) => {
@@ -126,9 +128,9 @@ export const UploadStep = ({
             {settingsError}
             <Button type="button" variant="outline" size="sm" onClick={onRetrySettings} className="mt-2 h-10 rounded-lg sm:h-8">{t('notice.retry')}</Button>
           </Alert>
-        ) : settings && !settings.available ? (
+        ) : settings && !plansAvailable ? (
           <Alert tone="warning" title={t('notice.unavailableTitle')}>
-            {t('notice.unavailableBody')}{' '}
+            {t(settings.planSource === 'analyzer_unconfigured' ? 'notice.analyzerUnavailableBody' : 'notice.unavailableBody')}{' '}
             {canManageSettings
               ? <Link to={`/${slug}/settings`} className="font-medium underline underline-offset-2">{t('notice.openSettings')}</Link>
               : t('notice.askAdminSetup')}

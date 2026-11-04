@@ -1,0 +1,239 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/components/ds/loaders.tsx");const _jsxDEV = __vite__cjsImport2_react_jsxDevRuntime["jsxDEV"];import { cva } from "/node_modules/.vite/deps/class-variance-authority.js?v=6d7f1017";
+import { cn } from "/src/lib/utils.ts";
+var _jsxFileName = "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/ds/loaders.tsx";
+import __vite__cjsImport2_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=77ae205a";
+// Loaders: small, CSS-only (no motion runtime), `currentColor`, and still when the user prefers reduced motion
+// (the global rule in index.css stops every animation; the text label keeps carrying the state).
+const spinnerVariants = cva("shrink-0", {
+	variants: { size: {
+		xs: "size-3",
+		sm: "size-4",
+		md: "size-5",
+		lg: "size-8"
+	} },
+	defaultVariants: { size: "sm" }
+});
+/** Ring spinner in `currentColor`. A polite status with a label, unless `decorative`. */
+export const Spinner = ({ size, label = "Loading", decorative = false, className, ...props }) => /* @__PURE__ */ _jsxDEV("span", {
+	role: decorative ? undefined : "status",
+	"aria-label": decorative ? undefined : label,
+	"aria-hidden": decorative ? true : undefined,
+	"data-slot": "spinner",
+	className: cn("inline-flex", className),
+	...props,
+	children: /* @__PURE__ */ _jsxDEV("svg", {
+		viewBox: "0 0 24 24",
+		fill: "none",
+		"aria-hidden": true,
+		className: cn(spinnerVariants({ size }), "motion-safe:animate-spin"),
+		children: [/* @__PURE__ */ _jsxDEV("circle", {
+			cx: "12",
+			cy: "12",
+			r: "9",
+			stroke: "currentColor",
+			strokeWidth: "3",
+			opacity: "0.2"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 33,
+			columnNumber: 7
+		}, this), /* @__PURE__ */ _jsxDEV("path", {
+			d: "M21 12a9 9 0 0 0-9-9",
+			stroke: "currentColor",
+			strokeWidth: "3",
+			strokeLinecap: "round"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 34,
+			columnNumber: 7
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 32,
+		columnNumber: 5
+	}, this)
+}, void 0, false, {
+	fileName: _jsxFileName,
+	lineNumber: 24,
+	columnNumber: 3
+}, this);
+_c = Spinner;
+/** Three bouncing dots for inline waits ("Saving…", chat-like pending states). */
+export const DotsLoader = ({ label = "Loading", className, ...props }) => /* @__PURE__ */ _jsxDEV("span", {
+	role: "status",
+	"aria-label": label,
+	className: cn("inline-flex items-center gap-1", className),
+	...props,
+	children: [
+		0,
+		1,
+		2
+	].map((index) => /* @__PURE__ */ _jsxDEV("span", {
+		"aria-hidden": true,
+		style: { animationDelay: `${index * 160}ms` },
+		className: "size-1.5 rounded-full bg-current motion-safe:animate-tm-dot"
+	}, index, false, {
+		fileName: _jsxFileName,
+		lineNumber: 43,
+		columnNumber: 7
+	}, this))
+}, void 0, false, {
+	fileName: _jsxFileName,
+	lineNumber: 41,
+	columnNumber: 3
+}, this);
+_c2 = DotsLoader;
+/**
+* Indeterminate bar fixed to the top of the viewport. Mount it while something loads (it is the Suspense
+* fallback of lazy routes); it fades in after 160ms so quick loads never flash it.
+*/
+export const TopProgressBar = ({ label = "Loading page", className }) => /* @__PURE__ */ _jsxDEV("div", {
+	role: "progressbar",
+	"aria-label": label,
+	"aria-busy": "true",
+	className: cn("pointer-events-none fixed inset-x-0 top-0 z-(--z-tooltip) h-0.5 overflow-hidden bg-primary/15 motion-safe:animate-tm-delayed-in", className),
+	children: /* @__PURE__ */ _jsxDEV("div", { className: "h-full w-2/5 rounded-full bg-primary motion-safe:animate-tm-bar motion-reduce:w-full motion-reduce:opacity-60" }, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 67,
+		columnNumber: 5
+	}, this)
+}, void 0, false, {
+	fileName: _jsxFileName,
+	lineNumber: 58,
+	columnNumber: 3
+}, this);
+_c3 = TopProgressBar;
+/** The TaskMan mark (blue tile with a check). Decorative. */
+export const BrandMark = ({ className }) => /* @__PURE__ */ _jsxDEV("svg", {
+	viewBox: "0 0 64 64",
+	fill: "none",
+	"aria-hidden": true,
+	className,
+	children: [/* @__PURE__ */ _jsxDEV("rect", {
+		width: "64",
+		height: "64",
+		rx: "14",
+		fill: "var(--color-primary)"
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 74,
+		columnNumber: 5
+	}, this), /* @__PURE__ */ _jsxDEV("path", {
+		d: "M18 33.5 28 43.5 46.5 22",
+		stroke: "#fff",
+		strokeWidth: "7",
+		strokeLinecap: "round",
+		strokeLinejoin: "round"
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 75,
+		columnNumber: 5
+	}, this)]
+}, void 0, true, {
+	fileName: _jsxFileName,
+	lineNumber: 73,
+	columnNumber: 3
+}, this);
+_c4 = BrandMark;
+/**
+* Branded full-page wait: the logo tile flips in a CSS 3D perspective over a soft shadow, with a "Loading…" label.
+* Appears after a short delay (no flash on fast loads) and sits still under reduced motion.
+*/
+export const PageLoader = ({ label = "Loading…", fullscreen = true, className }) => /* @__PURE__ */ _jsxDEV("div", {
+	role: "status",
+	"aria-live": "polite",
+	className: cn("flex flex-col items-center justify-center gap-5 bg-canvas p-6 text-text-subtle motion-safe:animate-tm-delayed-in", fullscreen ? "min-h-dvh" : "min-h-[50vh]", className),
+	children: [/* @__PURE__ */ _jsxDEV("div", {
+		"aria-hidden": true,
+		className: "relative pb-6 [perspective:520px]",
+		children: [/* @__PURE__ */ _jsxDEV("div", {
+			className: "relative size-14 [transform-style:preserve-3d] motion-safe:animate-tm-flip",
+			children: [/* @__PURE__ */ _jsxDEV(BrandMark, { className: "absolute inset-0 size-full rounded-[14px] shadow-raised [backface-visibility:hidden]" }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 102,
+				columnNumber: 9
+			}, this), /* @__PURE__ */ _jsxDEV("span", {
+				className: "absolute inset-0 flex items-center justify-center rounded-[14px] bg-surface-raised text-primary shadow-raised ring-1 ring-border-subtle [backface-visibility:hidden] [transform:rotateY(180deg)]",
+				children: /* @__PURE__ */ _jsxDEV("svg", {
+					viewBox: "0 0 64 64",
+					fill: "none",
+					className: "size-9",
+					"aria-hidden": true,
+					children: /* @__PURE__ */ _jsxDEV("path", {
+						d: "M18 33.5 28 43.5 46.5 22",
+						stroke: "currentColor",
+						strokeWidth: "7",
+						strokeLinecap: "round",
+						strokeLinejoin: "round"
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 105,
+						columnNumber: 13
+					}, this)
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 104,
+					columnNumber: 11
+				}, this)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 103,
+				columnNumber: 9
+			}, this)]
+		}, void 0, true, {
+			fileName: _jsxFileName,
+			lineNumber: 101,
+			columnNumber: 7
+		}, this), /* @__PURE__ */ _jsxDEV("span", { className: "absolute inset-x-1 bottom-0 h-2.5 rounded-[50%] bg-black opacity-20 blur-sm motion-safe:animate-tm-flip-shadow" }, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 109,
+			columnNumber: 7
+		}, this)]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 100,
+		columnNumber: 5
+	}, this), /* @__PURE__ */ _jsxDEV("p", {
+		className: "text-sm font-medium",
+		children: label
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 111,
+		columnNumber: 5
+	}, this)]
+}, void 0, true, {
+	fileName: _jsxFileName,
+	lineNumber: 91,
+	columnNumber: 3
+}, this);
+_c5 = PageLoader;
+var _c, _c2, _c3, _c4, _c5;
+$RefreshReg$(_c, "Spinner");
+$RefreshReg$(_c2, "DotsLoader");
+$RefreshReg$(_c3, "TopProgressBar");
+$RefreshReg$(_c4, "BrandMark");
+$RefreshReg$(_c5, "PageLoader");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
+import * as __vite_react_currentExports from "/src/components/ds/loaders.tsx";
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+
+  const currentExports = __vite_react_currentExports;
+  queueMicrotask(() => {
+    RefreshRuntime.registerExportsForReactRefresh("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/ds/loaders.tsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/ds/loaders.tsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) { return RefreshRuntime.register(type, "C:/Users/KENULE-NWINEE/Documents/Task-Man/client/src/components/ds/loaders.tsx" + ' ' + id); }
+function $RefreshSig$() { return RefreshRuntime.createSignatureFunctionForTransform(); }
+
+//# sourceMappingURL=data:application/json;base64,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QVU7WUFBdUI7Q0FBUzs7OztTQUMxQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyJsb2FkZXJzLnRzeCJdLCJ2ZXJzaW9uIjozLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgdHlwZSB7IENvbXBvbmVudFByb3BzIH0gZnJvbSAncmVhY3QnO1xuaW1wb3J0IHsgY3ZhLCB0eXBlIFZhcmlhbnRQcm9wcyB9IGZyb20gJ2NsYXNzLXZhcmlhbmNlLWF1dGhvcml0eSc7XG5pbXBvcnQgeyBjbiB9IGZyb20gJ0AvbGliL3V0aWxzJztcblxuLy8gTG9hZGVyczogc21hbGwsIENTUy1vbmx5IChubyBtb3Rpb24gcnVudGltZSksIGBjdXJyZW50Q29sb3JgLCBhbmQgc3RpbGwgd2hlbiB0aGUgdXNlciBwcmVmZXJzIHJlZHVjZWQgbW90aW9uXG4vLyAodGhlIGdsb2JhbCBydWxlIGluIGluZGV4LmNzcyBzdG9wcyBldmVyeSBhbmltYXRpb247IHRoZSB0ZXh0IGxhYmVsIGtlZXBzIGNhcnJ5aW5nIHRoZSBzdGF0ZSkuXG5cbmNvbnN0IHNwaW5uZXJWYXJpYW50cyA9IGN2YSgnc2hyaW5rLTAnLCB7XG4gIHZhcmlhbnRzOiB7XG4gICAgc2l6ZTogeyB4czogJ3NpemUtMycsIHNtOiAnc2l6ZS00JywgbWQ6ICdzaXplLTUnLCBsZzogJ3NpemUtOCcgfSxcbiAgfSxcbiAgZGVmYXVsdFZhcmlhbnRzOiB7IHNpemU6ICdzbScgfSxcbn0pO1xuXG50eXBlIFNwaW5uZXJQcm9wcyA9IE9taXQ8Q29tcG9uZW50UHJvcHM8J3NwYW4nPiwgJ2NoaWxkcmVuJz4gJiBWYXJpYW50UHJvcHM8dHlwZW9mIHNwaW5uZXJWYXJpYW50cz4gJiB7XG4gIC8qKiBBY2Nlc3NpYmxlIG5hbWU7IGRlZmF1bHQgXCJMb2FkaW5nXCIgKi9cbiAgbGFiZWw/OiBzdHJpbmc7XG4gIC8qKiBIaWRlIGl0IGZyb20gYXNzaXN0aXZlIHRlY2gsIGZvciBzcGlubmVycyBpbnNpZGUgYSBjb250cm9sIHRoYXQgYWxyZWFkeSBhbm5vdW5jZXMgaXRzIGJ1c3kgc3RhdGUgKi9cbiAgZGVjb3JhdGl2ZT86IGJvb2xlYW47XG59O1xuXG4vKiogUmluZyBzcGlubmVyIGluIGBjdXJyZW50Q29sb3JgLiBBIHBvbGl0ZSBzdGF0dXMgd2l0aCBhIGxhYmVsLCB1bmxlc3MgYGRlY29yYXRpdmVgLiAqL1xuZXhwb3J0IGNvbnN0IFNwaW5uZXIgPSAoeyBzaXplLCBsYWJlbCA9ICdMb2FkaW5nJywgZGVjb3JhdGl2ZSA9IGZhbHNlLCBjbGFzc05hbWUsIC4uLnByb3BzIH06IFNwaW5uZXJQcm9wcykgPT4gKFxuICA8c3BhblxuICAgIHJvbGU9e2RlY29yYXRpdmUgPyB1bmRlZmluZWQgOiAnc3RhdHVzJ31cbiAgICBhcmlhLWxhYmVsPXtkZWNvcmF0aXZlID8gdW5kZWZpbmVkIDogbGFiZWx9XG4gICAgYXJpYS1oaWRkZW49e2RlY29yYXRpdmUgPyB0cnVlIDogdW5kZWZpbmVkfVxuICAgIGRhdGEtc2xvdD1cInNwaW5uZXJcIlxuICAgIGNsYXNzTmFtZT17Y24oJ2lubGluZS1mbGV4JywgY2xhc3NOYW1lKX1cbiAgICB7Li4ucHJvcHN9XG4gID5cbiAgICA8c3ZnIHZpZXdCb3g9XCIwIDAgMjQgMjRcIiBmaWxsPVwibm9uZVwiIGFyaWEtaGlkZGVuIGNsYXNzTmFtZT17Y24oc3Bpbm5lclZhcmlhbnRzKHsgc2l6ZSB9KSwgJ21vdGlvbi1zYWZlOmFuaW1hdGUtc3BpbicpfT5cbiAgICAgIDxjaXJjbGUgY3g9XCIxMlwiIGN5PVwiMTJcIiByPVwiOVwiIHN0cm9rZT1cImN1cnJlbnRDb2xvclwiIHN0cm9rZVdpZHRoPVwiM1wiIG9wYWNpdHk9XCIwLjJcIiAvPlxuICAgICAgPHBhdGggZD1cIk0yMSAxMmE5IDkgMCAwIDAtOS05XCIgc3Ryb2tlPVwiY3VycmVudENvbG9yXCIgc3Ryb2tlV2lkdGg9XCIzXCIgc3Ryb2tlTGluZWNhcD1cInJvdW5kXCIgLz5cbiAgICA8L3N2Zz5cbiAgPC9zcGFuPlxuKTtcblxuLyoqIFRocmVlIGJvdW5jaW5nIGRvdHMgZm9yIGlubGluZSB3YWl0cyAoXCJTYXZpbmfigKZcIiwgY2hhdC1saWtlIHBlbmRpbmcgc3RhdGVzKS4gKi9cbmV4cG9ydCBjb25zdCBEb3RzTG9hZGVyID0gKHsgbGFiZWwgPSAnTG9hZGluZycsIGNsYXNzTmFtZSwgLi4ucHJvcHMgfTogT21pdDxDb21wb25lbnRQcm9wczwnc3Bhbic+LCAnY2hpbGRyZW4nPiAmIHsgbGFiZWw/OiBzdHJpbmcgfSkgPT4gKFxuICA8c3BhbiByb2xlPVwic3RhdHVzXCIgYXJpYS1sYWJlbD17bGFiZWx9IGNsYXNzTmFtZT17Y24oJ2lubGluZS1mbGV4IGl0ZW1zLWNlbnRlciBnYXAtMScsIGNsYXNzTmFtZSl9IHsuLi5wcm9wc30+XG4gICAge1swLCAxLCAyXS5tYXAoaW5kZXggPT4gKFxuICAgICAgPHNwYW5cbiAgICAgICAga2V5PXtpbmRleH1cbiAgICAgICAgYXJpYS1oaWRkZW5cbiAgICAgICAgc3R5bGU9e3sgYW5pbWF0aW9uRGVsYXk6IGAke2luZGV4ICogMTYwfW1zYCB9fVxuICAgICAgICBjbGFzc05hbWU9XCJzaXplLTEuNSByb3VuZGVkLWZ1bGwgYmctY3VycmVudCBtb3Rpb24tc2FmZTphbmltYXRlLXRtLWRvdFwiXG4gICAgICAvPlxuICAgICkpfVxuICA8L3NwYW4+XG4pO1xuXG4vKipcbiAqIEluZGV0ZXJtaW5hdGUgYmFyIGZpeGVkIHRvIHRoZSB0b3Agb2YgdGhlIHZpZXdwb3J0LiBNb3VudCBpdCB3aGlsZSBzb21ldGhpbmcgbG9hZHMgKGl0IGlzIHRoZSBTdXNwZW5zZVxuICogZmFsbGJhY2sgb2YgbGF6eSByb3V0ZXMpOyBpdCBmYWRlcyBpbiBhZnRlciAxNjBtcyBzbyBxdWljayBsb2FkcyBuZXZlciBmbGFzaCBpdC5cbiAqL1xuZXhwb3J0IGNvbnN0IFRvcFByb2dyZXNzQmFyID0gKHsgbGFiZWwgPSAnTG9hZGluZyBwYWdlJywgY2xhc3NOYW1lIH06IHsgbGFiZWw/OiBzdHJpbmc7IGNsYXNzTmFtZT86IHN0cmluZyB9KSA9PiAoXG4gIDxkaXZcbiAgICByb2xlPVwicHJvZ3Jlc3NiYXJcIlxuICAgIGFyaWEtbGFiZWw9e2xhYmVsfVxuICAgIGFyaWEtYnVzeT1cInRydWVcIlxuICAgIGNsYXNzTmFtZT17Y24oXG4gICAgICAncG9pbnRlci1ldmVudHMtbm9uZSBmaXhlZCBpbnNldC14LTAgdG9wLTAgei0oLS16LXRvb2x0aXApIGgtMC41IG92ZXJmbG93LWhpZGRlbiBiZy1wcmltYXJ5LzE1IG1vdGlvbi1zYWZlOmFuaW1hdGUtdG0tZGVsYXllZC1pbicsXG4gICAgICBjbGFzc05hbWUsXG4gICAgKX1cbiAgPlxuICAgIDxkaXYgY2xhc3NOYW1lPVwiaC1mdWxsIHctMi81IHJvdW5kZWQtZnVsbCBiZy1wcmltYXJ5IG1vdGlvbi1zYWZlOmFuaW1hdGUtdG0tYmFyIG1vdGlvbi1yZWR1Y2U6dy1mdWxsIG1vdGlvbi1yZWR1Y2U6b3BhY2l0eS02MFwiIC8+XG4gIDwvZGl2PlxuKTtcblxuLyoqIFRoZSBUYXNrTWFuIG1hcmsgKGJsdWUgdGlsZSB3aXRoIGEgY2hlY2spLiBEZWNvcmF0aXZlLiAqL1xuZXhwb3J0IGNvbnN0IEJyYW5kTWFyayA9ICh7IGNsYXNzTmFtZSB9OiB7IGNsYXNzTmFtZT86IHN0cmluZyB9KSA9PiAoXG4gIDxzdmcgdmlld0JveD1cIjAgMCA2NCA2NFwiIGZpbGw9XCJub25lXCIgYXJpYS1oaWRkZW4gY2xhc3NOYW1lPXtjbGFzc05hbWV9PlxuICAgIDxyZWN0IHdpZHRoPVwiNjRcIiBoZWlnaHQ9XCI2NFwiIHJ4PVwiMTRcIiBmaWxsPVwidmFyKC0tY29sb3ItcHJpbWFyeSlcIiAvPlxuICAgIDxwYXRoIGQ9XCJNMTggMzMuNSAyOCA0My41IDQ2LjUgMjJcIiBzdHJva2U9XCIjZmZmXCIgc3Ryb2tlV2lkdGg9XCI3XCIgc3Ryb2tlTGluZWNhcD1cInJvdW5kXCIgc3Ryb2tlTGluZWpvaW49XCJyb3VuZFwiIC8+XG4gIDwvc3ZnPlxuKTtcblxuaW50ZXJmYWNlIFBhZ2VMb2FkZXJQcm9wcyB7XG4gIGxhYmVsPzogc3RyaW5nO1xuICAvKiogRmlsbCB0aGUgdmlld3BvcnQgKGRlZmF1bHQpIG9yIGp1c3QgdGhlIHBhcmVudCAqL1xuICBmdWxsc2NyZWVuPzogYm9vbGVhbjtcbiAgY2xhc3NOYW1lPzogc3RyaW5nO1xufVxuXG4vKipcbiAqIEJyYW5kZWQgZnVsbC1wYWdlIHdhaXQ6IHRoZSBsb2dvIHRpbGUgZmxpcHMgaW4gYSBDU1MgM0QgcGVyc3BlY3RpdmUgb3ZlciBhIHNvZnQgc2hhZG93LCB3aXRoIGEgXCJMb2FkaW5n4oCmXCIgbGFiZWwuXG4gKiBBcHBlYXJzIGFmdGVyIGEgc2hvcnQgZGVsYXkgKG5vIGZsYXNoIG9uIGZhc3QgbG9hZHMpIGFuZCBzaXRzIHN0aWxsIHVuZGVyIHJlZHVjZWQgbW90aW9uLlxuICovXG5leHBvcnQgY29uc3QgUGFnZUxvYWRlciA9ICh7IGxhYmVsID0gJ0xvYWRpbmfigKYnLCBmdWxsc2NyZWVuID0gdHJ1ZSwgY2xhc3NOYW1lIH06IFBhZ2VMb2FkZXJQcm9wcykgPT4gKFxuICA8ZGl2XG4gICAgcm9sZT1cInN0YXR1c1wiXG4gICAgYXJpYS1saXZlPVwicG9saXRlXCJcbiAgICBjbGFzc05hbWU9e2NuKFxuICAgICAgJ2ZsZXggZmxleC1jb2wgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGdhcC01IGJnLWNhbnZhcyBwLTYgdGV4dC10ZXh0LXN1YnRsZSBtb3Rpb24tc2FmZTphbmltYXRlLXRtLWRlbGF5ZWQtaW4nLFxuICAgICAgZnVsbHNjcmVlbiA/ICdtaW4taC1kdmgnIDogJ21pbi1oLVs1MHZoXScsXG4gICAgICBjbGFzc05hbWUsXG4gICAgKX1cbiAgPlxuICAgIDxkaXYgYXJpYS1oaWRkZW4gY2xhc3NOYW1lPVwicmVsYXRpdmUgcGItNiBbcGVyc3BlY3RpdmU6NTIwcHhdXCI+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cInJlbGF0aXZlIHNpemUtMTQgW3RyYW5zZm9ybS1zdHlsZTpwcmVzZXJ2ZS0zZF0gbW90aW9uLXNhZmU6YW5pbWF0ZS10bS1mbGlwXCI+XG4gICAgICAgIDxCcmFuZE1hcmsgY2xhc3NOYW1lPVwiYWJzb2x1dGUgaW5zZXQtMCBzaXplLWZ1bGwgcm91bmRlZC1bMTRweF0gc2hhZG93LXJhaXNlZCBbYmFja2ZhY2UtdmlzaWJpbGl0eTpoaWRkZW5dXCIgLz5cbiAgICAgICAgPHNwYW4gY2xhc3NOYW1lPVwiYWJzb2x1dGUgaW5zZXQtMCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciByb3VuZGVkLVsxNHB4XSBiZy1zdXJmYWNlLXJhaXNlZCB0ZXh0LXByaW1hcnkgc2hhZG93LXJhaXNlZCByaW5nLTEgcmluZy1ib3JkZXItc3VidGxlIFtiYWNrZmFjZS12aXNpYmlsaXR5OmhpZGRlbl0gW3RyYW5zZm9ybTpyb3RhdGVZKDE4MGRlZyldXCI+XG4gICAgICAgICAgPHN2ZyB2aWV3Qm94PVwiMCAwIDY0IDY0XCIgZmlsbD1cIm5vbmVcIiBjbGFzc05hbWU9XCJzaXplLTlcIiBhcmlhLWhpZGRlbj5cbiAgICAgICAgICAgIDxwYXRoIGQ9XCJNMTggMzMuNSAyOCA0My41IDQ2LjUgMjJcIiBzdHJva2U9XCJjdXJyZW50Q29sb3JcIiBzdHJva2VXaWR0aD1cIjdcIiBzdHJva2VMaW5lY2FwPVwicm91bmRcIiBzdHJva2VMaW5lam9pbj1cInJvdW5kXCIgLz5cbiAgICAgICAgICA8L3N2Zz5cbiAgICAgICAgPC9zcGFuPlxuICAgICAgPC9kaXY+XG4gICAgICA8c3BhbiBjbGFzc05hbWU9XCJhYnNvbHV0ZSBpbnNldC14LTEgYm90dG9tLTAgaC0yLjUgcm91bmRlZC1bNTAlXSBiZy1ibGFjayBvcGFjaXR5LTIwIGJsdXItc20gbW90aW9uLXNhZmU6YW5pbWF0ZS10bS1mbGlwLXNoYWRvd1wiIC8+XG4gICAgPC9kaXY+XG4gICAgPHAgY2xhc3NOYW1lPVwidGV4dC1zbSBmb250LW1lZGl1bVwiPntsYWJlbH08L3A+XG4gIDwvZGl2PlxuKTtcbiJdfQ==
