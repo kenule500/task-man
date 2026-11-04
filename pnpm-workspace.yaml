@@ -25,6 +25,20 @@ overrides:
   fast-uri: '>=3.1.9'
   serialize-javascript: '>=7.1.4'
   zod: '>=4.6.7'
+  # Advisories reported on 2026-11-03.
+  # qs takes a patch-level bump (6.16.0 -> 6.16.1, still inside express' ^6 range).
+  # minimatch and glob have no patched release inside the ranges their dependents declare
+  # (ESLint wants minimatch ^10, test-exclude wants glob ^10), so they are forced one major up.
+  # deepmerge is NOT here: CVE-2026-93753 has no patched release at all (npm wrongly advertises
+  # 4.3.2; 4.3.1 is the newest). Like braces and sprintf-js above, it is avoided rather than pinned.
+  qs: '>=6.16.1'
+  minimatch: '>=11.0.1'
+  glob: '>=14.0.2'
+  # deepmerge is NOT avoided under @rollup/plugin-node-resolve: rollup's policy overrides can
+  # remove a package it does not need, but this plugin calls require('deepmerge') directly, so
+  # removing it there fails `vite build` while vite-plugin-pwa generates the service worker
+  # ("Cannot find module 'deepmerge'"). It stays installed for the build and is reported below.
+  'jest-config>deepmerge': '-'
 
 # Hoist type packages to the root so the Vercel function compiler (which does not follow pnpm symlinks)
 # can resolve transitive types: @types/express-serve-static-core, mongodb/bson behind mongoose, and the
