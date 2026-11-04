@@ -215,7 +215,7 @@ requirements document to the same third-party provider as the code review, so it
   cannot be reset by deleting). The plan is available to its owner and to people with `settings:manage`; only the owner can edit,
   create from or delete it. Everything is filtered by the workspace of the request. Server logs and stored errors never contain the
   document, the provider's response body or the API key.
-- **Upload checks.** Multer memory storage, `AI_PLAN_MAX_MB` (default 4 MB, `413`), one file. The type is decided by the extension
+- **Upload checks.** Streams to a temporary file, `AI_PLAN_MAX_MB` (default 20 MB, `413`), one file. The type is decided by the extension
   **and** the first bytes (`%PDF-`, the zip signature plus a `word/document.xml` entry, or UTF-8 text without NUL bytes); the type
   the browser declares is ignored (`415`). DOCX files are refused when they declare too many entries or an unreasonable uncompressed
   size (zip bombs), and PDFs are read with PDF.js with `isEvalSupported: false`, a page cap and no system fonts. Control and

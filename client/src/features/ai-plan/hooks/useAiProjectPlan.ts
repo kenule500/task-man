@@ -27,6 +27,9 @@ interface Settings {
 const MAX_POLL_FAILURES = 5;
 const isRunning = (plan: AiPlan | null): boolean => plan?.status === 'queued' || plan?.status === 'running';
 
+/** A hidden tab has nobody watching it, so it stops asking until it is visible again. */
+const isHidden = (): boolean => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
 /**
  * The whole "project from a document" flow: upload, wait for the generation (polling), edit the plan, create the project.
  * The document itself is only kept in memory here (for "Regenerate"); the server never stores it.
@@ -109,10 +112,24 @@ export const useAiProjectPlan = (
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const controller = new AbortController();
-    const started = Date.now();
+    // Only the time somebody could actually be waiting counts, so a hidden tab never runs the budget down
+    let waited = 0;
+    let visibleSince = isHidden() ? null : Date.now();
     let failures = 0;
 
     const tick = async () => {
+      if (isHidden()) {
+        if (visibleSince !== null) {
+          waited += Date.now() - visibleSince;
+          visibleSince = null;
+        }
+        // Not a failure and not a timeout: the wait resumes where it left off when the tab is shown
+        timer = setTimeout(() => {
+          void tick();
+        }, pollMs);
+        return;
+      }
+      if (visibleSince === null) visibleSince = Date.now();
       try {
         const next = await aiPlanApi.get(slug, planId, controller.signal);
         if (cancelled) return;
@@ -142,7 +159,7 @@ export const useAiProjectPlan = (
           return;
         }
       }
-      if (Date.now() - started > maxWaitMs) {
+      if (waited + (Date.now() - visibleSince) > maxWaitMs) {
         setTimedOut(true);
         return;
       }
