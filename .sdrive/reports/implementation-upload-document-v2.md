@@ -88,3 +88,28 @@ See `.sdrive/reports/implementation-verification.json`,
 
 No test suite was authored or run; that belongs to `/sdrive:test`.
 
+## T7.5 / RISK-022 measurement
+
+`services/document-analyzer/scripts/measure_risk_022.py` is the harness. It re-builds each
+request with the service's own `build_query` (so the prompt size is real), posts to the running
+service, and pairs every response with the `providerCalls` value from that request's
+`analyze_ok`/`analyze_failed` log line. It leaves a column empty rather than estimating it.
+
+Measured on the local container (Docker 29.7.2):
+
+| Measure | Value |
+| --- | --- |
+| Image size | 172.5 MiB (180,898,985 bytes) |
+| Cold start to first `/healthz` 200 | 2.9 s |
+| Idle RSS | 46 MiB |
+| RSS after a 34 KB document | 80 MiB |
+| Prompt for a 20,000-char document | 23,668 chars |
+| Provider calls without a key | 0, fails as `ANALYZER_UNAVAILABLE` in 2 ms (no crash) |
+| 24,000-char cap | enforced: 422 `ANALYZER_INVALID_REQUEST` |
+
+Not measured, so RISK-022 is **not** closed: provider calls, p95 latency, token cost and plan
+quality on ten real documents need a keyed run (the local `.env` key was not used). The finding
+worth acting on: token cost is dominated by the prompt, ~23.7k chars for a 20k-char document, and
+`ANALYZER_MAX_CHARS` defaults to 24,000 while NFR-021 describes 60,000 — a document above the cap
+ever reaches the analyzer, so the ten-document run must stay under it or use `ai`.
+
