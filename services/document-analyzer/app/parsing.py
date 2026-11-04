@@ -63,13 +63,46 @@ def has_plan_object(markdown: str) -> bool:
     return False
 
 
+def unclosed_braces(text: str) -> int:
+    """Braces left open at the end of ``text``: >0 means the object was cut off mid-way.
+
+    A string-aware scan, so a ``}`` inside a quoted value does not count. Used to tell a plan
+    that ran out of room (unbalanced) from one DocuMind flattened into prose (balanced, but not
+    an object at all): both fail to parse, and only the first is not worth re-asking for.
+    """
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for char in text:
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char in "\"'":
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+    return depth
+
+
 def is_truncated_plan(markdown: str) -> bool:
     """True when a fenced block starts an object that never closes.
 
-    The answer ran out of room, so asking again produces the same cut-off plan: no retry.
+    The answer ran out of room, so asking again produces the same cut-off plan: no retry. The
+    braces must actually be unbalanced for this to hold. A block that merely does not *end* with
+    ``}`` is a different failure -- DocuMind's normaliser flattens the object into a space-joined
+    run of its values, which is balanced but not an object -- and that one is worth re-asking for.
     """
     block = plan_body(first_code_block(markdown))
-    return bool(block) and block.startswith("{") and not block.endswith("}")
+    if not block or not block.startswith("{"):
+        return False
+    return unclosed_braces(block) > 0
 
 
 def extract_plan(markdown: str) -> dict[str, Any]:
@@ -98,8 +131,10 @@ def extract_plan(markdown: str) -> dict[str, Any]:
             "The generated document contains more than one JSON object.",
         )
     if blocks:
-        # A plan that stops before its closing brace was cut off at the output limit
-        cut_off = any(body.startswith("{") and not body.endswith("}") for body in bodies)
+        # A plan that stops before its closing brace was cut off at the output limit. Only an
+        # unbalanced object counts: a balanced block that does not end with "}" is the
+        # normaliser's flattened prose, which is a parse failure, not a truncation.
+        cut_off = any(body.startswith("{") and unclosed_braces(body) > 0 for body in bodies)
         if cut_off:
             raise AnalyzerError(
                 422,

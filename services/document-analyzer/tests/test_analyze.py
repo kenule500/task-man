@@ -132,6 +132,31 @@ class TestOneInvocation:
         # Never a third call: the retry is a single correction, not a loop
         assert len(calls) == 2
 
+    def test_retries_when_the_normaliser_flattened_the_plan_into_prose(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The flattened form is balanced but is not an object, so it must still be retried.
+
+        Reading it as a truncation skipped the retry: the braces were balanced, so there was
+        nothing to be cut off, yet ``is_truncated_plan`` said otherwise and the one correction
+        that could have fixed the answer never ran.
+        """
+        calls: list[int] = []
+        flattened = " ".join(str(value) for value in plan().values())
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            calls.append(1)
+            if len(calls) == 1:
+                head = '---\ntitle: "Plan"\n---\n\n## Plan JSON\n\n```json\n'
+                return head + f"{PLAN_SENTINEL}\n{flattened}\n```\n\n---\n"
+            head = '---\ntitle: "Plan"\n---\n\n## Plan JSON\n\n```json\n'
+            return head + f"{PLAN_SENTINEL}\n{json.dumps(plan())}\n```\n\n---\n"
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        result = asyncio.run(analyze(request(), settings()))
+        assert len(calls) == 2
+        assert result.plan.project.key == "SHOP"
+
     def test_does_not_retry_a_cut_off_plan(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[int] = []
 

@@ -124,3 +124,39 @@ class TestSentinel:
     def test_plan_body_leaves_an_unsentinelled_body_alone(self) -> None:
         assert plan_body('{"project": {}}') == '{"project": {}}'
 
+
+class TestFlattenedPlan:
+    """A plan the normaliser flattened is not a truncation, so it has to be retried.
+
+    ``analyze`` re-asks once when ``has_plan_object`` is False and ``is_truncated_plan`` is False.
+    The flattened form is balanced but is not an object, so it must land in that gap: reading it
+    as a truncation skipped the retry and gave up on an answer that one more call could fix.
+    """
+
+    def flattened(self) -> str:
+        # What _text_value produces: the object's values joined by spaces, not an object
+        return " ".join(str(value) for value in plan().values())
+
+    def test_flattened_prose_is_balanced_and_not_a_plan(self) -> None:
+        body = plan_body(f"{PLAN_SENTINEL}\n{self.flattened()}")
+        assert body.startswith("{")
+        assert not body.endswith("}")
+        # Balanced braces: the object was not cut off, it was rewritten
+        assert has_plan_object(document(f"{PLAN_SENTINEL}\n{self.flattened()}")) is False
+        assert is_truncated_plan(document(f"{PLAN_SENTINEL}\n{self.flattened()}")) is False
+
+    def test_flattened_prose_is_reported_as_a_parse_failure(self) -> None:
+        with pytest.raises(AnalyzerError) as caught:
+            extract_plan(document(f"{PLAN_SENTINEL}\n{self.flattened()}"))
+        assert "could not be parsed" in caught.value.message
+
+    def test_a_real_cut_off_object_is_still_a_truncation(self) -> None:
+        # The distinction only matters if the genuine truncation still suppresses the retry
+        raw = json.dumps(plan())
+        assert is_truncated_plan(document(f"{PLAN_SENTINEL}\n{raw[: len(raw) // 2]}")) is True
+
+    def test_a_brace_inside_a_string_does_not_look_like_an_open_object(self) -> None:
+        # Counting braces naively would unbalance this and refuse to retry a complete answer
+        text = f'{PLAN_SENTINEL}\n{{"description": "costs {{total}} per user"}}'
+        assert is_truncated_plan(document(text)) is False
+
