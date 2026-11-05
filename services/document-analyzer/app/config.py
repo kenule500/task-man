@@ -44,7 +44,7 @@ MAX_PORT = 65535
 # the parser then rejects as "not one fenced JSON block" -- a cap that is too low is destructive,
 # not protective, because the failure it causes is indistinguishable from a bad answer. Eight
 # leaves room for the measured six plus one retry, and still stops a runaway pipeline well inside
-# the request timeout (ANALYZER_TIMEOUT_SECONDS, 280 at most).
+# the request timeout (ANALYZER_TIMEOUT_SECONDS, 600 at most).
 DEFAULT_MAX_PROVIDER_CALLS = 8
 
 
@@ -241,7 +241,7 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
             source, "ANALYZER_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY, 16
         ),
         timeout_seconds=_positive_int(
-            source, "ANALYZER_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS, 280
+            source, "ANALYZER_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS, 600
         ),
         port=_port(source, "PORT", DEFAULT_PORT),
         max_provider_calls=_positive_int(

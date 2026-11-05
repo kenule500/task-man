@@ -1,4 +1,6 @@
 .venv/
+# DocuMind writes its working directory next to the process when the SDK runs.
+documind-*/
 __pycache__/
 *.pyc
 .pytest_cache/

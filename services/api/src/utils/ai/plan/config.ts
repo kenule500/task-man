@@ -31,7 +31,7 @@ export const readPlanConfig = (source: NodeJS.ProcessEnv = process.env): PlanCon
   maxChars: positiveInt(source.AI_PLAN_MAX_CHARS, DEFAULT_PLAN_MAX_CHARS, 400_000),
   maxBytes: positiveInt(source.AI_PLAN_MAX_MB, DEFAULT_PLAN_MAX_MB, 100) * 1024 * 1024,
   maxOutputTokens: positiveInt(source.AI_PLAN_MAX_OUTPUT_TOKENS, DEFAULT_PLAN_MAX_OUTPUT_TOKENS, 65_536),
-  timeoutMs: positiveInt(source.AI_PLAN_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 280) * 1000,
+  timeoutMs: positiveInt(source.AI_PLAN_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 600) * 1000,
 });
 
 // ----------------------------------------------------------------
@@ -85,7 +85,7 @@ export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): Ana
   const mode: DocumentAnalyzerMode = source.DOCUMENT_ANALYZER_MODE === 'ai' ? 'ai' : 'documind';
   const url = (source.DOCUMENT_ANALYZER_URL ?? '').trim().replace(/\/+$/, '');
   const token = (source.DOCUMENT_ANALYZER_TOKEN ?? '').trim();
-  const timeout = positiveInt(source.DOCUMENT_ANALYZER_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 280) * 1000;
+  const timeout = positiveInt(source.DOCUMENT_ANALYZER_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 600) * 1000;
   return {
     mode,
     url,
