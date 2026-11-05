@@ -49,19 +49,14 @@ export const assertPlanFeatureOn = (workspaceId: Id | string, settings: Workspac
 };
 
 /** Everything that can refuse a new generation before any work is done: feature off, one already running, daily limit. */
-export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: WorkspaceAiSettings | undefined }): Promise<WorkspaceAiConfig | null> => {
+export const assertCanQueuePlan = async (input: { workspaceId: Id; userId: Id; settings: WorkspaceAiSettings | undefined }): Promise<WorkspaceAiConfig> => {
   const analyzer = readAnalyzerConfig();
-  let ai: WorkspaceAiConfig | null = null;
-  if (analyzer.mode === 'documind') {
-    if (!analyzer.configured) {
-      throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
-    }
-    if (input.settings?.enabled !== true) {
-      throw new AiQueueError(503, 'AI_DISABLED', 'AI is turned off for this workspace. An administrator can turn it on in the settings.');
-    }
-  } else {
-    ai = assertPlanFeatureOn(input.workspaceId, input.settings);
+  // DocuMind runs on the workspace's own provider too (the request carries its endpoint, model and
+  // key), so both engines need the same BYOK configuration and answer with the same refusals.
+  if (analyzer.mode === 'documind' && !analyzer.configured) {
+    throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
   }
+  const ai = assertPlanFeatureOn(input.workspaceId, input.settings);
   const config = readPlanConfig();
 
   await AiPlan.updateMany(
@@ -147,6 +142,14 @@ interface ProviderPlan {
   usage: { inputTokens: number; outputTokens: number };
 }
 
+/** The workspace provider a plan runs on, or the safe refusal to store on the plan. */
+const workspaceProviderFor = (workspace: { _id: unknown; ai?: WorkspaceAiSettings }): WorkspaceAiConfig => {
+  const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
+  if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
+  if (!ai.available) throw new AiReviewError('AI is no longer configured for this workspace.', ai.problem ?? 'AI_NOT_CONFIGURED');
+  return ai;
+};
+
 /** The v1 path: the workspace's own provider. It is also the only permitted fallback. */
 const runProviderPlan = async (
   plan: Pick<IAiPlan, 'options'>,
@@ -154,9 +157,7 @@ const runProviderPlan = async (
   config: ReturnType<typeof readPlanConfig>,
   workspace: { _id: unknown; ai?: WorkspaceAiSettings },
 ): Promise<ProviderPlan> => {
-  const ai = resolveWorkspaceAiConfig(String(workspace._id), workspace.ai);
-  if (workspace.ai?.enabled !== true) throw new AiReviewError('AI was turned off before the generation started.', 'AI_DISABLED');
-  if (!ai.available) throw new AiReviewError('AI is no longer configured for this workspace.', 'AI_NOT_CONFIGURED');
+  const ai = workspaceProviderFor(workspace);
 
   const messages = buildPlanMessages({
     document: document.text,
@@ -202,10 +203,14 @@ export const runPlan = async (planId: Id | string, document: PreparedDocument): 
         if (shortened.truncated && !document.truncated) {
           await AiPlan.updateOne({ _id: plan._id }, { $set: { 'source.truncated': true } });
         }
+        // Resolved here, not at queue time: the workspace may have had its provider changed or
+        // switched off while the plan waited, and the endpoint that runs it is this one.
+        const ai = workspaceProviderFor(workspace);
         const result = await analyzePlan({
           fileName: plan.source.fileName,
           mimeType: plan.source.mimeType,
           text: shortened.text,
+          llm: { model: ai.model, apiKey: ai.apiKey, baseUrl: ai.baseURL },
           options: {
             projectName: plan.options.projectName,
             projectKey: plan.options.projectKey,

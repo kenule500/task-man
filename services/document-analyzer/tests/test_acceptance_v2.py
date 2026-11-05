@@ -287,7 +287,7 @@ def test_ac_054_the_request_directory_is_removed_after_success_and_after_failure
 ) -> None:
     seen: list[Path] = []
 
-    async def success(_settings: Settings, _query: str, _locale: str, storage: Path) -> str:
+    async def success(_settings: Settings, _query: str, _locale: str, storage: Path, **_kwargs: object) -> str:
         seen.append(storage)
         assert storage.exists()
         return markdown(plan())
@@ -296,7 +296,7 @@ def test_ac_054_the_request_directory_is_removed_after_success_and_after_failure
     asyncio.run(analyze(AnalyzeRequest.model_validate(body()), settings()))
     assert seen and not seen[0].exists()
 
-    async def failure(_settings: Settings, _query: str, _locale: str, storage: Path) -> str:
+    async def failure(_settings: Settings, _query: str, _locale: str, storage: Path, **_kwargs: object) -> str:
         seen.append(storage)
         raise AnalyzerError(502, "ANALYZER_UNAVAILABLE", "DocuMind could not generate the plan.")
 

@@ -78,10 +78,11 @@ export const isAnalyzerUrlAllowed = (value: string, environment = process.env.NO
 
 export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): AnalyzerConfig => {
   const plan = readPlanConfig(source);
-  // Plans use the workspace provider: one JSON call that returns the plan shape directly.
-  // The analyzer re-authors a supplied plan with a second model call, which turns large real
-  // briefs into prose, so it is opt-in only (DOCUMENT_ANALYZER_MODE=documind).
-  const mode: DocumentAnalyzerMode = source.DOCUMENT_ANALYZER_MODE === 'documind' ? 'documind' : 'ai';
+  // DocuMind is the engine: it re-authors the whole document into a plan, on the provider of the
+  // workspace that uploaded it (the request carries that workspace's endpoint, model and key).
+  // `DOCUMENT_ANALYZER_MODE=ai` opts out to the single-call v1 provider path, which is what a
+  // deployment without an analyzer needs.
+  const mode: DocumentAnalyzerMode = source.DOCUMENT_ANALYZER_MODE === 'ai' ? 'ai' : 'documind';
   const url = (source.DOCUMENT_ANALYZER_URL ?? '').trim().replace(/\/+$/, '');
   const token = (source.DOCUMENT_ANALYZER_TOKEN ?? '').trim();
   const timeout = positiveInt(source.DOCUMENT_ANALYZER_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 280) * 1000;

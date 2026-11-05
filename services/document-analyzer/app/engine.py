@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings
-from .contracts import AnalyzerError
+from .contracts import AnalyzerError, WorkspaceLlm
 
 _provider_calls: ContextVar[list[int] | None] = ContextVar("provider_calls", default=None)
 _provider_budget: ContextVar[int] = ContextVar("provider_budget", default=0)
@@ -123,18 +123,32 @@ def _documind_class() -> Any:
     return DocuMind
 
 
-def create_engine(settings: Settings, storage_path: Path) -> Any:
-    """One engine per request, so generated files land in this request's private directory."""
+def create_engine(
+    settings: Settings, storage_path: Path, workspace: WorkspaceLlm | None = None
+) -> Any:
+    """One engine per request, so generated files land in this request's private directory.
+
+    ``workspace`` carries the provider of the workspace that asked for the plan; the SDK is built
+    on it when it is present, so the endpoint, model and key of that workspace are what the
+    pipeline calls. The key is passed through to the SDK and appears nowhere else: it is not
+    logged here, not stored, and not part of any message this module raises.
+    """
     engine_class = _documind_class()
-    return engine_class(**settings.engine_kwargs(), storage_local_path=str(storage_path))
+    return engine_class(
+        **settings.engine_kwargs(workspace), storage_local_path=str(storage_path)
+    )
 
 
 async def generate_markdown(
-    settings: Settings, query: str, locale: str, storage_path: Path
+    settings: Settings,
+    query: str,
+    locale: str,
+    storage_path: Path,
+    workspace: WorkspaceLlm | None = None,
 ) -> str:
     # The counter itself is started by the request handler (see begin_provider_call_count)
     _install_hooks()
-    engine = create_engine(settings, storage_path)
+    engine = create_engine(settings, storage_path, workspace)
     try:
         result = await engine.generate(
             query=query,

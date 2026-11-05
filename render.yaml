@@ -34,7 +34,7 @@ services:
       - key: EMAIL_FROM
         sync: false
       - key: DOCUMENT_ANALYZER_MODE
-        value: ai
+        value: documind
       - key: DOCUMENT_ANALYZER_URL
         sync: false
       - key: DOCUMENT_ANALYZER_TOKEN
@@ -46,7 +46,9 @@ services:
         value: "false"
 
   # Private Python service that turns a document into a plan with the DocuMind SDK.
-  # Keep DOCUMENT_ANALYZER_MODE=ai on the API until RISK-022 has been measured.
+  # DOCUMENT_ANALYZER_MODE=documind is the default on the API, so fill in DOCUMENT_ANALYZER_URL
+  # (its private https address) and it runs each plan on the uploading workspace's own provider.
+  # Set the mode to ai on the API to fall back to the single-call workspace-provider path.
   - type: web
     name: taskman-document-analyzer
     runtime: docker

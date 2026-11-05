@@ -11,6 +11,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from .contracts import WorkspaceLlm
+
 SDK_VERSION = "0.2.2"
 DEVELOPMENT = "development"
 
@@ -35,9 +37,15 @@ DEFAULT_TIMEOUT_SECONDS = 200
 DEFAULT_PORT = 8000
 MAX_PORT = 65535
 # Transport retries inside the provider client are off (see app.engine): one retry there repeats
-# a whole agent step. A plan normally costs one document-generation step, or two when the first
-# answer wrote prose instead of the plan JSON. The cap allows for that worst case with margin.
-DEFAULT_MAX_PROVIDER_CALLS = 4
+# a whole agent step. The cap was 4, from the assumption that a plan costs one document-generation
+# step or two when the first answer wrote prose. A real run on 2026-11-05 disproved that: the
+# pipeline built six provider clients for one plan on an OpenAI-compatible endpoint, so the sixth
+# was refused. DocuMind catches that refusal and degrades into a document with no plan block, which
+# the parser then rejects as "not one fenced JSON block" -- a cap that is too low is destructive,
+# not protective, because the failure it causes is indistinguishable from a bad answer. Eight
+# leaves room for the measured six plus one retry, and still stops a runaway pipeline well inside
+# the request timeout (ANALYZER_TIMEOUT_SECONDS, 280 at most).
+DEFAULT_MAX_PROVIDER_CALLS = 8
 
 
 class ConfigurationError(RuntimeError):
@@ -112,8 +120,28 @@ class Settings:
     def configured(self) -> bool:
         return bool(self.token) and bool(self.api_key)
 
-    def engine_kwargs(self) -> dict[str, Any]:
-        """Keyword arguments for ``documind.DocuMind`` (storage is added per request)."""
+    def engine_kwargs(self, workspace: WorkspaceLlm | None = None) -> dict[str, Any]:
+        """Keyword arguments for ``documind.DocuMind`` (storage is added per request).
+
+        ``workspace`` is the BYOK provider of the workspace that queued the plan. When it is
+        given it wins over this service's own ``DOCUMIND_LLM_*`` settings, so a plan runs on the
+        endpoint, model and key of the workspace that asked for it, and a workspace never spends
+        another workspace's (or the deployment's) allowance. The stored settings stay as the
+        fallback for a request that carries no block.
+        """
+        if workspace is not None:
+            # The SDK's ``custom`` provider is its OpenAI-compatible one: base URL, key and model
+            # name are all supplied, so no default endpoint or model is consulted.
+            return {
+                "llm_provider": "custom",
+                "use_default_models": True,
+                "default_llm_model": workspace.model,
+                "custom_llm_base_url": workspace.baseUrl,
+                "custom_llm_api_key": workspace.apiKey,
+                "custom_llm_model_name": workspace.model,
+                "log_level": "INFO",
+            }
+
         provider = self.provider
         key = self.api_key
         model = self.model

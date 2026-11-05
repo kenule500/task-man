@@ -45,11 +45,14 @@ async def analyze(request: AnalyzeRequest, settings: Settings) -> AnalyzeRespons
         except OSError:  # Windows development; the directory is still request-private
             pass
 
+        # ``llm`` is the workspace BYOK block the API sends with the request, so the pipeline runs
+        # on that workspace's endpoint, model and key rather than on this deployment's settings.
         markdown = await generate_markdown(
             settings,
             build_query(request),
             request.options.language.value,
             workdir,
+            workspace=request.llm,
         )
 
         if not has_plan_object(markdown) and not is_truncated_plan(markdown):
@@ -64,6 +67,7 @@ async def analyze(request: AnalyzeRequest, settings: Settings) -> AnalyzeRespons
                 repair_query(request, markdown),
                 request.options.language.value,
                 workdir,
+                workspace=request.llm,
             )
 
         payload = extract_plan(markdown)
@@ -92,7 +96,8 @@ async def analyze(request: AnalyzeRequest, settings: Settings) -> AnalyzeRespons
             plan=plan,
             analyzer=AnalyzerInfo(
                 sdkVersion=SDK_VERSION,
-                model=settings.model,
+                # The model the plan actually ran on: the workspace's, not this deployment's
+                model=request.llm.model if request.llm else settings.model,
                 latencyMs=latency_ms,
             ),
         )

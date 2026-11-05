@@ -270,11 +270,17 @@ describe('readPlanConfig', () => {
 describe('planSourceOf', () => {
   const token = 'a'.repeat(40);
 
-  it('says provider by default, because plans use the workspace provider in one call', () => {
-    expect(planSourceOf(readAnalyzerConfig({}))).toBe('provider');
+  it('says provider only when the mode is explicitly ai', () => {
+    expect(planSourceOf(readAnalyzerConfig({ DOCUMENT_ANALYZER_MODE: 'ai' }))).toBe('provider');
   });
 
-  it('says analyzer when documind is on and the service is usable', () => {
+  it('says the analyzer needs setting up by default, because documind is the engine', () => {
+    // No URL and no token: the engine is DocuMind but this deployment cannot reach it yet
+    expect(readAnalyzerConfig({}).mode).toBe('documind');
+    expect(planSourceOf(readAnalyzerConfig({}))).toBe('analyzer_unconfigured');
+  });
+
+  it('says analyzer when the service is usable', () => {
     expect(planSourceOf(readAnalyzerConfig({
       DOCUMENT_ANALYZER_MODE: 'documind',
       DOCUMENT_ANALYZER_URL: 'http://127.0.0.1:8000',

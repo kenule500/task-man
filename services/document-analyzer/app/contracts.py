@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
 
@@ -105,11 +106,49 @@ class PlanOptions(StrictModel):
     existingProject: bool = False
 
 
+class WorkspaceLlm(StrictModel):
+    """The provider of the workspace that queued this plan (BYOK), sent with every request.
+
+    The API holds the decrypted key and the analyzer has no database, so the credentials travel
+    with the request. They are handed straight to the SDK: never logged, never stored, and never
+    echoed in an error or an answer. Only HTTPS is accepted, the same rule the workspace settings
+    already enforce (``normalizeBaseURL`` in the API), so a stored value cannot redirect a key.
+
+    Every workspace preset is an OpenAI-compatible endpoint, which is the SDK's ``custom``
+    provider; that is why there is no provider name here.
+    """
+
+    model: str = Field(min_length=1, max_length=120)
+    apiKey: str = Field(min_length=1, max_length=400)
+    baseUrl: str = Field(min_length=1, max_length=300)
+
+    @field_validator("baseUrl")
+    @classmethod
+    def https_only(cls, value: str) -> str:
+        """HTTPS with nothing else in it: the same rule the workspace settings already enforce.
+
+        The API validates the endpoint before sending it (``normalizeBaseURL``), so this is the
+        second lock on the same door: this service is what dials it, and a stored value must not be
+        able to carry a key elsewhere or smuggle one through userinfo or a query string.
+        """
+        parsed = urlsplit(value)
+        if parsed.scheme != "https" or not parsed.hostname:
+            raise ValueError("the workspace endpoint must be an https URL")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise ValueError(
+                "the workspace endpoint must not carry credentials, a query or a fragment"
+            )
+        return value.rstrip("/")
+
+
 class AnalyzeRequest(StrictModel):
     contractVersion: Literal[1]
     requestId: str = Field(min_length=8, max_length=64)
     document: DocumentPayload
     options: PlanOptions
+    # Absent only for a caller that predates the workspace provider block; the service then runs
+    # on its own DOCUMIND_LLM_* settings.
+    llm: WorkspaceLlm | None = None
 
 
 class AnalyzerInfo(StrictModel):

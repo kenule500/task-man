@@ -89,20 +89,13 @@ export const requireTaskWrite = (req: Request, res: Response, next: NextFunction
 export const ensurePlansEnabled = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const analyzer = readAnalyzerConfig();
-    if (analyzer.mode === 'documind') {
-      if (!analyzer.configured) {
-        throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
-      }
-      const workspaceId = workspaceOf(req)._id as Id;
-      const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
-      if (stored?.ai?.enabled !== true) {
-        throw new AiQueueError(503, 'AI_DISABLED', 'AI is turned off for this workspace. An administrator can turn it on in the settings.');
-      }
-      next();
-      return;
+    if (analyzer.mode === 'documind' && !analyzer.configured) {
+      throw new AiQueueError(503, 'ANALYZER_NOT_CONFIGURED', 'The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.');
     }
     const workspaceId = workspaceOf(req)._id as Id;
     const stored = await Workspace.findById(workspaceId).select('+ai.apiKeyEncrypted').lean();
+    // Both engines run on the workspace's provider: DocuMind included, since the request carries
+    // that workspace's endpoint, model and key.
     assertPlanFeatureOn(workspaceId, stored?.ai);
     next();
   } catch (error) {
@@ -207,7 +200,7 @@ export const uploadPlan = async (req: Request, res: Response): Promise<void> => 
         fileName, mimeType: extracted.mimeType, size: req.file.size, chars: extracted.text.length, truncated: shortened.truncated, text: extracted.text,
       },
       options,
-      model: ai?.model ?? '',
+      model: ai.model,
     });
     // The work continues after the response (kept alive by waitUntil on Vercel); the text lives only in this closure
     runInBackground(runPlan(plan._id as Id, { text: shortened.text, truncated: shortened.truncated }));

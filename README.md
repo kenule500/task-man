@@ -214,8 +214,10 @@ pnpm --filter client dev                 # web app on http://localhost:5173
 
 The standard document-to-plan path is a small Python service in `services/document-analyzer/`. It uses
 the DocuMind SDK, which **generates** a Markdown plan from the cleaned document text; it is not an
-analysis/OCR API, and its internal pipeline may make several provider calls. The API keeps its v1
-workspace-provider path (`DOCUMENT_ANALYZER_MODE=ai`) until the analyzer is deployed and measured.
+analysis/OCR API, and its internal pipeline may make several provider calls. It is the default engine
+(`DOCUMENT_ANALYZER_MODE=documind`), and it runs each plan on the provider of the workspace that
+uploaded the document — that workspace's endpoint, model and key travel with the request. Set
+`DOCUMENT_ANALYZER_MODE=ai` to use the single-call v1 workspace-provider path instead.
 
 ```bash
 pnpm dev:analyzer                         # from the repo root; uv syncs on first run

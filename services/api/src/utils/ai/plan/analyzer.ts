@@ -23,6 +23,19 @@ export interface AnalyzePlanInput {
   mimeType: string;
   text: string;
   options: AnalyzePlanOptions;
+  /**
+   * The workspace's provider, so the pipeline runs on that workspace's account instead of on the
+   * analyzer's own `DOCUMIND_LLM_*` settings. Omitted only by a caller that has no workspace
+   * configuration; the service then falls back to the deployment's provider.
+   */
+  llm?: WorkspaceLlm | null;
+}
+
+/** The BYOK block the analyzer needs to build its engine: an OpenAI-compatible endpoint. */
+export interface WorkspaceLlm {
+  model: string;
+  apiKey: string;
+  baseUrl: string;
 }
 
 export interface AnalyzePlanResult {
@@ -120,6 +133,9 @@ export const analyzePlan = async (
       language: input.options.language,
       existingProject: Boolean(input.options.targetProjectId),
     },
+    // The workspace's own endpoint, model and key: the plan is billed to whoever asked for it.
+    // Absent when the caller has no workspace provider, and then the service's settings are used.
+    ...(input.llm ? { llm: { model: input.llm.model, apiKey: input.llm.apiKey, baseUrl: input.llm.baseUrl } } : {}),
   });
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {

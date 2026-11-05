@@ -25,7 +25,7 @@ MONGO_URI=mongodb://127.0.0.1:27017/task-man pnpm dev    # http://localhost:5000
 # Web app
 pnpm --filter client dev             # http://localhost:5173
 
-# Document analyzer (optional; the API defaults to its own provider path)
+# Document analyzer (the default plan engine; the API reads its URL from DOCUMENT_ANALYZER_URL)
 pnpm dev:analyzer                    # http://localhost:8000; uv syncs on first run
 # or manually:
 cd services/document-analyzer
@@ -120,8 +120,10 @@ client/src/
   (keyboard: arrows move, Shift+arrows resize).
 - `documind` 0.2.2 is a **generation** SDK: it has no analysis/OCR API and its internal pipeline may
   make several provider calls. The analyzer feeds it cleaned text and parses one fenced JSON block.
-- Document plans default to `DOCUMENT_ANALYZER_MODE=ai` (the v1 provider path). `documind` becomes the
-  default only after the cost/latency/provider-call measurement recorded in v2 `RISK-022`.
+- Document plans default to `DOCUMENT_ANALYZER_MODE=documind`: the Python analyzer runs the plan on the
+  provider of the workspace that uploaded it (the request carries that workspace's endpoint, model and
+  key - see the `llm` block). `ai` opts out to the single-call v1 workspace-provider path, which is what
+  a deployment with no analyzer needs. Same provider and workspace opt-in either way.
 - The analyzer receives text only; `extract.ts`, upload limits and `finalizePlan` stay in Node.
 
 ## Definition of done

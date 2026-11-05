@@ -14,7 +14,7 @@ validates the object and deletes the generated files.
 
 The SDK runs a multi-agent pipeline internally and may make several provider calls. The
 "one request" guarantee is about TaskMan → this service → one `generate` invocation, not about
-the number of provider calls. Measure them before making it the default (see below).
+the number of provider calls (see below).
 
 ## Local development
 
@@ -60,7 +60,11 @@ DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000
 DOCUMENT_ANALYZER_TOKEN=<same token>
 ```
 
-Keep `DOCUMENT_ANALYZER_MODE=ai` to use the existing workspace provider path.
+`documind` is the default mode. The API sends the provider of the workspace that uploaded the
+document (its endpoint, model and key) in the request's `llm` block, and this service hands it to
+the SDK, so a plan runs on the account that asked for it. The `DOCUMIND_LLM_*` settings below are
+used only for a request that carries no such block, which lets a deployment keep them as a fallback.
+Set `DOCUMENT_ANALYZER_MODE=ai` on the API to use the v1 single-call workspace-provider path instead.
 
 ## API
 
@@ -75,9 +79,18 @@ Keep `DOCUMENT_ANALYZER_MODE=ai` to use the existing workspace provider path.
     "projectName": "", "projectKey": "", "sprintLengthWeeks": 2,
     "startDate": "2026-11-02", "teamSize": 5, "extraInstructions": "",
     "language": "en", "existingProject": false
+  },
+  "llm": {
+    "model": "qwen-plus",
+    "apiKey": "sk-workspace",
+    "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
   }
 }
 ```
+
+The optional `llm` block is the BYOK provider of the workspace that queued the plan (HTTPS only; no
+userinfo, query or fragment). When it is present the plan runs on that workspace's account and the
+`DOCUMIND_LLM_*` settings are ignored; when it is absent the service uses its own settings.
 
 It returns `{ contractVersion, requestId, plan, analyzer, warnings }`. Errors are
 `{ requestId, code, message }` with `ANALYZER_UNAUTHORIZED`, `ANALYZER_INVALID_REQUEST`,
@@ -89,8 +102,10 @@ It returns `{ contractVersion, requestId, plan, analyzer, warnings }`. Errors ar
 ## Security and limits
 
 - The service has no database and no tenant routes; only the API server calls it.
-- The bearer token and provider key come from the environment. They are never returned or
-  logged. Production refuses to start without a ≥32-byte token and a provider key.
+- The bearer token comes from the environment. The provider key is the uploading workspace's, sent
+  in the request's `llm` block, or this service's own `DOCUMIND_LLM_*` as a fallback: neither is ever
+  returned or logged, and a request key is handed straight to the SDK for that one request only.
+  Production refuses to start without a ≥32-byte token and a provider key.
 - Document text stays in memory. Generated files go to a per-request `0700` directory that is
   removed in a `finally` block; nothing is cached or persisted.
 - Logs contain the request id, sizes, latency, engine and code only.
@@ -98,15 +113,17 @@ It returns `{ contractVersion, requestId, plan, analyzer, warnings }`. Errors ar
   `ANALYZER_MAX_CONCURRENCY` (2) and `ANALYZER_TIMEOUT_SECONDS` (200) bound the work.
 - Run it on a private network or behind HTTPS; the production API must use an `https://` URL.
 
-## Before switching the default (RISK-022)
+## Cost, latency and provider calls (RISK-022)
 
 Run ten real documents through both paths and record:
 
 1. provider calls per plan (provider dashboard or SDK logs),
 2. p95 latency,
 3. token cost,
-4. plan quality (items, criteria, obvious errors).Publish the numbers with the switch. If they are worse than the v1 single-call path, keep
-`DOCUMENT_ANALYZER_MODE=ai`.
+4. plan quality (items, criteria, obvious errors).
+
+Publish the numbers. `documind` is the default, so if they are worse than the v1 single-call path,
+set `DOCUMENT_ANALYZER_MODE=ai`.
 
 `scripts/measure_risk_022.py` produces 1, 2 and a prompt-size proxy for token cost, and leaves
 any column it could not measure empty instead of estimating it. It drives the running service
@@ -123,7 +140,7 @@ Measured on the local container (Docker 29.7.2, Windows):
 | RSS after a 34 KB document | 80 MiB |
 | Prompt for a 20,000-char document | 23,668 chars |
 | Provider calls, analyzer running without a key | 0, failing as `ANALYZER_UNAVAILABLE` in 2 ms |
-| Latency, provider calls and token cost on real documents | **not measured**: needs a keyed run |
+| Latency, provider calls and token cost on real documents | **not measured**: needs a keyed run |
 
 ## Rollback
 

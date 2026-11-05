@@ -45,6 +45,18 @@ def repaired(content: dict) -> dict:
     return PlanContract.model_validate(content).model_dump(mode="json")
 
 
+def body(**overrides: object) -> dict:
+    """A minimal valid request; ``llm`` is added by the tests that need the workspace block."""
+    payload: dict = {
+        "contractVersion": 1,
+        "requestId": "11111111-2222-4333-8444-555555555555",
+        "document": {"fileName": "brief.md", "mimeType": "text/markdown", "text": "x"},
+        "options": {},
+    }
+    payload.update(overrides)
+    return payload
+
+
 class TestGoldenFixture:
     def test_the_golden_plan_is_valid_against_the_published_schema(self) -> None:
         Draft7Validator(SCHEMA).validate(GOLDEN)
@@ -155,3 +167,49 @@ class TestRequestStaysStrict:
         }
         with pytest.raises(ValidationError):
             AnalyzeRequest.model_validate(body)
+
+
+class TestWorkspaceProviderBlock:
+    """The BYOK block the API sends: optional, strict, and HTTPS only."""
+
+    def test_a_request_without_the_block_is_still_valid(self) -> None:
+        assert AnalyzeRequest.model_validate(body()).llm is None
+
+    def test_the_workspace_endpoint_key_and_model_are_accepted(self) -> None:
+        request = AnalyzeRequest.model_validate(body(llm={
+            "model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": "https://example.test/v1",
+        }))
+        assert request.llm is not None
+        assert request.llm.model == "qwen-plus"
+        assert request.llm.baseUrl == "https://example.test/v1"
+
+    @pytest.mark.parametrize(
+        "base_url",
+        [
+            "http://example.test/v1",  # plain HTTP would send the key in the clear
+            "ftp://example.test/v1",
+            "example.test/v1",
+            "https://user:pass@example.test/v1",
+        ],
+    )
+    def test_an_endpoint_that_is_not_plain_https_is_refused(self, base_url: str) -> None:
+        with pytest.raises(ValidationError):
+            AnalyzeRequest.model_validate(body(llm={
+                "model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": base_url,
+            }))
+
+    def test_an_unknown_field_inside_the_block_is_refused(self) -> None:
+        with pytest.raises(ValidationError):
+            AnalyzeRequest.model_validate(body(llm={
+                "model": "qwen-plus", "apiKey": "sk-workspace",
+                "baseUrl": "https://example.test/v1", "api_key": "smuggled",
+            }))
+
+    @pytest.mark.parametrize("missing", ["model", "apiKey", "baseUrl"])
+    def test_every_field_of_the_block_is_required(self, missing: str) -> None:
+        block = {
+            "model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": "https://example.test/v1",
+        }
+        del block[missing]
+        with pytest.raises(ValidationError):
+            AnalyzeRequest.model_validate(body(llm=block))
