@@ -7,6 +7,39 @@
       "event": "version_created",
       "prevHash": "GENESIS",
       "hash": "08e5118d6a4abf7be51671b3a31fb95142e2669e2604de78a29b1463e9ea3707"
+    },
+    {
+      "timestamp": "2026-11-04T17:22:00.432Z",
+      "actor": "kenule500",
+      "feature": "upload-document",
+      "version": "v2",
+      "exitCode": 1,
+      "failed": 1,
+      "event": "test_failed",
+      "prevHash": "08e5118d6a4abf7be51671b3a31fb95142e2669e2604de78a29b1463e9ea3707",
+      "hash": "36e75aa7f788eeeb58c4193bf297a0f8bbdf2049f1984f23cb5f1c249d0b8bdd"
+    },
+    {
+      "timestamp": "2026-11-04T17:32:13.050Z",
+      "actor": "kenule500",
+      "feature": "upload-document",
+      "version": "v2",
+      "exitCode": 1,
+      "failed": 0,
+      "event": "test_failed",
+      "prevHash": "36e75aa7f788eeeb58c4193bf297a0f8bbdf2049f1984f23cb5f1c249d0b8bdd",
+      "hash": "912f10fdca18fb6eeb0237f1e3866ac453f99106ee5721fd213d63d883f96b9d"
+    },
+    {
+      "timestamp": "2026-11-04T22:13:42.842Z",
+      "actor": "kenule500",
+      "feature": "upload-document",
+      "version": "v2",
+      "total": 728,
+      "durationMs": 604761,
+      "event": "test_passed",
+      "prevHash": "912f10fdca18fb6eeb0237f1e3866ac453f99106ee5721fd213d63d883f96b9d",
+      "hash": "78d19182d8ce390025b927dd9fe066bd88931820f7a417e5b0b2c919a98a93ed"
     }
   ]
 }

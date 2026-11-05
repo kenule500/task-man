@@ -29,10 +29,11 @@
       { "name": "client/src/i18n/locales/en,fr,ar/aiPlan.json", "action": "modify", "description": "Engine label and new error copy in three locales." },
       { "name": "render.yaml", "action": "modify", "description": "Analyzer service, Docker, health check and private env." },
       { "name": "services/api/.env.example", "action": "modify", "description": "DOCUMENT_ANALYZER_* placeholders only." },
-      { "name": "AGENTS.md and README.md", "action": "modify", "description": "Stack, layout and commands for the service." },
+      { "name": "AGENTS.md", "action": "modify", "description": "Stack, layout and commands for the analyzer service." },
+      { "name": "README.md", "action": "modify", "description": "Repository layout, analyzer commands and how the mode switch is documented." },
       { "name": "services/api/src/utils/ai/plan/extract.ts", "action": "reuse", "description": "Remains the only text extractor and upload guard." },
       { "name": "services/api/src/utils/ai/provider.ts", "action": "reuse", "description": "Remains the ai path and the only fallback." },
-      { "name": "client/src/features/ai-plan flow", "action": "reuse", "description": "Upload, destination, review, create and rollback unchanged." }
+      { "name": "client/src/features/ai-plan", "action": "reuse", "description": "Upload, destination, review, create and rollback unchanged." }
     ],
     "referencedRequirementIds": [
       "FR-035", "FR-036", "FR-037", "FR-038", "FR-039", "FR-040", "FR-041", "FR-042",
@@ -58,7 +59,6 @@
         "name": "PlanContract",
         "action": "create",
         "fields": [
-          { "name": "contractVersion", "type": "1", "action": "add" },
           { "name": "project", "type": "{ name, key, description, color }", "action": "add" },
           { "name": "sprints", "type": "array<{ name, goal, startDate, endDate }>", "action": "add" },
           { "name": "epics", "type": "array<{ ref, title, description }>", "action": "add" },
@@ -81,6 +81,7 @@
         "name": "AnalyzeResponse",
         "action": "create",
         "fields": [
+          { "name": "contractVersion", "type": "1", "action": "add" },
           { "name": "requestId", "type": "string", "action": "add" },
           { "name": "plan", "type": "PlanContract", "action": "add" },
           { "name": "analyzer", "type": "{ engine, sdkVersion, model, latencyMs }", "action": "add" },
@@ -108,12 +109,13 @@
   ],
   "dependencies": [
     { "name": "documind", "type": "library", "action": "add", "notes": "documind==0.2.2, Apache-2.0, Python >=3.11, generation-only with no analysis API; hash-pinned in uv.lock; no published skill." },
-    { "name": "uv", "type": "library", "action": "add", "notes": "Service dependency management and lockfile; 0.10.3 available locally." },
+    { "name": "uv", "type": "external", "action": "add", "notes": "Build and lockfile toolchain that produces uv.lock; nothing in the service imports it, so it is not a package dependency. 0.10.3 available locally." },
     { "name": "fastapi", "type": "library", "action": "add", "notes": "HTTP surface and Pydantic integration for the analyzer." },
     { "name": "uvicorn", "type": "library", "action": "add", "notes": "ASGI server for the container and local development." },
     { "name": "pydantic", "type": "library", "action": "add", "notes": "Request, plan and response validation; documind already requires pydantic>=2.7." },
-    { "name": "pytest and httpx", "type": "library", "action": "add", "notes": "Dev-only dependencies for the Test agent; no test tasks are created here." },
-    { "name": "Node global fetch", "type": "library", "action": "no_change", "notes": "Node 22 fetch with AbortSignal; no new HTTP client dependency." },
+    { "name": "pytest", "type": "library", "action": "add", "notes": "Test runner, declared only in [project.optional-dependencies].dev so it never reaches the runtime image; no test tasks are created here." },
+    { "name": "httpx", "type": "library", "action": "add", "notes": "ASGI test client, declared only in [project.optional-dependencies].dev; used by the analyzer contract and endpoint tests." },
+    { "name": "Node global fetch", "type": "external", "action": "no_change", "notes": "Runtime builtin in Node 22 with AbortSignal; supplied by the platform rather than installed, so no HTTP client package is added." },
     { "name": "Existing extraction", "type": "internal", "action": "no_change", "notes": "utils/ai/plan/extract.ts remains the only upload and text extractor." },
     { "name": "Existing v1 provider", "type": "internal", "action": "no_change", "notes": "utils/ai/provider.ts remains the ai mode and the only fallback." },
     { "name": "Render analyzer service", "type": "service", "action": "add", "notes": "Private Docker service with /healthz and sync:false secrets." }

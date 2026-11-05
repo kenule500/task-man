@@ -93,6 +93,11 @@ const CANDIDATE_ROOTS = [
   "lib",
   "pages",
   "server",
+  // A pnpm workspace keeps the web app in client/ and the services in services/.
+  // Neither was a candidate root, so every component under them was reported as
+  // missing and verification.json could never leave "fail" in this repository.
+  "client",
+  "services",
   "internal",
   "cmd",
   "pkg",
@@ -119,7 +124,22 @@ const IGNORED_DIRS = new Set([
   "out",
   ".sdrive",
   ".cache",
-  "vendor"
+  "vendor",
+  // Installed third-party code is not this project's code. Without these, a Python
+  // service's virtualenv was walked as source: `services/document-analyzer/.venv` alone
+  // contributed roughly eleven thousand files, and FastAPI's own docstrings and its
+  // bundled markdown skill references were read as the project's endpoints - `/users/me`,
+  // `/items/`, `/login` and `/items/{item_id}` all appeared as detected API surface, and
+  // a plan component named "AGENTS.md and README.md" was "renamed" to
+  // `anthropic/resources/beta/agents/agents.py` inside the venv.
+  ".venv",
+  "venv",
+  "site-packages",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".ruff_cache",
+  ".tox"
 ]);
 
 const CODE_EXTENSIONS = [
@@ -218,6 +238,18 @@ function scanCode() {
     walkDirectory(path.join(projectRoot, root), files);
   });
 
+  // A plan may name a repository-root file (README.md, AGENTS.md, render.yaml).
+  // Those live in no source root, so walking the roots alone reported a component
+  // that is plainly on disk as missing.
+  fs.readdirSync(projectRoot, { withFileTypes: true }).forEach((entry) => {
+    if (!entry.isFile()) return;
+    if (IGNORED_FILES.has(entry.name)) return;
+
+    if (CODE_EXTENSIONS.some((ext) => entry.name.endsWith(ext))) {
+      files.push(path.join(projectRoot, entry.name));
+    }
+  });
+
   console.log(`📄 Found ${files.length} source files.\n`);
 
   return { files, roots };
@@ -232,6 +264,42 @@ function readFileContent(filePath) {
   } catch (error) {
     return "";
   }
+}
+
+// Extracts `interface X { ... }` / `type X = { ... }` bodies by tracking brace depth.
+// A non-greedy `\{([\s\S]*?)\}` stops at the first closing brace, so every field declared
+// after a nested object literal was invisible: in `interface AiPlan`, the line
+// `usage: { inputTokens: number, outputTokens: number };` closed the captured block, and
+// the `analyzer` and `plan` fields declared below it were reported missing even though
+// they are plainly written in the file.
+function tsModelBlocks(content) {
+  const blocks = [];
+  const header =
+    /(?:export\s+)?(?:type|interface)\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>{}]*>)?\s*(?:extends\s+[^{]+)?=?\s*\{/g;
+
+  let match;
+
+  while ((match = header.exec(content)) !== null) {
+    const bodyStart = match.index + match[0].length;
+    // The header consumed the opening brace, so the scan starts one level deep.
+    // Starting at zero made the first nested `}` end the block - the same early exit
+    // the old non-greedy regex had.
+    let depth = 1;
+    let end = bodyStart;
+
+    for (; end < content.length; end++) {
+      if (content[end] === "{") depth++;
+      else if (content[end] === "}") {
+        depth--;
+
+        if (depth === 0) break;
+      }
+    }
+
+    blocks.push({ name: match[1], body: content.slice(bodyStart, end) });
+  }
+
+  return blocks;
 }
 
 function detectComponents(files) {
@@ -267,6 +335,151 @@ function detectComponents(files) {
   });
 
   return components;
+}
+
+// ---------- Router mount resolution ----------
+//
+// A router declares its own relative paths (`router.post('/')`) and is mounted elsewhere
+// with a prefix (`app.use('/api/workspaces', workspaceRoutes)`). A plan records the path a
+// client actually calls, so a route declared as `/` under two mount hops can never equal
+// `/api/workspaces/:slug/ai/plans` - the endpoint was reported missing even though the
+// file declaring it had already matched. Prefixes are resolved through the import graph
+// so the absolute form can be compared as well as the declared one.
+function resolveImportedFile(fromFile, specifier) {
+  if (!specifier.startsWith(".")) return null;
+
+  const base = path.resolve(path.dirname(fromFile), specifier);
+
+  const candidates = [
+    base,
+    base.replace(/\.js$/, ".ts"),
+    base.replace(/\.js$/, ".tsx"),
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.js`,
+    path.join(base, "index.ts"),
+    path.join(base, "index.js")
+  ];
+
+  return candidates.find((c) => fs.existsSync(c) && fs.statSync(c).isFile()) || null;
+}
+
+function joinPaths(prefix, routePath) {
+  const left = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
+  const right = routePath.startsWith("/") ? routePath : `/${routePath}`;
+
+  // `router.get('/')` under a mount IS the mount path. Appending would build a trailing
+  // slash the plan never writes, so `/api/workspaces/:slug/ai/plans` stayed missing while
+  // its sibling `/:id` matched.
+  if (right === "/") return left === "" ? "/" : left;
+
+  const joined = `${left}${right}`;
+
+  return joined === "" ? "/" : joined;
+}
+
+// mountedFile -> [{ parentFile, prefix }]
+function buildMountGraph(files) {
+  const parents = new Map();
+
+  files.forEach((file) => {
+    const content = readFileContent(file);
+    const localImports = new Map();
+
+    const importMatches = content.matchAll(
+      /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/g
+    );
+
+    for (const match of importMatches) {
+      const target = resolveImportedFile(file, match[2]);
+
+      if (target) localImports.set(match[1], target);
+    }
+
+    const mountMatches = content.matchAll(
+      /\.use\(\s*['"`]([^'"`]+)['"`]\s*,\s*([A-Za-z_$][\w$]*)\s*\)/g
+    );
+
+    for (const match of mountMatches) {
+      const child = localImports.get(match[2]);
+
+      if (!child) continue;
+
+      if (!parents.has(child)) parents.set(child, []);
+
+      parents.get(child).push({ parentFile: file, prefix: match[1] });
+    }
+  });
+
+  return parents;
+}
+
+function mountedPrefixes(file, parents, seen = new Set()) {
+  const edges = parents.get(file);
+
+  // A file nothing mounts is an entry point: its routes are already absolute.
+  if (!edges || edges.length === 0 || seen.has(file)) return [""];
+
+  const nextSeen = new Set(seen);
+
+  nextSeen.add(file);
+
+  const prefixes = [];
+
+  edges.forEach((edge) => {
+    mountedPrefixes(edge.parentFile, parents, nextSeen).forEach((parentPrefix) => {
+      prefixes.push(joinPaths(parentPrefix, edge.prefix));
+    });
+  });
+
+  return [...new Set(prefixes)];
+}
+
+// Adds an absolute form for every endpoint whose router is mounted somewhere. The
+// declared relative path is kept too, because a project may legitimately record its
+// endpoints the way the router declares them.
+function applyMountedPaths(endpoints, files) {
+  const parents = buildMountGraph(files);
+  const byRelative = new Map();
+
+  files.forEach((file) => {
+    byRelative.set(path.relative(projectRoot, file).replace(/\\/g, "/"), file);
+  });
+
+  const synthesized = [];
+
+  endpoints.forEach((endpoint) => {
+    const absolute = byRelative.get(endpoint.file);
+
+    if (!absolute) return;
+
+    mountedPrefixes(absolute, parents).forEach((prefix) => {
+      if (!prefix) return;
+
+      const fullPath = joinPaths(prefix, endpoint.path);
+
+      if (fullPath === endpoint.path) return;
+
+      const known = endpoints.some(
+        (e) => e.method === endpoint.method && e.path === fullPath
+      );
+
+      if (known) return;
+
+      if (synthesized.some((e) => e.method === endpoint.method && e.path === fullPath)) return;
+
+      // A derived path is not a claim the code makes, so it must never be reported as
+      // unplanned work. It only exists to answer "does this plan path exist?".
+      synthesized.push({
+        ...endpoint,
+        path: fullPath,
+        resolved: true,
+        declaredPath: endpoint.path
+      });
+    });
+  });
+
+  return endpoints.concat(synthesized);
 }
 
 function detectEndpoints(files) {
@@ -313,7 +526,7 @@ function detectEndpoints(files) {
     }
   });
 
-  return endpoints;
+  return applyMountedPaths(endpoints, files);
 }
 
 function detectEntities(files) {
@@ -367,10 +580,23 @@ function detectEntities(files) {
     // TypeScript type aliases and interfaces (e.g. `export type Sector = {`
     // or `export interface Sector {`). These model the plan's data entities
     // in front-end projects that have no database layer.
-    const tsTypeMatches = content.matchAll(
-      /(?:export\s+)?(?:type|interface)\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*=?\s*\{/g
+    tsModelBlocks(content).forEach((block) => {
+      entities.push({
+        name: block.name,
+        file: relative
+      });
+    });
+
+    // Python classes, which is how a Pydantic request/response model or a dataclass
+    // declares an entity. Every other stack this scanner knows about was covered
+    // (SQL, Prisma, Mongoose, TypeORM, Rust, TypeScript) but not Python, so a Python
+    // service's models were invisible and every entity and field inside them was
+    // reported missing while the file declaring them had already matched.
+    const pythonClassMatches = content.matchAll(
+      /^class\s+([A-Z]\w*)\s*(?:\([^)]*\))?\s*:/gm
     );
-    for (const match of tsTypeMatches) {
+
+    for (const match of pythonClassMatches) {
       entities.push({
         name: match[1],
         file: relative
@@ -464,24 +690,63 @@ function detectFields(files) {
 
     // TypeScript type/interface fields (e.g. `id: string;` inside a type).
     // Matches `name: Type` and optional `name?: Type` property declarations.
-    const tsBlocks = content.matchAll(
-      /(?:export\s+)?(?:type|interface)\s+([A-Z][A-Za-z0-9_]*)\s*(?:<[^>]*>)?\s*=?\s*\{([\s\S]*?)\}/g
-    );
-
-    for (const block of tsBlocks) {
-      const entity = block[1];
-      const body = block[2];
-
-      const fieldMatches = body.matchAll(/^\s*(\w+)\??\s*:\s*([^;\n]+)/gm);
+    tsModelBlocks(content).forEach((block) => {
+      const fieldMatches = block.body.matchAll(/^\s*(\w+)\??\s*:\s*([^;\n]+)/gm);
 
       for (const field of fieldMatches) {
         fields.push({
-          entity,
+          entity: block.name,
           name: field[1],
           file: relative
         });
       }
-    }
+    });
+    // Python model fields, e.g. `contractVersion: Literal[1]` inside a Pydantic class.
+    // Only lines at the class body's own indent are read, so a local variable or a
+    // parameter inside a method body is never mistaken for a field.
+    let pythonEntity = null;
+    let pythonBodyIndent = 0;
+
+    content.split(/\r?\n/).forEach((rawLine) => {
+      const trimmedLine = rawLine.trim();
+
+      if (!trimmedLine) return;
+
+      const indent = rawLine.length - rawLine.trimStart().length;
+      const classMatch = rawLine.match(/^(\s*)class\s+([A-Z]\w*)\s*(?:\([^)]*\))?\s*:/);
+
+      if (classMatch) {
+        pythonEntity = classMatch[2];
+        pythonBodyIndent = 0;
+        return;
+      }
+
+      if (pythonEntity === null) return;
+
+      // A dedent to column zero ends the class.
+      if (indent === 0) {
+        pythonEntity = null;
+        return;
+      }
+
+      if (pythonBodyIndent === 0) pythonBodyIndent = indent;
+
+      if (indent !== pythonBodyIndent) return;
+      if (trimmedLine.startsWith("@")) return;
+      if (trimmedLine.startsWith("def ")) return;
+      if (trimmedLine.startsWith("#")) return;
+      if (trimmedLine.startsWith('"""') || trimmedLine.startsWith("'''")) return;
+
+      const field = trimmedLine.match(/^([a-zA-Z_]\w*)\s*:\s*\S/);
+
+      if (!field) return;
+
+      fields.push({
+        entity: pythonEntity,
+        name: field[1],
+        file: relative
+      });
+    });
   });
 
   return fields;
@@ -521,6 +786,72 @@ function cargoDependencyNames(file) {
     const match = trimmed.match(/^([A-Za-z0-9_-]+)\s*=/);
 
     if (match) names.push(match[1]);
+  }
+
+  return names;
+}
+
+// Dependency names declared by a PEP 621 `pyproject.toml`: the `dependencies` array and
+// every group under `[project.optional-dependencies]`. Modern Python projects declare
+// nothing in `requirements.txt`, so before this a Python dependency was invisible and
+// every one of them was reported missing - `documind`, `fastapi`, `uvicorn` and
+// `pydantic` were all in `services/document-analyzer/pyproject.toml` and all reported
+// as absent from the repository.
+function pyprojectDependencyNames(file) {
+  const content = readFileContent(file);
+  const names = [];
+  let section = "";
+  let collecting = false;
+
+  const takeSpecs = (text) => {
+    const quoted = text.match(/"[^"]*"|'[^']*'/g) || [];
+
+    quoted.forEach((raw) => {
+      const spec = raw.slice(1, -1).trim();
+
+      if (!spec) return;
+
+      // `uvicorn[standard]>=0.30,<1.0` is the `uvicorn` distribution.
+      const name = spec.split(/[\s<>=!~;([\]]/)[0].trim();
+
+      if (name) names.push(name);
+    });
+  };
+
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const header = trimmed.match(/^\[([^\]]+)\]\s*$/);
+
+    if (header) {
+      section = header[1];
+      collecting = false;
+      continue;
+    }
+
+    if (section === "project" && /^dependencies\s*=/.test(trimmed)) {
+      collecting = true;
+    } else if (
+      section === "project.optional-dependencies" &&
+      /^[\w.-]+\s*=/.test(trimmed)
+    ) {
+      collecting = true;
+    }
+
+    if (!collecting) continue;
+
+    takeSpecs(trimmed);
+
+    // A bracket inside a quoted requirement (`uvicorn[standard]>=0.30`) is not an array
+    // delimiter. Counting it closed the array two entries early, which is why
+    // `pydantic` was reported missing from a manifest that plainly declares it.
+    const unquoted = trimmed.replace(/"[^"]*"|'[^']*'/g, "");
+    const depth =
+      (unquoted.match(/\[/g) || []).length - (unquoted.match(/\]/g) || []).length;
+
+    if (unquoted.includes("]") && depth <= 0) collecting = false;
   }
 
   return names;
@@ -566,6 +897,27 @@ function detectDependencies(sourceRoots = []) {
     .filter((file) => fs.existsSync(file))
     .forEach((file) => cargoDependencyNames(file).forEach((name) => names.add(name)));
 
+  // Python: modern projects declare in `pyproject.toml`, not `requirements.txt`.
+  const pyprojects = [path.join(projectRoot, "pyproject.toml")];
+
+  for (const root of sourceRoots) {
+    const rootDir = path.join(projectRoot, root);
+
+    if (!fs.existsSync(rootDir)) continue;
+
+    pyprojects.push(path.join(rootDir, "pyproject.toml"));
+
+    for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        pyprojects.push(path.join(rootDir, entry.name, "pyproject.toml"));
+      }
+    }
+  }
+
+  pyprojects
+    .filter((file) => fs.existsSync(file))
+    .forEach((file) => pyprojectDependencyNames(file).forEach((name) => names.add(name)));
+
   // Python
   const requirements = path.join(projectRoot, "requirements.txt");
 
@@ -600,10 +952,25 @@ function diffPlanAgainstCode(planItems, code) {
   // so a plan that groups sibling files still matches the real files on disk.
   const expandBraces = (pattern) => {
     const match = pattern.match(/^(.*)\{([^}]+)\}(.*)$/);
-    if (!match) return [pattern];
-    return match[2]
-      .split(",")
-      .map((part) => `${match[1]}${part.trim()}${match[3]}`);
+
+    if (match) {
+      return match[2]
+        .split(",")
+        .map((part) => `${match[1]}${part.trim()}${match[3]}`);
+    }
+
+    // The same grouping is also written without braces - "locales/en,fr,ar/aiPlan.json"
+    // names the three locale files, all of which exist. Without this the item matched no
+    // file and was reported as a rename onto one sibling.
+    const listMatch = pattern.match(/^(.*\/)([^/]*,[^/]*)(\/.*)?$/);
+
+    if (listMatch) {
+      return listMatch[2]
+        .split(",")
+        .map((part) => `${listMatch[1]}${part.trim()}${listMatch[3] || ""}`);
+    }
+
+    return [pattern];
   };
 
   // A plan item matches a code component when the names are equal, when the
@@ -611,7 +978,7 @@ function diffPlanAgainstCode(planItems, code) {
   // expands to the file path.
   const componentMatches = (item, c) => {
     if (c.name === item.name || c.file === item.name) return true;
-    if (item.name.includes("{")) {
+    if (item.name.includes("{") || item.name.includes(",")) {
       return expandBraces(item.name).some((p) => p === c.file || p === c.name);
     }
     return false;
@@ -635,6 +1002,24 @@ function diffPlanAgainstCode(planItems, code) {
       if (found) {
         matched.push({ ...item, file: found.file });
         claimedFiles.add(found.file);
+      } else if (
+        // A plan may name a directory ("services/document-analyzer") when the change
+        // is the package as a whole. The scanner only indexes files, so that item was
+        // reported as missing even though the directory existed.
+        !item.name.includes("{") &&
+        fs.existsSync(path.join(projectRoot, item.name)) &&
+        fs.statSync(path.join(projectRoot, item.name)).isDirectory()
+      ) {
+        matched.push({ ...item, file: item.name });
+      } else if (
+        // A plan may also name a real file whose extension the scanner does not index.
+        // `services/api/.env.example` exists on disk, but `.example` is not a code
+        // extension, so the file was never indexed and the plan item was reported missing.
+        !item.name.includes("{") &&
+        fs.existsSync(path.join(projectRoot, item.name)) &&
+        fs.statSync(path.join(projectRoot, item.name)).isFile()
+      ) {
+        matched.push({ ...item, file: item.name });
       } else {
         // A rename claims that a similar file IS this plan item under another name.
         // The old test compared the first five characters of the whole path against
@@ -757,6 +1142,10 @@ function diffPlanAgainstCode(planItems, code) {
   });
 
   codeEndpoints.forEach((e) => {
+    // A path synthesized from a router's mount prefix is not a claim the code makes,
+    // so it is never reported as unplanned work.
+    if (e.resolved) return;
+
     if (!planItems.some((p) => p.type === "endpoint" && p.path === e.path)) {
       extra.push({ type: "endpoint", method: e.method, path: e.path, file: e.file });
     }
