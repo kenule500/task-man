@@ -12,19 +12,21 @@ from app.analyze import analyze
 from app.brief import PLAN_SENTINEL
 from app.config import Settings
 from app.contracts import AnalyzeRequest, AnalyzerError, AnalyzeResponse, AnalyzerInfo, PlanContract
+from app.engine import ProviderFailure
 from app.main import create_app
 
 TOKEN = "t" * 40
+WORKSPACE = {
+    "model": "model-1",
+    "apiKey": "sk-workspace",
+    "baseUrl": "https://example.test/v1",
+}
 
 
 def settings() -> Settings:
     return Settings(
         environment="development",
         token=TOKEN,
-        provider="custom",
-        model="model-1",
-        api_key="key",
-        base_url="http://example.invalid",
         max_chars=24_000,
         max_bytes=2_000_000,
         max_concurrency=2,
@@ -66,8 +68,14 @@ def request(text: str = "Students book clinic appointments.") -> AnalyzeRequest:
                 "projectName": "", "projectKey": "", "sprintLengthWeeks": 2, "startDate": "2026-11-02",
                 "teamSize": 3, "extraInstructions": "", "language": "en", "existingProject": False,
             },
+            "llm": WORKSPACE,
         }
     )
+
+
+def refusal(reason: str, *, error: str = "StatusError", status: int | None = None, answers: int = 0) -> ProviderFailure:
+    """What ``_record_provider_failure`` stores for one refused model call."""
+    return ProviderFailure(reason=reason, error=error, status=status, answers=answers)
 
 
 class TestOneInvocation:
@@ -186,6 +194,230 @@ class TestProviderCallCount:
             return engine.provider_call_count()
 
         assert asyncio.run(scenario()) == 2
+
+
+class TestProviderRefusals:
+    """A provider that refuses every call must not look like an unreadable plan.
+
+    DocuMind catches a failed model call inside each agent and renders a document without a plan
+    block, so without this the request ends as "must contain one fenced JSON block" -- the wrong
+    diagnosis for a rate limit, an exhausted free allowance or an empty balance.
+    """
+
+    def test_a_rate_limit_or_empty_balance_is_reported_as_quota(self) -> None:
+        from app import engine
+
+        class StatusError(Exception):
+            def __init__(self, status_code: int) -> None:
+                self.status_code = status_code
+
+        assert engine.classify_provider_error(StatusError(429)) == "quota"
+        assert engine.classify_provider_error(StatusError(402)) == "quota"
+        assert engine.classify_provider_error(StatusError(401)) == "auth"
+        assert engine.classify_provider_error(StatusError(404)) == "model"
+        assert engine.classify_provider_error(StatusError(400)) == "rejected"
+        # A server error is the provider's problem, not the workspace's settings: it is transient
+        assert engine.classify_provider_error(StatusError(503)) == "unavailable"
+        assert engine.classify_provider_error(StatusError(500)) == "unavailable"
+        assert engine.classify_provider_error(StatusError(507)) == "unavailable"
+        # A transport class name, not a status: the endpoint could not be dialled
+        assert engine.classify_provider_error(type("APIConnectionError", (Exception,), {})()) == "unreachable"
+        assert engine.classify_provider_error(ValueError("odd")) == "error"
+
+    def test_a_connection_cut_after_the_provider_accepted_the_call_is_transient(self) -> None:
+        from app import engine
+
+        # The provider client reports every transport problem as one connection class and keeps the
+        # real one as the cause: only the cause says whether the request was ever sent.
+        class APIConnectionError(Exception):
+            pass
+
+        class ReadError(Exception):
+            pass
+
+        class ConnectError(Exception):
+            pass
+
+        def wrapped(cause: Exception) -> APIConnectionError:
+            error = APIConnectionError("Connection error.")
+            error.__cause__ = cause
+            return error
+
+        assert engine.classify_provider_error(wrapped(ReadError())) == "unavailable"
+        assert engine.classify_provider_error(wrapped(ConnectError())) == "unreachable"
+        assert engine.is_transient_failure(wrapped(ReadError())) is True
+        assert engine.is_transient_failure(wrapped(ConnectError())) is True
+        # A refused key is deterministic: the same call would be refused again
+        assert engine.is_transient_failure(type("AuthError", (Exception,), {"status_code": 401})()) is False
+
+    def test_a_transient_failure_is_retried_once_and_the_answer_is_kept(self) -> None:
+        from app import engine
+
+        class InternalServerError(Exception):
+            status_code = 503
+
+        class Model:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def ainvoke(self, *_args: object, **_kwargs: object) -> str:
+                self.calls += 1
+                if self.calls == 1:
+                    raise InternalServerError()
+                return "answer"
+
+        async def scenario() -> tuple[str, int, object]:
+            engine._provider_failures.set([])
+            engine._provider_answers.set([0])
+            model = Model()
+            answer = await engine._RecordingChatModel(model).ainvoke([])
+            return answer, model.calls, engine.provider_failure()
+
+        answer, calls, failure = asyncio.run(scenario())
+        assert answer == "answer"
+        # One retry, and the recovered call is not reported as the reason a plan is missing
+        assert calls == 2
+        assert failure is None
+
+    def test_a_deterministic_refusal_is_not_retried(self) -> None:
+        from app import engine
+
+        class AuthenticationError(Exception):
+            status_code = 401
+
+        class Model:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def ainvoke(self, *_args: object, **_kwargs: object) -> str:
+                self.calls += 1
+                raise AuthenticationError()
+
+        async def scenario() -> int:
+            engine._provider_failures.set([])
+            engine._provider_answers.set([0])
+            model = Model()
+            with pytest.raises(AuthenticationError):
+                await engine._RecordingChatModel(model).ainvoke([])
+            return model.calls
+
+        assert asyncio.run(scenario()) == 1
+
+    def test_a_failure_a_later_call_recovered_from_is_not_the_reason_a_plan_is_missing(self) -> None:
+        from app import engine
+
+        async def scenario() -> object:
+            engine._provider_failures.set([refusal("unavailable", error="InternalServerError", status=503, answers=0)])
+            engine._provider_answers.set([1])
+            return engine.provider_failure()
+
+        assert asyncio.run(scenario()) is None
+
+    def test_a_failure_with_no_answer_after_it_is_reported(self) -> None:
+        from app import engine
+
+        async def scenario() -> object:
+            engine._provider_failures.set([refusal("unavailable", answers=0)])
+            engine._provider_answers.set([0])
+            return engine.provider_failure()
+
+        assert asyncio.run(scenario()).reason == "unavailable"
+
+    def test_the_recording_model_keeps_the_refusal_and_re_raises(self) -> None:
+        from app import engine
+
+        class StatusError(Exception):
+            status_code = 429
+
+        class Model:
+            model_name = "workspace-model"
+
+            async def ainvoke(self, *_args: object, **_kwargs: object) -> object:
+                raise StatusError()
+
+        async def scenario() -> object:
+            engine._provider_failures.set([])
+            engine._provider_answers.set([0])
+            wrapped = engine._RecordingChatModel(Model())
+            assert wrapped.model_name == "workspace-model"
+            with pytest.raises(StatusError):
+                await wrapped.ainvoke([])
+            return engine.provider_failure()
+
+        failure = asyncio.run(scenario())
+        assert failure.reason == "quota"
+        # The exception class is kept for the log; the provider's own sentence never is
+        assert failure.error == "StatusError"
+        assert failure.status == 429
+
+    def test_a_refused_provider_stops_before_the_repair_run(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app import engine
+
+        calls: list[int] = []
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            calls.append(1)
+            # What the SDK's child task records when the provider answers 429/402
+            engine._provider_failures.set([refusal("quota", status=429)])
+            return "---\ntitle: Plan\n---\n\n## Summary\n\nNo plan block at all.\n"
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        with pytest.raises(AnalyzerError) as caught:
+            asyncio.run(analyze(request(), settings()))
+
+        assert caught.value.code == "ANALYZER_PROVIDER_ERROR"
+        assert "free allowance" in caught.value.message
+        # The provider refused: asking again would spend a run on the same refusal
+        assert len(calls) == 1
+
+    def test_a_provider_that_dropped_the_answer_tells_the_person_to_try_again(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from app import engine
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            engine._provider_failures.set([refusal("unavailable", error="RemoteProtocolError", status=503)])
+            return "---\ntitle: Plan\n---\n\n## Summary\n\nNo plan block at all.\n"
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        with pytest.raises(AnalyzerError) as caught:
+            asyncio.run(analyze(request(), settings()))
+
+        assert caught.value.code == "ANALYZER_PROVIDER_ERROR"
+        # Not "check your plan and model": nothing in the workspace's settings is wrong
+        assert "temporarily unavailable" in caught.value.message
+        assert "Settings" in caught.value.message
+
+    def test_a_retry_refused_after_a_prose_answer_is_still_reported(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app import engine
+
+        calls: list[int] = []
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            calls.append(1)
+            if len(calls) == 2:
+                engine._provider_failures.set([refusal("auth", status=401)])
+            return "```json\nstill prose\n```\n"
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        with pytest.raises(AnalyzerError) as caught:
+            asyncio.run(analyze(request(), settings()))
+
+        assert caught.value.code == "ANALYZER_PROVIDER_ERROR"
+        assert "API key" in caught.value.message
+        assert len(calls) == 2
+
+    def test_a_refusal_elsewhere_does_not_hide_a_plan_that_did_arrive(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from app import engine
+
+        async def fake_generate(*_args: object, **_kwargs: object) -> str:
+            # An early agent (intent or design) can fail while the planner still answers
+            engine._provider_failures.set([refusal("quota")])
+            return markdown(plan())
+
+        monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
+        result = asyncio.run(analyze(request(), settings()))
+        assert result.plan.project.key == "SHOP"
 
 
 class TestIdempotency:

@@ -1,0 +1,42 @@
+[
+  {
+    "width": 320,
+    "file": "fr-320.png",
+    "url": "/demo-workspace/projects/new/ai?plan=6aec4df9ec4c16c314b7781b",
+    "title": "TaskMan",
+    "innerWidth": 320,
+    "scrollWidth": 320,
+    "horizontalOverflow": false,
+    "offenderCount": 4,
+    "worst": {
+      "tag": "div",
+      "cls": "group/tabs-list inline-flex items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-vertical/tab",
+      "left": 16,
+      "right": 492,
+      "width": 476
+    },
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Aller au contenu Afficher ou masquer la barre latérale TaskMan / Projets Retour aux projets Créer un projet à partir d’un document Importez un document d’exigences et laissez l’IA rédiger tout le projet : sprints, tâches, sous-tâches et critères d’acceptation. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit créé. Importer , terminée Analyser , terminée 3 Relire , étape en cours 4 Créer , pas commencée NOUVEAU PROJET Shift Swap Board Un nouveau projet est créé avec uniquement ce plan. Shift Swap Board (modifier nom du projet) Prêt Retail shift swap requests, approvals and audit in one board, replacing the scheduling spreadsheet. (modifier description du projet) Clé SSB (modifier clé du projet) D’après 01-ssb.md (318 B) Sprints 1 Tâches 5 Sous-tâches 0 Critères 10 Points 18 Généré avec DocuMind · claude-sonnet-4-6 · Consommation non communiquée par ce moteur Lisez le plan, puis modifiez ce qui doit l’être : cliquez sur un titre, des points ou une priorité pour les changer, déplacez une tâche vers un autre sprint, supprimez ou ajoutez des tâches. Rien n’est créé tant que vous n’appuyez pas sur Créer. Abandonner Régénérer Créer le projet (5 tâches) Sprints 1 Tâches 5 Sous-tâches 0 Critères d’acceptation 10 Sprint 1 - Swap Requests Live (modifier nom de Sprint 1 - Swap Requests Live) 9 nov. – 20 nov. Semaines 1 à 2 5 tâches 18 points Ship shift swap request, approval and audit for the retail scheduling team. (modifier objectif de Sprint 1 - Swap Requests Live) Request a swap from the schedule board (modifier titre de Request a swap from the schedule board) 5 points Haute 0 0 sous-tâche 2 2 critères d’acceptation Swap Request Intake Approve or decline a swap request (modifier titre de Approve or decline a swap request) 5 points Haute 0 0 sous-tâche 2 2 critères d’acceptation Approval and Audit Log Audit log for every swap decision (modifier titre de Audit log for every swap decision) 3 points Moyenne 0 0 sous-tâche 2 2 critères d’acceptation Approval a",
+    "headingCount": 6,
+    "buttonCount": 51,
+    "consoleErrors": []
+  },
+  {
+    "width": 1280,
+    "file": "fr-1280.png",
+    "url": "/demo-workspace/projects/new/ai?plan=6aec4df9ec4c16c314b7781b",
+    "title": "TaskMan",
+    "innerWidth": 1280,
+    "scrollWidth": 1265,
+    "horizontalOverflow": false,
+    "offenderCount": 0,
+    "worst": null,
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Aller au contenu Demo Workspace 1 espace de travail Menu principal Tableau de bord Tâches Projets Feuille de route Charge de travail Feuille de temps Wiki Messagerie Membres Calendrier Rapports Projets Documentation Marketing Site Website v1 Tous les projets Général Paramètres Centre d’aide DO Demo Owner demo@taskman.test Afficher ou masquer la barre latérale Projets · Demo Workspace Rechercher des tâches, des pages… Ctrl K En direct Français Retour aux projets Créer un projet à partir d’un document Importez un document d’exigences et laissez l’IA rédiger tout le projet : sprints, tâches, sous-tâches et critères d’acceptation. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit créé. Importer , terminée Analyser , terminée 3 Relire , étape en cours 4 Créer , pas commencée NOUVEAU PROJET Shift Swap Board Un nouveau projet est créé avec uniquement ce plan. Shift Swap Board (modifier nom du projet) Prêt Retail shift swap requests, approvals and audit in one board, replacing the scheduling spreadsheet. (modifier description du projet) Clé SSB (modifier clé du projet) D’après 01-ssb.md (318 B) Sprints 1 Tâches 5 Sous-tâches 0 Critères 10 Points 18 Généré avec DocuMind · claude-sonnet-4-6 · Consommation non communiquée par ce moteur Lisez le plan, puis modifiez ce qui doit l’être : cliquez sur un titre, des points ou une priorité pour les changer, déplacez une tâche vers un autre sprint, supprimez ou ajoutez des tâches. Rien n’est créé tant que vous n’appuyez pas sur Créer. Abandonner Régénérer Créer le projet (5 tâches) Sprints 1 Tâches 5 Sous-tâches 0 Critères d’acceptation 10 Sprint 1 - Swap Requests Live (modifier nom de Sprint 1 - Swap Requests Live) 9 nov. – 20 nov. Semaines 1 à 2 5 tâches 18 points Ship shift swap request, approval and audit for the retail scheduling team. (modifier objectif de Sprint 1 - Swap Requests Live) Request a swap from the schedule board (modifier titre de Request a swap from the schedule board) 5 points Haute 0 0 sous-tâch",
+    "headingCount": 6,
+    "buttonCount": 58,
+    "consoleErrors": []
+  }
+]

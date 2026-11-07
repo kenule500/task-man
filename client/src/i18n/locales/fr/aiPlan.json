@@ -274,6 +274,7 @@
     "elapsed": "{{time}} écoulées",
     "title": "L’IA construit votre projet",
     "stepsLabel": "Progression de l’analyse",
+    "pages": "Planification de la page {{done}} sur {{total}}…",
     "phase": {
       "0": "Lecture du document…",
       "1": "Conception des sprints…",
@@ -339,6 +340,7 @@
       "ANALYZER_UNAVAILABLE": "Le service d’analyse de documents est indisponible. Réessayez dans quelques minutes.",
       "ANALYZER_TIMEOUT": "Le service d’analyse de documents a mis trop de temps. Réessayez ou utilisez un document plus court.",
       "ANALYZER_INVALID_OUTPUT": "Le service d’analyse de documents a répondu, mais le plan n’a pas pu en être extrait. Cela ne dépend pas de la longueur de votre document : importez-le à nouveau et, si le problème persiste, signalez-le.",
+      "ANALYZER_PROVIDER_ERROR": "Le fournisseur d’IA de l’espace de travail n’a pas produit le plan. La raison est indiquée ci-dessous.",
       "ANALYZER_INVALID_REQUEST": "Le service d’analyse de documents a refusé la requête. C’est un réglage du serveur, pas votre document ; demandez à un opérateur de vérifier les limites de l’analyseur.",
       "ANALYZER_BODY_TOO_LARGE": "Le document est trop volumineux pour le service d’analyse. Utilisez un document plus petit.",
       "ANALYZER_UNAUTHORIZED": "Le service d’analyse de documents a refusé ce serveur. Demandez à un opérateur de vérifier le jeton du service.",

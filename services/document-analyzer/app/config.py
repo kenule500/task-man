@@ -16,24 +16,13 @@ from .contracts import WorkspaceLlm
 SDK_VERSION = "0.2.2"
 DEVELOPMENT = "development"
 
-SUPPORTED_PROVIDERS = (
-    "openai",
-    "anthropic",
-    "azure",
-    "bedrock",
-    "gcp_vertex",
-    "gemini",
-    "ollama",
-    "vllm",
-    "custom",
-)
-
-DEFAULT_PROVIDER = "openai"
-DEFAULT_MODEL = "gpt-4o"
 DEFAULT_MAX_CHARS = 24_000
 DEFAULT_MAX_BYTES = 2 * 1024 * 1024
 DEFAULT_MAX_CONCURRENCY = 2
-DEFAULT_TIMEOUT_SECONDS = 200
+# One analyzer call may take this long. It is deliberately below the API's plan budget (300 s) and the
+# Vercel function limit, so a page that overruns is cut with ANALYZER_TIMEOUT and the API can keep the
+# pages it already has instead of the whole request being killed by the host.
+DEFAULT_TIMEOUT_SECONDS = 280
 DEFAULT_PORT = 8000
 MAX_PORT = 65535
 # Transport retries inside the provider client are off (see app.engine): one retry there repeats
@@ -44,8 +33,12 @@ MAX_PORT = 65535
 # the parser then rejects as "not one fenced JSON block" -- a cap that is too low is destructive,
 # not protective, because the failure it causes is indistinguishable from a bad answer. Eight
 # leaves room for the measured six plus one retry, and still stops a runaway pipeline well inside
-# the request timeout (ANALYZER_TIMEOUT_SECONDS, 600 at most).
+# the request timeout (ANALYZER_TIMEOUT_SECONDS, 280 by default).
 DEFAULT_MAX_PROVIDER_CALLS = 8
+# One analyzer call may take this long. It is deliberately below the API's plan budget (300 s) and the
+# Vercel function limit, so a page that overruns is cut with ANALYZER_TIMEOUT and the API can keep the
+# pages it already has instead of the whole request being killed by the host.
+DEFAULT_TIMEOUT_SECONDS = 280
 
 
 class ConfigurationError(RuntimeError):
@@ -100,10 +93,6 @@ def _port(env: Mapping[str, str], name: str, default: int) -> int:
 class Settings:
     environment: str
     token: str
-    provider: str
-    model: str
-    api_key: str
-    base_url: str | None
     max_chars: int
     max_bytes: int
     max_concurrency: int
@@ -118,121 +107,51 @@ class Settings:
 
     @property
     def configured(self) -> bool:
-        return bool(self.token) and bool(self.api_key)
+        return bool(self.token)
 
-    def engine_kwargs(self, workspace: WorkspaceLlm | None = None) -> dict[str, Any]:
+    def engine_kwargs(self, workspace: WorkspaceLlm) -> dict[str, Any]:
         """Keyword arguments for ``documind.DocuMind`` (storage is added per request).
 
-        ``workspace`` is the BYOK provider of the workspace that queued the plan. When it is
-        given it wins over this service's own ``DOCUMIND_LLM_*`` settings, so a plan runs on the
-        endpoint, model and key of the workspace that asked for it, and a workspace never spends
-        another workspace's (or the deployment's) allowance. The stored settings stay as the
-        fallback for a request that carries no block.
-        """
-        if workspace is not None:
-            # The SDK's ``custom`` provider is its OpenAI-compatible one: base URL, key and model
-            # name are all supplied, so no default endpoint or model is consulted.
-            return {
-                "llm_provider": "custom",
-                "use_default_models": True,
-                "default_llm_model": workspace.model,
-                "custom_llm_base_url": workspace.baseUrl,
-                "custom_llm_api_key": workspace.apiKey,
-                "custom_llm_model_name": workspace.model,
-                "log_level": "INFO",
-            }
+        Every plan runs on the workspace that asked for it: the endpoint, model and key travel in
+        the request, so this service holds no provider credentials and can spend no allowance but
+        that workspace's own. The key is handed straight to the SDK and appears nowhere else -- not
+        in a log, not in an answer, not in an exception message.
 
-        provider = self.provider
-        key = self.api_key
-        model = self.model
-        base = self.base_url
-        kwargs: dict[str, Any] = {
-            "llm_provider": provider,
+        The SDK's ``custom`` provider is its OpenAI-compatible one, which is what every workspace
+        preset is (see ``AI_PROVIDER_PRESETS`` in the API), so base URL, key and model name are all
+        supplied and no default endpoint or model of the SDK is consulted.
+        """
+        return {
+            "llm_provider": "custom",
             "use_default_models": True,
-            "default_llm_model": model,
+            "default_llm_model": workspace.model,
+            "custom_llm_base_url": workspace.baseUrl,
+            "custom_llm_api_key": workspace.apiKey,
+            "custom_llm_model_name": workspace.model,
             "log_level": "INFO",
         }
 
-        if provider == "openai":
-            kwargs["openai_api_key"] = key
-            if base:
-                kwargs["openai_base_url"] = base
-        elif provider == "anthropic":
-            kwargs["anthropic_api_key"] = key
-        elif provider == "gemini":
-            kwargs["google_api_key"] = key
-        elif provider == "azure":
-            kwargs["azure_openai_api_key"] = key
-            kwargs["azure_openai_endpoint"] = base or ""
-            kwargs["azure_openai_deployment"] = model
-            kwargs["azure_openai_api_version"] = self.extra.get(
-                "azure_api_version", "2024-02-15-preview"
-            )
-        elif provider == "bedrock":
-            kwargs["aws_region"] = self.extra.get("aws_region", "us-east-1")
-            if key:
-                kwargs["aws_access_key_id"] = key
-            secret = self.extra.get("aws_secret_access_key", "")
-            if secret:
-                kwargs["aws_secret_access_key"] = secret
-        elif provider == "gcp_vertex":
-            kwargs["gcp_project_id"] = self.extra.get("gcp_project_id", "")
-            kwargs["gcp_location"] = self.extra.get("gcp_location", "us-central1")
-            credentials = self.extra.get("google_application_credentials", "")
-            if credentials:
-                kwargs["google_application_credentials"] = credentials
-        else:  # ollama, vllm or custom: OpenAI-compatible endpoint
-            kwargs["custom_llm_base_url"] = base or self._default_base(provider)
-            kwargs["custom_llm_api_key"] = key
-            kwargs["custom_llm_model_name"] = model
-
-        return kwargs
-
-    @staticmethod
-    def _default_base(provider: str) -> str:
-        if provider == "ollama":
-            return "http://127.0.0.1:11434/v1"
-        if provider == "vllm":
-            return "http://127.0.0.1:8001/v1"
-        return ""
-
     def validate(self) -> None:
-        if self.provider not in SUPPORTED_PROVIDERS:
-            raise ConfigurationError(
-                f"DOCUMIND_LLM_PROVIDER must be one of: {', '.join(SUPPORTED_PROVIDERS)}"
-            )
         if _is_placeholder(self.token):
             raise ConfigurationError(
                 "DOCUMENT_ANALYZER_TOKEN is still the placeholder; generate a real 32+ byte token"
             )
-        if _is_placeholder(self.api_key):
-            raise ConfigurationError(
-                "DOCUMIND_LLM_API_KEY is still the placeholder; use a real provider key"
-            )
-        if self.provider in {"azure", "custom"} and not self.base_url:
-            raise ConfigurationError("DOCUMIND_LLM_BASE_URL is required for this provider")
-        if self.provider == "gcp_vertex" and not self.extra.get("gcp_project_id"):
-            raise ConfigurationError("DOCUMIND_GCP_PROJECT_ID is required for gcp_vertex")
         if not self.production:
             return
         if len(self.token) < 32:
             raise ConfigurationError(
                 "DOCUMENT_ANALYZER_TOKEN must be at least 32 bytes outside development"
             )
-        if not self.api_key:
-            raise ConfigurationError("DOCUMIND_LLM_API_KEY is required outside development")
+        # No provider key is required: there is no deployment-wide provider any more, so that check
+        # would only stop the service from starting. A request without a workspace block is refused
+        # by the request contract instead (see AnalyzeRequest.llm).
 
 
 def load_settings(env: Mapping[str, str] | None = None) -> Settings:
     source: Mapping[str, str] = os.environ if env is None else env
-    provider = _text(source, "DOCUMIND_LLM_PROVIDER", DEFAULT_PROVIDER).lower()
     settings = Settings(
         environment=_text(source, "ANALYZER_ENV", DEVELOPMENT),
         token=_text(source, "DOCUMENT_ANALYZER_TOKEN"),
-        provider=provider,
-        model=_text(source, "DOCUMIND_LLM_MODEL", DEFAULT_MODEL),
-        api_key=_text(source, "DOCUMIND_LLM_API_KEY"),
-        base_url=_text(source, "DOCUMIND_LLM_BASE_URL") or None,
         max_chars=_positive_int(source, "ANALYZER_MAX_CHARS", DEFAULT_MAX_CHARS, 200_000),
         max_bytes=_positive_int(
             source, "ANALYZER_MAX_BYTES", DEFAULT_MAX_BYTES, 10 * 1024 * 1024
@@ -247,18 +166,6 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         max_provider_calls=_positive_int(
             source, "ANALYZER_MAX_PROVIDER_CALLS", DEFAULT_MAX_PROVIDER_CALLS, 16
         ),
-        extra={
-            "aws_region": _text(source, "DOCUMIND_AWS_REGION", "us-east-1"),
-            "aws_secret_access_key": _text(source, "DOCUMIND_AWS_SECRET_ACCESS_KEY"),
-            "azure_api_version": _text(
-                source, "DOCUMIND_AZURE_API_VERSION", "2024-02-15-preview"
-            ),
-            "gcp_project_id": _text(source, "DOCUMIND_GCP_PROJECT_ID"),
-            "gcp_location": _text(source, "DOCUMIND_GCP_LOCATION", "us-central1"),
-            "google_application_credentials": _text(
-                source, "DOCUMIND_GOOGLE_APPLICATION_CREDENTIALS"
-            ),
-        },
     )
     settings.validate()
     return settings

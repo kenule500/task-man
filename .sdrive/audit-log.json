@@ -40,6 +40,17 @@
       "event": "test_passed",
       "prevHash": "912f10fdca18fb6eeb0237f1e3866ac453f99106ee5721fd213d63d883f96b9d",
       "hash": "78d19182d8ce390025b927dd9fe066bd88931820f7a417e5b0b2c919a98a93ed"
+    },
+    {
+      "timestamp": "2026-11-05T10:25:05.359Z",
+      "actor": "kenule500",
+      "feature": "upload-document",
+      "version": "v2",
+      "exitCode": 124,
+      "failed": 0,
+      "event": "test_failed",
+      "prevHash": "78d19182d8ce390025b927dd9fe066bd88931820f7a417e5b0b2c919a98a93ed",
+      "hash": "f1bd2b2a26c17e0571d85fcfadada4af3d9c7c3bfe41e53b8e6e44cda8ea74a0"
     }
   ]
 }

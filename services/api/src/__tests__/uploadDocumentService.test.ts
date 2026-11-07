@@ -110,6 +110,7 @@ beforeEach(() => {
   process.env.NODE_ENV = 'test';
   delete process.env.DOCUMENT_ANALYZER_FALLBACK;
   delete process.env.DOCUMENT_ANALYZER_MAX_CHARS;
+  delete process.env.AI_PLAN_MAX_CHUNKS;
   delete process.env.AI_PLAN_DAILY_LIMIT;
 
   AiPlanMock.findOneAndUpdate.mockImplementation(async (_filter: unknown, update: { $set?: Record<string, unknown> }) => ({
@@ -140,17 +141,125 @@ describe('runPlan on the analyzer path', () => {
     });
   });
 
-  it('AC-048: keeps source.truncated true when Node shortened the text further', async () => {
+  it('AC-048: plans a long document page by page and merges the answers', async () => {
     analyzePlanMock.mockResolvedValue({ plan: servicePlan, model: 'documind-x', latencyMs: 4 });
-    // Pinned, so the test does not depend on a local .env value
+    // Pinned, so the test does not depend on a local .env value: 3,000 characters is five pages
     process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
 
-    await runPlan('p1', { text: 'x'.repeat(5_000), truncated: false });
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
 
+    // One analyzer request per page instead of one trimmed call
+    expect(analyzePlanMock.mock.calls.length).toBeGreaterThan(1);
+    // Every page sent fits the analyzer's own cap (the bug this replaces trimmed instead)
+    for (const [input] of analyzePlanMock.mock.calls) expect(input.text.length).toBeLessThanOrEqual(1_000);
+    // Progress is recorded and pushed, so the waiting screen can show it
+    const progressWrites = AiPlanMock.findOneAndUpdate.mock.calls
+      .map(([, update]) => update as { $set?: { progress?: { total: number; done: number } } })
+      .filter(update => update?.$set?.progress);
+    expect(progressWrites[0]?.$set?.progress).toEqual({ total: 5, done: 0 });
+    expect(progressWrites.at(-1)?.$set?.progress).toEqual({ total: 5, done: 5 });
+    // The pages were merged into one stored plan, not left as five
+    expect(savedWithStatus('ready')?.plan.items.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('AC-048: marks the plan partial when the document needs more pages than the cap allows', async () => {
+    analyzePlanMock.mockResolvedValue({ plan: servicePlan, model: 'documind-x', latencyMs: 4 });
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    process.env.AI_PLAN_MAX_CHUNKS = '2';
+
+    await runPlan('p1', { text: 'x'.repeat(20_000), truncated: false });
+
+    // Only the cap was asked for, never the whole document
+    expect(analyzePlanMock).toHaveBeenCalledTimes(2);
     expect(AiPlanMock.updateOne).toHaveBeenCalledWith(
       { _id: 'p1' },
       { $set: { 'source.truncated': true } },
     );
+  });
+
+  it('AC-048: recovers a page the model could not answer by splitting it in two', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    // The first page is unreadable once; its two halves (and every later page) answer fine
+    analyzePlanMock
+      .mockRejectedValueOnce(new AiReviewError('The generated document must contain one fenced JSON block.', 'ANALYZER_INVALID_OUTPUT'))
+      .mockResolvedValue({ plan: servicePlan, model: 'documind-x', latencyMs: 4 });
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    // 1 failed page + its 2 halves + the 4 other pages = 7 requests, and the plan is ready (not lost)
+    expect(analyzePlanMock).toHaveBeenCalledTimes(7);
+    expect(savedWithStatus('ready')).toBeDefined();
+    expect(savedWithStatus('failed')).toBeUndefined();
+    // Recovered, not skipped: the document was planned in full, so it is not marked partial
+    expect(AiPlanMock.updateOne).not.toHaveBeenCalledWith(
+      { _id: 'p1' },
+      { $set: { 'source.truncated': true } },
+    );
+  });
+
+  it('AC-048: keeps the pages already planned when a later page cannot be read and its halves cannot help', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    // The first page answers; then the second page fails and so do its halves (too small to split again)
+    analyzePlanMock
+      .mockResolvedValueOnce({ plan: servicePlan, model: 'documind-x', latencyMs: 4 })
+      .mockRejectedValue(new AiReviewError('The generated document must contain one fenced JSON block.', 'ANALYZER_INVALID_OUTPUT'));
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    expect(savedWithStatus('ready')).toBeDefined();
+    expect(savedWithStatus('failed')).toBeUndefined();
+    expect(AiPlanMock.updateOne).toHaveBeenCalledWith(
+      { _id: 'p1' },
+      { $set: { 'source.truncated': true } },
+    );
+  });
+
+  it('AC-048: keeps the pages already planned when a later page times out', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    // The first page answers; the second page and its halves all time out
+    analyzePlanMock
+      .mockResolvedValueOnce({ plan: servicePlan, model: 'documind-x', latencyMs: 4 })
+      .mockRejectedValue(new AiReviewError('The analyzer took too long.', 'ANALYZER_TIMEOUT'));
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    expect(savedWithStatus('ready')).toBeDefined();
+    expect(savedWithStatus('failed')).toBeUndefined();
+    expect(AiPlanMock.updateOne).toHaveBeenCalledWith(
+      { _id: 'p1' },
+      { $set: { 'source.truncated': true } },
+    );
+  });
+
+  it('AC-048: still fails the plan when the very first page has no readable plan (nothing to keep)', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    analyzePlanMock.mockRejectedValue(new AiReviewError('The generated document must contain one fenced JSON block.', 'ANALYZER_INVALID_OUTPUT'));
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    expect(savedWithStatus('failed')).toMatchObject({ errorCode: 'ANALYZER_INVALID_OUTPUT' });
+  });
+
+  it('AC-048: still fails the plan when the very first page times out (nothing to keep)', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    analyzePlanMock.mockRejectedValue(new AiReviewError('The analyzer took too long.', 'ANALYZER_TIMEOUT'));
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    expect(savedWithStatus('failed')).toMatchObject({ errorCode: 'ANALYZER_TIMEOUT' });
+  });
+
+  it('AC-048: keeps planning several pages when the pages are fast (the budget does not stop at one)', async () => {
+    process.env.DOCUMENT_ANALYZER_MAX_CHARS = '1000';
+    // 3,000 characters is five pages; a fast provider must plan all five
+    analyzePlanMock.mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 2));
+      return { plan: servicePlan, model: 'documind-x', latencyMs: 2 };
+    });
+
+    await runPlan('p1', { text: 'x'.repeat(3_000), truncated: false });
+
+    expect(analyzePlanMock).toHaveBeenCalledTimes(5);
   });
 
   it('AC-049: finalises the plan the service returned before storing it', async () => {

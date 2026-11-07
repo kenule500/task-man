@@ -1,12 +1,12 @@
 {
   "feature": "upload-document",
-  "status": "fail",
-  "checkedAt": "2026-10-31T02:01:42.249Z",
+  "status": "warn",
+  "checkedAt": "2026-11-05T00:13:14.098Z",
   "summary": {
-    "matched": 31,
-    "missing": 34,
-    "renamed": 3,
-    "extra": 189,
+    "matched": 70,
+    "missing": 0,
+    "renamed": 0,
+    "extra": 193,
     "withdrawn": 0
   },
   "items": {
@@ -31,6 +31,13 @@
         "action": "create",
         "resolution": null,
         "file": "packages/contracts/README.md"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer"
       },
       {
         "type": "component",
@@ -97,6 +104,13 @@
       },
       {
         "type": "component",
+        "name": "services/document-analyzer/Dockerfile",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/Dockerfile"
+      },
+      {
+        "type": "component",
         "name": "services/document-analyzer/README.md",
         "action": "create",
         "resolution": null,
@@ -146,6 +160,48 @@
       },
       {
         "type": "component",
+        "name": "client/src/features/ai-plan/components",
+        "action": "modify",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/components"
+      },
+      {
+        "type": "component",
+        "name": "client/src/i18n/locales/en,fr,ar/aiPlan.json",
+        "action": "modify",
+        "resolution": null,
+        "file": "client/src/i18n/locales/ar/aiPlan.json"
+      },
+      {
+        "type": "component",
+        "name": "render.yaml",
+        "action": "modify",
+        "resolution": null,
+        "file": "render.yaml"
+      },
+      {
+        "type": "component",
+        "name": "services/api/.env.example",
+        "action": "modify",
+        "resolution": null,
+        "file": "services/api/.env.example"
+      },
+      {
+        "type": "component",
+        "name": "AGENTS.md",
+        "action": "modify",
+        "resolution": null,
+        "file": "AGENTS.md"
+      },
+      {
+        "type": "component",
+        "name": "README.md",
+        "action": "modify",
+        "resolution": null,
+        "file": "README.md"
+      },
+      {
+        "type": "component",
         "name": "services/api/src/utils/ai/plan/extract.ts",
         "action": "reuse",
         "resolution": null,
@@ -157,6 +213,13 @@
         "action": "reuse",
         "resolution": null,
         "file": "services/api/src/utils/ai/provider.ts"
+      },
+      {
+        "type": "component",
+        "name": "client/src/features/ai-plan",
+        "action": "reuse",
+        "resolution": null,
+        "file": "client/src/features/ai-plan"
       },
       {
         "type": "endpoint",
@@ -177,9 +240,36 @@
         "file": "services/document-analyzer/app/main.py"
       },
       {
+        "type": "endpoint",
+        "name": "POST /api/workspaces/:slug/ai/plans",
+        "method": "POST",
+        "path": "/api/workspaces/:slug/ai/plans",
+        "action": "reuse",
+        "resolution": null,
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
+        "type": "endpoint",
+        "name": "GET /api/workspaces/:slug/ai/plans/:id",
+        "method": "GET",
+        "path": "/api/workspaces/:slug/ai/plans/:id",
+        "action": "reuse",
+        "resolution": null,
+        "file": "services/api/src/routes/aiPlanRoutes.ts"
+      },
+      {
         "type": "entity",
         "name": "AiPlan",
         "action": "update",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
+        "name": "analyzer",
+        "fieldType": "'documind' | 'ai'",
+        "action": "add",
         "resolution": null,
         "file": "client/src/features/ai-plan/types.ts"
       },
@@ -204,6 +294,15 @@
       {
         "type": "field",
         "entity": "AiPlan",
+        "name": "plan",
+        "fieldType": "PlanContent",
+        "action": "no_change",
+        "resolution": null,
+        "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "field",
+        "entity": "AiPlan",
         "name": "source",
         "fieldType": "PlanSource",
         "action": "no_change",
@@ -218,6 +317,220 @@
         "action": "no_change",
         "resolution": null,
         "file": "client/src/features/ai-plan/types.ts"
+      },
+      {
+        "type": "entity",
+        "name": "PlanContract",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "project",
+        "fieldType": "{ name, key, description, color }",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "sprints",
+        "fieldType": "array<{ name, goal, startDate, endDate }>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "epics",
+        "fieldType": "array<{ ref, title, description }>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "items",
+        "fieldType": "array<PlanItem>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "assumptions",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "PlanContract",
+        "name": "risks",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "entity",
+        "name": "AnalyzeRequest",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "requestId",
+        "fieldType": "string (uuid)",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "contractVersion",
+        "fieldType": "1",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "document",
+        "fieldType": "{ fileName, mimeType, text }",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeRequest",
+        "name": "options",
+        "fieldType": "PlanOptions",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "entity",
+        "name": "AnalyzeResponse",
+        "action": "create",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "contractVersion",
+        "fieldType": "1",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "requestId",
+        "fieldType": "string",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "plan",
+        "fieldType": "PlanContract",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "analyzer",
+        "fieldType": "{ engine, sdkVersion, model, latencyMs }",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "field",
+        "entity": "AnalyzeResponse",
+        "name": "warnings",
+        "fieldType": "array<string>",
+        "action": "add",
+        "resolution": null,
+        "file": "services/document-analyzer/app/contracts.py"
+      },
+      {
+        "type": "dependency",
+        "name": "documind",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "uv",
+        "action": "add",
+        "depType": "external",
+        "resolution": null,
+        "note": "external dependency; not manifest-verifiable"
+      },
+      {
+        "type": "dependency",
+        "name": "fastapi",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "uvicorn",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "pydantic",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "pytest",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "httpx",
+        "action": "add",
+        "depType": "library",
+        "resolution": null
+      },
+      {
+        "type": "dependency",
+        "name": "Node global fetch",
+        "action": "no_change",
+        "depType": "external",
+        "resolution": null,
+        "note": "external dependency; not manifest-verifiable"
       },
       {
         "type": "dependency",
@@ -244,283 +557,8 @@
         "note": "service dependency; not manifest-verifiable"
       }
     ],
-    "missing": [
-      {
-        "type": "component",
-        "name": "services/document-analyzer",
-        "action": "create",
-        "resolution": null
-      },
-      {
-        "type": "component",
-        "name": "services/document-analyzer/Dockerfile",
-        "action": "create",
-        "resolution": null
-      },
-      {
-        "type": "component",
-        "name": "render.yaml",
-        "action": "modify",
-        "resolution": null
-      },
-      {
-        "type": "component",
-        "name": "services/api/.env.example",
-        "action": "modify",
-        "resolution": null
-      },
-      {
-        "type": "component",
-        "name": "AGENTS.md and README.md",
-        "action": "modify",
-        "resolution": null
-      },
-      {
-        "type": "endpoint",
-        "name": "POST /api/workspaces/:slug/ai/plans",
-        "method": "POST",
-        "path": "/api/workspaces/:slug/ai/plans",
-        "action": "reuse",
-        "resolution": null
-      },
-      {
-        "type": "endpoint",
-        "name": "GET /api/workspaces/:slug/ai/plans/:id",
-        "method": "GET",
-        "path": "/api/workspaces/:slug/ai/plans/:id",
-        "action": "reuse",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AiPlan",
-        "name": "analyzer",
-        "fieldType": "'documind' | 'ai'",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AiPlan",
-        "name": "plan",
-        "fieldType": "PlanContent",
-        "action": "no_change",
-        "resolution": null
-      },
-      {
-        "type": "entity",
-        "name": "PlanContract",
-        "action": "create",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "contractVersion",
-        "fieldType": "1",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "project",
-        "fieldType": "{ name, key, description, color }",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "sprints",
-        "fieldType": "array<{ name, goal, startDate, endDate }>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "epics",
-        "fieldType": "array<{ ref, title, description }>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "items",
-        "fieldType": "array<PlanItem>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "assumptions",
-        "fieldType": "array<string>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "PlanContract",
-        "name": "risks",
-        "fieldType": "array<string>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "entity",
-        "name": "AnalyzeRequest",
-        "action": "create",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeRequest",
-        "name": "requestId",
-        "fieldType": "string (uuid)",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeRequest",
-        "name": "contractVersion",
-        "fieldType": "1",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeRequest",
-        "name": "document",
-        "fieldType": "{ fileName, mimeType, text }",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeRequest",
-        "name": "options",
-        "fieldType": "PlanOptions",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "entity",
-        "name": "AnalyzeResponse",
-        "action": "create",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeResponse",
-        "name": "requestId",
-        "fieldType": "string",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeResponse",
-        "name": "plan",
-        "fieldType": "PlanContract",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeResponse",
-        "name": "analyzer",
-        "fieldType": "{ engine, sdkVersion, model, latencyMs }",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "field",
-        "entity": "AnalyzeResponse",
-        "name": "warnings",
-        "fieldType": "array<string>",
-        "action": "add",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "documind",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "uv",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "fastapi",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "uvicorn",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "pydantic",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "pytest and httpx",
-        "action": "add",
-        "depType": "library",
-        "resolution": null
-      },
-      {
-        "type": "dependency",
-        "name": "Node global fetch",
-        "action": "no_change",
-        "depType": "library",
-        "resolution": null
-      }
-    ],
-    "renamed": [
-      {
-        "type": "component",
-        "name": "client/src/features/ai-plan/components",
-        "action": "modify",
-        "resolution": null,
-        "to": "client/src/components/ds/__tests__/components.test.tsx",
-        "file": "client/src/components/ds/__tests__/components.test.tsx"
-      },
-      {
-        "type": "component",
-        "name": "client/src/i18n/locales/en,fr,ar/aiPlan.json",
-        "action": "modify",
-        "resolution": null,
-        "to": "client/src/i18n/locales/ar/ai.json",
-        "file": "client/src/i18n/locales/ar/ai.json"
-      },
-      {
-        "type": "component",
-        "name": "client/src/features/ai-plan flow",
-        "action": "reuse",
-        "resolution": null,
-        "to": "client/src/i18n/locales/en/ai.json",
-        "file": "client/src/i18n/locales/en/ai.json"
-      }
-    ],
+    "missing": [],
+    "renamed": [],
     "extra": [
       {
         "type": "component",
@@ -531,6 +569,11 @@
         "type": "component",
         "name": "services/api/src/utils/ai/plan/dates.ts",
         "file": "services/api/src/utils/ai/plan/dates.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/events.ts",
+        "file": "services/api/src/utils/ai/plan/events.ts"
       },
       {
         "type": "component",
@@ -556,6 +599,21 @@
         "type": "component",
         "name": "services/api/src/utils/ai/plan/text.ts",
         "file": "services/api/src/utils/ai/plan/text.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/api/src/utils/ai/plan/upload.ts",
+        "file": "services/api/src/utils/ai/plan/upload.ts"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/idempotency.py",
+        "file": "services/document-analyzer/app/idempotency.py"
+      },
+      {
+        "type": "component",
+        "name": "services/document-analyzer/app/plan_limits.py",
+        "file": "services/document-analyzer/app/plan_limits.py"
       },
       {
         "type": "component",

@@ -28,7 +28,7 @@ const workspaceOf = (req: Request): IWorkspace => req.workspace as IWorkspace;
 const userIdOf = (req: Request): Id => req.user?._id as Id;
 
 /** A plan as the API returns it. The list leaves out the content (plan, preview); the detail route has them. */
-export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'options' | 'model' | 'usage' | 'analyzer' | 'error' | 'errorCode' | 'projectId' | 'createdAt' | 'startedAt' | 'completedAt'>
+export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'options' | 'model' | 'usage' | 'analyzer' | 'progress' | 'error' | 'errorCode' | 'projectId' | 'createdAt' | 'startedAt' | 'completedAt'>
   & { plan?: IAiPlan['plan']; createdBy?: unknown }, detail: boolean, targetProject: PlanTarget | null = null) => ({
   _id: String(plan._id),
   status: plan.status,
@@ -38,6 +38,8 @@ export const planView = (plan: Pick<IAiPlan, '_id' | 'status' | 'source' | 'opti
   model: plan.model,
   usage: plan.usage,
   analyzer: plan.analyzer ?? 'ai',
+  // How many pages of a chunked document run are done; absent for a single-call plan
+  progress: plan.progress ?? null,
   error: plan.error,
   errorCode: plan.errorCode,
   projectId: plan.projectId ? String(plan.projectId) : null,

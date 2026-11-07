@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster, toast } from '@/components/ds';
 import { aiPlanApi } from '@/features/ai-plan/api';
+import { DEFAULT_POLL_MS } from '@/features/ai-plan/hooks/useAiProjectPlan';
 import { makeAiPlan, makePlan } from '@/features/ai-plan/__tests__/fixtures';
 import { aiReviewApi } from '@/features/ai-review/api';
 import { settings } from '@/features/ai-review/__tests__/fixtures';
@@ -58,6 +59,15 @@ const renderPage = (entry = '/demo/projects/new/ai') =>
 
 const queued = () => makeAiPlan({ status: 'queued', plan: null, counts: null, startedAt: null, completedAt: null });
 const pdf = () => new File([new Uint8Array(4096)], 'bookshop.pdf', { type: 'application/pdf' });
+
+/**
+ * How long a `findBy*` that waits for the ready plan may take.
+ *
+ * The page leaves the "analyzing" step on the hook's polling interval, so a wait shorter than one
+ * tick fails whatever the interval is. This is derived from the interval itself instead of being a
+ * fixed 10 s: raising it once pushed the first ready read onto the old boundary and broke the walk.
+ */
+const READY_WAIT_MS = 4 * DEFAULT_POLL_MS;
 
 /** Picks the document and presses Analyze. */
 const analyze = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -143,7 +153,7 @@ describe('AiProjectPage', () => {
     expect(screen.getByTestId('where')).toHaveTextContent('?plan=plan-1');
 
     // 3. review
-    const header = await screen.findByRole('region', { name: 'Generated project' }, { timeout: 10000 });
+    const header = await screen.findByRole('region', { name: 'Generated project' }, { timeout: READY_WAIT_MS });
     expect(within(header).getByText('Ready')).toBeInTheDocument();
     expect(plans.get).toHaveBeenCalledWith('demo', 'plan-1', expect.anything());
     expect(screen.getByText('Gift cards')).toBeInTheDocument();
@@ -173,7 +183,7 @@ describe('AiProjectPage', () => {
     renderPage();
     await analyze(user);
 
-    expect(await screen.findByText(/limiting requests or the account has no quota left/, undefined, { timeout: 10000 })).toBeInTheDocument();
+    expect(await screen.findByText(/limiting requests or the account has no quota left/, undefined, { timeout: READY_WAIT_MS })).toBeInTheDocument();
     expect(screen.getByText('We could not start the analysis')).toBeInTheDocument();
     // the file is still chosen, so trying again is one click
     expect(screen.getByText('bookshop.pdf')).toBeInTheDocument();
@@ -186,7 +196,7 @@ describe('AiProjectPage', () => {
     plans.get.mockImplementation(async (_slug, id) => makeAiPlan({ _id: id }));
     renderPage();
     await analyze(user);
-    await screen.findByRole('region', { name: 'Generated project' }, { timeout: 10000 });
+    await screen.findByRole('region', { name: 'Generated project' }, { timeout: READY_WAIT_MS });
 
     await user.click(screen.getAllByRole('button', { name: 'Regenerate' })[0]);
     await waitFor(() => expect(plans.upload).toHaveBeenCalledTimes(2));
@@ -194,7 +204,7 @@ describe('AiProjectPage', () => {
     expect(plans.upload.mock.calls[1][1]).toBe(plans.upload.mock.calls[0][1]);
     expect(plans.upload.mock.calls[1][2]).toEqual(plans.upload.mock.calls[0][2]);
     await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('?plan=plan-2'));
-    expect(await screen.findByRole('region', { name: 'Generated project' }, { timeout: 10000 })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'Generated project' }, { timeout: READY_WAIT_MS })).toBeInTheDocument();
   });
 
   it('AC-006: takes today\'s allowance from the upload answer, so analyzing costs no second settings request', async () => {
@@ -293,7 +303,7 @@ describe('AiProjectPage', () => {
     expect(plans.upload.mock.calls[0][2]).toMatchObject({ destination: 'existing', targetProjectId: 'p1' });
 
     // The review names the project and offers no destination choice
-    const destination = await screen.findByRole('region', { name: 'Plan destination' }, { timeout: 10000 });
+    const destination = await screen.findByRole('region', { name: 'Plan destination' }, { timeout: READY_WAIT_MS });
     expect(within(destination).getByText('Website (WEB)')).toBeInTheDocument();
     expect(within(destination).getByText('Existing project')).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: /destination|project/i })).not.toBeInTheDocument();
@@ -314,7 +324,7 @@ describe('AiProjectPage', () => {
     });
     renderPage('/demo/projects/p1/plan?plan=plan-1');
 
-    await user.click((await screen.findAllByRole('button', { name: /^Add \d+ items? to Website \(WEB\)/ }, { timeout: 10000 }))[0]);
+    await user.click((await screen.findAllByRole('button', { name: /^Add \d+ items? to Website \(WEB\)/ }, { timeout: READY_WAIT_MS }))[0]);
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getByText('Add this plan to “Website (WEB)”?')).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: /^Add \d+ items?$/ }));

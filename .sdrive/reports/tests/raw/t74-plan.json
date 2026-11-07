@@ -1,0 +1,407 @@
+{
+    "_id":  "6aec42b3163c5158711ffc88",
+    "status":  "ready",
+    "source":  {
+                   "fileName":  "t74-sample-requirements.md",
+                   "mimeType":  "text/plain",
+                   "size":  2032,
+                   "chars":  2029,
+                   "truncated":  false,
+                   "preview":  "# Field Service Scheduling — Product Requirements\n\n## Background\nOur field technicians are scheduled by phone. Dispatchers keep a spreadsheet, and customers do\nnot know when a technician will arrive. This document describes the first release of a scheduling\nproduct for the operations team.\n\n## Goals\n- Let dispatchers assign jobs to technicians in one screen.\n- Show customers an arrival window of two hours.\n- Track job status from assignment to completion.\n\n## Personas\n- Dispatcher: assigns and reschedules jobs.\n- Technician: sees today\u0027s route and updates job status.\n- Customer: receives the arrival window by SMS.\n\n## Functional requirements\n\n### Job intake\n1. A dispatcher can create a job with a customer name, address, skill and priority.\n2. Jobs appear in a queue sorted by priority, then by requested date.\n3. A job can be edited until a technician starts it.\n\n### Assignment\n4. The scheduler proposes technicians whose skills match the job and who are free in the time window.\n5. A dispatcher can override the proposal and pick any active technician.\n6. Assigning a job notifies the technician by push notification.\n\n### Technician mobile view\n7. The technician sees today\u0027s jobs in route order with the customer address.\n8. The technician can mark a job as started, paused, or completed.\n9. Completing a job asks for a short note and optional photos.\n\n### Customer notification\n10. When a job is assigned, the customer receives an SMS with a two-hour arrival window.\n11. Rescheduling sends a new window and cancels the previous one.\n\n### Reporting\n12. Operations can export a weekly report of jobs per technician and average completion time.\n\n## Non-functional requirements\n- The mobile view must work on a phone with a weak connection.\n- Every job status change is audited with user and timestamp.\n- Customer phone numbers are personal data and must not appear in logs.\n\n## Out of scope for this release\n- Route optimisation beyond skill and availability.\n- Billing and invoicing.\n- C"
+               },
+    "options":  {
+                    "projectName":  "Field Service Scheduling",
+                    "projectKey":  "FSS",
+                    "sprintLengthWeeks":  2,
+                    "startDate":  "2026-11-09",
+                    "teamSize":  null,
+                    "extraInstructions":  "Keep the plan minimal: one sprint and at most six tasks.",
+                    "language":  "en",
+                    "targetProjectId":  null
+                },
+    "counts":  {
+                   "sprints":  1,
+                   "epics":  6,
+                   "items":  6,
+                   "subtasks":  26,
+                   "criteria":  54,
+                   "points":  37
+               },
+    "model":  "claude-sonnet-4-6",
+    "usage":  {
+                  "inputTokens":  1507,
+                  "outputTokens":  4429
+              },
+    "analyzer":  "ai",
+    "error":  "",
+    "errorCode":  "",
+    "projectId":  null,
+    "createdBy":  "6aec3936a7cd1f57940e9ccd",
+    "createdAt":  "2026-11-05T08:47:47.927Z",
+    "startedAt":  "2026-11-05T08:47:47.933Z",
+    "completedAt":  "2026-11-05T08:48:24.734Z",
+    "targetProject":  null,
+    "plan":  {
+                 "project":  {
+                                 "name":  "Field Service Scheduling",
+                                 "key":  "FSS",
+                                 "description":  "A scheduling product for the operations team that replaces phone-based dispatch and spreadsheets. Dispatchers create and assign jobs from one screen, technicians see today\u0027s route and update job status, and customers get a two-hour arrival window by SMS.",
+                                 "color":  "teal"
+                             },
+                 "sprints":  [
+                                 {
+                                     "name":  "Sprint 1",
+                                     "goal":  "Dispatchers can create and assign jobs to matching technicians, and technicians can see their route and update job status.",
+                                     "startDate":  "2026-11-09",
+                                     "endDate":  "2026-11-20"
+                                 }
+                             ],
+                 "epics":  [
+                               {
+                                   "ref":  "E1",
+                                   "title":  "Job intake and dispatch queue",
+                                   "description":  "Create and edit jobs and keep them in a priority-ordered queue for dispatchers."
+                               },
+                               {
+                                   "ref":  "E2",
+                                   "title":  "Technician assignment",
+                                   "description":  "Propose matching and available technicians, allow dispatcher override, and notify the technician."
+                               },
+                               {
+                                   "ref":  "E3",
+                                   "title":  "Technician mobile view",
+                                   "description":  "Today\u0027s route, addresses and job status updates that work on a weak connection."
+                               },
+                               {
+                                   "ref":  "E4",
+                                   "title":  "Customer notification",
+                                   "description":  "Two-hour arrival window by SMS on assignment and on reschedule."
+                               },
+                               {
+                                   "ref":  "E5",
+                                   "title":  "Audit and data protection",
+                                   "description":  "Audit every status change and keep customer phone numbers out of logs."
+                               },
+                               {
+                                   "ref":  "E6",
+                                   "title":  "Operations reporting",
+                                   "description":  "Weekly export of jobs per technician and average completion time."
+                               }
+                           ],
+                 "items":  [
+                               {
+                                   "ref":  "T1",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E1",
+                                   "title":  "Create jobs and show a priority-sorted dispatch queue",
+                                   "description":  "Dispatchers create a job with customer name, address, skill and priority, then work from a queue sorted by priority and requested date. Jobs stay editable until a technician starts them.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  5,
+                                   "labels":  [
+                                                  "intake",
+                                                  "dispatch"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given the job form, when a dispatcher submits customer name, address, skill and priority, then the job is saved and appears in the queue.",
+                                                              "Given jobs with different priorities and requested dates, when the queue loads, then jobs are ordered by priority, then by requested date.",
+                                                              "Given a job no technician has started, when the dispatcher edits it, then the changes are saved.",
+                                                              "Given a job already started by a technician, when the dispatcher tries to edit it, then the edit is blocked with a message."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Model jobs and build the create/edit API",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Job fields and validation rules are defined",
+                                                                                   "Create and update endpoints return the saved job"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Build the dispatcher job form",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Required fields are validated client-side",
+                                                                                   "Save and error states are shown"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Implement queue sorting and filters",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Queue orders by priority then requested date",
+                                                                                   "Sorting is covered by a unit test"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Block editing once a job is started",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Edit is rejected for in-progress and completed jobs"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Write integration tests for intake",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Create, edit and sort paths are covered"
+                                                                               ]
+                                                    }
+                                                ]
+                               },
+                               {
+                                   "ref":  "T2",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E2",
+                                   "title":  "Propose matching technicians, allow override, and push-notify",
+                                   "description":  "The scheduler proposes technicians whose skills match the job and who are free in the time window. Dispatchers can override the proposal and pick any active technician, and the assigned technician is notified by push notification.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  8,
+                                   "labels":  [
+                                                  "assignment",
+                                                  "notifications"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given a job with a skill and time window, when the scheduler runs, then it proposes only active technicians whose skills match and who have no overlapping job.",
+                                                              "Given a proposal, when the dispatcher overrides it and picks any active technician, then the assignment is saved without error.",
+                                                              "Given an assignment is saved, when the technician app is reachable, then the technician receives a push notification.",
+                                                              "Given no technician matches, when the scheduler runs, then an empty list is returned and the dispatcher can still override."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Build skill and availability matching service",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Overlapping jobs are excluded",
+                                                                                   "Inactive technicians are excluded"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Expose the proposal API with ranking",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Endpoint returns ranked technician candidates for a job"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Build the proposal and override UI",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Dispatcher can accept the proposal or pick any active technician"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Integrate push notification on assignment",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Assignment triggers one notification to the technician"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Handle push provider failure",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Failed push is logged without phone numbers and does not block assignment"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Write tests for matching, override and notification",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Matching edge cases and override path are covered"
+                                                                               ]
+                                                    }
+                                                ]
+                               },
+                               {
+                                   "ref":  "T3",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E3",
+                                   "title":  "Technician mobile view of today\u0027s route with job status updates",
+                                   "description":  "Technicians see today\u0027s jobs in route order with the customer address and can mark a job as started, paused or completed. The view must stay usable on a weak connection.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  8,
+                                   "labels":  [
+                                                  "mobile",
+                                                  "offline"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given a technician with jobs today, when they open the mobile view, then jobs are listed in route order with the customer address.",
+                                                              "Given an assigned job, when the technician taps started, paused or completed, then the new status is saved and visible to dispatch.",
+                                                              "Given a weak or missing connection, when the technician changes a status, then the change is queued locally and synced when the connection returns.",
+                                                              "Given the app is reopened offline, when today\u0027s route was loaded before, then the last known route is still displayed."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Build the route list screen",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Jobs show in route order with address",
+                                                                                   "Loading and empty states exist"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Add the status transition API",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Only valid transitions between started, paused and completed are accepted"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Implement local cache and sync queue",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Offline changes are stored and retried on reconnect",
+                                                                                   "Duplicate syncs are rejected by request id"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Build status buttons and confirmation feedback",
+                                                        "acceptanceCriteria":  [
+                                                                                   "State is visible immediately after tapping"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Test on a throttled and offline network",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Route view and status changes work at high latency and packet loss"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Write mobile unit and integration tests",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Route rendering and sync retry are covered"
+                                                                               ]
+                                                    }
+                                                ]
+                               },
+                               {
+                                   "ref":  "T4",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E5",
+                                   "title":  "Audit every job status change and keep phone numbers out of logs",
+                                   "description":  "Each status change is written to an audit trail with user and timestamp, and customer phone numbers are excluded from all log output.",
+                                   "type":  "task",
+                                   "priority":  "high",
+                                   "storyPoints":  3,
+                                   "labels":  [
+                                                  "audit",
+                                                  "privacy"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given any job status change, when it is saved, then an audit entry with the user id and UTC timestamp is written.",
+                                                              "Given audit records for a job, when operations queries the job, then its full status history is returned in chronological order.",
+                                                              "Given application and access logs from scheduling flows, when they are inspected, then no customer phone number appears in any record."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               },
+                               {
+                                   "ref":  "T5",
+                                   "sprintIndex":  null,
+                                   "epicRef":  "E4",
+                                   "title":  "Send the two-hour arrival window by SMS on assignment and reschedule",
+                                   "description":  "When a job is assigned the customer receives an SMS with a two-hour arrival window. Rescheduling sends a new window and cancels the previous one.",
+                                   "type":  "story",
+                                   "priority":  "medium",
+                                   "storyPoints":  8,
+                                   "labels":  [
+                                                  "sms",
+                                                  "customer"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given a job is assigned, when the assignment is saved, then the customer receives an SMS containing a two-hour arrival window.",
+                                                              "Given a job is rescheduled, when the new time is saved, then a new SMS with the new window is sent and the previous window is marked cancelled.",
+                                                              "Given the SMS provider returns an error, when sending fails, then the dispatcher sees a failure state and can retry the message.",
+                                                              "Given a customer number is missing or invalid, when assignment completes, then no SMS is sent and the dispatcher is warned."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Calculate the two-hour arrival window",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Window is derived from the scheduled start and has a defined rounding rule"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Integrate the SMS provider",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Send request and delivery status are stored per job"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Implement reschedule send and cancel logic",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Only the newest window is active for a job"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Handle invalid numbers and send failures",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Failure surfaces to the dispatcher with a retry action"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Write tests for send, cancel and retry",
+                                                        "acceptanceCriteria":  [
+                                                                                   "All three paths are covered by automated tests"
+                                                                               ]
+                                                    }
+                                                ]
+                               },
+                               {
+                                   "ref":  "T6",
+                                   "sprintIndex":  null,
+                                   "epicRef":  "E6",
+                                   "title":  "Export the weekly report of jobs per technician and average completion time",
+                                   "description":  "Operations can export a weekly report showing the number of jobs per technician and the average completion time, based on stored job and status data.",
+                                   "type":  "story",
+                                   "priority":  "low",
+                                   "storyPoints":  5,
+                                   "labels":  [
+                                                  "reporting",
+                                                  "export"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Given a week range, when operations requests the report, then a file is produced listing jobs per technician and average completion time.",
+                                                              "Given jobs without a completed status, when the report is built, then they are excluded from the average and reported separately.",
+                                                              "Given the same week is requested twice, when the report is regenerated, then the figures match the stored job and audit data."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Build the aggregation query",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Jobs per technician and average completion time are computed from audit data"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Add the export endpoint",
+                                                        "acceptanceCriteria":  [
+                                                                                   "CSV download is returned for a requested week"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Add the export trigger in the operations UI",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Week selector and download action are available"
+                                                                               ]
+                                                    },
+                                                    {
+                                                        "title":  "Write tests for aggregation and edge cases",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Incomplete jobs and empty weeks are covered"
+                                                                               ]
+                                                    }
+                                                ]
+                               }
+                           ],
+                 "assumptions":  [
+                                     "A single operations team uses the product in this release, so no multi-tenant handling is planned.",
+                                     "A technician profile already exists with skills, active status and a push-capable device; only scheduling data is built here.",
+                                     "Job completion time is derived from the started and completed audit entries.",
+                                     "An SMS provider with delivery status is available and already contracted.",
+                                     "The technician app is an existing mobile codebase that can host a new scheduling view.",
+                                     "Requested date is the field used for the second level of queue sorting.",
+                                     "Two-hours is the only arrival window length needed for this release.",
+                                     "Route order means the dispatcher-set order of jobs for the day, not optimised routing."
+                                 ],
+                 "risks":  [
+                               "Offline status changes on a weak connection may sync out of order and produce incorrect job states.",
+                               "SMS delivery can fail or be delayed, so customers may not receive or may see a stale arrival window.",
+                               "Skill and availability matching may return no technicians often, forcing constant dispatcher override.",
+                               "Push notifications are unreliable on some devices, so technicians may miss new assignments.",
+                               "Customer phone numbers could leak into logs, error messages or third-party monitoring.",
+                               "Queue sorting and matching queries may slow down as job volume grows.",
+                               "Weekly reporting depends on a complete audit trail being in place from day one.",
+                               "The single sprint leaves customer SMS and reporting undelivered, so the release is not end-to-end for customers."
+                           ]
+             }
+}

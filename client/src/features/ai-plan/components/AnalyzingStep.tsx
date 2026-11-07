@@ -3,7 +3,7 @@ import { FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Spinner, Stepper, Surface } from '@/components/ds';
 import { Button } from '@/components/ui/button';
-import { phaseIndex } from '../lib/progress';
+import { chunkProgress, phaseIndex } from '../lib/progress';
 import type { AiPlan } from '../types';
 
 const useElapsedSeconds = (since: string | null | undefined): number => {
@@ -27,7 +27,8 @@ interface AnalyzingStepProps {
 export const AnalyzingStep = ({ plan, cancelling, timedOut, onCancel }: AnalyzingStepProps) => {
   const { t } = useTranslation('aiPlan');
   const elapsed = useElapsedSeconds(plan.startedAt ?? plan.createdAt);
-  const current = phaseIndex(plan.status, elapsed);
+  const pages = chunkProgress(plan);
+  const current = phaseIndex(plan.status, elapsed, pages);
   const minutes = Math.floor(elapsed / 60);
   const seconds = String(elapsed % 60).padStart(2, '0');
 
@@ -44,6 +45,7 @@ export const AnalyzingStep = ({ plan, cancelling, timedOut, onCancel }: Analyzin
           <Spinner decorative /> {t('analyzing.title')}
         </h2>
         <p className="text-sm text-text-body">{t(`analyzing.phase.${current}`)}</p>
+        {pages && <p className="text-sm tabular-nums text-text-subtle">{t('analyzing.pages', { done: pages.done, total: pages.total })}</p>}
       </div>
 
       <Stepper

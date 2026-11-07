@@ -1,0 +1,7 @@
+// Editor-only: the nearest tsconfig for an integration test file. It adds the Jest globals that the
+// main services/api/tsconfig.json leaves out, so the language server does not flag describe/it/expect.
+{
+  "extends": "../../tsconfig.test.json",
+  "include": ["../**/*.ts"],
+  "exclude": []
+}

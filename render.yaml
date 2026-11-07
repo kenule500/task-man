@@ -61,12 +61,6 @@ services:
         value: production
       - key: DOCUMENT_ANALYZER_TOKEN
         generateValue: true
-      - key: DOCUMIND_LLM_PROVIDER
-        value: openai
-      - key: DOCUMIND_LLM_MODEL
-        value: gpt-4o
-      - key: DOCUMIND_LLM_API_KEY
-        sync: false
       - key: ANALYZER_MAX_CHARS
         value: "24000"
       - key: ANALYZER_MAX_BYTES
@@ -74,4 +68,4 @@ services:
       - key: ANALYZER_MAX_CONCURRENCY
         value: "2"
       - key: ANALYZER_TIMEOUT_SECONDS
-        value: "200"
+        value: "280"

@@ -118,9 +118,14 @@ class WorkspaceLlm(StrictModel):
     provider; that is why there is no provider name here.
     """
 
+    # These bounds must stay at or above what the API itself accepts, or the two disagree on a value
+    # the workspace settings consider valid: the settings take a key up to 512 characters and an
+    # endpoint up to 2048 (aiReviewController). A key over the old 400-character limit made FastAPI
+    # answer 422 ANALYZER_INVALID_REQUEST before the engine was even reached, which on the screen
+    # read as an analyzer "limit" and not as the configuration mismatch it was.
     model: str = Field(min_length=1, max_length=120)
-    apiKey: str = Field(min_length=1, max_length=400)
-    baseUrl: str = Field(min_length=1, max_length=300)
+    apiKey: str = Field(min_length=1, max_length=512)
+    baseUrl: str = Field(min_length=1, max_length=2048)
 
     @field_validator("baseUrl")
     @classmethod
@@ -146,9 +151,10 @@ class AnalyzeRequest(StrictModel):
     requestId: str = Field(min_length=8, max_length=64)
     document: DocumentPayload
     options: PlanOptions
-    # Absent only for a caller that predates the workspace provider block; the service then runs
-    # on its own DOCUMIND_LLM_* settings.
-    llm: WorkspaceLlm | None = None
+    # Required, not optional: this service holds no provider credentials of its own, so a plan can
+    # only run on the account of the workspace that asked for it. A request without the block is a
+    # caller bug and is refused at the door rather than silently billed to someone else.
+    llm: WorkspaceLlm
 
 
 class AnalyzerInfo(StrictModel):

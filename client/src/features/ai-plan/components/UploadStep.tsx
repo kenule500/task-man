@@ -39,6 +39,8 @@ interface UploadStepProps {
   error: PlanApiError | null;
   /** The generation that just ended without a plan. */
   failure: string;
+  /** The server's own sentence for that failure, when it adds detail the message above does not carry. */
+  failureDetail?: string;
   recent: AiPlan[];
   onOpenRecent: (plan: AiPlan) => void;
   onOpenActive: () => void;
@@ -47,7 +49,7 @@ interface UploadStepProps {
 
 /** Step 1: pick the requirements document, set the options, and see what happens to the text before sending it. */
 export const UploadStep = ({
-  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, target = null, initial, busy, error, failure, recent,
+  slug, settings, settingsLoading, settingsError, onRetrySettings, canManageSettings, target = null, initial, busy, error, failure, failureDetail = '', recent,
   onOpenRecent, onOpenActive, onStart,
 }: UploadStepProps) => {
   const { t } = useTranslation('aiPlan');
@@ -101,6 +103,7 @@ export const UploadStep = ({
       {(error || failure) && (
         <Alert tone="error" title={t('upload.cannotStart')}>
           {error ? describeApiError(error, t) : failure}
+          {failureDetail && <p className="mt-1 text-xs text-text-subtle" dir="ltr">{failureDetail}</p>}
           {error?.code === 'PLAN_IN_PROGRESS' && (
             <Button type="button" variant="outline" size="sm" onClick={onOpenActive} className="mt-2 h-10 rounded-lg sm:h-8">{t('upload.openRunning')}</Button>
           )}

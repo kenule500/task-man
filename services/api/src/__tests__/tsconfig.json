@@ -1,0 +1,9 @@
+// Editor-only: the nearest tsconfig for a test file. It adds the Jest globals that the main
+// services/api/tsconfig.json leaves out (it excludes __tests__ and loads only Node types), so the
+// language server does not flag every describe/it/expect. The build and `pnpm typecheck` still use
+// services/api/tsconfig.json and services/api/tsconfig.test.json directly.
+{
+  "extends": "../../tsconfig.test.json",
+  "include": ["../**/*.ts"],
+  "exclude": []
+}

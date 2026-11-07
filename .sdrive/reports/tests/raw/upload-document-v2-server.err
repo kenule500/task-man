@@ -1,0 +1,95 @@
+$ node --experimental-vm-modules ./node_modules/jest/bin/jest.js "--maxWorkers=2"
+PASS src/__tests__/taskRoutes.test.ts (9.668 s)
+PASS src/__tests__/httpCaching.test.ts (10.876 s)
+PASS src/__tests__/aiPlanAnalyzer.test.ts
+PASS src/__tests__/chat.test.ts
+PASS src/__tests__/activity.test.ts
+PASS src/__tests__/uploadDocumentTransport.test.ts
+PASS src/__tests__/aiPlanContract.test.ts
+PASS src/__tests__/aiPlanPrompt.test.ts (5.935 s)
+PASS src/__tests__/taskController.test.ts (5.766 s)
+PASS src/__tests__/rbacSecurity.test.ts
+PASS src/__tests__/aiPlanSchema.test.ts
+PASS src/__tests__/taskExtras.test.ts
+PASS src/__tests__/changeCursor.test.ts
+PASS src/__tests__/uploadDocumentService.test.ts
+PASS src/__tests__/boardSettings.test.ts
+PASS src/__tests__/workspaceSettings.test.ts
+  ● Console
+
+    console.error
+      recordActivity error: req.get is not a function
+
+    [0m [90m 105 |[39m     }
+     [90m 106 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 107 |[39m     console[33m.[39merror([32m'recordActivity error:'[39m[33m,[39m (error [36mas[39m [33mError[39m)[33m.[39mmessage)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m }[33m;[39m
+     [90m 110 |[39m[0m
+
+      at error (src/utils/activity.ts:107:13)
+      at updateWorkspace (src/controllers/workspaceController.ts:361:27)
+      at Object.<anonymous> (src/__tests__/workspaceSettings.test.ts:103:5)
+
+    console.error
+      recordActivity error: req.get is not a function
+
+    [0m [90m 105 |[39m     }
+     [90m 106 |[39m   } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 107 |[39m     console[33m.[39merror([32m'recordActivity error:'[39m[33m,[39m (error [36mas[39m [33mError[39m)[33m.[39mmessage)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 108 |[39m   }
+     [90m 109 |[39m }[33m;[39m
+     [90m 110 |[39m[0m
+
+      at error (src/utils/activity.ts:107:13)
+      at regenerateInviteCode (src/controllers/workspaceController.ts:387:25)
+      at Object.<anonymous> (src/__tests__/workspaceSettings.test.ts:127:5)
+
+PASS src/__tests__/bulkTaskController.test.ts
+PASS src/__tests__/aiProvider.test.ts
+PASS src/__tests__/webhooks.test.ts
+PASS src/__tests__/permissionMiddleware.test.ts
+PASS src/__tests__/secretBox.test.ts
+PASS src/__tests__/taskQuery.test.ts
+PASS src/__tests__/notify.test.ts
+PASS src/__tests__/security.test.ts
+PASS src/__tests__/epicRules.test.ts
+PASS src/__tests__/aiSchema.test.ts
+PASS src/__tests__/pages.test.ts
+PASS src/__tests__/customFields.test.ts
+PASS src/__tests__/apiTokens.test.ts
+PASS src/__tests__/oidc.test.ts
+PASS src/__tests__/automationEngine.test.ts
+PASS src/__tests__/aiPlanEvents.test.ts
+(node:18900) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS src/__tests__/aiPlanExtract.test.ts
+PASS src/__tests__/importers/jira.test.ts
+PASS src/__tests__/workflow.test.ts
+PASS src/__tests__/timeTracking.test.ts
+PASS src/__tests__/aiConfig.test.ts
+PASS src/__tests__/flowMetrics.test.ts
+PASS src/__tests__/importers/helpers.test.ts
+PASS src/__tests__/aiUrlGuard.test.ts
+PASS src/__tests__/importers/csv.test.ts
+PASS src/__tests__/totp.test.ts
+PASS src/__tests__/sendEmail.test.ts
+PASS src/__tests__/aiPlanUpload.test.ts
+PASS src/__tests__/importers/trello.test.ts
+PASS src/__tests__/savedViewQuery.test.ts
+PASS src/__tests__/aiPrompt.test.ts
+PASS src/__tests__/taskGraph.test.ts
+PASS src/__tests__/githubEvents.test.ts
+PASS src/__tests__/webPush.test.ts
+PASS src/__tests__/aiDiffSelect.test.ts
+PASS src/__tests__/releaseNotes.test.ts
+PASS src/__tests__/ssoRedirect.test.ts
+PASS src/__tests__/recurrence.test.ts
+
+Test Suites: 54 passed, 54 total
+Tests:       728 passed, 728 total
+Snapshots:   0 total
+Time:        67.34 s, estimated 86 s
+Ran all test suites.

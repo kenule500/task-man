@@ -1,10 +1,28 @@
 import { randomUUID } from 'node:crypto';
+import { Agent } from 'undici';
 import { AiReviewError } from '../types.js';
 import type { AnalyzerConfig } from './config.js';
 import { modelPlanSchema, type PlanContent, type PlanLanguage } from './schema.js';
 
 // The only place that talks to services/document-analyzer. The service is private and the
 // contract is the same one the Python Pydantic models validate.
+
+/**
+ * Node's fetch gives up when a response's header block has not arrived after 300 s, whatever
+ * AbortSignal says. A DocuMind plan may legitimately use the whole configured budget (600 s on a
+ * slow provider), so the call runs on a dispatcher that waits for the budget plus one margin.
+ * Built on first use: a test that injects its own fetch never creates one, and no timer is left
+ * behind in a process that never talks to the service.
+ */
+let sharedDispatcher: Agent | null = null;
+const analyzerDispatcher = (): Agent => {
+  sharedDispatcher ??= new Agent({
+    headersTimeout: 660_000,
+    bodyTimeout: 660_000,
+    connectTimeout: 10_000,
+  });
+  return sharedDispatcher;
+};
 
 export interface AnalyzePlanOptions {
   projectName: string;
@@ -24,11 +42,11 @@ export interface AnalyzePlanInput {
   text: string;
   options: AnalyzePlanOptions;
   /**
-   * The workspace's provider, so the pipeline runs on that workspace's account instead of on the
-   * analyzer's own `DOCUMIND_LLM_*` settings. Omitted only by a caller that has no workspace
-   * configuration; the service then falls back to the deployment's provider.
+   * The workspace's provider, so the pipeline runs on that workspace's account. It is the only
+   * provider there is: the analyzer stores no credentials of its own and refuses a request without
+   * this block, so it is required here too -- there is nothing to fall back to.
    */
-  llm?: WorkspaceLlm | null;
+  llm: WorkspaceLlm;
 }
 
 /** The BYOK block the analyzer needs to build its engine: an OpenAI-compatible endpoint. */
@@ -134,8 +152,9 @@ export const analyzePlan = async (
       existingProject: Boolean(input.options.targetProjectId),
     },
     // The workspace's own endpoint, model and key: the plan is billed to whoever asked for it.
-    // Absent when the caller has no workspace provider, and then the service's settings are used.
-    ...(input.llm ? { llm: { model: input.llm.model, apiKey: input.llm.apiKey, baseUrl: input.llm.baseUrl } } : {}),
+    // Always sent: the analyzer holds no provider credentials of its own and refuses a request
+    // without this block, so there is no deployment-wide provider to fall back to.
+    llm: { model: input.llm.model, apiKey: input.llm.apiKey, baseUrl: input.llm.baseUrl },
   });
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -152,7 +171,9 @@ export const analyzePlan = async (
         },
         body,
         signal: AbortSignal.timeout(config.timeoutMs),
-      });
+        // Wait for the service's whole budget instead of undici's 300 s default.
+        dispatcher: analyzerDispatcher(),
+      } as RequestInit & { dispatcher: unknown });
     } catch (error) {
       if (isAbort(error)) {
         recordInfrastructureFailure();

@@ -46,6 +46,18 @@ def _error(
     )
 
 
+def _rejected_fields(exc: RequestValidationError) -> str:
+    """Field paths of a rejected request, in the same ''path.to.field:error_type'' form ``analyze`` logs.
+
+    The body is never logged: a BYOK request carries the workspace's provider key, and these paths
+    name the fields without carrying any of their values.
+    """
+    return "; ".join(
+        f"{'.'.join(str(part) for part in error.get('loc', ()))}:{error.get('type', '')}"
+        for error in exc.errors()[:5]
+    )
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     environment = settings.environment if settings else os.getenv("ANALYZER_ENV", DEVELOPMENT)
     production = environment.lower() != DEVELOPMENT
@@ -60,8 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         _log(
             "startup",
             environment=active.environment,
-            provider=active.provider,
-            model=active.model,
+            provider="workspace",
             maxChars=active.max_chars,
             maxConcurrency=active.max_concurrency,
             timeoutSeconds=active.timeout_seconds,
@@ -112,8 +123,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def on_validation_error(
-        request: Request, _exc: RequestValidationError
+        request: Request, exc: RequestValidationError
     ) -> JSONResponse:
+        # Field paths only (never the body): a rejection here means the API and this contract have
+        # drifted, and without this line the 422 leaves no trace of which field disagreed.
+        _log("request_rejected", fields=_rejected_fields(exc))
         return _error(
             request,
             422,

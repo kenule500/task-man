@@ -1,0 +1,62 @@
+[
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/01-ssb.md",
+    "chars": 316,
+    "project": "Shift Swap Board",
+    "key": "SSB"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/02-von.md",
+    "chars": 1047,
+    "project": "Vendor Onboarding",
+    "key": "VON"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/03-cli.md",
+    "chars": 1557,
+    "project": "Clinic Intake",
+    "key": "CLI"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/04-frt.md",
+    "chars": 2642,
+    "project": "Freight Tracker",
+    "key": "FRT"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/05-grv.md",
+    "chars": 3990,
+    "project": "Grant Review",
+    "key": "GRV"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/06-dfm.md",
+    "chars": 5344,
+    "project": "Device Fleet",
+    "key": "DFM"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/07-crb.md",
+    "chars": 7043,
+    "project": "Course Builder",
+    "key": "CRB"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/08-clt.md",
+    "chars": 9087,
+    "project": "Claims Triage",
+    "key": "CLT"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/09-wha.md",
+    "chars": 12182,
+    "project": "Warehouse Audit",
+    "key": "WHA"
+  },
+  {
+    "file": ".sdrive/reports/tests/raw/t75-docs/10-ptp.md",
+    "chars": 15917,
+    "project": "Partner Portal",
+    "key": "PTP"
+  }
+]

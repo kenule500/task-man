@@ -227,7 +227,7 @@ Or run it manually:
 
 ```bash
 cd services/document-analyzer
-cp .env.example .env                      # DOCUMENT_ANALYZER_TOKEN + DocuMind provider key
+cp .env.example .env                      # DOCUMENT_ANALYZER_TOKEN (the analyzer needs no provider key)
 uv sync
 uv run --env-file .env uvicorn app.main:app --port 8000
 ```
@@ -360,14 +360,15 @@ It reuses the provider, key, model and workspace opt-in of the [AI code review](
    the day the first sprint starts (next Monday by default), team size, the language of the plan (English, French or Arabic; your
    interface language by default) and up to 500 characters of extra instructions. The page says plainly that the document text is sent
    to Alibaba Cloud Model Studio and links to the setting that turns AI on.
-2. **Analyze.** The API answers `202` and the generation continues on the server (`waitUntil` on Vercel, `maxDuration` 300 s). The
-   page polls, shows the phases and lets you cancel. The plan id is kept in the address (`?plan=`), so a reload or the back button
-   picks the plan up again, and *Continue where you left off* lists your recent plans.
+2. **Analyze.** The API answers `202` and the generation continues on the server (`waitUntil` on Vercel, `maxDuration` 300 s). A
+   document longer than one analyzer call is planned page by page: the page polls, shows the phases plus *"Planning page 2 of 5"*, and
+   lets you cancel. The plan id is kept in the address (`?plan=`), so a reload or the back button picks the plan up again, and
+   *Continue where you left off* lists your recent plans.
 3. **Review.** A header card (name, key, description, Ready), then four tabs: **Sprints** (collapsible sections with dates, goal, week
    range and their tasks), **Tasks** (all of them, with a sprint selector to move a task), **Subtasks** and **Acceptance criteria**.
    Click a title, points or priority to change it, move tasks between sprints and the backlog, add or delete tasks (delete has Undo), edit
    subtasks and criteria, or **Regenerate** (the document stays in the browser tab only for this). A banner says when the document was
-   too long and only the beginning and the section headings were analysed. Assumptions and risks are listed under the plan.
+   too long and only part of it could be planned (the page cap was reached). Assumptions and risks are listed under the plan.
 4. **Create.** One all-or-nothing operation: the project, its sprints (planned, with the computed dates), epics, tasks with workspace
    numbers (`KEY-n`), subtasks linked to their parents, criteria and estimates. If anything fails, everything written is taken back. A
    project name or key that is already used answers `409` with a free suggestion. The audit log gets `project.created`,
@@ -376,10 +377,11 @@ It reuses the provider, key, model and workspace opt-in of the [AI code review](
 | Variable | Default | Meaning |
 |---|---|---|
 | `AI_PLAN_DAILY_LIMIT` | `20` | Plan generations a workspace may start per UTC day (`429 AI_DAILY_LIMIT`). Separate from `AI_REVIEW_DAILY_LIMIT`; failures before the model is reached do not count, cancelled ones do |
-| `AI_PLAN_MAX_CHARS` | `60000` | Characters of the document sent to the model. A longer document keeps its beginning (about 70%) and the section headings of the rest, and the plan is marked partial |
+| `AI_PLAN_MAX_CHARS` | `60000` | Characters of the document a single call may see. The analyzer path instead splits the document into `ANALYZER_MAX_CHARS`-sized pages and plans each one, then merges them; the start/hint of a longer single call keeps its beginning (about 70%) and the section headings of the rest and the plan is marked partial |
+| `AI_PLAN_MAX_CHUNKS` | `20` | Analyzer requests one plan may spend on the page-by-page path. A document needing more is planned up to this cap and marked partial, so one upload cannot spend unbounded model calls |
 | `AI_PLAN_MAX_MB` | `20` | Largest upload, streamed to a temporary file so it no longer has to fit Vercel's 4.5 MB body limit. Lower it where the platform still buffers bodies |
 | `AI_PLAN_MAX_OUTPUT_TOKENS` | `8192` | Size of the model's answer. Raise it for models that allow more (more items fit); a plan holds at most 120 tasks |
-| `AI_PLAN_TIMEOUT_SECONDS` | `200` | Time the provider gets to answer (the function limit is 300 s, so a retry only happens when it still fits) |
+| `AI_PLAN_TIMEOUT_SECONDS` | `300` | Wall-clock budget for the whole plan. A chunked document spends it across pages: a page that cannot finish inside what is left is not started, and the plan is finished from the pages already done (marked partial). The Vercel function limit is 300 s |
 
 **API** (all under `/api/workspaces/:slug/ai/plans`)
 

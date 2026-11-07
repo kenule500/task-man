@@ -9,7 +9,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useProjectDirectory } from '@/features/projects';
 import { useAiSettings } from '@/features/ai-review';
 import {
-  AnalyzingStep, ReviewStep, UploadStep, aiPlanApi, describeFailure, planActions, planBelongsToProject,
+  AnalyzingStep, ReviewStep, UploadStep, aiPlanApi, describeFailure, describeFailureDetail, planActions, planBelongsToProject,
   useAiProjectPlan, useRecentPlans, type AiPlan,
 } from '@/features/ai-plan';
 
@@ -136,6 +136,9 @@ const AiProjectPage = () => {
 
   const projectLoading = projectScoped && directory.loading && !project;
   const failure = flow.plan?.status === 'failed' ? describeFailure(flow.plan, t) : '';
+  // The server keeps the analyzer's own sentence (what was actually wrong) beside the code; shown as
+  // a second line so a failure can be acted on or reported without digging through server logs.
+  const failureDetail = flow.plan?.status === 'failed' ? describeFailureDetail(flow.plan, t) : '';
   const backTo = project ? `/${workspaceSlug}/projects/${project._id}` : `/${workspaceSlug}/projects`;
   const backLabel = project ? t('page.backToProject') : t('page.back');
   const projectHref = `/${workspaceSlug}/projects/${projectId ?? ''}`;
@@ -231,6 +234,7 @@ const AiProjectPage = () => {
                     busy={flow.uploading}
                     error={flow.error}
                     failure={failure}
+                    failureDetail={failureDetail}
                     recent={recentPlans}
                     onOpenRecent={openRecent}
                     onOpenActive={() => { void openActive(); }}

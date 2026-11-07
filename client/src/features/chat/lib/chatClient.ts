@@ -4,7 +4,7 @@ import { getToken } from '@/utils/session';
 import { chatApi } from '../api';
 import type { ChannelEvent, ChatActivity, ChatChannel, ConnectionStatus, PresenceUpdate } from '../types';
 import { applyActivity, clearUnread, removeChannel, sumUnread, upsertChannel } from './channels';
-import { CHANNEL_POLL_INTERVAL_MS, MAX_RECONNECT_ATTEMPTS, SOCKET_PATH, socketOrigin } from './socketConfig';
+import { CHANNEL_POLL_INTERVAL_MS, MAX_RECONNECT_ATTEMPTS, SLOW_RECONNECT_DELAY_MS, SOCKET_PATH, socketOrigin } from './socketConfig';
 
 /**
  * One chat connection per signed-in session: the Socket.IO socket, the channel list with unread counts and
@@ -39,6 +39,8 @@ class ChatClient {
   private readonly joined = new Set<string>();
   private socket: Socket | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  /** A single slow dial after the fast reconnect attempts are spent (see `reconnect_failed`). */
+  private slowRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private active: string | null = null;
   private generation = 0;
 
@@ -73,6 +75,7 @@ class ChatClient {
 
   stop(): void {
     this.generation += 1;
+    this.clearSlowRetry();
     this.socket?.removeAllListeners();
     this.socket?.close();
     this.socket = null;
@@ -109,6 +112,7 @@ class ChatClient {
       hasConnected = true;
       this.set({ status: 'connected' });
       this.stopPolling();
+      this.clearSlowRetry();
       // Rooms are per connection: join again, then catch up on what was missed while away
       this.joined.forEach(id => socket.emit('chat:join', { channelId: id }));
       // The first connection already fetched both lists in start(); a reconnect catches them up once,
@@ -126,6 +130,14 @@ class ChatClient {
     };
     socket.on('disconnect', lost);
     socket.on('connect_error', lost);
+    // `reconnectionAttempts` is finite on purpose (see socketConfig), but giving up for good left the
+    // REST fallback polling running for the rest of the tab's life -- the channel list included, every
+    // 20 s, which is what a network log full of repeated `channels`/`presence` rows means. Events are
+    // never replayed on reconnect, so nothing is missed by trying again.
+    socket.io.on('reconnect_failed', () => {
+      if (this.socket !== socket) return;
+      this.scheduleSlowRetry();
+    });
 
     socket.onAny((event: string, ...args: unknown[]) => this.emitLocal(event, args[0] as never));
 
@@ -155,6 +167,26 @@ class ChatClient {
   }
 
   // ---- fallback polling ---------------------------------------------
+  /** One slow dial, then the manager's own attempts resume for that socket. */
+  private scheduleSlowRetry(): void {
+    if (this.slowRetryTimer) return;
+    const generation = this.generation;
+    this.slowRetryTimer = setTimeout(() => {
+      this.slowRetryTimer = null;
+      const socket = this.socket;
+      if (generation !== this.generation || !socket) return;
+      // The same socket object, so the manager's attempt counter is what is reset
+      if (socket.connected) return;
+      void socket.connect();
+    }, SLOW_RECONNECT_DELAY_MS);
+  }
+
+  private clearSlowRetry(): void {
+    if (!this.slowRetryTimer) return;
+    clearTimeout(this.slowRetryTimer);
+    this.slowRetryTimer = null;
+  }
+
   private startPolling(): void {
     if (this.pollTimer) return;
     this.pollTimer = setInterval(() => {

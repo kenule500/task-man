@@ -30,6 +30,8 @@ const input: AnalyzePlanInput = {
     language: 'fr',
     targetProjectId: 'project-1',
   },
+  // The workspace BYOK block is required: the analyzer stores no credentials of its own.
+  llm: { model: 'qwen-plus', apiKey: 'sk-workspace', baseUrl: 'https://provider.test/v1' },
 };
 
 const plan = {
@@ -86,6 +88,7 @@ describe('the analyzer transport', () => {
       requestId: string;
       document: { fileName: string; mimeType: string; text: string };
       options: Record<string, unknown>;
+      llm: Record<string, unknown>;
     };
 
     expect(body.contractVersion).toBe(1);
@@ -95,6 +98,12 @@ describe('the analyzer transport', () => {
       fileName: 'brief.md',
       mimeType: 'text/markdown',
       text: 'The clinic needs appointments.',
+    });
+    // The workspace BYOK block always travels with the request; there is no deployment-wide provider.
+    expect(body.llm).toEqual({
+      model: 'qwen-plus',
+      apiKey: 'sk-workspace',
+      baseUrl: 'https://provider.test/v1',
     });
     expect(body.options).toEqual({
       projectName: 'Clinic',

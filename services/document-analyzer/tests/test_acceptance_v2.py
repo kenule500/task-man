@@ -26,7 +26,9 @@ from app.limits import Limiter
 from app.main import create_app
 
 TOKEN = "t" * 40
+# The workspace's own key. It travels in the request now: this service holds no key of its own.
 PROVIDER_KEY = "sk-test-provider-key"
+WORKSPACE = {"model": "model-1", "apiKey": PROVIDER_KEY, "baseUrl": "https://example.test/v1"}
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,10 +40,6 @@ def settings(**overrides: object) -> Settings:
     base = Settings(
         environment="development",
         token=TOKEN,
-        provider="custom",
-        model="model-1",
-        api_key=PROVIDER_KEY,
-        base_url="http://example.invalid",
         max_chars=24_000,
         max_bytes=2_000_000,
         max_concurrency=2,
@@ -98,6 +96,7 @@ def body(**overrides: object) -> dict:
         "requestId": "11111111-2222-4333-8444-555555555555",
         "document": document,
         "options": options,
+        "llm": WORKSPACE,
     }
     payload.update(overrides)
     return payload
@@ -153,10 +152,10 @@ def test_ac_048_the_response_reports_the_engine_and_the_model_that_produced_it(
 
     monkeypatch.setattr("app.analyze.generate_markdown", fake_generate)
 
-    result = asyncio.run(analyze(AnalyzeRequest.model_validate(body()), settings(model="model-7")))
+    result = asyncio.run(analyze(AnalyzeRequest.model_validate(body()), settings()))
 
-    # Node stores these two values on the plan (analyzer=documind, model=<this string>)
-    assert result.analyzer.model == "model-7"
+    # Node stores these two values on the plan (analyzer=documind, model=<the workspace's>)
+    assert result.analyzer.model == WORKSPACE["model"]
     assert result.analyzer.engine == "documind"
 
 
@@ -173,17 +172,14 @@ def test_ac_052_healthz_answers_without_authentication_and_without_a_secret() ->
     assert PROVIDER_KEY not in response.text
 
 
-def test_ac_052_production_refuses_to_start_without_a_long_token_and_a_provider_key() -> None:
-    environment = {
-        "ANALYZER_ENV": "production",
-        "DOCUMENT_ANALYZER_TOKEN": "short-token",
-        "DOCUMIND_LLM_API_KEY": PROVIDER_KEY,
-    }
+def test_ac_052_production_refuses_to_start_without_a_long_token() -> None:
+    # No provider key is required any more: it belongs to the workspace and arrives per request, so
+    # requiring one here would only stop a service that is perfectly able to run.
     with pytest.raises(ConfigurationError, match="at least 32 bytes"):
-        load_settings(environment)
+        load_settings({"ANALYZER_ENV": "production", "DOCUMENT_ANALYZER_TOKEN": "short-token"})
 
-    with pytest.raises(ConfigurationError, match="DOCUMIND_LLM_API_KEY"):
-        load_settings({"ANALYZER_ENV": "production", "DOCUMENT_ANALYZER_TOKEN": TOKEN})
+    started = load_settings({"ANALYZER_ENV": "production", "DOCUMENT_ANALYZER_TOKEN": TOKEN})
+    assert started.production is True
 
 
 def test_ac_052_no_endpoint_echoes_the_provider_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -384,5 +380,8 @@ def test_ac_058_the_build_and_deployment_declare_the_service() -> None:
         values[name.strip()] = value.strip()
 
     assert values["DOCUMENT_ANALYZER_TOKEN"].startswith("replace-with-")
-    assert values["DOCUMIND_LLM_API_KEY"].startswith("replace-with-")
+    # No provider credential belongs to this deployment any more: every plan runs on the workspace
+    # that uploaded it (the request's `llm` block), so the example must not carry a DOCUMIND_LLM_*
+    # setting, and no value in it may look like a real key.
+    assert not any(name.startswith("DOCUMIND_LLM_") for name in values)
     assert all(not (len(value) >= 32 and value.isalnum()) for value in values.values())

@@ -30,6 +30,7 @@ def request(text: str = "Students book clinic appointments.", name: str = "") ->
                 "language": "en",
                 "existingProject": False,
             },
+            "llm": {"model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": "https://example.test/v1"},
         }
     )
 

@@ -20,7 +20,7 @@ the number of provider calls (see below).
 
 ```bash
 cd services/document-analyzer
-cp .env.example .env          # fill in the token and provider key
+cp .env.example .env          # fill in the service token
 uv sync
 uv run --env-file .env uvicorn app.main:app --reload --port 8000
 ```
@@ -60,11 +60,12 @@ DOCUMENT_ANALYZER_URL=http://127.0.0.1:8000
 DOCUMENT_ANALYZER_TOKEN=<same token>
 ```
 
-`documind` is the default mode. The API sends the provider of the workspace that uploaded the
-document (its endpoint, model and key) in the request's `llm` block, and this service hands it to
-the SDK, so a plan runs on the account that asked for it. The `DOCUMIND_LLM_*` settings below are
-used only for a request that carries no such block, which lets a deployment keep them as a fallback.
-Set `DOCUMENT_ANALYZER_MODE=ai` on the API to use the v1 single-call workspace-provider path instead.
+`documind` is the default mode. Every plan runs on the provider of the workspace that uploaded the
+document (BYOK): the API sends that workspace's endpoint, model and key in the request's `llm` block,
+and this service hands it to the SDK. **This service holds no provider credentials of its own** —
+there are no `DOCUMIND_LLM_*` variables to set — so the block is required and a request without one is
+refused. Set `DOCUMENT_ANALYZER_MODE=ai` on the API to use the v1 single-call workspace-provider path
+instead, which is what a deployment with no analyzer needs.
 
 ## API
 
@@ -88,29 +89,38 @@ Set `DOCUMENT_ANALYZER_MODE=ai` on the API to use the v1 single-call workspace-p
 }
 ```
 
-The optional `llm` block is the BYOK provider of the workspace that queued the plan (HTTPS only; no
-userinfo, query or fragment). When it is present the plan runs on that workspace's account and the
-`DOCUMIND_LLM_*` settings are ignored; when it is absent the service uses its own settings.
+The `llm` block is the BYOK provider of the workspace that queued the plan (HTTPS only; no userinfo,
+query or fragment). It is **required**: it carries the only provider credentials involved, so a plan
+cannot run without it and the request is refused with 422 if it is missing.
 
 It returns `{ contractVersion, requestId, plan, analyzer, warnings }`. Errors are
 `{ requestId, code, message }` with `ANALYZER_UNAUTHORIZED`, `ANALYZER_INVALID_REQUEST`,
-`ANALYZER_BODY_TOO_LARGE`, `ANALYZER_INVALID_OUTPUT`, `ANALYZER_RATE_LIMITED`,
-`ANALYZER_TIMEOUT`, `ANALYZER_UNAVAILABLE` or `ANALYZER_NOT_CONFIGURED`.
+`ANALYZER_BODY_TOO_LARGE`, `ANALYZER_INVALID_OUTPUT`, `ANALYZER_PROVIDER_ERROR`,
+`ANALYZER_RATE_LIMITED`, `ANALYZER_TIMEOUT`, `ANALYZER_UNAVAILABLE` or
+`ANALYZER_NOT_CONFIGURED`.
+
+`ANALYZER_PROVIDER_ERROR` means the workspace's own model refused the call (used-up free
+allowance, no balance, rate limit, bad key, unknown model or an unreachable endpoint). DocuMind
+swallows agent failures and renders a document with no plan block, so the analyzer records every
+failed model call and reports the refusal instead of the misleading "must contain one fenced JSON
+block". The provider's own message is never echoed.
 
 `GET /healthz` is unauthenticated and returns only the status and SDK version.
 
 ## Security and limits
 
 - The service has no database and no tenant routes; only the API server calls it.
-- The bearer token comes from the environment. The provider key is the uploading workspace's, sent
-  in the request's `llm` block, or this service's own `DOCUMIND_LLM_*` as a fallback: neither is ever
-  returned or logged, and a request key is handed straight to the SDK for that one request only.
-  Production refuses to start without a ≥32-byte token and a provider key.
+- The bearer token comes from the environment. The only provider key involved is the uploading
+  workspace's, sent in the request's `llm` block: it is never returned or logged, and it is handed
+  straight to the SDK for that one request only. Production refuses to start without a ≥32-byte token;
+  no provider key is required, because this service does not have one.
 - Document text stays in memory. Generated files go to a per-request `0700` directory that is
   removed in a `finally` block; nothing is cached or persisted.
 - Logs contain the request id, sizes, latency, engine and code only.
-- `ANALYZER_MAX_CHARS` (default 24,000), `ANALYZER_MAX_BYTES` (2 MB),
-  `ANALYZER_MAX_CONCURRENCY` (2) and `ANALYZER_TIMEOUT_SECONDS` (200) bound the work.
+- `ANALYZER_MAX_CHARS` (default 24,000) is the largest text one request may carry. The API keeps every
+  request at or below it: a longer document is split into pages of this size, each page is one request,
+  and the answers are merged on the API side. `ANALYZER_MAX_BYTES` (2 MB), `ANALYZER_MAX_CONCURRENCY`
+  (2) and `ANALYZER_TIMEOUT_SECONDS` (280, under the API's 300 s plan budget) bound the work.
 - Run it on a private network or behind HTTPS; the production API must use an `https://` URL.
 
 ## Cost, latency and provider calls (RISK-022)

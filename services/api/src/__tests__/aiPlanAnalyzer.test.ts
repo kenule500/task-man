@@ -12,6 +12,9 @@ const config: AnalyzerConfig = {
   maxBytes: 2 * 1024 * 1024,
 };
 
+/** The workspace provider block the API always sends, so the pipeline runs on that workspace's account. */
+const workspaceLlm = { model: 'qwen-plus', apiKey: 'sk-workspace', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1' };
+
 const input: AnalyzePlanInput = {
   fileName: 'brief.txt',
   mimeType: 'text/plain',
@@ -20,6 +23,7 @@ const input: AnalyzePlanInput = {
     projectName: '', projectKey: '', sprintLengthWeeks: 2, startDate: '2026-11-02',
     teamSize: null, extraInstructions: '', language: 'en', targetProjectId: null,
   },
+  llm: workspaceLlm,
 };
 
 const plan = {
@@ -50,25 +54,15 @@ const capture = () => {
   return { bodies, fetchImpl };
 };
 
-/** The workspace provider block the API sends so the pipeline runs on that workspace's account. */
-const workspaceLlm = { model: 'qwen-plus', apiKey: 'sk-workspace', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1' };
-
 describe('analyzePlan', () => {
   it('sends the workspace provider with the request, so the plan runs on that workspace', async () => {
     const { bodies, fetchImpl } = capture();
-    await analyzePlan({ ...input, llm: workspaceLlm }, config, fetchImpl);
+    await analyzePlan(input, config, fetchImpl);
 
     expect(bodies[0].llm).toEqual(workspaceLlm);
     // The rest of the contract is unchanged by the extra block
     expect(bodies[0].document.text).toBe(input.text);
     expect(bodies[0].options.startDate).toBe('2026-11-02');
-  });
-
-  it('omits the block when the caller has no workspace provider, so the service falls back', async () => {
-    const { bodies, fetchImpl } = capture();
-    await analyzePlan(input, config, fetchImpl);
-
-    expect(bodies[0]).not.toHaveProperty('llm');
   });
 
   it('returns the plan the service validated', async () => {

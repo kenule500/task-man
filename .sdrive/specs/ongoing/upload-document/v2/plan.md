@@ -181,9 +181,9 @@ document. The analyzer exposes no other route.
 | `DOCUMENT_ANALYZER_MODE` | `ai` | `documind` or `ai`. Only an explicit `documind` uses the service. |
 | `DOCUMENT_ANALYZER_URL` | empty | Base URL; `https://` required outside development (loopback allowed). |
 | `DOCUMENT_ANALYZER_TOKEN` | empty | Bearer token, ≥32 bytes. |
-| `DOCUMENT_ANALYZER_TIMEOUT_SECONDS` | `200` | Client budget; clamped below the plan timeout. |
+| `DOCUMENT_ANALYZER_TIMEOUT_SECONDS` | `300` | Client budget for one analyzer call; clamped to the plan timeout (`AI_PLAN_TIMEOUT_SECONDS`, 300 by default). |
 | `DOCUMENT_ANALYZER_FALLBACK` | `false` | Allow the v1 path on infrastructure failures only. |
-| `DOCUMENT_ANALYZER_MAX_CHARS` | `24000` | Text sent to the analyzer; Node truncates and marks `truncated`. |
+| `DOCUMENT_ANALYZER_MAX_CHARS` | `24000` | Text one analyzer request may carry. The API splits a longer document into pages of this size (see `AI_PLAN_MAX_CHUNKS`); it no longer truncates. |
 | `DOCUMENT_ANALYZER_MAX_MB` | `2` | Request body ceiling for the internal call. |
 
 If `mode=documind` and URL or token is missing, the upload preflight answers `503
@@ -249,8 +249,15 @@ the daily limit are unchanged.
   SDK's and are measured, not assumed.
 - `ANALYZER_MAX_CHARS` default 24,000; Node truncates and sets `source.truncated` so the existing
   partial-plan notice is accurate.
-- `ANALYZER_TIMEOUT_SECONDS` default 200 s, inside the plan's 200 s budget; p95 target 180 s for a
-  60,000-character document (`NFR-021`).
+  - **v3 supersedes this line.** `NFR-020` and this bullet described one call per plan; a document
+    that does not fit is now split into pages of `ANALYZER_MAX_CHARS` and each page is one call
+    (`AI_PLAN_MAX_CHUNKS`, default 20), merged on the API side and reported page by page. A single
+    call still happens whenever the document fits one page, so the 24k/60k mismatch (a 24k–60k
+    document was trimmed a second time and marked partial) is gone.
+- `ANALYZER_TIMEOUT_SECONDS` default 280 s, inside the plan's 300 s budget (`AI_PLAN_TIMEOUT_SECONDS`); p95 target 180 s for a
+  60,000-character document (`NFR-021`). A page that cannot finish inside the plan's remaining budget is
+  not started and the plan is finished from the pages already done, so a slow provider yields a partial
+  plan instead of `ANALYZER_TIMEOUT`.
 - Concurrency default 2; excess → `429` + `Retry-After` (`FR-046`). This protects both the provider
   quota and the container's memory.
 - The engine is created once per worker; each request gets its own `storage_local_path`, so

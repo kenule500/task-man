@@ -1,0 +1,1 @@
+{"message":"The document analyzer is not configured. An operator must set DOCUMENT_ANALYZER_URL and DOCUMENT_ANALYZER_TOKEN.","code":"ANALYZER_NOT_CONFIGURED"}

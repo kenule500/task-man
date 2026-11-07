@@ -7,8 +7,16 @@ export const DEFAULT_PLAN_MAX_CHARS = 60_000;
 export const DEFAULT_PLAN_MAX_MB = 20;
 /** Output budget for one plan. qwen-plus accepts up to 8192 in every mode; raise it for models that allow more. */
 export const DEFAULT_PLAN_MAX_OUTPUT_TOKENS = 8192;
-/** One generation may take this long before it is given up (the function limit is 300 s). */
-export const DEFAULT_PLAN_TIMEOUT_SECONDS = 200;
+/* One generation may take this long before it is given up. The Vercel function limit is 300 s, and a
+ * chunked document spends this budget across several pages, so this is the ceiling a plan must fit. */
+export const DEFAULT_PLAN_TIMEOUT_SECONDS = 300;
+/**
+ * Analyzer requests one document plan may spend. A document longer than one analyzer call is split
+ * into chunks and each chunk is generated on its own; this bounds the cost of a pathological document
+ * (`ANALYZER_MAX_CHARS` is the chunk size, so `ceil(AI_PLAN_MAX_CHARS / chunk)` is the usual count).
+ * Reaching it means the rest of the document is left out and the plan is marked partial.
+ */
+export const DEFAULT_PLAN_MAX_CHUNKS = 20;
 
 export interface PlanConfig {
   /** Plan generations a workspace may start per UTC day (separate from the code review limit). */
@@ -19,6 +27,8 @@ export interface PlanConfig {
   maxBytes: number;
   maxOutputTokens: number;
   timeoutMs: number;
+  /** Analyzer requests one plan may spend when the document is split into chunks. */
+  maxChunks: number;
 }
 
 const positiveInt = (value: string | undefined, fallback: number, max: number): number => {
@@ -31,7 +41,8 @@ export const readPlanConfig = (source: NodeJS.ProcessEnv = process.env): PlanCon
   maxChars: positiveInt(source.AI_PLAN_MAX_CHARS, DEFAULT_PLAN_MAX_CHARS, 400_000),
   maxBytes: positiveInt(source.AI_PLAN_MAX_MB, DEFAULT_PLAN_MAX_MB, 100) * 1024 * 1024,
   maxOutputTokens: positiveInt(source.AI_PLAN_MAX_OUTPUT_TOKENS, DEFAULT_PLAN_MAX_OUTPUT_TOKENS, 65_536),
-  timeoutMs: positiveInt(source.AI_PLAN_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 600) * 1000,
+  timeoutMs: positiveInt(source.AI_PLAN_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 780) * 1000,
+  maxChunks: positiveInt(source.AI_PLAN_MAX_CHUNKS, DEFAULT_PLAN_MAX_CHUNKS, 200),
 });
 
 // ----------------------------------------------------------------
@@ -79,13 +90,14 @@ export const isAnalyzerUrlAllowed = (value: string, environment = process.env.NO
 export const readAnalyzerConfig = (source: NodeJS.ProcessEnv = process.env): AnalyzerConfig => {
   const plan = readPlanConfig(source);
   // DocuMind is the engine: it re-authors the whole document into a plan, on the provider of the
-  // workspace that uploaded it (the request carries that workspace's endpoint, model and key).
+  // workspace that uploaded it. Every request carries that workspace's endpoint, model and key in
+  // its `llm` block, because the analyzer holds no provider credentials of its own.
   // `DOCUMENT_ANALYZER_MODE=ai` opts out to the single-call v1 provider path, which is what a
   // deployment without an analyzer needs.
   const mode: DocumentAnalyzerMode = source.DOCUMENT_ANALYZER_MODE === 'ai' ? 'ai' : 'documind';
   const url = (source.DOCUMENT_ANALYZER_URL ?? '').trim().replace(/\/+$/, '');
   const token = (source.DOCUMENT_ANALYZER_TOKEN ?? '').trim();
-  const timeout = positiveInt(source.DOCUMENT_ANALYZER_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 600) * 1000;
+  const timeout = positiveInt(source.DOCUMENT_ANALYZER_TIMEOUT_SECONDS, DEFAULT_PLAN_TIMEOUT_SECONDS, 780) * 1000;
   return {
     mode,
     url,

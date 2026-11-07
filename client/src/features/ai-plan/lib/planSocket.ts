@@ -7,6 +7,8 @@ import { chatClient } from '@/features/chat/lib/chatClient';
 export interface PlanUpdate {
   planId: string;
   status: string;
+  /** Page-by-page progress, when the server reports it (a chunked document run). */
+  progress?: { total: number; done: number };
 }
 
 export interface PlanSubscription {

@@ -6,6 +6,8 @@ import { makeAiPlan } from './fixtures';
 
 // A background tab must stop asking the server for a plan's progress. The hook polls with setTimeout
 // while the shared socket is down, so these tests own the clock and flip visibility by hand.
+// The interval is passed in (small) so the tests stay readable; the hook's own default is checked
+// against the constants in `plan.test.ts`.
 
 jest.mock('../api', () => ({
   aiPlanApi: {
@@ -26,6 +28,9 @@ jest.mock('../lib/planSocket', () => ({
 
 const get = aiPlanApi.get as jest.MockedFunction<typeof aiPlanApi.get>;
 const upload = aiPlanApi.upload as jest.MockedFunction<typeof aiPlanApi.upload>;
+
+/** The interval these tests use, so the assertions can be read as "one tick, one read". */
+const POLL = 2000;
 
 const options: PlanUploadOptions = {
   projectName: '',
@@ -67,7 +72,7 @@ describe('useAiProjectPlan polling', () => {
 
   // The wait only exists once a plan has been started, so every test uploads first
   const start = async () => {
-    const rendered = renderHook(() => useAiProjectPlan('demo', { pollMs: 2000, maxWaitMs: 8 * 60_000 }));
+    const rendered = renderHook(() => useAiProjectPlan('demo', { pollMs: POLL, maxWaitMs: 8 * 60_000 }));
     await act(async () => {
       await rendered.result.current.start(file, options);
     });
@@ -87,10 +92,10 @@ describe('useAiProjectPlan polling', () => {
   it('polls a running plan while the tab is visible', async () => {
     await start();
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
 
     expect(get).toHaveBeenCalledTimes(2);
@@ -99,7 +104,7 @@ describe('useAiProjectPlan polling', () => {
   it('stops asking while the tab is hidden and resumes when it is shown', async () => {
     await start();
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
     expect(get).toHaveBeenCalledTimes(1);
 
@@ -111,7 +116,7 @@ describe('useAiProjectPlan polling', () => {
 
     setVisibility('visible');
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
     expect(get).toHaveBeenCalledTimes(2);
   });
@@ -119,14 +124,14 @@ describe('useAiProjectPlan polling', () => {
   it('does not count hidden time as a failure or against the wait budget', async () => {
     const { result } = await start();
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
     expect(get).toHaveBeenCalledTimes(1);
 
     // Hide midway to the next read, so the last stretch before returning is never counted
     setVisibility('hidden');
     await act(async () => {
-      jest.advanceTimersByTime(3000);
+      jest.advanceTimersByTime(POLL + 1000);
     });
     expect(get).toHaveBeenCalledTimes(1);
 
@@ -137,14 +142,14 @@ describe('useAiProjectPlan polling', () => {
     expect(get).toHaveBeenCalledTimes(1);
     setVisibility('visible');
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
 
     // The wait carries on through the read and the next tick, although the wall clock passed the budget
     expect(result.current.timedOut).toBe(false);
     expect(get).toHaveBeenCalledTimes(2);
     await act(async () => {
-      jest.advanceTimersByTime(2000);
+      jest.advanceTimersByTime(POLL);
     });
     expect(get).toHaveBeenCalledTimes(3);
     expect(result.current.timedOut).toBe(false);

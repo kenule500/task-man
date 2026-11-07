@@ -1,0 +1,1 @@
+printjson(db.aiplans.find({status: 'running'}, {_id: 1, createdAt: 1}).toArray()); db.aiplans.updateMany({status: 'running'}, {$set: {status: 'failed', error: 'orphaned by test cleanup', errorCode: 'ORPHANED', completedAt: new Date()}})

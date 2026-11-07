@@ -110,6 +110,11 @@ export interface AiPlan {
   usage: { inputTokens: number; outputTokens: number };
   /** Which engine produced the plan. */
   analyzer?: 'documind' | 'ai';
+  /**
+   * Page-by-page progress while a long document is generated (how many chunks are done of how many).
+   * Absent for a single-call plan and older records, which report no phases.
+   */
+  progress?: { total: number; done: number } | null;
   error: string;
   errorCode: string;
   projectId: string | null;

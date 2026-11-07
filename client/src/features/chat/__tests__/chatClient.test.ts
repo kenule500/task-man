@@ -1,5 +1,5 @@
 import { chatApi } from '../api';
-import { MAX_RECONNECT_ATTEMPTS } from '../lib/socketConfig';
+import { MAX_RECONNECT_ATTEMPTS, SLOW_RECONNECT_DELAY_MS } from '../lib/socketConfig';
 
 // A reconnect that only followed the network can rely on the events to catch the channel list up, so it
 // must not refetch the list and presence again. The fake socket lets a test connect, drop and reconnect.
@@ -10,8 +10,11 @@ interface FakeSocket {
   on: jest.Mock;
   onAny: jest.Mock;
   emit: jest.Mock;
+  connect: jest.Mock;
   close: jest.Mock;
   removeAllListeners: jest.Mock;
+  /** The manager: the client listens here for `reconnect_failed`. */
+  io: { handlers: Record<string, (...args: unknown[]) => void>; on: jest.Mock; emitServer: (event: string) => void };
   emitServer: (event: string, payload?: unknown) => void;
 }
 
@@ -26,9 +29,19 @@ const io = jest.fn(() => {
     }),
     onAny: jest.fn(),
     emit: jest.fn(),
+    connect: jest.fn(),
     close: jest.fn(),
     removeAllListeners: jest.fn(),
+    io: { handlers: {}, on: jest.fn(), emitServer: () => undefined },
     emitServer: (event, payload) => socket.handlers[event]?.(payload),
+  };
+  socket.io = {
+    handlers: {},
+    on: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
+      socket.io.handlers[event] = handler;
+      return socket.io;
+    }),
+    emitServer: event => socket.io.handlers[event]?.(),
   };
   sockets.push(socket);
   return socket;
@@ -132,5 +145,45 @@ describe('chatClient connection', () => {
     expect(client.getState()).toMatchObject({ status: 'connected', loaded: true });
     expect(channelReads).toBe(2);
     expect(presenceReads).toBe(2);
+  });
+
+  it('tries again after the fast reconnect attempts are spent, instead of polling forever', async () => {
+    // Singleton, not the fake: the client reaches its manager through `socket.io`
+    jest.useFakeTimers();
+    try {
+      client.start('demo', 'u-ana');
+      await flush();
+      const socket = sockets[0] as FakeSocket & { io: { handlers: Record<string, (...a: unknown[]) => void>; emitServer: (event: string) => void } };
+      socket.connected = false;
+      socket.emitServer('disconnect');
+      expect(client.getState().status).toBe('offline');
+
+      // Without this the client dialled no more and the REST fallback (channels + presence every
+      // 20 s) ran for the rest of the tab's life -- the repeated rows in the network log
+      socket.io.emitServer('reconnect_failed');
+      await jest.advanceTimersByTimeAsync(SLOW_RECONNECT_DELAY_MS);
+
+      expect(socket.connect).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('does not dial again once the connection is back', async () => {
+    jest.useFakeTimers();
+    try {
+      client.start('demo', 'u-ana');
+      await flush();
+      const socket = sockets[0] as FakeSocket & { io: { handlers: Record<string, (...a: unknown[]) => void>; emitServer: (event: string) => void } };
+      socket.io.emitServer('reconnect_failed');
+      // The dial succeeded before the slow retry came due
+      socket.connected = true;
+      socket.emitServer('connect');
+
+      await jest.advanceTimersByTimeAsync(SLOW_RECONNECT_DELAY_MS);
+      expect(socket.connect).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

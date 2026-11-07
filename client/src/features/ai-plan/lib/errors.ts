@@ -25,7 +25,7 @@ const FAILURE_CODES = new Set([
   'AI_DISABLED', 'AI_NOT_CONFIGURED', 'KEY_MISSING', 'KEY_UNREADABLE', 'MODEL_MISSING', 'BASE_URL_INVALID', 'BASE_URL_PRIVATE',
   'BASE_URL_UNRESOLVED', 'STALE', 'CANCELLED',
   'ANALYZER_UNAVAILABLE', 'ANALYZER_TIMEOUT', 'ANALYZER_INVALID_OUTPUT', 'ANALYZER_UNAUTHORIZED', 'ANALYZER_RATE_LIMITED',
-  'ANALYZER_BODY_TOO_LARGE',
+  'ANALYZER_BODY_TOO_LARGE', 'ANALYZER_PROVIDER_ERROR',
   // The analyzer refuses a request it cannot parse (contractVersion mismatch) or one whose text is
   // longer than its ANALYZER_MAX_CHARS. Neither can be fixed from this screen, so the message says
   // so instead of asking for a shorter document.
@@ -35,3 +35,17 @@ const FAILURE_CODES = new Set([
 /** Why a generation ended without a plan. */
 export const describeFailure = (plan: Pick<AiPlan, 'errorCode' | 'error'>, t: TFunction<'aiPlan'>): string =>
   FAILURE_CODES.has(plan.errorCode) ? t(`errors.failure.${plan.errorCode}`) : plan.error || t('errors.failed');
+
+/**
+ * The server's own sentence for a failure, when it has nothing more to add than `describeFailure`.
+ *
+ * A described code replaces the raw message (which is English) with a translation of the same reason,
+ * so the detail is only worth showing when it differs from both. A known code carries the detail a
+ * reader may need to act or to report the failure; an unknown one is already its own message.
+ */
+export const describeFailureDetail = (plan: Pick<AiPlan, 'errorCode' | 'error'>, t: TFunction<'aiPlan'>): string => {
+  const message = plan.error.trim();
+  if (!message) return '';
+  const described = describeFailure(plan, t);
+  return message === described || message === t('errors.failed') ? '' : message;
+};

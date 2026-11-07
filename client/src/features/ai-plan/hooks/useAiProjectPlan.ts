@@ -14,7 +14,14 @@ export interface PlanRequest {
 }
 
 interface Settings {
-  /** Time between two status checks. */
+  /**
+   * Time between two status checks.
+   *
+   * This is a fallback: while the shared socket is connected there is no status request at all, so the
+   * interval only shows when that channel is down. A plan runs for a minute or more, so a slow check is
+   * enough to notice it finishing -- and at the old 2 s a single plan produced about a hundred reads of
+   * the same document, which is what a network log full of one repeated id was.
+   */
   pollMs?: number;
   /** After this long the screen says the generation is taking unusually long (the server gives up after 10 minutes). */
   maxWaitMs?: number;
@@ -25,6 +32,14 @@ interface Settings {
 }
 
 const MAX_POLL_FAILURES = 5;
+/** How often the fallback check asks, unless the caller says otherwise. */
+export const DEFAULT_POLL_MS = 5_000;
+/**
+ * The point where the screen says the wait is unusually long, unless the caller says otherwise. Above
+ * the server's own ten minute staleness window (STALE_AFTER_MS), so a plan that stopped progressing
+ * is reported as failed before the screen gives up on it.
+ */
+export const DEFAULT_MAX_WAIT_MS = 12 * 60_000;
 const isRunning = (plan: AiPlan | null): boolean => plan?.status === 'queued' || plan?.status === 'running';
 
 /** A hidden tab has nobody watching it, so it stops asking until it is visible again. */
@@ -36,7 +51,7 @@ const isHidden = (): boolean => typeof document !== 'undefined' && document.visi
  */
 export const useAiProjectPlan = (
   slug: string | undefined,
-  { pollMs = 2000, maxWaitMs = 8 * 60_000, onPlanId, targetProjectId = null }: Settings = {},
+  { pollMs = DEFAULT_POLL_MS, maxWaitMs = DEFAULT_MAX_WAIT_MS, onPlanId, targetProjectId = null }: Settings = {},
 ) => {
   const [plan, setPlan] = useState<AiPlan | null>(null);
   const [draft, setDraft] = useState<PlanContent | null>(null);

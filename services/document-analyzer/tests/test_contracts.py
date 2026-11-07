@@ -172,8 +172,17 @@ class TestRequestStaysStrict:
 class TestWorkspaceProviderBlock:
     """The BYOK block the API sends: optional, strict, and HTTPS only."""
 
-    def test_a_request_without_the_block_is_still_valid(self) -> None:
-        assert AnalyzeRequest.model_validate(body()).llm is None
+    def test_a_request_without_the_block_is_refused(self) -> None:
+        # The block carries the only provider credentials there are, so it is required: a request
+        # without it cannot be run, and answering 422 here is better than half-running it
+        with pytest.raises(ValidationError):
+            AnalyzeRequest.model_validate(body())
+
+    def test_a_request_with_the_block_is_valid(self) -> None:
+        request = AnalyzeRequest.model_validate(body(llm={
+            "model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": "https://example.test/v1",
+        }))
+        assert request.llm.model == "qwen-plus"
 
     def test_the_workspace_endpoint_key_and_model_are_accepted(self) -> None:
         request = AnalyzeRequest.model_validate(body(llm={
@@ -203,6 +212,32 @@ class TestWorkspaceProviderBlock:
             AnalyzeRequest.model_validate(body(llm={
                 "model": "qwen-plus", "apiKey": "sk-workspace",
                 "baseUrl": "https://example.test/v1", "api_key": "smuggled",
+            }))
+
+    def test_a_long_key_is_accepted_up_to_the_workspace_settings_limit(self) -> None:
+        # The workspace settings accept a key of up to 512 characters (aiReviewController). A request
+        # that carries one must not be refused here: a 427-character key used to answer 422
+        # ANALYZER_INVALID_REQUEST before the engine ran, and the screen attributed it to an analyzer
+        # "limit" rather than to the two sides disagreeing.
+        request = AnalyzeRequest.model_validate(body(llm={
+            "model": "qwen-plus", "apiKey": "k" * 512, "baseUrl": "https://example.test/v1",
+        }))
+        assert request.llm is not None
+        assert len(request.llm.apiKey) == 512
+
+    def test_a_long_endpoint_is_accepted_up_to_the_workspace_settings_limit(self) -> None:
+        long_url = "https://example.test/" + "a" * (2048 - len("https://example.test/"))
+        request = AnalyzeRequest.model_validate(body(llm={
+            "model": "qwen-plus", "apiKey": "sk-workspace", "baseUrl": long_url,
+        }))
+        assert request.llm is not None
+        assert len(request.llm.baseUrl) == 2048
+
+    def test_a_key_beyond_what_the_settings_allow_is_still_refused(self) -> None:
+        # The bound is raised, not removed: a body far past the settings' own limit is still a bug.
+        with pytest.raises(ValidationError):
+            AnalyzeRequest.model_validate(body(llm={
+                "model": "qwen-plus", "apiKey": "k" * 513, "baseUrl": "https://example.test/v1",
             }))
 
     @pytest.mark.parametrize("missing", ["model", "apiKey", "baseUrl"])

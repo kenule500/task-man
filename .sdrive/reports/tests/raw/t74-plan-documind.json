@@ -1,0 +1,124 @@
+{
+    "_id":  "6aec44d8b1f29dc1e676a1c1",
+    "status":  "ready",
+    "source":  {
+                   "fileName":  "t74-sample-requirements.md",
+                   "mimeType":  "text/plain",
+                   "size":  2032,
+                   "chars":  2029,
+                   "truncated":  false,
+                   "preview":  "# Field Service Scheduling — Product Requirements\n\n## Background\nOur field technicians are scheduled by phone. Dispatchers keep a spreadsheet, and customers do\nnot know when a technician will arrive. This document describes the first release of a scheduling\nproduct for the operations team.\n\n## Goals\n- Let dispatchers assign jobs to technicians in one screen.\n- Show customers an arrival window of two hours.\n- Track job status from assignment to completion.\n\n## Personas\n- Dispatcher: assigns and reschedules jobs.\n- Technician: sees today\u0027s route and updates job status.\n- Customer: receives the arrival window by SMS.\n\n## Functional requirements\n\n### Job intake\n1. A dispatcher can create a job with a customer name, address, skill and priority.\n2. Jobs appear in a queue sorted by priority, then by requested date.\n3. A job can be edited until a technician starts it.\n\n### Assignment\n4. The scheduler proposes technicians whose skills match the job and who are free in the time window.\n5. A dispatcher can override the proposal and pick any active technician.\n6. Assigning a job notifies the technician by push notification.\n\n### Technician mobile view\n7. The technician sees today\u0027s jobs in route order with the customer address.\n8. The technician can mark a job as started, paused, or completed.\n9. Completing a job asks for a short note and optional photos.\n\n### Customer notification\n10. When a job is assigned, the customer receives an SMS with a two-hour arrival window.\n11. Rescheduling sends a new window and cancels the previous one.\n\n### Reporting\n12. Operations can export a weekly report of jobs per technician and average completion time.\n\n## Non-functional requirements\n- The mobile view must work on a phone with a weak connection.\n- Every job status change is audited with user and timestamp.\n- Customer phone numbers are personal data and must not appear in logs.\n\n## Out of scope for this release\n- Route optimisation beyond skill and availability.\n- Billing and invoicing.\n- C"
+               },
+    "options":  {
+                    "projectName":  "Field Service Scheduling",
+                    "projectKey":  "FSS",
+                    "sprintLengthWeeks":  2,
+                    "startDate":  "2026-11-09",
+                    "teamSize":  null,
+                    "extraInstructions":  "",
+                    "language":  "en",
+                    "targetProjectId":  null
+                },
+    "counts":  {
+                   "sprints":  2,
+                   "epics":  1,
+                   "items":  2,
+                   "subtasks":  1,
+                   "criteria":  3,
+                   "points":  13
+               },
+    "model":  "claude-sonnet-4-6",
+    "usage":  {
+                  "inputTokens":  0,
+                  "outputTokens":  0
+              },
+    "analyzer":  "documind",
+    "error":  "",
+    "errorCode":  "",
+    "projectId":  null,
+    "createdBy":  "6aec3936a7cd1f57940e9ccd",
+    "createdAt":  "2026-11-05T08:56:56.672Z",
+    "startedAt":  "2026-11-05T08:56:56.693Z",
+    "completedAt":  "2026-11-05T08:56:56.821Z",
+    "targetProject":  null,
+    "plan":  {
+                 "project":  {
+                                 "name":  "Field Service Scheduling",
+                                 "key":  "FSS",
+                                 "description":  "Rebuild the storefront checkout.",
+                                 "color":  "blue"
+                             },
+                 "sprints":  [
+                                 {
+                                     "name":  "Sprint 1",
+                                     "goal":  "Checkout foundations",
+                                     "startDate":  "2026-11-09",
+                                     "endDate":  "2026-11-20"
+                                 },
+                                 {
+                                     "name":  "Sprint 2",
+                                     "goal":  "Payments and rollout",
+                                     "startDate":  "2026-11-23",
+                                     "endDate":  "2026-12-04"
+                                 }
+                             ],
+                 "epics":  [
+                               {
+                                   "ref":  "E1",
+                                   "title":  "Checkout",
+                                   "description":  "Cart, address and payment steps."
+                               }
+                           ],
+                 "items":  [
+                               {
+                                   "ref":  "T1",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E1",
+                                   "title":  "Build the cart summary",
+                                   "description":  "Show items, quantities and totals.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  5,
+                                   "labels":  [
+                                                  "checkout"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Totals match the server calculation."
+                                                          ],
+                                   "subtasks":  [
+                                                    {
+                                                        "title":  "Add the summary component",
+                                                        "acceptanceCriteria":  [
+                                                                                   "Renders on mobile and desktop."
+                                                                               ]
+                                                    }
+                                                ]
+                               },
+                               {
+                                   "ref":  "T2",
+                                   "sprintIndex":  1,
+                                   "epicRef":  "E1",
+                                   "title":  "Add the payment step",
+                                   "description":  "Collect a card and confirm the order.",
+                                   "type":  "task",
+                                   "priority":  "medium",
+                                   "storyPoints":  8,
+                                   "labels":  [
+                                                  "payments"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "A declined card shows a retry."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               }
+                           ],
+                 "assumptions":  [
+                                     "The payment provider stays the same."
+                                 ],
+                 "risks":  [
+                               "The provider sandbox may be unavailable."
+                           ]
+             }
+}

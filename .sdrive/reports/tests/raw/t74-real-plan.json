@@ -1,0 +1,193 @@
+{
+    "_id":  "6aec4df9ec4c16c314b7781b",
+    "status":  "ready",
+    "source":  {
+                   "fileName":  "01-ssb.md",
+                   "mimeType":  "text/plain",
+                   "size":  318,
+                   "chars":  315,
+                   "truncated":  false,
+                   "preview":  "# Shift Swap Board — Product Requirements\n\nThis document describes the first release of Shift Swap Board for the retail scheduling team.\n\n## Goals\n- Give the retail scheduling team one screen for daily work.\n- Replace the current spreadsheet with an auditable record.\n- Reduce the time to answer a customer request."
+               },
+    "options":  {
+                    "projectName":  "Shift Swap Board",
+                    "projectKey":  "SSB",
+                    "sprintLengthWeeks":  2,
+                    "startDate":  "2026-11-09",
+                    "teamSize":  null,
+                    "extraInstructions":  "Keep the plan small: one sprint and at most five tasks.",
+                    "language":  "en",
+                    "targetProjectId":  null
+                },
+    "counts":  {
+                   "sprints":  1,
+                   "epics":  3,
+                   "items":  5,
+                   "subtasks":  0,
+                   "criteria":  10,
+                   "points":  18
+               },
+    "model":  "claude-sonnet-4-6",
+    "usage":  {
+                  "inputTokens":  0,
+                  "outputTokens":  0
+              },
+    "analyzer":  "documind",
+    "error":  "",
+    "errorCode":  "",
+    "projectId":  null,
+    "createdBy":  "6aec3936a7cd1f57940e9ccd",
+    "createdAt":  "2026-11-05T09:35:54.023Z",
+    "startedAt":  "2026-11-05T09:35:54.092Z",
+    "completedAt":  "2026-11-05T09:39:25.252Z",
+    "targetProject":  null,
+    "plan":  {
+                 "project":  {
+                                 "name":  "Shift Swap Board",
+                                 "key":  "SSB",
+                                 "description":  "Retail shift swap requests, approvals and audit in one board, replacing the scheduling spreadsheet.",
+                                 "color":  "teal"
+                             },
+                 "sprints":  [
+                                 {
+                                     "name":  "Sprint 1 - Swap Requests Live",
+                                     "goal":  "Ship shift swap request, approval and audit for the retail scheduling team.",
+                                     "startDate":  "2026-11-09",
+                                     "endDate":  "2026-11-20"
+                                 }
+                             ],
+                 "epics":  [
+                               {
+                                   "ref":  "E1",
+                                   "title":  "Swap Request Intake",
+                                   "description":  "Capture swap requests from the schedule board with validation and manager notification."
+                               },
+                               {
+                                   "ref":  "E2",
+                                   "title":  "Approval and Audit Log",
+                                   "description":  "Approve or decline requests and record every decision in an immutable audit trail."
+                               },
+                               {
+                                   "ref":  "E3",
+                                   "title":  "Coverage Visibility",
+                                   "description":  "Surface coverage gaps and schedule impact so managers can decide quickly."
+                               }
+                           ],
+                 "items":  [
+                               {
+                                   "ref":  "T1",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E1",
+                                   "title":  "Request a swap from the schedule board",
+                                   "description":  "An employee selects one of their own future shifts and a preferred replacement; the request is validated before it is saved.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  5,
+                                   "labels":  [
+                                                  "frontend",
+                                                  "swap"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "An employee can submit a swap request for one of their own future shifts.",
+                                                              "A request cannot be created for a past shift or one already swapped."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               },
+                               {
+                                   "ref":  "T2",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E2",
+                                   "title":  "Approve or decline a swap request",
+                                   "description":  "Managers see the request, the affected shifts and the coverage impact, then approve or decline with a reason.",
+                                   "type":  "story",
+                                   "priority":  "high",
+                                   "storyPoints":  5,
+                                   "labels":  [
+                                                  "approval"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "A manager can approve or decline an open request in a single action.",
+                                                              "Declining a request requires a short written reason."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               },
+                               {
+                                   "ref":  "T3",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E2",
+                                   "title":  "Audit log for every swap decision",
+                                   "description":  "Each state change stores actor, timestamp and previous and new state so the record replaces the spreadsheet.",
+                                   "type":  "story",
+                                   "priority":  "medium",
+                                   "storyPoints":  3,
+                                   "labels":  [
+                                                  "audit"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Every decision appears in the audit log with actor and UTC timestamp.",
+                                                              "A log entry cannot be edited or deleted from the interface."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               },
+                               {
+                                   "ref":  "T4",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E3",
+                                   "title":  "Show coverage gaps on the day view",
+                                   "description":  "The day view marks shifts left uncovered by an approved swap so managers can backfill before the shift starts.",
+                                   "type":  "story",
+                                   "priority":  "medium",
+                                   "storyPoints":  3,
+                                   "labels":  [
+                                                  "frontend"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Approved swaps that leave a shift uncovered are flagged on the day view.",
+                                                              "Flags clear automatically once the shift is reassigned."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               },
+                               {
+                                   "ref":  "T5",
+                                   "sprintIndex":  0,
+                                   "epicRef":  "E3",
+                                   "title":  "Spike: confirm payroll export for swapped hours",
+                                   "description":  "Investigate how swapped hours must be exported to payroll and record the findings for the next release.",
+                                   "type":  "spike",
+                                   "priority":  "low",
+                                   "storyPoints":  2,
+                                   "labels":  [
+                                                  "payroll"
+                                              ],
+                                   "acceptanceCriteria":  [
+                                                              "Findings are documented, including the required payroll fields.",
+                                                              "An implementation recommendation is agreed with the scheduling team."
+                                                          ],
+                                   "subtasks":  [
+
+                                                ]
+                               }
+                           ],
+                 "assumptions":  [
+                                     "Managers already use one shared schedule that the board can read from.",
+                                     "Employees sign in with the existing single sign-on provider.",
+                                     "Swap requests cover published shifts in the next four weeks only.",
+                                     "The retail scheduling team supplies anonymised sample data for testing.",
+                                     "Approved swaps are applied to the schedule by the existing scheduler, not by this release."
+                                 ],
+                 "risks":  [
+                               "Shift data may sit in a scheduler without a public API, which would delay swap intake.",
+                               "Payroll rules for swapped hours are unclear and may change the export design.",
+                               "Managers may keep the spreadsheet if the board is slower to load.",
+                               "Audit log retention rules are not yet confirmed with the compliance team."
+                           ]
+             }
+}

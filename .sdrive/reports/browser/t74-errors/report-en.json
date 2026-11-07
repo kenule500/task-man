@@ -1,0 +1,36 @@
+[
+  {
+    "width": 375,
+    "file": "en-375.png",
+    "url": "/demo-workspace/projects/new/ai",
+    "title": "TaskMan",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "horizontalOverflow": false,
+    "offenderCount": 0,
+    "worst": null,
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Skip to content Toggle Sidebar TaskMan / Projects Back to projects Create a project from a document Upload a requirements document and let AI draft the whole project: sprints, tasks, subtasks and acceptance criteria. You review and edit the plan before anything is created. 1 Upload , current step 2 Analyze , not started 3 Review , not started 4 Create , not started We could not start the analysis The document analyzer took too long. Try again or use a shorter document. What happens to your document The text of your document is sent to Custom endpoint (claude-sonnet-4-6), the AI provider configured for this workspace, to build the plan. Nothing is sent until you press Analyze, and only when an owner or admin has turned AI on for this workspace. Sent to the provider: the text of the document and your options. Pictures are not read. Kept by TaskMan: the file name, its size, the first 2,000 characters as a preview and the plan, for 30 days. The document itself is never stored. Instructions written inside the document are treated as text to plan, not as commands. AI is on for this workspace. 3 of 20 project plans used today. Requirements document Drop your document here, or choose a file PDF, Word (.docx), text or Markdown, up to 21.0 MB Options All optional. The AI chooses a name, a key and the number of sprints when you leave them empty. Project name Leave empty to let the AI name it. Project key 2 to 6 letters or digits, for task references like WEB-12. Sprint length 1 week 2 weeks 3 weeks 4 weeks First sprint starts Defaults to next Monday. Team size Used to size the sprints. Defaults to 4 people. Language of the plan English Titles, descriptions and criteria are written in this language. Extra instructions For example “mobile first” or “skip the admin area”. 0 of 500 characters. Continue where you left off t74-sample-requirements.md Ready to review Open t74-sample-requirements.md t74-sample-requirements.md Ready to review Open t74-sample-requirements.md Choose a doc",
+    "headingCount": 5,
+    "buttonCount": 15,
+    "consoleErrors": []
+  },
+  {
+    "width": 1280,
+    "file": "en-1280.png",
+    "url": "/demo-workspace/projects/new/ai",
+    "title": "TaskMan",
+    "innerWidth": 1280,
+    "scrollWidth": 1265,
+    "horizontalOverflow": false,
+    "offenderCount": 0,
+    "worst": null,
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Skip to content Demo Workspace 1 workspace Main Menu Dashboard Tasks Projects Roadmap Workload Timesheet Wiki Chat Members Calendar Reports Projects Documentation Marketing Site Website v1 All projects General Settings Help center DO Demo Owner demo@taskman.test Toggle Sidebar Projects · Demo Workspace Search tasks, pages… Ctrl K Live English Back to projects Create a project from a document Upload a requirements document and let AI draft the whole project: sprints, tasks, subtasks and acceptance criteria. You review and edit the plan before anything is created. 1 Upload , current step 2 Analyze , not started 3 Review , not started 4 Create , not started We could not start the analysis The document analyzer took too long. Try again or use a shorter document. What happens to your document The text of your document is sent to Custom endpoint (claude-sonnet-4-6), the AI provider configured for this workspace, to build the plan. Nothing is sent until you press Analyze, and only when an owner or admin has turned AI on for this workspace. Sent to the provider: the text of the document and your options. Pictures are not read. Kept by TaskMan: the file name, its size, the first 2,000 characters as a preview and the plan, for 30 days. The document itself is never stored. Instructions written inside the document are treated as text to plan, not as commands. AI is on for this workspace. 3 of 20 project plans used today. Requirements document Drop your document here, or choose a file PDF, Word (.docx), text or Markdown, up to 21.0 MB Options All optional. The AI chooses a name, a key and the number of sprints when you leave them empty. Project name Leave empty to let the AI name it. Project key 2 to 6 letters or digits, for task references like WEB-12. Sprint length 1 week 2 weeks 3 weeks 4 weeks First sprint starts Defaults to next Monday. Team size Used to size the sprints. Defaults to 4 people. Language of the plan English Titles, descriptions and criteria are written in thi",
+    "headingCount": 5,
+    "buttonCount": 22,
+    "consoleErrors": []
+  }
+]

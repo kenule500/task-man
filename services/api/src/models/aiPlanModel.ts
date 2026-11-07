@@ -36,6 +36,11 @@ export interface IAiPlan extends Omit<Document, 'model'> {
   usage: { inputTokens: number; outputTokens: number };
   /** Which path produced the plan; existing records and older fixtures may omit it. */
   analyzer?: 'documind' | 'ai';
+  /**
+   * Coarse progress while a document is being generated page by page, so the waiting screen can show
+   * how far the run is. Null for a single-call plan (and for older records), which reports no phases.
+   */
+  progress?: { total: number; done: number } | null;
   error: string;
   errorCode: string;
   projectId: mongoose.Types.ObjectId | null;
@@ -78,6 +83,17 @@ const aiPlanSchema = new Schema<IAiPlan>({
     outputTokens: { type: Number, default: 0 },
   },
   analyzer: { type: String, enum: ['documind', 'ai'], default: 'ai' },
+  progress: {
+    type: new Schema(
+      {
+        // Page-by-page generation: how many chunks the plan was split into and how many are done.
+        total: { type: Number, default: 0, min: 0 },
+        done: { type: Number, default: 0, min: 0 },
+      },
+      { _id: false },
+    ),
+    default: null,
+  },
   error: { type: String, default: '', maxlength: 500 },
   errorCode: { type: String, default: '', maxlength: 40 },
   projectId: { type: Schema.Types.ObjectId, ref: 'Project', default: null },

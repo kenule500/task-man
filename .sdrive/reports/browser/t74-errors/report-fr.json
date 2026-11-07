@@ -1,0 +1,36 @@
+[
+  {
+    "width": 375,
+    "file": "fr-375.png",
+    "url": "/demo-workspace/projects/new/ai?plan=6aec40b0bdc0a4753a120201",
+    "title": "TaskMan",
+    "innerWidth": 375,
+    "scrollWidth": 375,
+    "horizontalOverflow": false,
+    "offenderCount": 0,
+    "worst": null,
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Aller au contenu Afficher ou masquer la barre latérale TaskMan / Projets Retour aux projets Créer un projet à partir d’un document Importez un document d’exigences et laissez l’IA rédiger tout le projet : sprints, tâches, sous-tâches et critères d’acceptation. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit créé. 1 Importer , étape en cours 2 Analyser , pas commencée 3 Relire , pas commencée 4 Créer , pas commencée Chargement de votre plan Accueil Tâches Projets Plus",
+    "headingCount": 1,
+    "buttonCount": 7,
+    "consoleErrors": []
+  },
+  {
+    "width": 1280,
+    "file": "fr-1280.png",
+    "url": "/demo-workspace/projects/new/ai",
+    "title": "TaskMan",
+    "innerWidth": 1280,
+    "scrollWidth": 1265,
+    "horizontalOverflow": false,
+    "offenderCount": 0,
+    "worst": null,
+    "bodyFontSize": "16px",
+    "lineHeight": "24px",
+    "text": "Aller au contenu Demo Workspace 1 espace de travail Menu principal Tableau de bord Tâches Projets Feuille de route Charge de travail Feuille de temps Wiki Messagerie Membres Calendrier Rapports Projets Documentation Marketing Site Website v1 Tous les projets Général Paramètres Centre d’aide DO Demo Owner demo@taskman.test Afficher ou masquer la barre latérale Projets · Demo Workspace Rechercher des tâches, des pages… Ctrl K En direct Français Retour aux projets Créer un projet à partir d’un document Importez un document d’exigences et laissez l’IA rédiger tout le projet : sprints, tâches, sous-tâches et critères d’acceptation. Vous relisez et modifiez le plan avant que quoi que ce soit ne soit créé. 1 Importer , étape en cours 2 Analyser , pas commencée 3 Relire , pas commencée 4 Créer , pas commencée Nous n’avons pas pu lancer l’analyse The document analyzer took too long. Try again or use a shorter document. Ce qu’il advient de votre document Le texte de votre document est envoyé à Point de terminaison personnalisé (claude-sonnet-4-6), le fournisseur d'IA configuré pour cet espace de travail, pour construire le plan. Rien n'est envoyé tant que vous n'appuyez pas sur Analyser, et uniquement lorsqu'un propriétaire ou un administrateur a activé l'IA pour cet espace de travail. Envoyé au fournisseur : le texte du document et vos options. Les images ne sont pas lues. Conservé par TaskMan : le nom du fichier, sa taille, les 2 000 premiers caractères en aperçu et le plan, pendant 30 jours. Le document lui-même n’est jamais conservé. Les instructions écrites dans le document sont traitées comme du texte à planifier, pas comme des commandes. L’IA est activée pour cet espace de travail. 3 plans de projet utilisés sur 20 aujourd’hui. Document d’exigences Déposez votre document ici ou choisissez un fichier PDF, Word (.docx), texte ou Markdown, jusqu’à 21.0 MB Options Tout est facultatif. L’IA choisit un nom, une clé et le nombre de sprints si vous laissez ces champs vides. No",
+    "headingCount": 5,
+    "buttonCount": 22,
+    "consoleErrors": []
+  }
+]

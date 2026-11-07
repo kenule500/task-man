@@ -1,8 +1,9 @@
 import i18n from '@/i18n';
 import { uploadFields } from '../api';
-import { describeApiError, describeFailure } from '../lib/errors';
+import { DEFAULT_MAX_WAIT_MS, DEFAULT_POLL_MS } from '../hooks/useAiProjectPlan';
+import { describeApiError, describeFailure, describeFailureDetail } from '../lib/errors';
 import { fileProblem, formatFileSize, nextMondayKey, readPlanError } from '../lib/file';
-import { phaseIndex } from '../lib/progress';
+import { chunkProgress, phaseIndex } from '../lib/progress';
 import {
   addItem, addSubtask, canAddItem, canAddSubtask, cleanKey, countCriteria, countSubtasks, editList, groupBySprint, isValidKey, itemsWithoutCriteria,
   moveItem, newRef, planProblems, PLAN_LIMITS, removeItem, removeSubtask, tidyPlan, totals, updateItem, updateProject, updateSprint, updateSubtask, weekRange,
@@ -224,6 +225,27 @@ describe('reading refusals', () => {
     // A timeout is genuinely helped by a shorter document, so that advice stays
     expect(describeFailure({ errorCode: 'ANALYZER_TIMEOUT', error: 'raw' }, t)).toContain('shorter document');
   });
+
+  it('keeps the server sentence as a detail when it adds something the message does not', () => {
+    // The generic text says "a server setting"; the server's own sentence names what disagreed.
+    expect(describeFailureDetail(
+      { errorCode: 'ANALYZER_INVALID_REQUEST', error: 'The request does not match contractVersion 1.' }, t,
+    )).toBe('The request does not match contractVersion 1.');
+    // Nothing to add when the message already came from the server, and nothing when there is none
+    expect(describeFailureDetail({ errorCode: 'ODD', error: 'The server says no' }, t)).toBe('');
+    expect(describeFailureDetail({ errorCode: 'ANALYZER_TIMEOUT', error: '' }, t)).toBe('');
+  });
+});
+
+describe('waiting for a plan', () => {
+  it('keeps the fallback interval slow and the budget above the server staleness window', () => {
+    // A plan runs for a minute or more, so a short interval only produced a network log full of one
+    // repeated plan id. Any change here should be deliberate: 2 s meant about a hundred reads a plan.
+    expect(DEFAULT_POLL_MS).toBe(5_000);
+    // The server marks a plan stale after 10 minutes, so the screen must outlast that: giving up
+    // first would show a local timeout for a plan the server was about to report as failed.
+    expect(DEFAULT_MAX_WAIT_MS).toBeGreaterThan(10 * 60_000);
+  });
 });
 
 describe('progress while waiting', () => {
@@ -233,5 +255,21 @@ describe('progress while waiting', () => {
     expect(phaseIndex('running', 3)).toBe(1);
     expect(phaseIndex('running', 19)).toBe(1);
     expect(phaseIndex('running', 20)).toBe(2);
+  });
+
+  it('follows the reported pages of a chunked run instead of the clock', () => {
+    // Nothing done yet: still reading, however long it has been running
+    expect(phaseIndex('running', 90, { total: 5, done: 0 })).toBe(0);
+    expect(phaseIndex('running', 3, { total: 5, done: 2 })).toBe(1);
+    // Last page: writing the tasks
+    expect(phaseIndex('running', 3, { total: 5, done: 5 })).toBe(2);
+  });
+
+  it('reports the pages of a chunked plan and nothing for a single-call one', () => {
+    expect(chunkProgress({ progress: { total: 5, done: 2 } })).toEqual({ total: 5, done: 2 });
+    // A single page is the ordinary call: no page counter is shown
+    expect(chunkProgress({ progress: { total: 1, done: 1 } })).toBeNull();
+    expect(chunkProgress({ progress: null })).toBeNull();
+    expect(chunkProgress({})).toBeNull();
   });
 });

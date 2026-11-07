@@ -120,10 +120,12 @@ client/src/
   (keyboard: arrows move, Shift+arrows resize).
 - `documind` 0.2.2 is a **generation** SDK: it has no analysis/OCR API and its internal pipeline may
   make several provider calls. The analyzer feeds it cleaned text and parses one fenced JSON block.
-- Document plans default to `DOCUMENT_ANALYZER_MODE=documind`: the Python analyzer runs the plan on the
-  provider of the workspace that uploaded it (the request carries that workspace's endpoint, model and
-  key - see the `llm` block). `ai` opts out to the single-call v1 workspace-provider path, which is what
-  a deployment with no analyzer needs. Same provider and workspace opt-in either way.
+- Document plans default to `DOCUMENT_ANALYZER_MODE=documind`: the Python analyzer runs each plan on the
+  provider of the workspace that uploaded it. The request carries that workspace's endpoint, model and
+  key in its required `llm` block, and the analyzer holds no provider credentials of its own (there are
+  no `DOCUMIND_LLM_*` variables any more), so a request without the block is refused. `ai` opts out to
+  the single-call v1 workspace-provider path, which is what a deployment with no analyzer needs. Same
+  provider and workspace opt-in either way.
 - The analyzer receives text only; `extract.ts`, upload limits and `finalizePlan` stay in Node.
 
 ## Definition of done

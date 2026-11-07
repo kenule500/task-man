@@ -1,0 +1,12 @@
+// Editor-only: the nearest tsconfig for files under client/src. client/tsconfig.json excludes
+// __tests__, which makes the language server fall back to an inferred project without the @/* paths
+// or the Jest globals. This config includes the tests and adds the Jest types, while the build and
+// `pnpm --filter client typecheck` still use client/tsconfig.json and client/tsconfig.test.json.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node", "vite/client"]
+  },
+  "include": ["**/*", "../test/**/*", "../jest.setup.ts"],
+  "exclude": []
+}

@@ -260,10 +260,13 @@ describe('dates', () => {
 
 describe('readPlanConfig', () => {
   it('has the documented defaults and clamps bad numbers', () => {
-    expect(readPlanConfig({})).toEqual({ dailyLimit: 20, maxChars: 60_000, maxBytes: 20 * 1024 * 1024, maxOutputTokens: 8192, timeoutMs: 200_000 });
+    expect(readPlanConfig({})).toEqual({ dailyLimit: 20, maxChars: 60_000, maxBytes: 20 * 1024 * 1024, maxOutputTokens: 8192, timeoutMs: 300_000, maxChunks: 20 });
     expect(readPlanConfig({ AI_PLAN_DAILY_LIMIT: '3', AI_PLAN_MAX_CHARS: '1000', AI_PLAN_MAX_MB: '2', AI_PLAN_TIMEOUT_SECONDS: '9999' }))
-      .toMatchObject({ dailyLimit: 3, maxChars: 1000, maxBytes: 2 * 1024 * 1024, timeoutMs: 600_000 });
+      .toMatchObject({ dailyLimit: 3, maxChars: 1000, maxBytes: 2 * 1024 * 1024, timeoutMs: 780_000 });
     expect(readPlanConfig({ AI_PLAN_DAILY_LIMIT: '-1', AI_PLAN_MAX_CHARS: 'x' })).toMatchObject({ dailyLimit: 20, maxChars: 60_000 });
+    // The page cap is bounded like every other number: a bad value falls back, a huge one is clamped
+    expect(readPlanConfig({ AI_PLAN_MAX_CHUNKS: 'x' }).maxChunks).toBe(20);
+    expect(readPlanConfig({ AI_PLAN_MAX_CHUNKS: '5' }).maxChunks).toBe(5);
   });
 });
 
