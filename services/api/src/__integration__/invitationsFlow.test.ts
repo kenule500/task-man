@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import {
   bearer, createWorkspace, http, latestToken, registerUser, startApp, stopApp, systemRoleIds, type SystemRoleName,
-  type TestUser, type TestWorkspace,
+  type TestUser, type TestWorkspace, uniqueEmail,
 } from './harness.js';
 
 beforeAll(startApp);
@@ -44,7 +44,10 @@ describe('invitations: preview, accept, decline', () => {
   let token: string;
 
   it('shows a public preview with the address masked', async () => {
-    expect((await invite(accepter.email, roleIds.Developer)).status).toBe(201);
+    const created = await invite(accepter.email, roleIds.Developer);
+    expect(created.status).toBe(201);
+    // The harness captures the email, so delivery is reported as successful
+    expect(created.body.emailSent).toBe(true);
     token = latestToken(accepter.email, 'accept-invite')!;
 
     const res = await preview(token);
@@ -95,6 +98,19 @@ describe('invitations: preview, accept, decline', () => {
     expect(again.status).toBe(400);
     expect(again.body.message).toMatch(/already accepted/i);
     expect((await preview(token)).status).toBe(400);
+  });
+});
+
+describe('invitations: email delivery failure', () => {
+  it('still creates the invitation and reports that the email was not sent', async () => {
+    const address = uniqueEmail('bounce');
+    const res = await invite(address, roleIds.Viewer);
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(false);
+
+    const list = await http().get(invitationsUrl()).set(bearer(owner.token));
+    expect(list.status).toBe(200);
+    expect(JSON.stringify(list.body)).toContain(address);
   });
 });
 

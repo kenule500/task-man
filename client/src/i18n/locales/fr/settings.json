@@ -542,6 +542,7 @@
     "submit": "Envoyer l’invitation",
     "sending": "Envoi…",
     "sent": "Invitation envoyée.",
+    "emailFailed": "Invitation créée, mais l’e-mail n’a pas pu être envoyé. Partagez plutôt le code d’invitation de l’espace, ou réessayez plus tard.",
     "email": "Adresse e-mail",
     "emailPlaceholder": "collegue@entreprise.com",
     "role": "Rôle",
