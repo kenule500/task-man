@@ -534,6 +534,7 @@
     "submit": "Send invitation",
     "sending": "Sending...",
     "sent": "Invitation sent.",
+    "emailFailed": "Invitation created, but the email could not be delivered. Share the workspace invite code instead, or try again later.",
     "email": "Email address",
     "emailPlaceholder": "teammate@company.com",
     "role": "Role",

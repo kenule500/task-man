@@ -101,6 +101,7 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
     const inviter = await User.findById(inviterId).select('name');
     const acceptLink = buildInviteLink(token);
 
+    let emailSent = true;
     try {
       await sendEmail({
         to: normalizedEmail,
@@ -112,8 +113,9 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
         ),
       });
     } catch (emailError) {
-      // Never log the link: it is a bearer credential
-      console.error('⚠️ Invitation email failed to send:', emailError);
+      // Never log the link: it is a bearer credential. The invitation stays valid.
+      emailSent = false;
+      console.error('⚠️ Invitation email failed to send:', (emailError as Error).message);
     }
 
     res.status(201).json({
@@ -122,6 +124,8 @@ export const createInvitation = async (req: Request, res: Response): Promise<voi
       roleId: invitation.roleId,
       status: invitation.status,
       expiresAt: invitation.expiresAt,
+      // Lets the inviter know the invitee will not get the email (provider down or not configured)
+      emailSent,
     });
   } catch (error) {
     console.error('createInvitation error:', error);

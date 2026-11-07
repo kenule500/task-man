@@ -42,6 +42,8 @@ jest.mock('../utils/sendEmail.js', () => ({
   __esModule: true,
   isSmtpConfigured: () => false,
   sendEmail: async (message: CapturedEmail) => {
+    // Addresses starting with "bounce" simulate a provider failure (e.g. Resend down)
+    if (message.to.startsWith('bounce')) throw new Error('Simulated provider failure');
     emails.push({ to: message.to, subject: message.subject, text: message.text });
   },
 }));

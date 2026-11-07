@@ -40,6 +40,7 @@ const InviteMemberModal = ({
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [emailWarning, setEmailWarning] = useState(false);
 
   const emailError = emailTouched ? validateEmail(email) : '';
 
@@ -87,13 +88,17 @@ const InviteMemberModal = ({
     }
     setLoading(true);
 
+    setEmailWarning(false);
+
     try {
-      await api.post(`/workspaces/${workspaceSlug}/invitations`, {
+      const response = await api.post<{ emailSent?: boolean }>(`/workspaces/${workspaceSlug}/invitations`, {
         email: email.trim(),
         roleId,
       });
 
-      setSuccess(true);
+      // The invitation exists either way; only auto-close when the email really went out
+      if (response.data?.emailSent === false) setEmailWarning(true);
+      else setSuccess(true);
       setEmail('');
       setEmailTouched(false);
       if (onInvited) onInvited();
@@ -111,6 +116,7 @@ const InviteMemberModal = ({
       setEmailTouched(false);
       setError('');
       setSuccess(false);
+      setEmailWarning(false);
     }
     onOpenChange(isOpen);
   };
@@ -132,6 +138,7 @@ const InviteMemberModal = ({
       error={error}
     >
       {success && <Alert tone="success">{t('invite.sent')}</Alert>}
+      {emailWarning && <Alert tone="warning">{t('invite.emailFailed')}</Alert>}
 
       <Field label={t('invite.email')} htmlFor="invite-email" required error={emailError}>
         <div className="relative">
